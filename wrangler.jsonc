@@ -12,6 +12,12 @@
       "migrations_dir": "migrations"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "tonecos-catalogo-media"
+    }
+  ],
   "observability": {
     "enabled": true
   }
