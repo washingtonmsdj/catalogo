@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import {
   COLLECTION_STORAGE_KEY,
   MAX_COLLECTION_MODELS,
@@ -6,8 +6,10 @@ import {
   MAX_COLLECTIONS,
   createCollection,
   loadCollections,
+  parseCollectionsBackup,
   renameCollection,
   saveCollections,
+  serializeCollectionsBackup,
   toggleCollectionModel,
   type UserCollection,
 } from '../services/collections'
@@ -51,7 +53,24 @@ function loadSources(): LocalSources {
   }
 }
 
+function newerCollection(current: UserCollection, incoming: UserCollection) {
+  const currentTime = Date.parse(current.updatedAt)
+  const incomingTime = Date.parse(incoming.updatedAt)
+  if (Number.isFinite(incomingTime) && (!Number.isFinite(currentTime) || incomingTime > currentTime)) return incoming
+  return current
+}
+
+function mergeCollections(current: UserCollection[], incoming: UserCollection[]) {
+  const byId = new Map(current.map((item) => [item.id, item]))
+  for (const item of incoming) {
+    const existing = byId.get(item.id)
+    byId.set(item.id, existing ? newerCollection(existing, item) : item)
+  }
+  return Array.from(byId.values()).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, MAX_COLLECTIONS)
+}
+
 export function CollectionsDock() {
+  const importInputRef = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
   const [collections, setCollections] = useState<UserCollection[]>(loadCollections)
   const [activeId, setActiveId] = useState('')
@@ -159,6 +178,39 @@ export function CollectionsDock() {
     setMessage('Coleção excluída deste navegador.')
   }
 
+  function exportBackup() {
+    const blob = new Blob([serializeCollectionsBackup(collections)], { type: 'application/json;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    const date = new Date().toISOString().slice(0, 10)
+    anchor.href = url
+    anchor.download = `tonecos-colecoes-${date}.json`
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    URL.revokeObjectURL(url)
+    setMessage(`${collections.length} coleção${collections.length === 1 ? '' : 'ões'} exportada${collections.length === 1 ? '' : 's'} com sucesso.`)
+  }
+
+  async function importBackup(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (file.size > 1_000_000) { setMessage('O arquivo de backup é grande demais.'); return }
+    try {
+      const imported = parseCollectionsBackup(await file.text())
+      const merged = mergeCollections(collections, imported)
+      persist(merged)
+      const nextActive = merged.find((item) => item.id === activeId) ?? merged[0] ?? null
+      setActiveId(nextActive?.id ?? '')
+      setRenameValue(nextActive?.name ?? '')
+      setMessage(`Backup importado: ${imported.length} coleção${imported.length === 1 ? '' : 'ões'} válida${imported.length === 1 ? '' : 's'}.`)
+    } catch (error) {
+      const code = error instanceof Error ? error.message : ''
+      setMessage(code === 'collection_backup_version' ? 'Este backup pertence a uma versão incompatível.' : 'Arquivo de backup inválido ou corrompido.')
+    }
+  }
+
   function openModel(id: string) {
     const slug = sources.known[id]?.slug
     if (!slug) return
@@ -182,6 +234,12 @@ export function CollectionsDock() {
                 <label>Nova coleção<input value={newName} maxLength={MAX_COLLECTION_NAME} onChange={(event) => setNewName(event.target.value)} placeholder="Ex.: Terror, Presentes..." /></label>
                 <button type="submit" disabled={collections.length >= MAX_COLLECTIONS}>＋ Criar</button>
               </form>
+              <div className="collections-backup-actions">
+                <button type="button" onClick={exportBackup} disabled={!collections.length}>Exportar backup</button>
+                <button type="button" onClick={() => importInputRef.current?.click()}>Importar / mesclar</button>
+                <input ref={importInputRef} className="collections-import-input" type="file" accept="application/json,.json" onChange={importBackup} />
+                <small>Backup JSON versionado. A importação preserva a versão mais recente de cada coleção.</small>
+              </div>
               <div className="collections-list">
                 {collections.map((item) => <button type="button" key={item.id} className={item.id === activeId ? 'is-active' : ''} onClick={() => selectCollection(item.id)}><strong>{item.name}</strong><span>{item.modelIds.length} modelo{item.modelIds.length === 1 ? '' : 's'}</span></button>)}
                 {!collections.length && <div className="collections-empty-mini">Crie sua primeira coleção para começar.</div>}
