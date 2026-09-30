@@ -9,6 +9,7 @@ import './runtime.css'
 import './premium.css'
 import './lightbox.css'
 import './resilience.css'
+import './product-polish.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
