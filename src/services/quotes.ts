@@ -3,6 +3,7 @@ export type QuotePayload = {
   email: string
   notes: string
   modelIds: string[]
+  turnstileToken?: string
 }
 
 export type QuoteSubmitResult = {
