@@ -39,31 +39,54 @@ function cleanCollection(value: unknown): UserCollection | null {
   }
 }
 
+function normalizeCollections(value: unknown): UserCollection[] {
+  if (!Array.isArray(value)) return []
+  const seen = new Set<string>()
+  return value.map(cleanCollection).filter((item): item is UserCollection => Boolean(item)).filter((item) => {
+    if (seen.has(item.id)) return false
+    seen.add(item.id)
+    return true
+  }).slice(0, MAX_COLLECTIONS)
+}
+
+function collectionEnvelope(collections: UserCollection[]): CollectionEnvelope {
+  return {
+    version: COLLECTION_STORAGE_VERSION,
+    updatedAt: new Date().toISOString(),
+    collections: normalizeCollections(collections),
+  }
+}
+
+export function parseCollectionsBackup(raw: string): UserCollection[] {
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    throw new Error('collection_backup_invalid_json')
+  }
+  if (!parsed || typeof parsed !== 'object') throw new Error('collection_backup_invalid')
+  const envelope = parsed as Partial<CollectionEnvelope>
+  if (envelope.version !== COLLECTION_STORAGE_VERSION) throw new Error('collection_backup_version')
+  if (!Array.isArray(envelope.collections)) throw new Error('collection_backup_invalid')
+  return normalizeCollections(envelope.collections)
+}
+
+export function serializeCollectionsBackup(collections: UserCollection[]) {
+  return JSON.stringify(collectionEnvelope(collections), null, 2)
+}
+
 export function loadCollections(): UserCollection[] {
   try {
     const raw = localStorage.getItem(COLLECTION_STORAGE_KEY)
     if (!raw) return []
-    const parsed = JSON.parse(raw) as Partial<CollectionEnvelope>
-    if (parsed.version !== COLLECTION_STORAGE_VERSION || !Array.isArray(parsed.collections)) return []
-    const seen = new Set<string>()
-    return parsed.collections.map(cleanCollection).filter((item): item is UserCollection => Boolean(item)).filter((item) => {
-      if (seen.has(item.id)) return false
-      seen.add(item.id)
-      return true
-    }).slice(0, MAX_COLLECTIONS)
+    return parseCollectionsBackup(raw)
   } catch {
     return []
   }
 }
 
 export function saveCollections(collections: UserCollection[]) {
-  const normalized = collections.map(cleanCollection).filter((item): item is UserCollection => Boolean(item)).slice(0, MAX_COLLECTIONS)
-  const envelope: CollectionEnvelope = {
-    version: COLLECTION_STORAGE_VERSION,
-    updatedAt: new Date().toISOString(),
-    collections: normalized,
-  }
-  localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(envelope))
+  localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(collectionEnvelope(collections)))
 }
 
 export function createCollection(name: string, initialModelId?: string): UserCollection {
