@@ -71,11 +71,12 @@ O estado de descoberta faz parte da URL pública do catálogo:
 
 Isso permite compartilhar um recorte ou modelo sem criar rotas estáticas para cada combinação e sem carregar dados adicionais. No modo LIVE, uma busca recebida pela URL já inicia o runtime filtrado, evitando uma consulta intermediária sem filtro.
 
-Favoritos, lista de comparação, lista de orçamento ainda não enviada e até 12 modelos vistos recentemente ficam em `localStorage`. Esses dados são locais ao navegador e não exigem login. Dados locais inválidos ou corrompidos devem ser ignorados com segurança, nunca impedir a abertura do catálogo.
+Favoritos, coleções pessoais, lista de comparação, lista de orçamento ainda não enviada e até 12 modelos vistos recentemente ficam em `localStorage`. Esses dados são locais ao navegador e não exigem login. Dados locais inválidos ou corrompidos devem ser ignorados com segurança, nunca impedir a abertura do catálogo.
 
 ### Estados independentes do cliente
 
-- **Favoritos**: coleção pessoal de modelos para reencontrar depois.
+- **Favoritos**: seleção rápida de modelos para reencontrar depois.
+- **Coleções**: listas nomeadas e persistentes criadas pelo próprio cliente, independentes de Favoritos e Orçamento.
 - **Comparação**: seleção temporária de até 4 modelos para leitura lado a lado.
 - **Orçamento**: lista comercial de até 50 modelos que será enviada no formulário.
 - **Recentes**: até 12 modelos vistos, usados somente como histórico local.
@@ -83,6 +84,25 @@ Favoritos, lista de comparação, lista de orçamento ainda não enviada e até 
 Esses estados não devem ser misturados. Adicionar um modelo à comparação não o adiciona automaticamente ao orçamento; o cliente decide quando transferir a comparação para a lista comercial. No modo LIVE, o comparador busca detalhes somente dos modelos selecionados, no máximo quatro, sem carregar páginas adicionais do catálogo.
 
 O comparador também pode gerar um resumo textual copiável e uma visualização própria para impressão/PDF sem expor o restante da interface.
+
+### Coleções locais versionadas
+
+As coleções usam o namespace `tonecos:collections` e são armazenadas dentro de um envelope versionado. A versão inicial do contrato é `1`.
+
+Cada coleção possui `id`, `name`, `modelIds`, `createdAt` e `updatedAt`. Apenas IDs de modelos são persistidos; nomes, slugs e outros metadados continuam vindo do catálogo/estado conhecido do navegador. Isso mantém o armazenamento pequeno mesmo quando o acervo crescer para 100 mil+ modelos.
+
+Regras atuais:
+
+- até 20 coleções por navegador;
+- até 100 modelos por coleção;
+- nomes de coleção com até 48 caracteres;
+- IDs duplicados são eliminados ao carregar;
+- estruturas inválidas ou corrompidas são descartadas com segurança;
+- mudanças são sincronizadas entre abas usando o evento `storage`;
+- abrir o gerenciador recarrega Favoritos, Recentes e modelos conhecidos antes de oferecer atalhos de inclusão;
+- coleções não são enviadas ao backend e não alteram o orçamento automaticamente.
+
+O componente `CollectionsDock` é independente do runtime principal do catálogo. Isso reduz acoplamento e permite, no futuro, trocar `localStorage` por sincronização autenticada sem reescrever a navegação pública.
 
 ## Stack planejada
 
