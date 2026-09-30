@@ -10,8 +10,18 @@ type D1Database = {
   batch(statements: D1Statement[]): Promise<unknown>
 }
 
+type R2ObjectBody = {
+  json<T = unknown>(): Promise<T>
+}
+
+type R2Bucket = {
+  get(key: string): Promise<R2ObjectBody | null>
+}
+
 type SharedEnv = {
   DB: D1Database
+  MEDIA: R2Bucket
+  CORS_ORIGINS?: string
   TURNSTILE_SECRET_KEY?: string
 }
 
