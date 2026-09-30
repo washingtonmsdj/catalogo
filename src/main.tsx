@@ -12,12 +12,23 @@ import './resilience.css'
 import './product-polish.css'
 import './media-fallback.css'
 
+function mediaContainer(image: HTMLImageElement) {
+  return image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')
+}
+
 function installMediaFallback() {
   document.addEventListener('error', (event) => {
     const image = event.target
     if (!(image instanceof HTMLImageElement)) return
     image.dataset.mediaFailed = 'true'
-    image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')?.classList.add('media-failed')
+    mediaContainer(image)?.classList.add('media-failed')
+  }, true)
+
+  document.addEventListener('load', (event) => {
+    const image = event.target
+    if (!(image instanceof HTMLImageElement)) return
+    delete image.dataset.mediaFailed
+    mediaContainer(image)?.classList.remove('media-failed')
   }, true)
 }
 
