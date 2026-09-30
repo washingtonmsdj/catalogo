@@ -7,9 +7,9 @@ export type QuotePayload = {
 }
 
 export type QuoteSubmitResult = {
-  id: string
   reference: string
   mode: 'live' | 'demo'
+  deduplicated?: boolean
 }
 
 const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
@@ -21,7 +21,7 @@ function demoReference() {
 
 export async function submitQuoteRequest(payload: QuotePayload): Promise<QuoteSubmitResult> {
   if (!apiBase) {
-    return { id: `demo-${crypto.randomUUID()}`, reference: demoReference(), mode: 'demo' }
+    return { reference: demoReference(), mode: 'demo', deduplicated: false }
   }
 
   const response = await fetch(`${apiBase}/api/quotes`, {
@@ -35,6 +35,7 @@ export async function submitQuoteRequest(payload: QuotePayload): Promise<QuoteSu
     throw new Error(body?.error || `quote_submit_failed_${response.status}`)
   }
 
-  const body = await response.json() as { id: string; reference: string }
-  return { id: body.id, reference: body.reference, mode: 'live' }
+  const body = await response.json() as { reference: string; deduplicated?: boolean }
+  if (!body.reference) throw new Error('quote_reference_missing')
+  return { reference: body.reference, mode: 'live', deduplicated: body.deduplicated === true }
 }
