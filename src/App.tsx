@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { categories, models } from './data/mockCatalog'
+import { submitQuoteRequest } from './services/quotes'
 import type { CatalogModel } from './types/catalog'
 
 const formatter = new Intl.NumberFormat('pt-BR')
@@ -36,6 +37,9 @@ export default function App() {
   const [galleryPage, setGalleryPage] = useState(0)
   const [quoteOpen, setQuoteOpen] = useState(false)
   const [sent, setSent] = useState(false)
+  const [quoteMode, setQuoteMode] = useState<'live' | 'demo' | null>(null)
+  const [quoteSubmitting, setQuoteSubmitting] = useState(false)
+  const [quoteError, setQuoteError] = useState('')
   const [linkCopied, setLinkCopied] = useState(false)
 
   const franchiseOptions = useMemo(() => {
@@ -119,9 +123,25 @@ export default function App() {
     }
   }
 
-  function submitQuote(event: FormEvent<HTMLFormElement>) {
+  async function submitQuote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setSent(true)
+    const data = new FormData(event.currentTarget)
+    setQuoteSubmitting(true)
+    setQuoteError('')
+    try {
+      const result = await submitQuoteRequest({
+        name: String(data.get('name') ?? '').trim(),
+        email: String(data.get('email') ?? '').trim(),
+        notes: String(data.get('notes') ?? '').trim(),
+        modelIds: quoteList,
+      })
+      setQuoteMode(result.mode)
+      setSent(true)
+    } catch {
+      setQuoteError('Não foi possível enviar agora. Sua seleção continua salva neste navegador.')
+    } finally {
+      setQuoteSubmitting(false)
+    }
   }
 
   return (
@@ -267,7 +287,7 @@ export default function App() {
           <section className="quote-modal" onMouseDown={(event) => event.stopPropagation()}>
             <div className="modal-head"><div><span>FORMULÁRIO</span><h2>Solicitar orçamento</h2><p>Sem WhatsApp. Você recebe a solicitação pelo sistema.</p></div><button onClick={() => setQuoteOpen(false)}>×</button></div>
             {sent ? (
-              <div className="success-state"><strong>SOLICITAÇÃO REGISTRADA</strong><p>Protótipo visual: a próxima etapa conectará este formulário ao backend.</p><button onClick={() => { setSent(false); setQuoteOpen(false) }}>Voltar ao catálogo</button></div>
+              <div className="success-state"><strong>SOLICITAÇÃO REGISTRADA</strong><p>{quoteMode === 'live' ? 'Pedido enviado para o sistema.' : 'Modo demonstração ativo. Ao publicar a API, este mesmo formulário passará a gravar os pedidos sem mudar a interface.'}</p><button onClick={() => { setSent(false); setQuoteOpen(false) }}>Voltar ao catálogo</button></div>
             ) : (
               <form onSubmit={submitQuote}>
                 <label>Nome completo<input required name="name" placeholder="Seu nome" /></label>
@@ -275,7 +295,8 @@ export default function App() {
                 <div className="quote-selected"><span>Itens selecionados</span><strong>{quoteList.length}</strong></div>
                 <div className="quote-chips">{quoteList.map((id) => { const model = models.find((item) => item.id === id); return model ? <button type="button" key={id} onClick={() => toggleQuote(id)}>{model.name} ×</button> : null })}</div>
                 <label>Observações<textarea name="notes" rows={5} placeholder="Quantidade, tamanho desejado, acabamento ou outras informações..." /></label>
-                <button className="primary-action" type="submit" disabled={!quoteList.length}>Enviar solicitação <span>›</span></button>
+                {quoteError && <p role="alert">{quoteError}</p>}
+                <button className="primary-action" type="submit" disabled={!quoteList.length || quoteSubmitting}>{quoteSubmitting ? 'Enviando...' : 'Enviar solicitação'} <span>›</span></button>
               </form>
             )}
           </section>
