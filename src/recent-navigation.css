@@ -1,0 +1,125 @@
+.discovery-status__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.discovery-share {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #3b4448;
+  background: #0f1315;
+  color: #b9bdbb;
+  cursor: pointer;
+  font: 800 9px "Courier New", monospace;
+  text-transform: uppercase;
+  letter-spacing: .45px;
+}
+
+.discovery-share:hover {
+  border-color: #6f5833;
+  color: #dfc493;
+  background: #15120d;
+}
+
+.recent-modal {
+  width: min(720px, 96vw);
+}
+
+.recent-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 16px;
+}
+
+.recent-list button {
+  min-width: 0;
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 11px;
+  padding: 12px 13px;
+  border: 1px solid #30373b;
+  background: linear-gradient(180deg, #111518, #0d1012);
+  color: #e4dfd4;
+  text-align: left;
+  cursor: pointer;
+}
+
+.recent-list button:hover:not(:disabled) {
+  border-color: #765b34;
+  background: linear-gradient(180deg, #15191b, #11130f);
+  transform: translateY(-1px);
+}
+
+.recent-list button:disabled {
+  opacity: .45;
+  cursor: default;
+}
+
+.recent-list button > span {
+  grid-row: 1 / span 2;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+  border-right: 1px solid #2b3135;
+  color: #c99650;
+  font: 900 11px "Courier New", monospace;
+}
+
+.recent-list strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 900 12px "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+.recent-list small {
+  color: #737b7f;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: .45px;
+}
+
+.recent-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 16px 16px;
+}
+
+.recent-actions .share-action {
+  width: auto;
+  margin: 0;
+  padding-inline: 14px;
+}
+
+@media (max-width: 980px) {
+  .discovery-status {
+    align-items: flex-start;
+  }
+  .discovery-status__actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 640px) {
+  .discovery-status__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .discovery-share,
+  .discovery-reset {
+    width: 100%;
+  }
+  .recent-list {
+    grid-template-columns: 1fr;
+    padding: 10px;
+  }
+}
