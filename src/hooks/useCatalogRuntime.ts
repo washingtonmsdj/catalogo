@@ -78,7 +78,11 @@ export function useCatalogRuntime(initialSlug = '') {
   const [category, setCategoryState] = useState(initialScope.category)
   const [franchise, setFranchiseState] = useState(initialScope.franchise)
   const [search, setSearch] = useState(initialScope.search)
-  const [debouncedSearch, setDebouncedSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState(() => {
+    const trimmed = initialScope.search.trim()
+    if (mode === 'live' && trimmed && Array.from(trimmed).length < LIVE_SEARCH_MIN_LENGTH) return ''
+    return trimmed
+  })
   const [selectedId, setSelectedId] = useState(() => demoModels.find((model) => model.slug === initialSlug)?.id ?? demoModels[0].id)
   const selectedIdRef = useRef(selectedId)
   const prefetchedCoverUrls = useRef(new Set<string>())
