@@ -71,7 +71,16 @@ O estado de descoberta faz parte da URL pública do catálogo:
 
 Isso permite compartilhar um recorte ou modelo sem criar rotas estáticas para cada combinação e sem carregar dados adicionais. No modo LIVE, uma busca recebida pela URL já inicia o runtime filtrado, evitando uma consulta intermediária sem filtro.
 
-Favoritos, lista de orçamento ainda não enviada e até 12 modelos vistos recentemente ficam em `localStorage`. Esses dados são locais ao navegador e não exigem login. Dados locais inválidos ou corrompidos devem ser ignorados com segurança, nunca impedir a abertura do catálogo.
+Favoritos, lista de comparação, lista de orçamento ainda não enviada e até 12 modelos vistos recentemente ficam em `localStorage`. Esses dados são locais ao navegador e não exigem login. Dados locais inválidos ou corrompidos devem ser ignorados com segurança, nunca impedir a abertura do catálogo.
+
+### Estados independentes do cliente
+
+- **Favoritos**: coleção pessoal de modelos para reencontrar depois.
+- **Comparação**: seleção temporária de até 4 modelos para leitura lado a lado.
+- **Orçamento**: lista comercial de até 50 modelos que será enviada no formulário.
+- **Recentes**: até 12 modelos vistos, usados somente como histórico local.
+
+Esses estados não devem ser misturados. Adicionar um modelo à comparação não o adiciona automaticamente ao orçamento; o cliente decide quando transferir a comparação para a lista comercial. No modo LIVE, o comparador busca detalhes somente dos modelos selecionados, no máximo quatro, sem carregar páginas adicionais do catálogo.
 
 ## Stack planejada
 
