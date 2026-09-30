@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
+import { CollectionsDock } from './components/CollectionsDock'
 import { ConnectivityBanner } from './components/ConnectivityBanner'
 import { installDialogAccessibility } from './installDialogAccessibility'
 import { installLightboxSwipe } from './installLightboxSwipe'
@@ -21,6 +22,7 @@ import './collection-gallery.css'
 import './gallery-navigation.css'
 import './recent-navigation.css'
 import './comparison.css'
+import './collections.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')
@@ -51,6 +53,7 @@ createRoot(document.getElementById('root')!).render(
     <AppErrorBoundary>
       <ConnectivityBanner />
       <App />
+      <CollectionsDock />
     </AppErrorBoundary>
   </StrictMode>,
 )
