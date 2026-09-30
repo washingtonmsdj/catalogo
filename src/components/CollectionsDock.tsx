@@ -71,6 +71,20 @@ export function CollectionsDock() {
     setActiveId((current) => current && freshCollections.some((item) => item.id === current) ? current : freshCollections[0]?.id ?? '')
   }, [open])
 
+  useEffect(() => {
+    if (!open) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [open])
+
   const active = collections.find((item) => item.id === activeId) ?? null
   const currentModelId = sources.recent[0] ?? ''
   const candidateIds = useMemo(() => Array.from(new Set([...sources.recent, ...sources.favorites])).filter((id) => !active?.modelIds.includes(id)).slice(0, 24), [sources, active])
