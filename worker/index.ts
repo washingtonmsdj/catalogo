@@ -75,12 +75,18 @@ type TurnstileResult = {
   'error-codes'?: string[]
 }
 
+type QuoteRecord = {
+  id: string
+  reference: string | null
+}
+
 const DEFAULT_ORIGINS = [
   'https://washingtonmsdj.github.io',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ]
 const MAX_QUOTE_ITEMS = 50
+const QUOTE_DEDUP_MINUTES = 10
 
 function allowedOrigin(request: Request, env: Env) {
   const origin = request.headers.get('origin')
@@ -163,6 +169,36 @@ function toFtsPhrase(value: string) {
 function quoteReference(id: string) {
   const compact = id.replace(/-/g, '').slice(0, 20).toUpperCase()
   return `TCS-${compact.match(/.{1,4}/g)?.join('-') ?? compact}`
+}
+
+async function deterministicQuoteId(name: string, email: string, notes: string, modelIds: string[]) {
+  const bucket = Math.floor(Date.now() / (QUOTE_DEDUP_MINUTES * 60_000))
+  const canonical = JSON.stringify({ bucket, name, email, notes, modelIds: [...modelIds].sort() })
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical))
+  const hex = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
+}
+
+async function findRecentDuplicateQuote(env: Env, name: string, email: string, notes: string, modelIds: string[]) {
+  const placeholders = modelIds.map(() => '?').join(',')
+  return env.DB.prepare(`SELECT qr.id,qr.reference
+    FROM quote_requests qr
+    WHERE qr.name=? AND qr.email=? AND COALESCE(qr.notes,'')=?
+      AND qr.created_at >= datetime('now', '-${QUOTE_DEDUP_MINUTES} minutes')
+      AND (SELECT COUNT(*) FROM quote_request_items qi WHERE qi.quote_request_id=qr.id)=?
+      AND (SELECT COUNT(*) FROM quote_request_items qi WHERE qi.quote_request_id=qr.id AND qi.model_id IN (${placeholders}))=?
+    ORDER BY qr.created_at DESC
+    LIMIT 1`)
+    .bind(name, email, notes, modelIds.length, ...modelIds, modelIds.length)
+    .first<QuoteRecord>()
+}
+
+function quoteResponse(request: Request, env: Env, quote: QuoteRecord, deduplicated: boolean, status = 200) {
+  return json(request, env, {
+    reference: quote.reference || quoteReference(quote.id),
+    status: 'received',
+    deduplicated,
+  }, { status })
 }
 
 const encodeOffsetCursor = (offset: number) => btoa(String(offset))
@@ -369,7 +405,10 @@ async function createQuote(request: Request, env: Env) {
     return json(request, env, { error: 'invalid_models' }, { status: 400 })
   }
 
-  const id = crypto.randomUUID()
+  const duplicate = await findRecentDuplicateQuote(env, name, email, notes, modelIds)
+  if (duplicate) return quoteResponse(request, env, duplicate, true)
+
+  const id = await deterministicQuoteId(name, email, notes, modelIds)
   const reference = quoteReference(id)
   const itemValues: unknown[] = []
   const itemRows = modelIds.map((modelId) => {
@@ -377,11 +416,18 @@ async function createQuote(request: Request, env: Env) {
     return '(?,?,1)'
   }).join(',')
 
-  await env.DB.batch([
-    env.DB.prepare('INSERT INTO quote_requests(id,reference,name,email,notes) VALUES(?,?,?,?,?)').bind(id, reference, name, email, notes || null),
-    env.DB.prepare(`INSERT INTO quote_request_items(quote_request_id,model_id,quantity) VALUES ${itemRows}`).bind(...itemValues),
-  ])
-  return json(request, env, { id, reference, status: 'received' }, { status: 201 })
+  try {
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO quote_requests(id,reference,name,email,notes) VALUES(?,?,?,?,?)').bind(id, reference, name, email, notes || null),
+      env.DB.prepare(`INSERT INTO quote_request_items(quote_request_id,model_id,quantity) VALUES ${itemRows}`).bind(...itemValues),
+    ])
+  } catch (error) {
+    const concurrent = await env.DB.prepare('SELECT id,reference FROM quote_requests WHERE id=? LIMIT 1').bind(id).first<QuoteRecord>()
+    if (concurrent) return quoteResponse(request, env, concurrent, true)
+    throw error
+  }
+
+  return quoteResponse(request, env, { id, reference }, false, 201)
 }
 
 export default {
