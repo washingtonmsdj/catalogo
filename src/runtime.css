@@ -54,6 +54,32 @@
   letter-spacing: .12em;
 }
 
+.turnstile-field {
+  min-height: 66px;
+  display: grid;
+  align-items: center;
+  margin-top: 2px;
+  padding: 10px 0 4px;
+  border-top: 1px solid rgba(255, 255, 255, .06);
+}
+
+.turnstile-field > div:first-child {
+  width: 100%;
+  min-width: 0;
+}
+
+.turnstile-field iframe {
+  max-width: 100%;
+}
+
+.turnstile-field p,
+.quote-modal form > p[role="alert"] {
+  margin: 6px 0 0;
+  color: #d9c49a;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 [aria-busy="true"] .roster-track {
   opacity: .68;
 }
@@ -73,5 +99,9 @@ button:disabled {
 
   .gallery-real-image img {
     padding: 6px 6px 30px;
+  }
+
+  .turnstile-field {
+    overflow: hidden;
   }
 }
