@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import {
+  COLLECTION_STORAGE_KEY,
   MAX_COLLECTION_MODELS,
   MAX_COLLECTION_NAME,
   MAX_COLLECTIONS,
@@ -62,13 +63,24 @@ export function CollectionsDock() {
   useEffect(() => saveCollections(collections), [collections])
 
   useEffect(() => {
+    const syncCollections = (event: StorageEvent) => {
+      if (event.key !== COLLECTION_STORAGE_KEY) return
+      setCollections(loadCollections())
+    }
+    window.addEventListener('storage', syncCollections)
+    return () => window.removeEventListener('storage', syncCollections)
+  }, [])
+
+  useEffect(() => {
     if (!open) return
     const freshCollections = loadCollections()
     const freshSources = loadSources()
+    const nextActive = freshCollections.find((item) => item.id === activeId) ?? freshCollections[0] ?? null
     setCollections(freshCollections)
     setSources(freshSources)
     setMessage('')
-    setActiveId((current) => current && freshCollections.some((item) => item.id === current) ? current : freshCollections[0]?.id ?? '')
+    setActiveId(nextActive?.id ?? '')
+    setRenameValue(nextActive?.name ?? '')
   }, [open])
 
   useEffect(() => {
@@ -129,7 +141,10 @@ export function CollectionsDock() {
   function handleRename() {
     if (!active) return
     try {
-      updateActive((item) => renameCollection(item, renameValue))
+      const renamed = renameCollection(active, renameValue)
+      persist(collections.map((item) => item.id === active.id ? renamed : item))
+      setRenameValue(renamed.name)
+      setMessage('Nome atualizado.')
     } catch {
       setMessage('O nome da coleção não pode ficar vazio.')
     }
@@ -176,7 +191,7 @@ export function CollectionsDock() {
             <div className="collections-content">
               {active ? <>
                 <div className="collections-toolbar">
-                  <label>Nome<input value={renameValue || active.name} maxLength={MAX_COLLECTION_NAME} onChange={(event) => setRenameValue(event.target.value)} /></label>
+                  <label>Nome<input value={renameValue} maxLength={MAX_COLLECTION_NAME} onChange={(event) => setRenameValue(event.target.value)} /></label>
                   <button type="button" onClick={handleRename}>Salvar nome</button>
                   <button type="button" className="is-danger" onClick={deleteActive}>Excluir</button>
                 </div>
