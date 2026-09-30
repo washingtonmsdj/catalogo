@@ -215,6 +215,8 @@
 .comparison-footer__actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -257,8 +259,96 @@
   .comparison-label--hero, .comparison-card { min-height: 244px; }
   .comparison-cover { height: 125px; }
   .comparison-footer { align-items: stretch; flex-direction: column; }
-  .comparison-footer__actions { width: 100%; }
-  .comparison-footer__actions button { flex: 1; }
+  .comparison-footer__actions { width: 100%; justify-content: stretch; }
+  .comparison-footer__actions button { flex: 1 1 140px; }
   .detail-actions--triple { grid-template-columns: 1fr 1fr; }
   .detail-actions--triple button:last-child { grid-column: 1 / -1; }
+}
+
+@media print {
+  @page { size: landscape; margin: 12mm; }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .comparison-backdrop,
+  .comparison-backdrop * {
+    visibility: visible !important;
+  }
+
+  .comparison-backdrop {
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  .comparison-modal {
+    width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    border: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    color: #111 !important;
+  }
+
+  .comparison-modal__head {
+    padding: 0 0 10mm !important;
+    border-bottom: 1px solid #bbb !important;
+  }
+
+  .comparison-modal__head span,
+  .comparison-modal__head h2,
+  .comparison-modal__head p,
+  .comparison-card > strong,
+  .comparison-card > small,
+  .comparison-label,
+  .comparison-value {
+    color: #111 !important;
+  }
+
+  .comparison-modal__head > button,
+  .comparison-remove,
+  .comparison-open,
+  .comparison-footer,
+  .comparison-alert {
+    display: none !important;
+  }
+
+  .comparison-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  .comparison-grid {
+    grid-template-columns: 110px repeat(var(--compare-cols), minmax(0, 1fr)) !important;
+    min-width: 0 !important;
+    border-color: #bbb !important;
+    break-inside: avoid;
+  }
+
+  .comparison-grid > * {
+    border-color: #bbb !important;
+  }
+
+  .comparison-label,
+  .comparison-card,
+  .comparison-value,
+  .comparison-cover {
+    background: #fff !important;
+  }
+
+  .comparison-label--hero,
+  .comparison-card {
+    min-height: 210px !important;
+  }
+
+  .comparison-cover {
+    height: 120px !important;
+    border-color: #bbb !important;
+  }
 }
