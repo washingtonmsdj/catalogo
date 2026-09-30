@@ -54,6 +54,27 @@ class CatalogIngestTests(unittest.TestCase):
             self.assertTrue(first.exists())
             self.assertTrue(second.exists())
 
+    def test_exact_same_file_in_different_models_is_preserved_for_both(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_dir = root / "OK - Games [2]" / "OK - Saga [2]" / "OK - Heroi A [1]"
+            second_dir = root / "OK - Games [2]" / "OK - Saga [2]" / "OK - Heroi B [1]"
+            first_dir.mkdir(parents=True)
+            second_dir.mkdir(parents=True)
+            first = first_dir / "diorama.png"
+            second = second_dir / "diorama.png"
+            Image.new("RGB", (1000, 1400), "#4c5560").save(first)
+            second.write_bytes(first.read_bytes())
+
+            records = [analyze(root, first), analyze(root, second)]
+            self.assertEqual(records[0].sha256, records[1].sha256)
+            self.assertNotEqual(records[0].model_key, records[1].model_key)
+
+            groups = mark_duplicates(records, visual_threshold=6)
+
+            self.assertEqual(groups, [])
+            self.assertTrue(all(record.canonical for record in records))
+
     def test_visual_candidates_prefer_higher_quality_version(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
