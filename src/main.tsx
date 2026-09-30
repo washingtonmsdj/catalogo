@@ -16,6 +16,7 @@ import './media-fallback.css'
 import './discovery.css'
 import './swipe-navigation.css'
 import './explorer.css'
+import './quote-confirmation.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')
