@@ -7,6 +7,11 @@ import type { CatalogImage, CatalogModel } from './types/catalog'
 const formatter = new Intl.NumberFormat('pt-BR')
 const MAX_QUOTE_ITEMS = 50
 
+type KnownModel = {
+  name: string
+  slug: string
+}
+
 function ModelArt({ model, compact = false, angle = 0 }: { model: CatalogModel; compact?: boolean; angle?: number }) {
   return (
     <div className={`model-art ${compact ? 'model-art--compact' : ''}`} style={{ '--accent': model.accent } as React.CSSProperties}>
@@ -48,9 +53,13 @@ function GalleryArt({ image, model, angle = 0 }: { image: CatalogImage; model: C
   return <ModelArt model={model} compact angle={angle} />
 }
 
-function loadKnownModels() {
+function loadKnownModels(): Record<string, KnownModel> {
   try {
-    return JSON.parse(localStorage.getItem('tonecos:known-models') ?? '{}') as Record<string, string>
+    const stored = JSON.parse(localStorage.getItem('tonecos:known-models') ?? '{}') as Record<string, string | KnownModel>
+    return Object.fromEntries(Object.entries(stored).map(([id, value]) => [
+      id,
+      typeof value === 'string' ? { name: value, slug: '' } : value,
+    ]))
   } catch {
     return {}
   }
@@ -61,8 +70,9 @@ export default function App() {
   const catalog = useCatalogRuntime(initialSlug)
   const [favorites, setFavorites] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:favorites') ?? '[]'))
   const [quoteList, setQuoteList] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:quote') ?? '[]'))
-  const [knownModels, setKnownModels] = useState<Record<string, string>>(loadKnownModels)
+  const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
   const [galleryOpen, setGalleryOpen] = useState(false)
+  const [favoritesOpen, setFavoritesOpen] = useState(false)
   const [quoteOpen, setQuoteOpen] = useState(false)
   const [sent, setSent] = useState(false)
   const [quoteMode, setQuoteMode] = useState<'live' | 'demo' | null>(null)
@@ -96,8 +106,9 @@ export default function App() {
       const next = { ...current }
       let changed = false
       for (const model of seen) {
-        if (next[model.id] !== model.name) {
-          next[model.id] = model.name
+        const known = next[model.id]
+        if (!known || known.name !== model.name || known.slug !== model.slug) {
+          next[model.id] = { name: model.name, slug: model.slug }
           changed = true
         }
       }
@@ -136,6 +147,26 @@ export default function App() {
       }
       return [...current, id]
     })
+  }
+
+  function openFavorite(id: string) {
+    const slug = knownModels[id]?.slug
+    if (!slug) return
+    setFavoritesOpen(false)
+    window.location.hash = `modelo=${encodeURIComponent(slug)}`
+  }
+
+  function addFavoritesToQuote() {
+    setQuoteList((current) => {
+      const next = [...current]
+      for (const id of favorites) {
+        if (next.length >= MAX_QUOTE_ITEMS) break
+        if (!next.includes(id)) next.push(id)
+      }
+      return next
+    })
+    setFavoritesOpen(false)
+    setQuoteOpen(true)
   }
 
   function navigate(offset: number) {
@@ -211,7 +242,7 @@ export default function App() {
         <nav className="topnav" aria-label="Navegação principal">
           <a href="#catalogo" className="is-active">Catálogo</a>
           <button onClick={() => catalog.setCategory('all')}>Categorias</button>
-          <button>Favoritos <b>{favorites.length}</b></button>
+          <button onClick={() => setFavoritesOpen(true)}>Favoritos <b>{favorites.length}</b></button>
           <button onClick={() => setQuoteOpen(true)}>Orçamento <b>{quoteList.length}</b></button>
         </nav>
         <label className="searchbox">
@@ -356,6 +387,33 @@ export default function App() {
         </div>
       )}
 
+      {favoritesOpen && (
+        <div className="modal-backdrop" onMouseDown={() => setFavoritesOpen(false)}>
+          <section className="quote-modal" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modal-head">
+              <div><span>COLEÇÃO PESSOAL</span><h2>Favoritos</h2><p>{favorites.length ? `${favorites.length} modelos salvos neste navegador.` : 'Nenhum modelo favoritado ainda.'}</p></div>
+              <button onClick={() => setFavoritesOpen(false)}>×</button>
+            </div>
+            {favorites.length ? (
+              <>
+                <div className="quote-selected"><span>Modelos salvos</span><strong>{favorites.length}</strong></div>
+                <div className="quote-chips">
+                  {favorites.map((id) => (
+                    <button type="button" key={id} disabled={!knownModels[id]?.slug} onClick={() => openFavorite(id)}>
+                      {knownModels[id]?.name ?? id} ↗
+                    </button>
+                  ))}
+                </div>
+                <button className="primary-action" type="button" onClick={addFavoritesToQuote}>Adicionar favoritos ao orçamento <span>›</span></button>
+                <button className="share-action" type="button" onClick={() => setFavorites([])}>Limpar favoritos</button>
+              </>
+            ) : (
+              <div className="success-state"><strong>LISTA VAZIA</strong><p>Use “♡ Favoritar” nos modelos que quiser guardar para comparar ou consultar depois.</p><button onClick={() => setFavoritesOpen(false)}>Voltar ao catálogo</button></div>
+            )}
+          </section>
+        </div>
+      )}
+
       {quoteOpen && (
         <div className="modal-backdrop" onMouseDown={() => setQuoteOpen(false)}>
           <section className="quote-modal" onMouseDown={(event) => event.stopPropagation()}>
@@ -367,7 +425,7 @@ export default function App() {
                 <label>Nome completo<input required maxLength={120} name="name" placeholder="Seu nome" /></label>
                 <label>E-mail<input required maxLength={254} type="email" name="email" placeholder="voce@email.com" /></label>
                 <div className="quote-selected"><span>Itens selecionados</span><strong>{quoteList.length}/{MAX_QUOTE_ITEMS}</strong></div>
-                <div className="quote-chips">{quoteList.map((id) => <button type="button" key={id} onClick={() => toggleQuote(id)}>{knownModels[id] ?? id} ×</button>)}</div>
+                <div className="quote-chips">{quoteList.map((id) => <button type="button" key={id} onClick={() => toggleQuote(id)}>{knownModels[id]?.name ?? id} ×</button>)}</div>
                 <label>Observações<textarea maxLength={4000} name="notes" rows={5} placeholder="Quantidade, tamanho desejado, acabamento ou outras informações..." /></label>
                 {catalog.mode === 'live' && <TurnstileWidget resetKey={turnstileResetKey} />}
                 {quoteError && <p role="alert">{quoteError}</p>}
