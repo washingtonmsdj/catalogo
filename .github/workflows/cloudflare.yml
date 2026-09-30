@@ -2,6 +2,12 @@ name: Deploy Cloudflare API
 
 on:
   workflow_dispatch:
+    inputs:
+      force_turnstile_secret_sync:
+        description: Reenviar o segredo do Turnstile para o Worker (use em rotação de chave)
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [main]
     paths:
@@ -30,6 +36,7 @@ jobs:
       CLOUDFLARE_D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
       CATALOG_CORS_ORIGINS: ${{ vars.CATALOG_CORS_ORIGINS }}
       CATALOG_API_URL: ${{ vars.VITE_API_BASE_URL }}
+      TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,6 +46,18 @@ jobs:
           node-version: 22
       - name: Install
         run: npm install
+      - name: Validate deployment credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo '::error::CLOUDFLARE_API_TOKEN não está configurado.'
+            exit 1
+          fi
+          if [ -z "$TURNSTILE_SECRET_KEY" ]; then
+            echo '::error::TURNSTILE_SECRET_KEY não está configurado.'
+            exit 1
+          fi
       - name: Validate Worker
         run: npm run typecheck:worker
       - name: Render production config
@@ -49,6 +68,19 @@ jobs:
         run: npx wrangler d1 migrations apply DB --remote --config .wrangler.deploy.jsonc
       - name: Deploy Worker
         run: npx wrangler deploy --config .wrangler.deploy.jsonc
+      - name: Ensure Turnstile Worker secret
+        shell: bash
+        env:
+          FORCE_SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.force_turnstile_secret_sync || false }}
+        run: |
+          set -euo pipefail
+          SECRET_LIST="$(npx wrangler secret list --config .wrangler.deploy.jsonc --format json)"
+          if [ "$FORCE_SYNC" = 'true' ] || ! printf '%s' "$SECRET_LIST" | grep -q '"TURNSTILE_SECRET_KEY"'; then
+            printf '%s' "$TURNSTILE_SECRET_KEY" | npx wrangler secret put TURNSTILE_SECRET_KEY --config .wrangler.deploy.jsonc
+          else
+            echo 'TURNSTILE_SECRET_KEY já configurado no Worker.'
+          fi
+          npx wrangler secret list --config .wrangler.deploy.jsonc --format json | grep -q '"TURNSTILE_SECRET_KEY"'
       - name: Verify health endpoint
         if: ${{ vars.VITE_API_BASE_URL != '' }}
         run: curl --fail --retry 4 --retry-delay 3 "$CATALOG_API_URL/api/health"
