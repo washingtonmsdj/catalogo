@@ -93,10 +93,11 @@ export async function listCatalogCategories(): Promise<CatalogCategory[]> {
   return result.items
 }
 
-export async function listCatalogFranchises(category?: string, limit = 24): Promise<FranchiseDiscoveryPage> {
+export async function listCatalogFranchises(category?: string, limit = 24, search?: string): Promise<FranchiseDiscoveryPage> {
   return requestJson<FranchiseDiscoveryPage>(endpoint('/api/franchises', {
     category: category && category !== 'all' ? category : undefined,
     limit,
+    q: search?.trim() || undefined,
   }))
 }
 
