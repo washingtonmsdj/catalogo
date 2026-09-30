@@ -35,6 +35,11 @@ type CatalogRow = {
   cover_storage_key: string | null
 }
 
+type CatalogCursor = {
+  name: string
+  id: string
+}
+
 type GalleryImage = {
   id: string
   role: 'cover' | 'gallery'
@@ -69,8 +74,39 @@ const json = (data: unknown, init: ResponseInit = {}) => new Response(JSON.strin
 })
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
-const decodeCursor = (cursor: string | null) => cursor ? Number.parseInt(atob(cursor), 10) || 0 : 0
-const encodeCursor = (offset: number) => btoa(String(offset))
+
+function encodeUtf8Base64Url(value: string) {
+  const bytes = new TextEncoder().encode(value)
+  let binary = ''
+  for (const byte of bytes) binary += String.fromCharCode(byte)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+}
+
+function decodeUtf8Base64Url(value: string) {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/')
+  const padded = normalized + '='.repeat((4 - normalized.length % 4) % 4)
+  const binary = atob(padded)
+  const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0))
+  return new TextDecoder().decode(bytes)
+}
+
+function encodeCatalogCursor(row: Pick<CatalogRow, 'name' | 'id'>) {
+  return encodeUtf8Base64Url(JSON.stringify({ name: row.name, id: row.id }))
+}
+
+function decodeCatalogCursor(cursor: string | null): CatalogCursor | null {
+  if (!cursor) return null
+  try {
+    const parsed = JSON.parse(decodeUtf8Base64Url(cursor)) as Partial<CatalogCursor>
+    if (typeof parsed.name !== 'string' || typeof parsed.id !== 'string' || !parsed.id) return null
+    return { name: parsed.name, id: parsed.id }
+  } catch {
+    return null
+  }
+}
+
+const decodeOffsetCursor = (cursor: string | null) => cursor ? Number.parseInt(atob(cursor), 10) || 0 : 0
+const encodeOffsetCursor = (offset: number) => btoa(String(offset))
 
 async function listCatalog(request: Request, env: Env) {
   const url = new URL(request.url)
@@ -78,13 +114,19 @@ async function listCatalog(request: Request, env: Env) {
   const franchise = url.searchParams.get('franchise')?.trim() || null
   const query = url.searchParams.get('q')?.trim().toLocaleLowerCase('pt-BR') || null
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '24', 10) || 24, 1, 60)
-  const offset = decodeCursor(url.searchParams.get('cursor'))
+  const rawCursor = url.searchParams.get('cursor')
+  const cursor = decodeCatalogCursor(rawCursor)
+  if (rawCursor && !cursor) return json({ error: 'invalid_cursor' }, { status: 400 })
 
   const where = ['m.published = 1']
   const values: unknown[] = []
   if (category) { where.push('c.slug = ?'); values.push(category) }
   if (franchise) { where.push('f.slug = ?'); values.push(franchise) }
   if (query) { where.push('m.search_text LIKE ?'); values.push(`%${query}%`) }
+  if (cursor) {
+    where.push('(m.name COLLATE NOCASE > ? COLLATE NOCASE OR (m.name COLLATE NOCASE = ? COLLATE NOCASE AND m.id > ?))')
+    values.push(cursor.name, cursor.name, cursor.id)
+  }
 
   const sql = `SELECT m.id,m.slug,m.code,m.name,m.collection,m.image_count,m.cover_storage_key,
     f.name AS franchise,c.name AS category
@@ -93,13 +135,17 @@ async function listCatalog(request: Request, env: Env) {
     JOIN categories c ON c.id=f.category_id
     WHERE ${where.join(' AND ')}
     ORDER BY m.name COLLATE NOCASE, m.id
-    LIMIT ? OFFSET ?`
-  values.push(limit + 1, offset)
+    LIMIT ?`
+  values.push(limit + 1)
 
   const result = await env.DB.prepare(sql).bind(...values).all<CatalogRow>()
   const hasMore = result.results.length > limit
   const items = hasMore ? result.results.slice(0, limit) : result.results
-  return json({ items, nextCursor: hasMore ? encodeCursor(offset + limit) : null })
+  const lastItem = items.at(-1)
+  return json({
+    items,
+    nextCursor: hasMore && lastItem ? encodeCatalogCursor(lastItem) : null,
+  })
 }
 
 async function getModel(slug: string, env: Env) {
@@ -112,7 +158,7 @@ async function getModel(slug: string, env: Env) {
 async function listImages(request: Request, slug: string, env: Env) {
   const url = new URL(request.url)
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '24', 10) || 24, 1, 60)
-  const offset = decodeCursor(url.searchParams.get('cursor'))
+  const offset = decodeOffsetCursor(url.searchParams.get('cursor'))
   const model = await env.DB.prepare(
     'SELECT id,image_count,gallery_manifest_key,gallery_version FROM models WHERE slug=? AND published=1',
   ).bind(slug).first<{ id: string; image_count: number; gallery_manifest_key: string | null; gallery_version: number }>()
@@ -131,7 +177,7 @@ async function listImages(request: Request, slug: string, env: Env) {
   return json({
     items,
     total: manifest.images.length,
-    nextCursor: nextOffset < manifest.images.length ? encodeCursor(nextOffset) : null,
+    nextCursor: nextOffset < manifest.images.length ? encodeOffsetCursor(nextOffset) : null,
     version: manifest.version,
   })
 }
