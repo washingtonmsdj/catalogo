@@ -175,13 +175,24 @@ async function listCategories(request: Request, env: Env) {
 async function listFranchises(request: Request, env: Env) {
   const url = new URL(request.url)
   const category = url.searchParams.get('category')?.trim() || null
+  const query = url.searchParams.get('q')?.trim() || null
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '24', 10) || 24, 1, 48)
+
+  if (query && Array.from(query).length > 80) {
+    return json(request, env, { error: 'franchise_search_too_long', maxLength: 80 }, { status: 400 })
+  }
+
   const where: string[] = []
   const values: unknown[] = []
   if (category) {
     where.push('c.slug=?')
     values.push(category)
   }
+  if (query) {
+    where.push('(instr(lower(f.name),lower(?))>0 OR instr(lower(f.slug),lower(?))>0)')
+    values.push(query, query)
+  }
+
   const sql = `SELECT f.slug AS id,f.name AS label,f.model_count AS count,c.slug AS category
     FROM franchises f JOIN categories c ON c.id=f.category_id
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
@@ -192,7 +203,8 @@ async function listFranchises(request: Request, env: Env) {
     .all<{ id: string; label: string; count: number; category: string }>()
   const truncated = result.results.length > limit
   const items = truncated ? result.results.slice(0, limit) : result.results
-  return json(request, env, { items, truncated }, {}, 'public, max-age=300, s-maxage=1800')
+  const cacheControl = query ? 'public, max-age=60, s-maxage=300' : 'public, max-age=300, s-maxage=1800'
+  return json(request, env, { items, truncated }, {}, cacheControl)
 }
 
 async function listCatalog(request: Request, env: Env) {
