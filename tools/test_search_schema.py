@@ -17,6 +17,7 @@ class CatalogSearchSchemaTests(unittest.TestCase):
             "0002_keyset_pagination.sql",
             "0003_catalog_counts.sql",
             "0004_search_fts.sql",
+            "0005_franchise_discovery.sql",
         ):
             self.db.executescript((MIGRATIONS / name).read_text(encoding="utf-8"))
 
@@ -63,6 +64,14 @@ class CatalogSearchSchemaTests(unittest.TestCase):
 
         self.db.execute("DELETE FROM models WHERE id='mdl-2'")
         self.assertEqual(self.search("valentine"), [])
+
+    def test_franchise_discovery_indexes_exist(self) -> None:
+        names = {
+            row[1]
+            for row in self.db.execute("PRAGMA index_list('franchises')").fetchall()
+        }
+        self.assertIn("idx_franchises_category_discovery", names)
+        self.assertIn("idx_franchises_global_discovery", names)
 
 
 if __name__ == "__main__":
