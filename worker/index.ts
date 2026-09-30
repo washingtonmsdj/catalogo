@@ -22,6 +22,7 @@ type Env = {
   DB: D1Database
   MEDIA: R2Bucket
   CORS_ORIGINS?: string
+  TURNSTILE_SECRET_KEY?: string
 }
 
 type CatalogRow = {
@@ -67,11 +68,19 @@ type GalleryManifest = {
   images: GalleryImage[]
 }
 
+type TurnstileResult = {
+  success: boolean
+  action?: string
+  hostname?: string
+  'error-codes'?: string[]
+}
+
 const DEFAULT_ORIGINS = [
   'https://washingtonmsdj.github.io',
   'http://localhost:5173',
   'http://127.0.0.1:5173',
 ]
+const MAX_QUOTE_ITEMS = 50
 
 function allowedOrigin(request: Request, env: Env) {
   const origin = request.headers.get('origin')
@@ -263,21 +272,82 @@ async function listImages(request: Request, slug: string, env: Env) {
   }, {}, 'public, max-age=300, s-maxage=1800')
 }
 
+async function validateTurnstile(request: Request, env: Env, token: string) {
+  if (!env.TURNSTILE_SECRET_KEY || !token || token.length > 2048) return false
+
+  const body = new FormData()
+  body.set('secret', env.TURNSTILE_SECRET_KEY)
+  body.set('response', token)
+  const remoteIp = request.headers.get('CF-Connecting-IP')
+  if (remoteIp) body.set('remoteip', remoteIp)
+  body.set('idempotency_key', crypto.randomUUID())
+
+  try {
+    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      body,
+      signal: AbortSignal.timeout(5000),
+    })
+    if (!response.ok) return false
+    const result = await response.json() as TurnstileResult
+    return result.success === true && result.action === 'quote'
+  } catch {
+    return false
+  }
+}
+
 async function createQuote(request: Request, env: Env) {
-  const body = await request.json() as { name?: string; email?: string; notes?: string; modelIds?: string[] }
-  const name = body.name?.trim()
-  const email = body.email?.trim().toLowerCase()
-  const modelIds = Array.from(new Set(body.modelIds ?? [])).slice(0, 100)
-  if (!name || !email || !email.includes('@') || !modelIds.length) {
+  const requestOrigin = request.headers.get('origin')
+  if (requestOrigin && !allowedOrigin(request, env)) {
+    return json(request, env, { error: 'origin_not_allowed' }, { status: 403 })
+  }
+  if (!env.TURNSTILE_SECRET_KEY) {
+    return json(request, env, { error: 'quote_protection_not_configured' }, { status: 503 })
+  }
+
+  let body: { name?: unknown; email?: unknown; notes?: unknown; modelIds?: unknown; turnstileToken?: unknown }
+  try {
+    body = await request.json() as typeof body
+  } catch {
+    return json(request, env, { error: 'invalid_json' }, { status: 400 })
+  }
+
+  const name = typeof body.name === 'string' ? body.name.trim() : ''
+  const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+  const notes = typeof body.notes === 'string' ? body.notes.trim() : ''
+  const turnstileToken = typeof body.turnstileToken === 'string' ? body.turnstileToken : ''
+  const rawIds = Array.isArray(body.modelIds) ? body.modelIds : []
+  const modelIds = Array.from(new Set(rawIds.filter((value): value is string => typeof value === 'string').map((value) => value.trim()).filter(Boolean)))
+
+  if (!name || name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || notes.length > 4000 || !modelIds.length) {
     return json(request, env, { error: 'invalid_request' }, { status: 400 })
+  }
+  if (modelIds.length > MAX_QUOTE_ITEMS) {
+    return json(request, env, { error: 'too_many_models', maxItems: MAX_QUOTE_ITEMS }, { status: 400 })
+  }
+  if (!await validateTurnstile(request, env, turnstileToken)) {
+    return json(request, env, { error: 'turnstile_failed' }, { status: 400 })
+  }
+
+  const placeholders = modelIds.map(() => '?').join(',')
+  const published = await env.DB.prepare(
+    `SELECT id FROM models WHERE published=1 AND id IN (${placeholders})`,
+  ).bind(...modelIds).all<{ id: string }>()
+  if (published.results.length !== modelIds.length) {
+    return json(request, env, { error: 'invalid_models' }, { status: 400 })
   }
 
   const id = crypto.randomUUID()
-  const statements = [
-    env.DB.prepare('INSERT INTO quote_requests(id,name,email,notes) VALUES(?,?,?,?)').bind(id, name, email, body.notes?.trim() || null),
-    ...modelIds.map((modelId) => env.DB.prepare('INSERT INTO quote_request_items(quote_request_id,model_id,quantity) VALUES(?,?,1)').bind(id, modelId)),
-  ]
-  await env.DB.batch(statements)
+  const itemValues: unknown[] = []
+  const itemRows = modelIds.map((modelId) => {
+    itemValues.push(id, modelId)
+    return '(?,?,1)'
+  }).join(',')
+
+  await env.DB.batch([
+    env.DB.prepare('INSERT INTO quote_requests(id,name,email,notes) VALUES(?,?,?,?)').bind(id, name, email, notes || null),
+    env.DB.prepare(`INSERT INTO quote_request_items(quote_request_id,model_id,quantity) VALUES ${itemRows}`).bind(...itemValues),
+  ])
   return json(request, env, { id, status: 'received' }, { status: 201 })
 }
 
