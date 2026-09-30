@@ -80,27 +80,24 @@ function allowedOrigin(request: Request, env: Env) {
   return [...DEFAULT_ORIGINS, ...configured].includes(origin) ? origin : null
 }
 
-function corsHeaders(request: Request, env: Env) {
+function corsHeaders(request: Request, env: Env): Record<string, string> {
   const origin = allowedOrigin(request, env)
-  return origin ? {
+  if (!origin) return {}
+  return {
     'access-control-allow-origin': origin,
     'access-control-allow-methods': 'GET,POST,OPTIONS',
     'access-control-allow-headers': 'content-type',
     'access-control-max-age': '86400',
     'vary': 'Origin',
-  } : {}
+  }
 }
 
 function json(request: Request, env: Env, data: unknown, init: ResponseInit = {}, cacheControl = 'no-store') {
-  return new Response(JSON.stringify(data), {
-    ...init,
-    headers: {
-      'content-type': 'application/json; charset=utf-8',
-      'cache-control': cacheControl,
-      ...corsHeaders(request, env),
-      ...(init.headers ?? {}),
-    },
-  })
+  const headers = new Headers(init.headers)
+  headers.set('content-type', 'application/json; charset=utf-8')
+  headers.set('cache-control', cacheControl)
+  for (const [name, value] of Object.entries(corsHeaders(request, env))) headers.set(name, value)
+  return new Response(JSON.stringify(data), { ...init, headers })
 }
 
 function options(request: Request, env: Env) {
@@ -140,7 +137,16 @@ function decodeCatalogCursor(cursor: string | null): CatalogCursor | null {
   }
 }
 
-const decodeOffsetCursor = (cursor: string | null) => cursor ? Number.parseInt(atob(cursor), 10) || 0 : 0
+function decodeOffsetCursor(cursor: string | null): number | null {
+  if (!cursor) return 0
+  try {
+    const parsed = Number.parseInt(atob(cursor), 10)
+    return Number.isInteger(parsed) && parsed >= 0 ? parsed : null
+  } catch {
+    return null
+  }
+}
+
 const encodeOffsetCursor = (offset: number) => btoa(String(offset))
 
 async function listCategories(request: Request, env: Env) {
@@ -220,9 +226,8 @@ async function listImages(request: Request, slug: string, env: Env) {
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '24', 10) || 24, 1, 60)
   const rawCursor = url.searchParams.get('cursor')
   const offset = decodeOffsetCursor(rawCursor)
-  if (rawCursor && (!Number.isFinite(offset) || offset < 0)) {
-    return json(request, env, { error: 'invalid_cursor' }, { status: 400 })
-  }
+  if (offset === null) return json(request, env, { error: 'invalid_cursor' }, { status: 400 })
+
   const model = await env.DB.prepare(
     'SELECT id,image_count,gallery_manifest_key,gallery_version FROM models WHERE slug=? AND published=1',
   ).bind(slug).first<{ id: string; image_count: number; gallery_manifest_key: string | null; gallery_version: number }>()
