@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
+import { FranchiseBrowser } from './components/FranchiseBrowser'
 import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
 import { submitQuoteRequest } from './services/quotes'
@@ -85,6 +86,7 @@ export default function App() {
   const [favorites, setFavorites] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:favorites') ?? '[]'))
   const [quoteList, setQuoteList] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:quote') ?? '[]'))
   const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
+  const [explorerOpen, setExplorerOpen] = useState(false)
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [previewImage, setPreviewImage] = useState<CatalogImage | null>(null)
   const [previewPageTarget, setPreviewPageTarget] = useState<PreviewPageTarget>(null)
@@ -102,7 +104,7 @@ export default function App() {
   const visibleModels = catalog.models
   const selectedIndex = visibleModels.findIndex((model) => model.id === selected.id)
   const selectedInVisiblePage = selectedIndex >= 0
-  const anyModalOpen = galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
+  const anyModalOpen = explorerOpen || galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
   const noResults = !catalog.loading && visibleModels.length === 0
   const searchCharacters = Array.from(catalog.search.trim()).length
   const searchActive = Boolean(catalog.search.trim()) && !catalog.searchPending
@@ -213,6 +215,7 @@ export default function App() {
         else if (quoteOpen) setQuoteOpen(false)
         else if (favoritesOpen) setFavoritesOpen(false)
         else if (galleryOpen) setGalleryOpen(false)
+        else if (explorerOpen) setExplorerOpen(false)
         return
       }
 
@@ -243,6 +246,7 @@ export default function App() {
       if (event.key === 'ArrowLeft') navigate(-1)
       if (event.key.toLowerCase() === 'f' && selected.id !== 'loading') toggleFavorite(selected.id)
       if (event.key.toLowerCase() === 'a' && selected.id !== 'loading') setGalleryOpen(true)
+      if (event.key.toLowerCase() === 'e') setExplorerOpen(true)
       if (event.key === 'Enter' && selected.id !== 'loading') window.location.hash = `modelo=${encodeURIComponent(selected.slug)}`
     }
     window.addEventListener('keydown', handleKey)
@@ -283,6 +287,17 @@ export default function App() {
     })
     setFavoritesOpen(false)
     setQuoteOpen(true)
+  }
+
+  function chooseExplorerCategory(category: string) {
+    catalog.setSearch('')
+    catalog.setCategory(category)
+  }
+
+  function chooseExplorerFranchise(category: string, franchise: string) {
+    catalog.setSearch('')
+    catalog.setCategory(category)
+    catalog.setFranchise(franchise)
   }
 
   function closePreview() {
@@ -394,7 +409,7 @@ export default function App() {
         </a>
         <nav className="topnav" aria-label="Navegação principal">
           <a href="#catalogo" className="is-active">Catálogo</a>
-          <button type="button" onClick={() => catalog.setCategory('all')}>Categorias</button>
+          <button type="button" onClick={() => setExplorerOpen(true)}>Explorar</button>
           <button type="button" onClick={() => setFavoritesOpen(true)}>Favoritos <b>{favorites.length}</b></button>
           <button type="button" onClick={() => setQuoteOpen(true)}>Orçamento <b>{quoteList.length}</b></button>
         </nav>
@@ -419,7 +434,11 @@ export default function App() {
               {item.label}
             </button>
           ))}
-          {catalog.franchisesTruncated && <span className="scope-strip__note">Principais franquias · use a busca para localizar outras</span>}
+          {catalog.franchisesTruncated && (
+            <button type="button" className="scope-strip__explore" onClick={() => setExplorerOpen(true)}>
+              Mais franquias…
+            </button>
+          )}
         </div>
       </section>
 
@@ -470,6 +489,7 @@ export default function App() {
             <span className="scale-note__eyebrow">ACERVO DIGITAL</span>
             <strong>{formatter.format(catalogTotal)}</strong>
             <p>modelos organizados por categoria, franquia e personagem para uma navegação rápida e direta.</p>
+            <button type="button" className="scale-note__explore" onClick={() => setExplorerOpen(true)}>Explorar franquias <span>›</span></button>
           </div>
         </aside>
 
@@ -507,6 +527,7 @@ export default function App() {
               <h2>Refine menos para descobrir mais</h2>
               <p>Os filtros são combinados. Limpe o recorte atual para voltar às categorias e franquias disponíveis.</p>
               <button type="button" className="share-action" onClick={catalog.resetDiscovery}>Limpar busca e filtros</button>
+              <button type="button" className="share-action" onClick={() => setExplorerOpen(true)}>Abrir navegador de franquias</button>
             </div>
           ) : (
             <>
@@ -534,7 +555,7 @@ export default function App() {
         <section className="roster panel" aria-label="Seleção de modelos">
           <div className="roster-header">
             <div><strong>SELECIONE O PERSONAGEM</strong><span>{catalog.loading ? 'Carregando...' : noResults ? 'Nenhum modelo neste recorte' : `${visibleModels.length} modelos neste recorte`}</span></div>
-            <div className="roster-hint">← → navegar · ENTER link · A galeria · F favoritar · / buscar</div>
+            <div className="roster-hint">← → navegar · ENTER link · A galeria · F favoritar · E explorar · / buscar</div>
           </div>
           <div className="roster-track" ref={rosterTrackRef}>
             {noResults ? (
@@ -564,12 +585,23 @@ export default function App() {
         <div><kbd>ENTER</kbd><span>Link do modelo</span></div>
         <div><kbd>A</kbd><span>Galeria</span></div>
         <div><kbd>F</kbd><span>Favoritar</span></div>
+        <div><kbd>E</kbd><span>Explorar</span></div>
         <div><kbd>/</kbd><span>Buscar</span></div>
         <div className="control-bar__status">
           <span>{catalog.mode === 'live' ? 'Catálogo online' : 'Prévia em atualização'}</span>
           <strong>{catalog.mode === 'live' ? 'ONLINE' : 'PREVIEW'}</strong>
         </div>
       </footer>
+
+      <FranchiseBrowser
+        open={explorerOpen}
+        mode={catalog.mode}
+        categories={catalog.categories}
+        activeCategory={catalog.category}
+        onClose={() => setExplorerOpen(false)}
+        onSelectCategory={chooseExplorerCategory}
+        onSelectFranchise={chooseExplorerFranchise}
+      />
 
       {galleryOpen && (
         <div className="modal-backdrop" onMouseDown={() => setGalleryOpen(false)}>
