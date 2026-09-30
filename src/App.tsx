@@ -198,7 +198,13 @@ export default function App() {
   function toggleFavorite(id: string) { setFavorites((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]) }
   function safeToggleQuote(id: string) {
     setQuoteList((current) => {
-      if (current.includes(id)) return current.filter((item) => item !== id) : [...current, id]
+      if (current.includes(id)) return current.filter((item) => item !== id)
+      if (current.length >= MAX_QUOTE_ITEMS) {
+        setQuoteError(`Cada solicitação aceita até ${MAX_QUOTE_ITEMS} modelos.`)
+        setQuoteOpen(true)
+        return current
+      }
+      return [...current, id]
     })
   }
   function openFavorite(id: string) { const slug = knownModels[id]?.slug; if (!slug) return; setFavoritesOpen(false); window.location.hash = `modelo=${encodeURIComponent(slug)}` }
