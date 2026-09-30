@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { categories as demoCategories, models as demoModels } from '../data/mockCatalog'
 import {
   checkCatalogApi,
@@ -78,6 +78,7 @@ export function useCatalogRuntime(initialSlug = '') {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedId, setSelectedId] = useState(() => demoModels.find((model) => model.slug === initialSlug)?.id ?? demoModels[0].id)
+  const selectedIdRef = useRef(selectedId)
   const [liveCategories, setLiveCategories] = useState<CatalogCategory[]>([])
   const [liveFranchises, setLiveFranchises] = useState<CatalogFranchise[]>([])
   const [franchisesTruncated, setFranchisesTruncated] = useState(false)
@@ -89,6 +90,10 @@ export function useCatalogRuntime(initialSlug = '') {
   const [loading, setLoading] = useState(mode === 'live')
   const [error, setError] = useState('')
   const [apiHealthy, setApiHealthy] = useState(mode === 'demo')
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId
+  }, [selectedId])
 
   useEffect(() => {
     const syncRoute = () => setRouteSlug(slugFromHash())
@@ -174,7 +179,7 @@ export function useCatalogRuntime(initialSlug = '') {
           setSelectedDetail(null)
           return
         }
-        if (!items.some((model) => model.id === selectedId)) {
+        if (!items.some((model) => model.id === selectedIdRef.current)) {
           setSelectedDetail(null)
           setSelectedId(items[0].id)
         }
@@ -189,7 +194,7 @@ export function useCatalogRuntime(initialSlug = '') {
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [mode, category, franchise, debouncedSearch, currentCursor, selectedId])
+  }, [mode, category, franchise, debouncedSearch, currentCursor])
 
   useEffect(() => {
     if (!routeSlug) return
