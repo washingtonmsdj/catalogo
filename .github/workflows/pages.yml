@@ -63,7 +63,7 @@ jobs:
           path: dist
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
       - name: Smoke test published preview
         shell: bash
         env:
