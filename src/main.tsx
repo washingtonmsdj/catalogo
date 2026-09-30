@@ -4,6 +4,7 @@ import App from './App'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { CollectionsDock } from './components/CollectionsDock'
 import { ConnectivityBanner } from './components/ConnectivityBanner'
+import { SharedCollectionsDock } from './components/SharedCollectionsDock'
 import { installDialogAccessibility } from './installDialogAccessibility'
 import { installLightboxSwipe } from './installLightboxSwipe'
 import './styles.css'
@@ -24,6 +25,7 @@ import './recent-navigation.css'
 import './comparison.css'
 import './collections.css'
 import './collections-organizer.css'
+import './collections-sharing.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')
@@ -55,6 +57,7 @@ createRoot(document.getElementById('root')!).render(
       <ConnectivityBanner />
       <App />
       <CollectionsDock />
+      <SharedCollectionsDock />
     </AppErrorBoundary>
   </StrictMode>,
 )
