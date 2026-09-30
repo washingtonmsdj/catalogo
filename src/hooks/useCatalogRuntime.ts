@@ -10,6 +10,7 @@ import {
   listCatalogModels,
   toCatalogImage,
 } from '../services/catalogApi'
+import { readDiscoveryScope, replaceDiscoveryScope } from '../services/catalogNavigation'
 import type { CatalogModelCard } from '../services/catalogRepository'
 import type { CatalogCategory, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 
@@ -72,10 +73,11 @@ function slugFromHash() {
 
 export function useCatalogRuntime(initialSlug = '') {
   const mode = getCatalogRuntimeMode()
+  const [initialScope] = useState(() => readDiscoveryScope())
   const [routeSlug, setRouteSlug] = useState(initialSlug)
-  const [category, setCategoryState] = useState('all')
-  const [franchise, setFranchiseState] = useState('all')
-  const [search, setSearch] = useState('')
+  const [category, setCategoryState] = useState(initialScope.category)
+  const [franchise, setFranchiseState] = useState(initialScope.franchise)
+  const [search, setSearch] = useState(initialScope.search)
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedId, setSelectedId] = useState(() => demoModels.find((model) => model.slug === initialSlug)?.id ?? demoModels[0].id)
   const selectedIdRef = useRef(selectedId)
@@ -101,6 +103,22 @@ export function useCatalogRuntime(initialSlug = '') {
     window.addEventListener('hashchange', syncRoute)
     return () => window.removeEventListener('hashchange', syncRoute)
   }, [])
+
+  useEffect(() => {
+    const syncDiscovery = () => {
+      const next = readDiscoveryScope()
+      setCategoryState(next.category)
+      setFranchiseState(next.franchise)
+      setSearch(next.search)
+      setSelectedDetail(null)
+    }
+    window.addEventListener('popstate', syncDiscovery)
+    return () => window.removeEventListener('popstate', syncDiscovery)
+  }, [])
+
+  useEffect(() => {
+    replaceDiscoveryScope({ category, franchise, search })
+  }, [category, franchise, search])
 
   useEffect(() => {
     const trimmed = search.trim()
