@@ -10,6 +10,8 @@ CREATE TABLE IF NOT EXISTS catalog_sync_runs (
   id TEXT PRIMARY KEY,
   source_sha256 TEXT NOT NULL,
   model_count INTEGER NOT NULL,
+  changed_count INTEGER NOT NULL DEFAULT 0,
+  removed_count INTEGER NOT NULL DEFAULT 0,
   completed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
