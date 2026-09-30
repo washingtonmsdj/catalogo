@@ -47,6 +47,7 @@ export type GalleryPage = {
 }
 
 const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
+const mediaBase = (import.meta.env.VITE_MEDIA_BASE_URL as string | undefined)?.replace(/\/$/, '')
 
 export function getCatalogRuntimeMode(): CatalogRuntimeMode {
   return apiBase ? 'live' : 'demo'
@@ -140,7 +141,8 @@ export async function listCatalogImages(slug: string, query: GalleryQuery = {}):
 
 export function imageVariantUrl(image: ApiGalleryImage, variant: keyof ApiGalleryImage['variantKeys'] = 'detail') {
   const key = image.variantKeys[variant] ?? image.variantKeys.card ?? image.variantKeys.thumb
-  return key ? `${apiBase}/media/${encodeURI(key)}` : undefined
+  if (!key || !mediaBase) return undefined
+  return `${mediaBase}/${key.split('/').map(encodeURIComponent).join('/')}`
 }
 
 export function toCatalogImage(image: ApiGalleryImage): CatalogImage {
