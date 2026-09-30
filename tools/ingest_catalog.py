@@ -149,11 +149,14 @@ def mark_duplicates(records: list[ImageRecord], visual_threshold: int) -> list[d
     groups: list[dict] = []
     valid = [record for record in records if record.status == "OK" and record.sha256 and record.dhash]
 
-    exact: dict[str, list[ImageRecord]] = defaultdict(list)
+    # Exact duplicates are scoped to a model gallery. The same binary image may
+    # legitimately be referenced by two different models (for example a shared
+    # diorama). Removing it globally would make one model lose its image.
+    exact: dict[tuple[str, str], list[ImageRecord]] = defaultdict(list)
     for record in valid:
-        exact[record.sha256].append(record)
+        exact[(record.model_key, record.sha256 or "")].append(record)
     exact_counter = 0
-    for digest, members in exact.items():
+    for (model_key, digest), members in exact.items():
         if len(members) < 2:
             continue
         exact_counter += 1
@@ -162,7 +165,14 @@ def mark_duplicates(records: list[ImageRecord], visual_threshold: int) -> list[d
         for member in members:
             member.duplicate_group = group_id
             member.canonical = member is canonical
-        groups.append({"id": group_id, "kind": "exact", "sha256": digest, "canonical": canonical.path, "members": [m.path for m in members]})
+        groups.append({
+            "id": group_id,
+            "kind": "exact",
+            "model_key": model_key,
+            "sha256": digest,
+            "canonical": canonical.path,
+            "members": [m.path for m in members],
+        })
 
     # Visual comparison is intentionally scoped to one model hierarchy. This
     # avoids merging unrelated characters that happen to have similar silhouettes.
