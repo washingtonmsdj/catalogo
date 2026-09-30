@@ -100,11 +100,17 @@ function mediaObjectUrl(key: string | null | undefined) {
   return `${mediaBase}/${key.split('/').map(encodeURIComponent).join('/')}`
 }
 
+function liveSearchTerm(value?: string) {
+  const trimmed = value?.trim()
+  if (!trimmed || Array.from(trimmed).length < 3) return undefined
+  return trimmed
+}
+
 export async function listCatalogModels(query: CatalogListQuery = {}): Promise<CursorPage<CatalogModelCard>> {
   const result = await requestJson<{ items: ApiCatalogRow[]; nextCursor: string | null }>(endpoint('/api/catalog', {
     category: query.category && query.category !== 'all' ? query.category : undefined,
     franchise: query.franchise && query.franchise !== 'all' ? query.franchise : undefined,
-    q: query.search,
+    q: liveSearchTerm(query.search),
     cursor: query.cursor,
     limit: query.limit,
   }))

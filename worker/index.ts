@@ -147,6 +147,10 @@ function decodeOffsetCursor(cursor: string | null): number | null {
   }
 }
 
+function toFtsPhrase(value: string) {
+  return `"${value.replace(/"/g, '""')}"`
+}
+
 const encodeOffsetCursor = (offset: number) => btoa(String(offset))
 
 async function listCategories(request: Request, env: Env) {
@@ -182,21 +186,29 @@ async function listCatalog(request: Request, env: Env) {
   const cursor = decodeCatalogCursor(rawCursor)
   if (rawCursor && !cursor) return json(request, env, { error: 'invalid_cursor' }, { status: 400 })
 
+  if (query) {
+    const length = Array.from(query).length
+    if (length < 3) return json(request, env, { error: 'search_too_short', minLength: 3 }, { status: 400 })
+    if (length > 120) return json(request, env, { error: 'search_too_long', maxLength: 120 }, { status: 400 })
+  }
+
   const where = ['m.published = 1']
   const values: unknown[] = []
   if (category) { where.push('c.slug = ?'); values.push(category) }
   if (franchise) { where.push('f.slug = ?'); values.push(franchise) }
-  if (query) { where.push('m.search_text LIKE ?'); values.push(`%${query}%`) }
+  if (query) { where.push('models_fts MATCH ?'); values.push(toFtsPhrase(query)) }
   if (cursor) {
     where.push('(m.name COLLATE NOCASE > ? COLLATE NOCASE OR (m.name COLLATE NOCASE = ? COLLATE NOCASE AND m.id > ?))')
     values.push(cursor.name, cursor.name, cursor.id)
   }
 
+  const searchJoin = query ? 'JOIN models_fts ON models_fts.model_id = m.id' : ''
   const sql = `SELECT m.id,m.slug,m.code,m.name,m.collection,m.image_count,m.cover_storage_key,
     f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m
     JOIN franchises f ON f.id=m.franchise_id
     JOIN categories c ON c.id=f.category_id
+    ${searchJoin}
     WHERE ${where.join(' AND ')}
     ORDER BY m.name COLLATE NOCASE, m.id
     LIMIT ?`
