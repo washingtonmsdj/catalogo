@@ -180,12 +180,6 @@ export default function App() {
     setFavorites((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
   }
 
-  function toggleQuote(id: string) {
-    setQuoteList((current) => {
-      if (current.includes(id)) return current.filter((item) => item !== id) : [...current, id]
-    })
-  }
-
   function safeToggleQuote(id: string) {
     setQuoteList((current) => {
       if (current.includes(id)) return current.filter((item) => item !== id)
