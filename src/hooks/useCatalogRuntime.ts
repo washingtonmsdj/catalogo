@@ -79,6 +79,7 @@ export function useCatalogRuntime(initialSlug = '') {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedId, setSelectedId] = useState(() => demoModels.find((model) => model.slug === initialSlug)?.id ?? demoModels[0].id)
   const selectedIdRef = useRef(selectedId)
+  const prefetchedCoverUrls = useRef(new Set<string>())
   const [liveCategories, setLiveCategories] = useState<CatalogCategory[]>([])
   const [liveFranchises, setLiveFranchises] = useState<CatalogFranchise[]>([])
   const [franchisesTruncated, setFranchisesTruncated] = useState(false)
@@ -248,6 +249,22 @@ export function useCatalogRuntime(initialSlug = '') {
       setSelectedId(demoVisibleModels[0].id)
     }
   }, [mode, demoVisibleModels, selectedId])
+
+  useEffect(() => {
+    if (typeof Image === 'undefined' || models.length < 2) return
+    const selectedIndex = models.findIndex((model) => model.id === selectedId)
+    if (selectedIndex < 0) return
+
+    for (const index of [selectedIndex - 1, selectedIndex + 1]) {
+      const coverUrl = models[index]?.coverUrl
+      if (!coverUrl || prefetchedCoverUrls.current.has(coverUrl)) continue
+      prefetchedCoverUrls.current.add(coverUrl)
+      const image = new Image()
+      image.decoding = 'async'
+      image.fetchPriority = 'low'
+      image.src = coverUrl
+    }
+  }, [models, selectedId])
 
   function setCategory(next: string) {
     setCategoryState(next)
