@@ -5,6 +5,7 @@ import './styles.css'
 import './hierarchy.css'
 import './runtime.css'
 import './premium.css'
+import './lightbox.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
