@@ -78,6 +78,7 @@ export default function App() {
   const catalog = useCatalogRuntime(initialSlugFromHash())
   const searchInputRef = useRef<HTMLInputElement>(null)
   const rosterTrackRef = useRef<HTMLDivElement>(null)
+  const previewPrefetchedUrls = useRef(new Set<string>())
   const [favorites, setFavorites] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:favorites') ?? '[]'))
   const [quoteList, setQuoteList] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:quote') ?? '[]'))
   const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
@@ -101,6 +102,7 @@ export default function App() {
   const noResults = !catalog.loading && visibleModels.length === 0
   const searchCharacters = Array.from(catalog.search.trim()).length
   const searchActive = Boolean(catalog.search.trim()) && !catalog.searchPending
+  const expandedImageUrl = previewImage?.detailUrl ?? previewImage?.url
 
   const categoryLabel = catalog.categories.find((item) => item.id === catalog.category)?.label ?? 'Todos'
   const franchiseLabel = catalog.franchises.find((item) => item.id === catalog.franchise)?.label
@@ -244,6 +246,15 @@ export default function App() {
     })
     setFavoritesOpen(false)
     setQuoteOpen(true)
+  }
+
+  function prefetchPreview(image: CatalogImage) {
+    const url = image.detailUrl
+    if (!url || url === image.url || previewPrefetchedUrls.current.has(url)) return
+    previewPrefetchedUrls.current.add(url)
+    const preload = new Image()
+    preload.decoding = 'async'
+    preload.src = url
   }
 
   function navigate(offset: number) {
@@ -508,24 +519,29 @@ export default function App() {
             </div>
             {gallery.error && <p className="runtime-alert" role="alert">{gallery.error}</p>}
             <div className="gallery-grid" aria-busy={gallery.loading}>
-              {gallery.items.map((image, localIndex) => (
-                <button
-                  type="button"
-                  key={image.id}
-                  disabled={!image.url}
-                  aria-label={image.url ? `Ampliar imagem ${gallery.pageIndex * 12 + localIndex + 1} de ${selected.name}` : undefined}
-                  className={image.role === 'cover' ? 'is-cover' : ''}
-                  onClick={() => image.url && setPreviewImage(image)}
-                >
-                  <GalleryArt image={image} model={selected} angle={((localIndex % 5) - 2) * 3} />
-                  <span>{image.role === 'cover' ? 'CAPA · MELHOR QUALIDADE' : `VISTA ${String(gallery.pageIndex * 12 + localIndex + 1).padStart(2, '0')}`}</span>
-                </button>
-              ))}
+              {gallery.items.map((image, localIndex) => {
+                const canPreview = Boolean(image.detailUrl ?? image.url)
+                return (
+                  <button
+                    type="button"
+                    key={image.id}
+                    disabled={!canPreview}
+                    aria-label={canPreview ? `Ampliar imagem ${gallery.pageIndex * 12 + localIndex + 1} de ${selected.name}` : undefined}
+                    className={image.role === 'cover' ? 'is-cover' : ''}
+                    onPointerEnter={() => prefetchPreview(image)}
+                    onFocus={() => prefetchPreview(image)}
+                    onClick={() => canPreview && setPreviewImage(image)}
+                  >
+                    <GalleryArt image={image} model={selected} angle={((localIndex % 5) - 2) * 3} />
+                    <span>{image.role === 'cover' ? 'CAPA · MELHOR QUALIDADE' : `VISTA ${String(gallery.pageIndex * 12 + localIndex + 1).padStart(2, '0')}`}</span>
+                  </button>
+                )
+              })}
               {gallery.loading && <div className="gallery-loading">Carregando imagens...</div>}
               {!gallery.loading && !gallery.items.length && <div className="gallery-loading">Nenhuma imagem disponível nesta página.</div>}
             </div>
             <div className="gallery-footer gallery-footer--paged">
-              <span>A capa usa a melhor versão disponível entre imagens equivalentes.</span>
+              <span>Miniaturas otimizadas na grade · alta resolução carregada somente ao ampliar.</span>
               <div>
                 <button type="button" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={gallery.previousPage}>← anterior</button>
                 <strong>{gallery.pageIndex + 1}/{gallery.totalPages}</strong>
@@ -536,7 +552,7 @@ export default function App() {
         </div>
       )}
 
-      {previewImage?.url && (
+      {expandedImageUrl && previewImage && (
         <div className="image-lightbox-backdrop" onMouseDown={() => setPreviewImage(null)}>
           <section className="image-lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="image-lightbox__head">
@@ -544,11 +560,11 @@ export default function App() {
               <button type="button" aria-label="Fechar imagem ampliada" onClick={() => setPreviewImage(null)}>×</button>
             </div>
             <div className="image-lightbox__stage">
-              <img src={previewImage.url} alt={`${selected.name} — imagem ampliada`} />
+              <img src={expandedImageUrl} alt={`${selected.name} — imagem ampliada`} />
             </div>
             <div className="image-lightbox__footer">
               <span>{previewImage.width > 0 && previewImage.height > 0 ? `${formatter.format(previewImage.width)} × ${formatter.format(previewImage.height)} px` : 'Imagem do catálogo'}</span>
-              <a href={previewImage.url} target="_blank" rel="noreferrer">Abrir imagem em nova aba ↗</a>
+              <a href={expandedImageUrl} target="_blank" rel="noreferrer">Abrir imagem em nova aba ↗</a>
             </div>
           </section>
         </div>
