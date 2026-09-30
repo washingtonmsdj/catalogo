@@ -7,3 +7,5 @@ dist/
 .DS_Store
 Thumbs.db
 *.log
+.catalog-ingest/
+.publish-bundle/
