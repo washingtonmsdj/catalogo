@@ -1,6 +1,6 @@
 # Deploy Cloudflare
 
-O catálogo usa GitHub Pages para o frontend e Cloudflare para API, banco, mídia e proteção do formulário.
+O catálogo usa GitHub Pages para o frontend e Cloudflare para API, banco, mídia e proteção dos fluxos públicos de gravação.
 O deploy normal do backend é automatizado; somente o provisionamento inicial da conta é feito uma vez.
 
 ## Recursos de produção
@@ -8,7 +8,7 @@ O deploy normal do backend é automatizado; somente o provisionamento inicial da
 - Worker: `tonecos-catalogo-api`
 - D1: `tonecos-catalogo`
 - R2: `tonecos-catalogo-media`
-- Turnstile: widget Managed para o formulário de orçamento
+- Turnstile: widget Managed usado no orçamento e no compartilhamento de coleções
 - Binding D1: `DB`
 - Binding R2: `MEDIA`
 
@@ -39,9 +39,13 @@ O arquivo `wrangler.jsonc` mantém um placeholder de D1. O UUID real nunca preci
 
 ## Fluxo automático
 
-Ao alterar `worker/`, `migrations/` ou configuração Cloudflare na `main`, o workflow `Deploy Cloudflare API`:
+Ao alterar `worker/`, `migrations/` ou configuração Cloudflare na `main`, o workflow `Deploy Cloudflare API` executa primeiro um **preflight sempre visível**.
 
-1. valida as credenciais obrigatórias;
+O preflight verifica se `CLOUDFLARE_ACCOUNT_ID` e `CLOUDFLARE_D1_DATABASE_ID` existem. Se algum deles estiver ausente, o workflow termina de forma controlada com um aviso e registra no resumo exatamente quais variáveis faltam; o job de produção é pulado. Isso evita confundir “deploy não configurado” com “deploy executado com sucesso”.
+
+Quando o bootstrap está disponível, o job de produção:
+
+1. valida `CLOUDFLARE_API_TOKEN` e `TURNSTILE_SECRET_KEY`;
 2. valida o Worker;
 3. gera a configuração com o UUID real do D1;
 4. confirma que o bucket R2 existe;
@@ -50,13 +54,18 @@ Ao alterar `worker/`, `migrations/` ou configuração Cloudflare na `main`, o wo
 7. verifica se `TURNSTILE_SECRET_KEY` já existe no Worker e envia o GitHub Secret somente quando necessário;
 8. confirma novamente que o nome do secret está ativo;
 9. consulta `/api/health` para provar que o Worker está respondendo;
-10. consulta `/api/categories` e valida a estrutura JSON para provar que o binding D1 e o schema do catálogo estão acessíveis.
+10. consulta `/api/categories` e valida a estrutura JSON para provar que o binding D1 e o schema do catálogo estão acessíveis;
+11. consulta uma coleção pública inexistente e exige `404 shared_collection_not_found`, provando que a rota `/api/shared-collections/:code` está realmente presente no Worker publicado.
 
 O R2 é validado antes do deploy via Wrangler. Assim, Worker, D1 e bucket precisam estar operacionais para o pipeline de produção terminar com sucesso.
 
 Na rotação da chave Turnstile, execute manualmente o workflow com `force_turnstile_secret_sync=true`. O valor do segredo continua mascarado pelo GitHub e é enviado ao Wrangler por stdin.
 
-Se as variáveis de conta/D1 ainda não estiverem configuradas, o job é ignorado. O preview do GitHub Pages continua funcionando em modo DEMO.
+## Estado DEMO antes do bootstrap
+
+Enquanto `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID` e `VITE_API_BASE_URL` não estiverem configurados, o GitHub Pages continua publicando o frontend em modo DEMO. Nenhuma migration é aplicada remotamente e nenhum Worker novo é publicado.
+
+Isso é intencional: IDs reais, tokens e secrets não devem ser inventados nem commitados apenas para fazer o pipeline parecer verde.
 
 ## Frontend
 
@@ -70,20 +79,23 @@ Assim que API/mídia estiverem configuradas, o mesmo frontend muda de DEMO para 
 
 Após cada publicação, o workflow do Pages executa um smoke test HTTP no endereço publicado, confirma a presença da identidade Tonecos Studios no HTML e valida o `site.webmanifest`. O workflow só termina com sucesso se a versão publicada estiver realmente acessível.
 
-## Formulário de orçamento
+## Turnstile
+
+O mesmo widget Managed pode proteger mais de um fluxo porque o servidor exige a `action` esperada para cada operação:
+
+- orçamento: `quote`;
+- criação de link de coleção: `collection-share`.
 
 Em LIVE, o Worker trabalha em modo fail-closed:
 
-- sem `TURNSTILE_SECRET_KEY`, não grava solicitação;
+- sem `TURNSTILE_SECRET_KEY`, não grava solicitação nem coleção compartilhada;
 - token Turnstile é validado server-side via Siteverify;
-- exige a action `quote`;
+- a action precisa corresponder ao fluxo;
 - IDs enviados pelo navegador são conferidos contra modelos publicados no D1;
-- máximo de 50 modelos por solicitação;
-- nome, e-mail e observações possuem limites server-side;
 - Origin fora da allowlist é recusada;
-- o navegador mantém a seleção local se o envio falhar.
+- o navegador mantém os dados locais se a operação remota falhar.
 
-O Turnstile é renderizado apenas no modal de orçamento e usa `appearance: interaction-only`, mantendo a interface limpa para a maioria dos clientes.
+O Turnstile usa `appearance: interaction-only`, mantendo a interface limpa para a maioria dos clientes.
 
 ## Segurança
 
