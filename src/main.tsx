@@ -11,6 +11,7 @@ import './lightbox.css'
 import './resilience.css'
 import './product-polish.css'
 import './media-fallback.css'
+import './discovery.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')
