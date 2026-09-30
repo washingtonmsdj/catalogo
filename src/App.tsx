@@ -1,9 +1,11 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useState } from 'react'
+import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
 import { submitQuoteRequest } from './services/quotes'
 import type { CatalogImage, CatalogModel } from './types/catalog'
 
 const formatter = new Intl.NumberFormat('pt-BR')
+const MAX_QUOTE_ITEMS = 50
 
 function ModelArt({ model, compact = false, angle = 0 }: { model: CatalogModel; compact?: boolean; angle?: number }) {
   return (
@@ -66,6 +68,7 @@ export default function App() {
   const [quoteMode, setQuoteMode] = useState<'live' | 'demo' | null>(null)
   const [quoteSubmitting, setQuoteSubmitting] = useState(false)
   const [quoteError, setQuoteError] = useState('')
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0)
   const [linkCopied, setLinkCopied] = useState(false)
 
   const gallery = useModelGallery(catalog.mode, catalog.selected, galleryOpen)
@@ -124,7 +127,15 @@ export default function App() {
   }
 
   function toggleQuote(id: string) {
-    setQuoteList((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
+    setQuoteList((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id)
+      if (current.length >= MAX_QUOTE_ITEMS) {
+        setQuoteError(`Cada solicitação aceita até ${MAX_QUOTE_ITEMS} modelos.`)
+        setQuoteOpen(true)
+        return current
+      }
+      return [...current, id]
+    })
   }
 
   function navigate(offset: number) {
@@ -156,6 +167,17 @@ export default function App() {
   async function submitQuote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
+    const turnstileToken = String(data.get('turnstileToken') ?? '').trim()
+
+    if (catalog.mode === 'live' && !isTurnstileConfigured()) {
+      setQuoteError('A proteção do formulário ainda não foi configurada no ambiente de produção.')
+      return
+    }
+    if (catalog.mode === 'live' && !turnstileToken) {
+      setQuoteError('Conclua a verificação anti-bot antes de enviar.')
+      return
+    }
+
     setQuoteSubmitting(true)
     setQuoteError('')
     try {
@@ -164,11 +186,16 @@ export default function App() {
         email: String(data.get('email') ?? '').trim(),
         notes: String(data.get('notes') ?? '').trim(),
         modelIds: quoteList,
+        turnstileToken,
       })
       setQuoteMode(result.mode)
       setSent(true)
-    } catch {
-      setQuoteError('Não foi possível enviar agora. Sua seleção continua salva neste navegador.')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : ''
+      setQuoteError(message === 'turnstile_failed'
+        ? 'A verificação anti-bot expirou ou não foi aceita. Tente novamente.'
+        : 'Não foi possível enviar agora. Sua seleção continua salva neste navegador.')
+      setTurnstileResetKey((current) => current + 1)
     } finally {
       setQuoteSubmitting(false)
     }
@@ -337,13 +364,14 @@ export default function App() {
               <div className="success-state"><strong>SOLICITAÇÃO REGISTRADA</strong><p>{quoteMode === 'live' ? 'Pedido enviado para o sistema.' : 'Modo demonstração ativo. Ao publicar a API, este mesmo formulário passará a gravar os pedidos sem mudar a interface.'}</p><button onClick={() => { setSent(false); setQuoteOpen(false) }}>Voltar ao catálogo</button></div>
             ) : (
               <form onSubmit={submitQuote}>
-                <label>Nome completo<input required name="name" placeholder="Seu nome" /></label>
-                <label>E-mail<input required type="email" name="email" placeholder="voce@email.com" /></label>
-                <div className="quote-selected"><span>Itens selecionados</span><strong>{quoteList.length}</strong></div>
+                <label>Nome completo<input required maxLength={120} name="name" placeholder="Seu nome" /></label>
+                <label>E-mail<input required maxLength={254} type="email" name="email" placeholder="voce@email.com" /></label>
+                <div className="quote-selected"><span>Itens selecionados</span><strong>{quoteList.length}/{MAX_QUOTE_ITEMS}</strong></div>
                 <div className="quote-chips">{quoteList.map((id) => <button type="button" key={id} onClick={() => toggleQuote(id)}>{knownModels[id] ?? id} ×</button>)}</div>
-                <label>Observações<textarea name="notes" rows={5} placeholder="Quantidade, tamanho desejado, acabamento ou outras informações..." /></label>
+                <label>Observações<textarea maxLength={4000} name="notes" rows={5} placeholder="Quantidade, tamanho desejado, acabamento ou outras informações..." /></label>
+                {catalog.mode === 'live' && <TurnstileWidget resetKey={turnstileResetKey} />}
                 {quoteError && <p role="alert">{quoteError}</p>}
-                <button className="primary-action" type="submit" disabled={!quoteList.length || quoteSubmitting}>{quoteSubmitting ? 'Enviando...' : 'Enviar solicitação'} <span>›</span></button>
+                <button className="primary-action" type="submit" disabled={!quoteList.length || quoteSubmitting || (catalog.mode === 'live' && !isTurnstileConfigured())}>{quoteSubmitting ? 'Enviando...' : 'Enviar solicitação'} <span>›</span></button>
               </form>
             )}
           </section>
