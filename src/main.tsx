@@ -10,6 +10,18 @@ import './premium.css'
 import './lightbox.css'
 import './resilience.css'
 import './product-polish.css'
+import './media-fallback.css'
+
+function installMediaFallback() {
+  document.addEventListener('error', (event) => {
+    const image = event.target
+    if (!(image instanceof HTMLImageElement)) return
+    image.dataset.mediaFailed = 'true'
+    image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')?.classList.add('media-failed')
+  }, true)
+}
+
+installMediaFallback()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
