@@ -1,0 +1,105 @@
+.collections-model-controls {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 170px auto auto;
+  gap: 8px;
+  align-items: end;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #2b3236;
+  background: #0a0e10;
+}
+
+.collections-model-controls label {
+  display: grid;
+  gap: 6px;
+}
+
+.collections-model-controls label > span {
+  color: #777f82;
+  font: 800 9px "Courier New", monospace;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+}
+
+.collections-model-controls input,
+.collections-model-controls select {
+  min-height: 36px;
+  width: 100%;
+  border: 1px solid #353d41;
+  background: #101518;
+  color: #dcd8cf;
+  padding: 0 10px;
+  outline: none;
+}
+
+.collections-model-controls input:focus,
+.collections-model-controls select:focus {
+  border-color: #8b6d47;
+}
+
+.collections-model-controls > button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #3c4549;
+  background: #101518;
+  color: #b8bec0;
+  white-space: nowrap;
+}
+
+.collections-model-controls > button:hover:not(:disabled) {
+  border-color: #765d3e;
+  color: #e3b575;
+}
+
+.collections-model-controls > button:disabled {
+  opacity: .45;
+}
+
+.collections-model-summary {
+  min-height: 36px;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 5px;
+  padding: 0 4px;
+  white-space: nowrap;
+}
+
+.collections-model-summary strong {
+  color: #e0ad68;
+  font: 900 16px "Courier New", monospace;
+}
+
+.collections-model-summary span {
+  color: #737b7e;
+  font-size: 9px;
+}
+
+.collections-empty > button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #3b4347;
+  background: #101518;
+  color: #adb4b6;
+}
+
+@media (max-width: 980px) {
+  .collections-model-controls {
+    grid-template-columns: minmax(0, 1fr) 160px;
+  }
+
+  .collections-model-controls > button,
+  .collections-model-summary {
+    width: 100%;
+  }
+
+  .collections-model-summary {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 620px) {
+  .collections-model-controls {
+    grid-template-columns: 1fr;
+  }
+}
