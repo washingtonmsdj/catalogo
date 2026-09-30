@@ -1,15 +1,32 @@
 # Catálogo Tonecos Studios
 
-Catálogo web escalável para uma coleção de 100 mil+ modelos, com navegação inspirada em seletores de personagens de fliperama.
+Catálogo web escalável para 100 mil+ modelos/personagens, com navegação inspirada em seletores de personagens de fliperama e interface limpa/industrial.
+
+**Preview público:** https://washingtonmsdj.github.io/catalogo/
 
 ## Arquitetura
 
-- Frontend desacoplado do armazenamento de imagens.
-- Imagens futuras em object storage/CDN (Cloudflare R2), não no GitHub.
-- Metadados e busca via API/banco (Cloudflare Workers + D1 ou equivalente).
-- Cada modelo/personagem pode possuir dezenas de imagens, com uma imagem principal escolhida por qualidade.
-- Duplicatas visuais devem ser consolidadas, priorizando a versão de melhor resolução/qualidade.
+- React + TypeScript + Vite no frontend.
+- GitHub Pages como preview público contínuo.
+- Cloudflare Worker para API, busca e formulários.
+- Cloudflare D1 para categorias, franquias, modelos e solicitações.
+- Cloudflare R2/CDN para variantes web e manifestos de galeria; imagens não ficam no GitHub.
+- Paginação por cursor para 100 mil+ modelos.
+- FTS5 trigram para busca de substring sem varrer a tabela inteira.
+- Galeria carregada separadamente e paginada; dezenas de imagens de um personagem não pesam na seleção principal.
 
-## Desenvolvimento
+## Imagens e duplicatas
 
-A primeira versão entrega a experiência visual e a estrutura de dados local/mock. A camada de ingestão e publicação do acervo será adicionada em seguida.
+A origem é somente leitura durante a ingestão. SHA-256 identifica duplicatas exatas e hash perceptual aponta equivalentes visuais dentro do mesmo modelo. Entre imagens equivalentes, o pipeline prioriza a versão de maior qualidade e preserva os arquivos mestres.
+
+São geradas variantes WebP de `thumb`, `card` e `detail`; o original pode ser preservado no armazenamento mestre sem ser servido na grade do catálogo.
+
+## Runtime
+
+Sem configuração Cloudflare, o frontend funciona em modo `DEMO`. Com `VITE_API_BASE_URL` e `VITE_MEDIA_BASE_URL`, a mesma interface passa para `LIVE` e consome API/mídia reais.
+
+## Deploy
+
+O frontend publica automaticamente a cada mudança na `main`. O backend possui workflow próprio para aplicar migrações D1 e publicar o Worker após o bootstrap inicial da conta Cloudflare.
+
+Veja [`docs/CLOUDFLARE_DEPLOY.md`](docs/CLOUDFLARE_DEPLOY.md) para a configuração de produção.
