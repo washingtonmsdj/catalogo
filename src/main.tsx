@@ -23,6 +23,7 @@ import './gallery-navigation.css'
 import './recent-navigation.css'
 import './comparison.css'
 import './collections.css'
+import './collections-organizer.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')
