@@ -175,11 +175,13 @@ async function listCategories(request: Request, env: Env) {
 async function listFranchises(request: Request, env: Env) {
   const url = new URL(request.url)
   const category = url.searchParams.get('category')?.trim() || null
-  const query = url.searchParams.get('q')?.trim() || null
+  const query = url.searchParams.get('q')?.trim().toLocaleLowerCase('pt-BR') || null
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '24', 10) || 24, 1, 48)
 
-  if (query && Array.from(query).length > 80) {
-    return json(request, env, { error: 'franchise_search_too_long', maxLength: 80 }, { status: 400 })
+  if (query) {
+    const length = Array.from(query).length
+    if (length < 3) return json(request, env, { error: 'franchise_search_too_short', minLength: 3 }, { status: 400 })
+    if (length > 80) return json(request, env, { error: 'franchise_search_too_long', maxLength: 80 }, { status: 400 })
   }
 
   const where: string[] = []
@@ -189,12 +191,15 @@ async function listFranchises(request: Request, env: Env) {
     values.push(category)
   }
   if (query) {
-    where.push('(instr(lower(f.name),lower(?))>0 OR instr(lower(f.slug),lower(?))>0)')
-    values.push(query, query)
+    where.push('franchises_fts MATCH ?')
+    values.push(toFtsPhrase(query))
   }
 
+  const searchJoin = query ? 'JOIN franchises_fts ON franchises_fts.franchise_id=f.id' : ''
   const sql = `SELECT f.slug AS id,f.name AS label,f.model_count AS count,c.slug AS category
-    FROM franchises f JOIN categories c ON c.id=f.category_id
+    FROM franchises f
+    JOIN categories c ON c.id=f.category_id
+    ${searchJoin}
     ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
     ORDER BY f.model_count DESC,f.name COLLATE NOCASE,f.id
     LIMIT ?`
