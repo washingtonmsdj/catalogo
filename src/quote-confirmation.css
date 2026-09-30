@@ -1,0 +1,39 @@
+.quote-receipt {
+  width: min(100%, 430px);
+  display: grid;
+  gap: 6px;
+  margin: 8px auto 4px;
+  padding: 16px 18px;
+  border: 1px solid #665033;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #17130e, #0f0d0a);
+  box-shadow: inset 0 1px rgba(255,255,255,.025), 0 14px 34px rgba(0,0,0,.18);
+  text-align: left;
+}
+
+.quote-receipt > span {
+  color: #9e7a47;
+  font: 800 9px/1 "Courier New", monospace;
+  letter-spacing: 1.2px;
+}
+
+.quote-receipt code {
+  overflow-wrap: anywhere;
+  color: #efc47c;
+  font: 900 14px/1.35 "Courier New", monospace;
+  letter-spacing: .65px;
+}
+
+.quote-receipt small {
+  color: #868d90;
+  font-size: 11px;
+}
+
+.success-state > p {
+  max-width: 500px;
+}
+
+@media (max-width: 560px) {
+  .quote-receipt { padding: 14px; }
+  .quote-receipt code { font-size: 12px; letter-spacing: .35px; }
+}
