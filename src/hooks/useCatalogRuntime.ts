@@ -371,7 +371,10 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
         setNextCursor(page.nextCursor)
       })
       .catch(() => {
-        if (!cancelled) setError('Não foi possível carregar esta página da galeria.')
+        if (!cancelled) {
+          setLiveItems([])
+          setError('Não foi possível carregar esta página da galeria.')
+        }
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
@@ -401,6 +404,8 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
     if (mode === 'live') {
       if (!nextCursor) return
       const nextPageIndex = pageIndex + 1
+      setLiveItems([])
+      setLoading(true)
       setCursorStack((current) => [...current.slice(0, nextPageIndex), nextCursor])
       setPageIndex(nextPageIndex)
       return
@@ -409,6 +414,13 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
   }
 
   function previousPage() {
+    if (mode === 'live') {
+      if (pageIndex === 0) return
+      setLiveItems([])
+      setLoading(true)
+      setPageIndex((current) => Math.max(0, current - 1))
+      return
+    }
     setPageIndex((current) => Math.max(0, current - 1))
   }
 
