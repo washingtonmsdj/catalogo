@@ -4,6 +4,7 @@ import { listCatalogFranchises, type CatalogRuntimeMode } from '../services/cata
 import type { CatalogCategory, CatalogFranchise } from '../types/catalog'
 
 const DISCOVERY_LIMIT = 48
+const numberFormatter = new Intl.NumberFormat('pt-BR')
 
 type Props = {
   open: boolean
@@ -21,7 +22,7 @@ function demoFranchises(category: string, query: string): CatalogFranchise[] {
   const grouped = new Map<string, CatalogFranchise>()
 
   for (const model of scoped) {
-    const id = model.franchiseSlug ?? model.franchise
+    const id = model.franchise
     const existing = grouped.get(id)
     if (existing) existing.count += 1
     else grouped.set(id, { id, label: model.franchise, count: 1, category: model.category })
@@ -89,7 +90,10 @@ export function FranchiseBrowser({
 
   if (!open) return null
 
-  const visible = mode === 'live' ? items : demoItems
+  const needle = query.trim().toLocaleLowerCase('pt-BR')
+  const visible = mode === 'live'
+    ? items.filter((item) => !needle || item.label.toLocaleLowerCase('pt-BR').includes(needle))
+    : demoItems
   const selectedCategoryLabel = categories.find((item) => item.id === category)?.label ?? 'Todos'
 
   function chooseCategory(next: string) {
@@ -146,7 +150,7 @@ export function FranchiseBrowser({
               onClick={() => chooseCategory(item.id)}
             >
               <span>{item.label}</span>
-              <strong>{new Intl.NumberFormat('pt-BR').format(item.count)}</strong>
+              <strong>{numberFormatter.format(item.count)}</strong>
             </button>
           ))}
         </div>
@@ -179,7 +183,7 @@ export function FranchiseBrowser({
                     <small>{categories.find((entry) => entry.id === item.category)?.label ?? item.category}</small>
                   </span>
                   <span className="explorer-grid__count">
-                    <strong>{new Intl.NumberFormat('pt-BR').format(item.count)}</strong>
+                    <strong>{numberFormatter.format(item.count)}</strong>
                     <small>modelos</small>
                   </span>
                   <span className="explorer-grid__arrow">›</span>
@@ -189,7 +193,7 @@ export function FranchiseBrowser({
           )}
 
           {truncated && !loading && (
-            <div className="explorer-more">Mostrando as {DISCOVERY_LIMIT} melhores correspondências. Refine a busca para localizar outras franquias.</div>
+            <div className="explorer-more">Mostrando as {DISCOVERY_LIMIT} franquias de maior volume neste recorte. Use a busca principal do catálogo para encontrar personagens de outras coleções.</div>
           )}
         </div>
       </section>
