@@ -209,7 +209,7 @@ export default function App() {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (previewImage) setPreviewImage(null)
+        if (previewImage) closePreview()
         else if (quoteOpen) setQuoteOpen(false)
         else if (favoritesOpen) setFavoritesOpen(false)
         else if (galleryOpen) setGalleryOpen(false)
@@ -255,7 +255,13 @@ export default function App() {
 
   function safeToggleQuote(id: string) {
     setQuoteList((current) => {
-      if (current.includes(id)) return current.filter((item) => item !== id) : [...current, id]
+      if (current.includes(id)) return current.filter((item) => item !== id)
+      if (current.length >= MAX_QUOTE_ITEMS) {
+        setQuoteError(`Cada solicitação aceita até ${MAX_QUOTE_ITEMS} modelos.`)
+        setQuoteOpen(true)
+        return current
+      }
+      return [...current, id]
     })
   }
 
@@ -277,6 +283,11 @@ export default function App() {
     })
     setFavoritesOpen(false)
     setQuoteOpen(true)
+  }
+
+  function closePreview() {
+    setPreviewPageTarget(null)
+    setPreviewImage(null)
   }
 
   function prefetchPreview(image: CatalogImage) {
@@ -603,11 +614,11 @@ export default function App() {
       )}
 
       {expandedImageUrl && previewImage && (
-        <div className="image-lightbox-backdrop" onMouseDown={() => setPreviewImage(null)}>
+        <div className="image-lightbox-backdrop" onMouseDown={closePreview}>
           <section className="image-lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="image-lightbox__head">
               <div><span>VISUALIZAÇÃO · USE ← → PARA NAVEGAR</span><h2 id="lightbox-title">{selected.name}</h2></div>
-              <button type="button" aria-label="Fechar imagem ampliada" onClick={() => setPreviewImage(null)}>×</button>
+              <button type="button" aria-label="Fechar imagem ampliada" onClick={closePreview}>×</button>
             </div>
             <div className="image-lightbox__stage">
               <button type="button" className="image-lightbox__nav image-lightbox__nav--prev" aria-label="Imagem anterior" disabled={!canPreviewPrevious || gallery.loading} onClick={() => navigatePreview(-1)}>‹</button>
