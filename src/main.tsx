@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import App from './App'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { ConnectivityBanner } from './components/ConnectivityBanner'
+import { installDialogAccessibility } from './installDialogAccessibility'
 import { installLightboxSwipe } from './installLightboxSwipe'
 import './styles.css'
 import './hierarchy.css'
@@ -38,6 +39,7 @@ function installMediaFallback() {
 
 installMediaFallback()
 installLightboxSwipe()
+installDialogAccessibility()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
