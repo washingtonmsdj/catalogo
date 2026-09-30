@@ -27,6 +27,8 @@ export type CatalogListQuery = {
 
 export type GalleryQuery = {
   cursor?: string
+  /** Índice zero-based para acesso direto a uma página do manifesto. */
+  page?: number
   limit?: number
 }
 
