@@ -101,6 +101,57 @@ O servidor:
 
 Favoritos permanecem locais no navegador enquanto a camada de autenticação não for implementada. Login e favoritos sincronizados devem entrar em uma camada separada do catálogo público, sem tornar a navegação anônima dependente de autenticação.
 
+## Coleções compartilhadas
+
+A coleção pessoal continua local por padrão. O cliente só envia uma seleção ao backend quando escolhe explicitamente criar um link público temporário.
+
+### Criar link
+
+`POST /api/shared-collections`
+
+```json
+{
+  "name": "Terror",
+  "modelIds": ["mdl-000001", "mdl-000002"],
+  "turnstileToken": "..."
+}
+```
+
+Regras do servidor:
+
+- exige Turnstile com a ação `collection-share`;
+- aceita no máximo 100 modelos e nome com até 48 caracteres;
+- remove IDs repetidos;
+- confirma que todos os modelos enviados estão publicados;
+- gera um código público aleatório `TCL-...`, sem colocar os IDs na URL;
+- mantém a ordem dos modelos enviada pelo cliente;
+- links expiram 30 dias após a criação;
+- conteúdo idêntico ainda válido reutiliza o mesmo link, evitando duplicação desnecessária no D1;
+- nenhum nome de cliente, e-mail ou identidade do navegador é armazenado junto da coleção.
+
+Resposta resumida:
+
+```json
+{
+  "code": "TCL-...",
+  "name": "Terror",
+  "itemCount": 2,
+  "availableCount": 2,
+  "createdAt": "2026-09-30T21:00:00.000Z",
+  "expiresAt": "2026-10-30T21:00:00.000Z",
+  "deduplicated": false,
+  "items": []
+}
+```
+
+### Abrir link
+
+`GET /api/shared-collections/:code`
+
+A leitura não exige login. O código possui entropia alta e funciona como segredo de posse do link. A resposta inclui apenas modelos que continuam publicados. Por isso `availableCount` pode ser menor que `itemCount` quando algum item foi retirado do catálogo depois da criação.
+
+Links expirados ou códigos inválidos retornam `404` com `shared_collection_not_found`. O frontend usa `?colecao=TCL-...` e permite que o destinatário visualize a seleção antes de decidir salvá-la nas próprias coleções locais.
+
 ## Cache e mídia
 
 Taxonomias e detalhes usam cache público mais longo; páginas do catálogo usam cache curto. Os binários de mídia ficam fora do Worker e são entregues pela origem/CDN configurada para o R2.
