@@ -175,14 +175,24 @@ async function listCategories(request: Request, env: Env) {
 async function listFranchises(request: Request, env: Env) {
   const url = new URL(request.url)
   const category = url.searchParams.get('category')?.trim() || null
-  const where = category ? 'WHERE c.slug=?' : ''
-  const statement = env.DB.prepare(`SELECT f.slug AS id,f.name AS label,f.model_count AS count,c.slug AS category
-    FROM franchises f JOIN categories c ON c.id=f.category_id ${where}
-    ORDER BY f.name COLLATE NOCASE`)
-  const result = category
-    ? await statement.bind(category).all<{ id: string; label: string; count: number; category: string }>()
-    : await statement.all<{ id: string; label: string; count: number; category: string }>()
-  return json(request, env, { items: result.results }, {}, 'public, max-age=300, s-maxage=1800')
+  const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '24', 10) || 24, 1, 48)
+  const where: string[] = []
+  const values: unknown[] = []
+  if (category) {
+    where.push('c.slug=?')
+    values.push(category)
+  }
+  const sql = `SELECT f.slug AS id,f.name AS label,f.model_count AS count,c.slug AS category
+    FROM franchises f JOIN categories c ON c.id=f.category_id
+    ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
+    ORDER BY f.model_count DESC,f.name COLLATE NOCASE,f.id
+    LIMIT ?`
+  values.push(limit + 1)
+  const result = await env.DB.prepare(sql).bind(...values)
+    .all<{ id: string; label: string; count: number; category: string }>()
+  const truncated = result.results.length > limit
+  const items = truncated ? result.results.slice(0, limit) : result.results
+  return json(request, env, { items, truncated }, {}, 'public, max-age=300, s-maxage=1800')
 }
 
 async function listCatalog(request: Request, env: Env) {
