@@ -48,6 +48,11 @@ export type GalleryPage = {
   version: number
 }
 
+export type FranchiseDiscoveryPage = {
+  items: CatalogFranchise[]
+  truncated: boolean
+}
+
 const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
 const mediaBase = (import.meta.env.VITE_MEDIA_BASE_URL as string | undefined)?.replace(/\/$/, '')
 
@@ -88,11 +93,11 @@ export async function listCatalogCategories(): Promise<CatalogCategory[]> {
   return result.items
 }
 
-export async function listCatalogFranchises(category?: string): Promise<CatalogFranchise[]> {
-  const result = await requestJson<{ items: CatalogFranchise[] }>(endpoint('/api/franchises', {
+export async function listCatalogFranchises(category?: string, limit = 24): Promise<FranchiseDiscoveryPage> {
+  return requestJson<FranchiseDiscoveryPage>(endpoint('/api/franchises', {
     category: category && category !== 'all' ? category : undefined,
+    limit,
   }))
-  return result.items
 }
 
 function mediaObjectUrl(key: string | null | undefined) {
