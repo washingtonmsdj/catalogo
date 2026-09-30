@@ -1,4 +1,4 @@
-import type { CatalogImage, CatalogModel } from '../types/catalog'
+import type { CatalogCategory, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 import type { CatalogListQuery, CatalogModelCard, CursorPage, GalleryQuery } from './catalogRepository'
 
 export type CatalogRuntimeMode = 'demo' | 'live'
@@ -9,7 +9,9 @@ export type ApiCatalogRow = {
   code: string
   name: string
   franchise: string
+  franchise_slug: string
   category: string
+  category_slug: string
   collection: string | null
   image_count: number
   cover_storage_key: string | null
@@ -81,10 +83,27 @@ export async function checkCatalogApi() {
   }
 }
 
+export async function listCatalogCategories(): Promise<CatalogCategory[]> {
+  const result = await requestJson<{ items: CatalogCategory[] }>(endpoint('/api/categories'))
+  return result.items
+}
+
+export async function listCatalogFranchises(category?: string): Promise<CatalogFranchise[]> {
+  const result = await requestJson<{ items: CatalogFranchise[] }>(endpoint('/api/franchises', {
+    category: category && category !== 'all' ? category : undefined,
+  }))
+  return result.items
+}
+
+function mediaObjectUrl(key: string | null | undefined) {
+  if (!key || !mediaBase) return undefined
+  return `${mediaBase}/${key.split('/').map(encodeURIComponent).join('/')}`
+}
+
 export async function listCatalogModels(query: CatalogListQuery = {}): Promise<CursorPage<CatalogModelCard>> {
   const result = await requestJson<{ items: ApiCatalogRow[]; nextCursor: string | null }>(endpoint('/api/catalog', {
-    category: query.category,
-    franchise: query.franchise,
+    category: query.category && query.category !== 'all' ? query.category : undefined,
+    franchise: query.franchise && query.franchise !== 'all' ? query.franchise : undefined,
     q: query.search,
     cursor: query.cursor,
     limit: query.limit,
@@ -97,10 +116,12 @@ export async function listCatalogModels(query: CatalogListQuery = {}): Promise<C
       code: row.code,
       name: row.name,
       franchise: row.franchise,
-      category: row.category,
+      franchiseSlug: row.franchise_slug,
+      category: row.category_slug,
       collection: row.collection ?? '',
       galleryCount: row.image_count,
       accent: '#c98a3d',
+      coverUrl: mediaObjectUrl(row.cover_storage_key),
     })),
     nextCursor: result.nextCursor,
     totalApprox: 0,
@@ -116,7 +137,8 @@ export async function getCatalogModel(slug: string): Promise<CatalogModel | null
       code: row.code,
       name: row.name,
       franchise: row.franchise,
-      category: row.category,
+      franchiseSlug: row.franchise_slug,
+      category: row.category_slug,
       collection: row.collection ?? '',
       material: row.material ?? 'Sob consulta',
       heightCm: row.height_cm ?? 0,
@@ -124,6 +146,7 @@ export async function getCatalogModel(slug: string): Promise<CatalogModel | null
       description: row.description ?? '',
       tags: [],
       accent: '#c98a3d',
+      coverUrl: mediaObjectUrl(row.cover_storage_key),
       images: [],
     }
   } catch (error) {
@@ -141,8 +164,7 @@ export async function listCatalogImages(slug: string, query: GalleryQuery = {}):
 
 export function imageVariantUrl(image: ApiGalleryImage, variant: keyof ApiGalleryImage['variantKeys'] = 'detail') {
   const key = image.variantKeys[variant] ?? image.variantKeys.card ?? image.variantKeys.thumb
-  if (!key || !mediaBase) return undefined
-  return `${mediaBase}/${key.split('/').map(encodeURIComponent).join('/')}`
+  return mediaObjectUrl(key)
 }
 
 export function toCatalogImage(image: ApiGalleryImage): CatalogImage {
