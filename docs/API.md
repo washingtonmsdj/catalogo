@@ -21,7 +21,7 @@ O Navegador do Acervo também pode pesquisar diretamente nas franquias:
 Parâmetros:
 
 - `category` é opcional e restringe a descoberta a uma categoria;
-- `q` é opcional, aceita até 80 caracteres e procura por nome ou slug da franquia;
+- `q` é opcional; quando presente exige pelo menos 3 e no máximo 80 caracteres;
 - `limit` é limitado no servidor a no máximo 48 itens;
 - a resposta usa `truncated=true` quando existem mais correspondências do que o recorte retornado.
 
@@ -38,6 +38,8 @@ Parâmetros:
   "truncated": true
 }
 ```
+
+A busca de franquias usa um índice FTS5 trigram dedicado, atualizado por triggers. Isso mantém pesquisa parcial e sem acento indexada (`resi` → `Resident Evil`, `pokemon` → `Pokémon`) sem varrer a tabela inteira conforme a taxonomia crescer.
 
 A UI principal continua usando um recorte pequeno para a faixa superior. O navegador de franquias consulta a taxonomia sob demanda e nunca precisa carregar os 100 mil+ modelos para montar a descoberta.
 
