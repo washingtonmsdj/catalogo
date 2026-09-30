@@ -52,8 +52,18 @@ function demoFranchises(category: string): CatalogFranchise[] {
     .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
 }
 
+function slugFromHash() {
+  if (!window.location.hash.startsWith('#modelo=')) return ''
+  try {
+    return decodeURIComponent(window.location.hash.slice(8))
+  } catch {
+    return ''
+  }
+}
+
 export function useCatalogRuntime(initialSlug = '') {
   const mode = getCatalogRuntimeMode()
+  const [routeSlug, setRouteSlug] = useState(initialSlug)
   const [category, setCategoryState] = useState('all')
   const [franchise, setFranchiseState] = useState('all')
   const [search, setSearch] = useState('')
@@ -69,6 +79,12 @@ export function useCatalogRuntime(initialSlug = '') {
   const [loading, setLoading] = useState(mode === 'live')
   const [error, setError] = useState('')
   const [apiHealthy, setApiHealthy] = useState(mode === 'demo')
+
+  useEffect(() => {
+    const syncRoute = () => setRouteSlug(slugFromHash())
+    window.addEventListener('hashchange', syncRoute)
+    return () => window.removeEventListener('hashchange', syncRoute)
+  }, [])
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), mode === 'live' ? 300 : 0)
@@ -108,6 +124,7 @@ export function useCatalogRuntime(initialSlug = '') {
   useEffect(() => {
     setCursorStack([undefined])
     setPageIndex(0)
+    setSelectedDetail(null)
   }, [category, franchise, debouncedSearch])
 
   const currentCursor = cursorStack[pageIndex]
@@ -129,7 +146,12 @@ export function useCatalogRuntime(initialSlug = '') {
         const items = page.items.map(cardToModel)
         setLiveModels(items)
         setNextCursor(page.nextCursor)
-        if (items.length && !items.some((model) => model.id === selectedId) && !selectedDetail) {
+        if (!items.length) {
+          setSelectedDetail(null)
+          return
+        }
+        if (!items.some((model) => model.id === selectedId)) {
+          setSelectedDetail(null)
           setSelectedId(items[0].id)
         }
       })
@@ -137,23 +159,30 @@ export function useCatalogRuntime(initialSlug = '') {
         if (!cancelled) {
           setLiveModels([])
           setNextCursor(null)
+          setSelectedDetail(null)
           setError('Não foi possível carregar esta página do catálogo.')
         }
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [mode, category, franchise, debouncedSearch, currentCursor])
+  }, [mode, category, franchise, debouncedSearch, currentCursor, selectedId])
 
   useEffect(() => {
-    if (mode !== 'live' || !initialSlug) return
+    if (!routeSlug) return
+    if (mode === 'demo') {
+      const model = demoModels.find((item) => item.slug === routeSlug)
+      if (model) setSelectedId(model.id)
+      return
+    }
+
     let cancelled = false
-    getCatalogModel(initialSlug).then((model) => {
+    getCatalogModel(routeSlug).then((model) => {
       if (cancelled || !model) return
       setSelectedDetail(model)
       setSelectedId(model.id)
     }).catch(() => undefined)
     return () => { cancelled = true }
-  }, [mode, initialSlug])
+  }, [mode, routeSlug])
 
   useEffect(() => {
     if (mode !== 'live') return
