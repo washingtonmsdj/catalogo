@@ -26,8 +26,50 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.readiness.outputs.ready }}
+    steps:
+      - name: Check production bootstrap readiness
+        id: readiness
+        shell: bash
+        env:
+          ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
+          API_URL: ${{ vars.VITE_API_BASE_URL }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "$ACCOUNT_ID" ] || missing+=(CLOUDFLARE_ACCOUNT_ID)
+          [ -n "$D1_DATABASE_ID" ] || missing+=(CLOUDFLARE_D1_DATABASE_ID)
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo "::warning::Deploy Cloudflare não executado: faltam Repository Variables: ${missing[*]}"
+            {
+              echo '## Cloudflare API — bootstrap pendente'
+              echo
+              echo 'O código foi validado pelo CI, mas o deploy de produção está desabilitado até configurar:'
+              for item in "${missing[@]}"; do echo "- \`$item\`"; done
+              echo
+              echo 'Consulte `docs/CLOUDFLARE_DEPLOY.md`. Nenhum ID real deve ser commitado no repositório.'
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+          {
+            echo '## Cloudflare API — bootstrap disponível'
+            echo
+            echo '- Account ID: configurado'
+            echo '- D1 database ID: configurado'
+            if [ -n "$API_URL" ]; then echo '- API pública: configurada'; else echo '- API pública: não configurada; smoke HTTP será omitido'; fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
   deploy:
-    if: ${{ vars.CLOUDFLARE_ACCOUNT_ID != '' && vars.CLOUDFLARE_D1_DATABASE_ID != '' }}
+    needs: preflight
+    if: ${{ needs.preflight.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -91,3 +133,15 @@ jobs:
           set -euo pipefail
           curl --fail --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors "$CATALOG_API_URL/api/categories" \
             | node -e "let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (!Array.isArray(data.items)) { console.error('categories response is invalid'); process.exit(1); } console.log('D1 ready:', data.items.length, 'category records'); });"
+      - name: Verify shared collections route
+        if: ${{ vars.VITE_API_BASE_URL != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          body_file="$(mktemp)"
+          status="$(curl --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors \
+            --output "$body_file" --write-out '%{http_code}' \
+            "$CATALOG_API_URL/api/shared-collections/TCL-AAAAAAAAAAAAAAAA")"
+          test "$status" = '404'
+          node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); if (data.error !== 'shared_collection_not_found') { console.error(data); process.exit(1); }" "$body_file"
+          rm -f "$body_file"
