@@ -1,13 +1,26 @@
+type D1Statement = {
+  bind(...values: unknown[]): D1Statement
+  all<T = unknown>(): Promise<{ results: T[] }>
+  first<T = unknown>(): Promise<T | null>
+  run(): Promise<unknown>
+}
+
+type D1Database = {
+  prepare(sql: string): D1Statement
+  batch(statements: D1Statement[]): Promise<unknown>
+}
+
+type R2ObjectBody = {
+  json<T = unknown>(): Promise<T>
+}
+
+type R2Bucket = {
+  get(key: string): Promise<R2ObjectBody | null>
+}
+
 type Env = {
-  DB: {
-    prepare(sql: string): {
-      bind(...values: unknown[]): any
-      all<T = unknown>(): Promise<{ results: T[] }>
-      first<T = unknown>(): Promise<T | null>
-      run(): Promise<unknown>
-    }
-    batch(statements: any[]): Promise<unknown>
-  }
+  DB: D1Database
+  MEDIA: R2Bucket
 }
 
 type CatalogRow = {
@@ -19,12 +32,40 @@ type CatalogRow = {
   category: string
   collection: string | null
   image_count: number
-  cover_image_id: string | null
+  cover_storage_key: string | null
+}
+
+type GalleryImage = {
+  id: string
+  role: 'cover' | 'gallery'
+  width: number
+  height: number
+  bytes: number
+  mime: string
+  qualityScore: number
+  sourceSha256: string
+  variantKeys: {
+    thumb?: string
+    card?: string
+    detail?: string
+    original?: string
+  }
+}
+
+type GalleryManifest = {
+  version: number
+  modelId: string
+  generatedAt: string
+  images: GalleryImage[]
 }
 
 const json = (data: unknown, init: ResponseInit = {}) => new Response(JSON.stringify(data), {
   ...init,
-  headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...(init.headers ?? {}) },
+  headers: {
+    'content-type': 'application/json; charset=utf-8',
+    'cache-control': 'no-store',
+    ...(init.headers ?? {}),
+  },
 })
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
@@ -45,7 +86,7 @@ async function listCatalog(request: Request, env: Env) {
   if (franchise) { where.push('f.slug = ?'); values.push(franchise) }
   if (query) { where.push('m.search_text LIKE ?'); values.push(`%${query}%`) }
 
-  const sql = `SELECT m.id,m.slug,m.code,m.name,m.collection,m.image_count,m.cover_image_id,
+  const sql = `SELECT m.id,m.slug,m.code,m.name,m.collection,m.image_count,m.cover_storage_key,
     f.name AS franchise,c.name AS category
     FROM models m
     JOIN franchises f ON f.id=m.franchise_id
@@ -72,16 +113,27 @@ async function listImages(request: Request, slug: string, env: Env) {
   const url = new URL(request.url)
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '24', 10) || 24, 1, 60)
   const offset = decodeCursor(url.searchParams.get('cursor'))
-  const model = await env.DB.prepare('SELECT id FROM models WHERE slug=? AND published=1').bind(slug).first<{ id: string }>()
+  const model = await env.DB.prepare(
+    'SELECT id,image_count,gallery_manifest_key,gallery_version FROM models WHERE slug=? AND published=1',
+  ).bind(slug).first<{ id: string; image_count: number; gallery_manifest_key: string | null; gallery_version: number }>()
   if (!model) return json({ error: 'model_not_found' }, { status: 404 })
+  if (!model.gallery_manifest_key) return json({ items: [], total: 0, nextCursor: null, version: model.gallery_version })
 
-  const result = await env.DB.prepare(`SELECT id,width,height,bytes,mime,role,quality_score,storage_key
-    FROM images WHERE model_id=?
-    ORDER BY CASE role WHEN 'cover' THEN 0 ELSE 1 END, quality_score DESC, id
-    LIMIT ? OFFSET ?`).bind(model.id, limit + 1, offset).all()
-  const hasMore = result.results.length > limit
-  const items = hasMore ? result.results.slice(0, limit) : result.results
-  return json({ items, nextCursor: hasMore ? encodeCursor(offset + limit) : null })
+  const object = await env.MEDIA.get(model.gallery_manifest_key)
+  if (!object) return json({ error: 'gallery_manifest_missing' }, { status: 503 })
+  const manifest = await object.json<GalleryManifest>()
+  if (manifest.modelId !== model.id || !Array.isArray(manifest.images)) {
+    return json({ error: 'gallery_manifest_invalid' }, { status: 503 })
+  }
+
+  const items = manifest.images.slice(offset, offset + limit)
+  const nextOffset = offset + items.length
+  return json({
+    items,
+    total: manifest.images.length,
+    nextCursor: nextOffset < manifest.images.length ? encodeCursor(nextOffset) : null,
+    version: manifest.version,
+  })
 }
 
 async function createQuote(request: Request, env: Env) {
