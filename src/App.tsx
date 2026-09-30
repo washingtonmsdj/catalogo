@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { FranchiseBrowser } from './components/FranchiseBrowser'
+import { ModelComparison } from './components/ModelComparison'
 import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
 import { discoveryShareUrl } from './services/catalogNavigation'
@@ -8,6 +9,7 @@ import type { CatalogImage, CatalogModel } from './types/catalog'
 
 const formatter = new Intl.NumberFormat('pt-BR')
 const MAX_QUOTE_ITEMS = 50
+const MAX_COMPARE_MODELS = 4
 const GALLERY_PAGE_SIZE = 12
 const MAX_RECENT_MODELS = 12
 
@@ -90,10 +92,12 @@ export default function App() {
   const previewPrefetchedUrls = useRef(new Set<string>())
   const [favorites, setFavorites] = useState<string[]>(() => loadStoredIds('tonecos:favorites'))
   const [quoteList, setQuoteList] = useState<string[]>(() => loadStoredIds('tonecos:quote', MAX_QUOTE_ITEMS))
+  const [compareIds, setCompareIds] = useState<string[]>(() => loadStoredIds('tonecos:compare', MAX_COMPARE_MODELS))
   const [recentIds, setRecentIds] = useState<string[]>(() => loadStoredIds('tonecos:recent-models', MAX_RECENT_MODELS))
   const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
   const [explorerOpen, setExplorerOpen] = useState(false)
   const [recentOpen, setRecentOpen] = useState(false)
+  const [compareOpen, setCompareOpen] = useState(false)
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [previewImage, setPreviewImage] = useState<CatalogImage | null>(null)
   const [previewPageTarget, setPreviewPageTarget] = useState<PreviewPageTarget>(null)
@@ -114,7 +118,7 @@ export default function App() {
   const visibleModels = catalog.models
   const selectedIndex = visibleModels.findIndex((model) => model.id === selected.id)
   const selectedInVisiblePage = selectedIndex >= 0
-  const anyModalOpen = explorerOpen || recentOpen || galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
+  const anyModalOpen = explorerOpen || recentOpen || compareOpen || galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
   const noResults = !catalog.loading && visibleModels.length === 0
   const searchCharacters = Array.from(catalog.search.trim()).length
   const searchActive = Boolean(catalog.search.trim()) && !catalog.searchPending
@@ -137,6 +141,7 @@ export default function App() {
 
   useEffect(() => localStorage.setItem('tonecos:favorites', JSON.stringify(favorites)), [favorites])
   useEffect(() => localStorage.setItem('tonecos:quote', JSON.stringify(quoteList)), [quoteList])
+  useEffect(() => localStorage.setItem('tonecos:compare', JSON.stringify(compareIds)), [compareIds])
   useEffect(() => localStorage.setItem('tonecos:recent-models', JSON.stringify(recentIds)), [recentIds])
   useEffect(() => localStorage.setItem('tonecos:known-models', JSON.stringify(knownModels)), [knownModels])
 
@@ -198,7 +203,7 @@ export default function App() {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (previewImage) closePreview(); else if (quoteOpen) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (recentOpen) setRecentOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false)
+        if (previewImage) closePreview(); else if (quoteOpen) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (compareOpen) setCompareOpen(false); else if (recentOpen) setRecentOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false)
         return
       }
       if (previewImage && event.key === 'ArrowRight') { event.preventDefault(); navigatePreview(1); return }
@@ -213,6 +218,7 @@ export default function App() {
       if (isTyping || anyModalOpen) return
       if (event.key === 'ArrowRight') navigate(1); if (event.key === 'ArrowLeft') navigate(-1)
       if (event.key.toLowerCase() === 'f' && selected.id !== 'loading') toggleFavorite(selected.id)
+      if (event.key.toLowerCase() === 'c' && selected.id !== 'loading') toggleCompare(selected.id)
       if (event.key.toLowerCase() === 'a' && selected.id !== 'loading') setGalleryOpen(true)
       if (event.key.toLowerCase() === 'e') setExplorerOpen(true)
       if (event.key === 'Enter' && selected.id !== 'loading') window.location.hash = `modelo=${encodeURIComponent(selected.slug)}`
@@ -221,6 +227,13 @@ export default function App() {
   })
 
   function toggleFavorite(id: string) { setFavorites((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]) }
+  function toggleCompare(id: string) {
+    setCompareIds((current) => {
+      if (current.includes(id)) return current.filter((item) => item !== id)
+      if (current.length >= MAX_COMPARE_MODELS) { setCompareOpen(true); return current }
+      return [...current, id]
+    })
+  }
   function safeToggleQuote(id: string) {
     setQuoteList((current) => {
       if (current.includes(id)) return current.filter((item) => item !== id)
@@ -230,6 +243,7 @@ export default function App() {
   }
   function openKnownModel(id: string, close: () => void) { const slug = knownModels[id]?.slug; if (!slug) return; close(); window.location.hash = `modelo=${encodeURIComponent(slug)}` }
   function addFavoritesToQuote() { setQuoteList((current) => { const next = [...current]; for (const id of favorites) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setFavoritesOpen(false); setQuoteOpen(true) }
+  function addComparisonToQuote(ids: string[]) { setQuoteList((current) => { const next = [...current]; for (const id of ids) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setCompareOpen(false); setQuoteOpen(true) }
   function chooseExplorerCategory(category: string) { catalog.setSearch(''); catalog.setCategory(category) }
   function chooseExplorerFranchise(category: string, franchise: string) { catalog.setSearch(''); catalog.setCategory(category); catalog.setFranchise(franchise) }
   function closePreview() { setPreviewPageTarget(null); setPreviewImage(null) }
@@ -284,7 +298,7 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <a className="brand" href="#catalogo" aria-label="Tonecos Studios — voltar ao catálogo"><span className="brand__title">CATÁLOGO</span><span className="brand__studio">TONECOS STUDIOS</span></a>
-        <nav className="topnav" aria-label="Navegação principal"><a href="#catalogo" className="is-active">Catálogo</a><button type="button" onClick={() => setExplorerOpen(true)}>Explorar</button><button type="button" onClick={() => setRecentOpen(true)}>Recentes <b>{recentIds.length}</b></button><button type="button" onClick={() => setFavoritesOpen(true)}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={() => setQuoteOpen(true)}>Orçamento <b>{quoteList.length}</b></button></nav>
+        <nav className="topnav" aria-label="Navegação principal"><a href="#catalogo" className="is-active">Catálogo</a><button type="button" onClick={() => setExplorerOpen(true)}>Explorar</button><button type="button" onClick={() => setRecentOpen(true)}>Recentes <b>{recentIds.length}</b></button><button type="button" onClick={() => setFavoritesOpen(true)}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={() => setCompareOpen(true)}>Comparar <b>{compareIds.length}</b></button><button type="button" onClick={() => setQuoteOpen(true)}>Orçamento <b>{quoteList.length}</b></button></nav>
         <label className={`searchbox ${catalog.searchPending ? 'is-pending' : ''}`}><span aria-hidden="true">⌕</span><input ref={searchInputRef} aria-label="Buscar no catálogo" value={catalog.search} onChange={(event) => catalog.setSearch(event.target.value)} placeholder="Buscar personagem, franquia ou categoria..." /><kbd aria-hidden="true">/</kbd></label>
       </header>
 
@@ -301,14 +315,16 @@ export default function App() {
 
         <section className="selection-stage panel"><button type="button" className="stage-arrow stage-arrow--left" disabled={!visibleModels.length || catalog.loading} onClick={() => navigate(-1)} aria-label="Modelo anterior">‹</button><div className="stage-visual">{noResults ? <div className="empty-stage" role="status"><div className="empty-stage__inner"><span className="empty-stage__mark">⌕</span><span className="empty-stage__eyebrow">Nenhuma correspondência</span><h2>Nenhum modelo neste recorte</h2><p>Remova um filtro ou limpe a busca para voltar ao acervo completo. Nenhum item foi escondido ou removido do catálogo.</p><button type="button" onClick={catalog.resetDiscovery}>Voltar ao catálogo completo</button></div></div> : <><div className="stage-watermark">{selected.name.toUpperCase()}</div><div className="stage-index" aria-live="polite">{stageIndexLabel}</div><ModelArt model={selected} /><button type="button" className="gallery-badge" disabled={selected.id === 'loading'} onClick={() => setGalleryOpen(true)}><strong>{selected.galleryCount}</strong><span>IMAGENS</span><small>abrir galeria</small></button></>}</div><button type="button" className="stage-arrow stage-arrow--right" disabled={!visibleModels.length || catalog.loading} onClick={() => navigate(1)} aria-label="Próximo modelo">›</button></section>
 
-        <aside className="detail-panel panel">{noResults ? <div className="detail-empty"><span>Exploração do acervo</span><h2>Refine menos para descobrir mais</h2><p>Os filtros são combinados. Limpe o recorte atual para voltar às categorias e franquias disponíveis.</p><button type="button" className="share-action" onClick={catalog.resetDiscovery}>Limpar busca e filtros</button><button type="button" className="share-action" onClick={() => setExplorerOpen(true)}>Abrir navegador de franquias</button></div> : <><div className="detail-counter">MODELO {selected.code}</div><h1>{selected.name}</h1><p className="franchise">{selected.franchise}</p><div className="breadcrumb"><span>{catalog.categories.find((item) => item.id === selected.category)?.label ?? selected.category}</span><b>›</b><span>{selected.franchise}</span><b>›</b><span>{selected.name}</span></div><p className="description">{selected.description || (catalog.mode === 'live' ? 'Informações detalhadas deste modelo serão exibidas aqui.' : '')}</p><dl className="spec-table"><div><dt>Altura aprox.</dt><dd>{selected.heightCm > 0 ? `${selected.heightCm} cm` : 'Sob consulta'}</dd></div><div><dt>Material</dt><dd>{selected.material}</dd></div><div><dt>Imagens</dt><dd>{selected.galleryCount} vistas</dd></div><div><dt>Código</dt><dd>{selected.code}</dd></div></dl><div className="detail-actions"><button type="button" disabled={selected.id === 'loading'} aria-pressed={favorites.includes(selected.id)} className={favorites.includes(selected.id) ? 'is-selected' : ''} onClick={() => toggleFavorite(selected.id)}>♡ Favoritar</button><button type="button" disabled={selected.id === 'loading'} aria-pressed={quoteList.includes(selected.id)} className={quoteList.includes(selected.id) ? 'is-selected' : ''} onClick={() => safeToggleQuote(selected.id)}>＋ Lista</button></div><button type="button" className="share-action" disabled={selected.id === 'loading'} onClick={copyModelLink}>{linkCopied ? '✓ Link copiado' : '↗ Copiar link deste modelo'}</button><button type="button" className="primary-action" disabled={selected.id === 'loading'} onClick={() => { if (!quoteList.includes(selected.id)) safeToggleQuote(selected.id); setQuoteOpen(true) }}>Solicitar orçamento <span>›</span></button></>}</aside>
+        <aside className="detail-panel panel">{noResults ? <div className="detail-empty"><span>Exploração do acervo</span><h2>Refine menos para descobrir mais</h2><p>Os filtros são combinados. Limpe o recorte atual para voltar às categorias e franquias disponíveis.</p><button type="button" className="share-action" onClick={catalog.resetDiscovery}>Limpar busca e filtros</button><button type="button" className="share-action" onClick={() => setExplorerOpen(true)}>Abrir navegador de franquias</button></div> : <><div className="detail-counter">MODELO {selected.code}</div><h1>{selected.name}</h1><p className="franchise">{selected.franchise}</p><div className="breadcrumb"><span>{catalog.categories.find((item) => item.id === selected.category)?.label ?? selected.category}</span><b>›</b><span>{selected.franchise}</span><b>›</b><span>{selected.name}</span></div><p className="description">{selected.description || (catalog.mode === 'live' ? 'Informações detalhadas deste modelo serão exibidas aqui.' : '')}</p><dl className="spec-table"><div><dt>Altura aprox.</dt><dd>{selected.heightCm > 0 ? `${selected.heightCm} cm` : 'Sob consulta'}</dd></div><div><dt>Material</dt><dd>{selected.material}</dd></div><div><dt>Imagens</dt><dd>{selected.galleryCount} vistas</dd></div><div><dt>Código</dt><dd>{selected.code}</dd></div></dl><div className="detail-actions detail-actions--triple"><button type="button" disabled={selected.id === 'loading'} aria-pressed={favorites.includes(selected.id)} className={favorites.includes(selected.id) ? 'is-selected' : ''} onClick={() => toggleFavorite(selected.id)}>♡ Favoritar</button><button type="button" disabled={selected.id === 'loading'} aria-pressed={compareIds.includes(selected.id)} className={compareIds.includes(selected.id) ? 'is-selected' : ''} onClick={() => toggleCompare(selected.id)}>⇄ Comparar</button><button type="button" disabled={selected.id === 'loading'} aria-pressed={quoteList.includes(selected.id)} className={quoteList.includes(selected.id) ? 'is-selected' : ''} onClick={() => safeToggleQuote(selected.id)}>＋ Lista</button></div><button type="button" className="share-action" disabled={selected.id === 'loading'} onClick={copyModelLink}>{linkCopied ? '✓ Link copiado' : '↗ Copiar link deste modelo'}</button><button type="button" className="primary-action" disabled={selected.id === 'loading'} onClick={() => { if (!quoteList.includes(selected.id)) safeToggleQuote(selected.id); setQuoteOpen(true) }}>Solicitar orçamento <span>›</span></button></>}</aside>
 
-        <section className="roster panel" aria-label="Seleção de modelos"><div className="roster-header"><div><strong>SELECIONE O PERSONAGEM</strong><span>{catalog.loading ? 'Carregando...' : noResults ? 'Nenhum modelo neste recorte' : `${visibleModels.length} modelos neste recorte`}</span></div><div className="roster-hint">← → navegar · ENTER link · A galeria · F favoritar · E explorar · / buscar</div></div><div className="roster-track" ref={rosterTrackRef}>{noResults ? <div className="roster-empty"><strong>Sem modelos para exibir</strong><span>Altere a busca, categoria ou franquia acima.</span></div> : visibleModels.map((model, index) => <button type="button" key={model.id} aria-pressed={model.id === selected.id} className={`roster-card ${model.id === selected.id ? 'is-active' : ''}`} onClick={() => catalog.setSelectedId(model.id)}><ModelArt model={model} compact angle={(index % 3) - 1} /><span className="roster-card__index">{String(index + 1).padStart(3, '0')}</span><span className="roster-card__name">{model.name}</span><span className="roster-card__gallery">{model.galleryCount} fotos · {model.franchise}</span></button>)}</div><div className="roster-pagination"><span>{pageLabel}</span><button type="button" aria-label="Página anterior" disabled={!catalog.hasPreviousPage} onClick={catalog.goPreviousPage}>‹</button><button type="button" aria-label="Próxima página" disabled={!catalog.hasNextPage} onClick={catalog.goNextPage}>›</button></div></section>
+        <section className="roster panel" aria-label="Seleção de modelos"><div className="roster-header"><div><strong>SELECIONE O PERSONAGEM</strong><span>{catalog.loading ? 'Carregando...' : noResults ? 'Nenhum modelo neste recorte' : `${visibleModels.length} modelos neste recorte`}</span></div><div className="roster-hint">← → navegar · ENTER link · A galeria · F favoritar · C comparar · E explorar · / buscar</div></div><div className="roster-track" ref={rosterTrackRef}>{noResults ? <div className="roster-empty"><strong>Sem modelos para exibir</strong><span>Altere a busca, categoria ou franquia acima.</span></div> : visibleModels.map((model, index) => <button type="button" key={model.id} aria-pressed={model.id === selected.id} className={`roster-card ${model.id === selected.id ? 'is-active' : ''}`} onClick={() => catalog.setSelectedId(model.id)}><ModelArt model={model} compact angle={(index % 3) - 1} /><span className="roster-card__index">{String(index + 1).padStart(3, '0')}</span><span className="roster-card__name">{model.name}</span><span className="roster-card__gallery">{model.galleryCount} fotos · {model.franchise}</span></button>)}</div><div className="roster-pagination"><span>{pageLabel}</span><button type="button" aria-label="Página anterior" disabled={!catalog.hasPreviousPage} onClick={catalog.goPreviousPage}>‹</button><button type="button" aria-label="Próxima página" disabled={!catalog.hasNextPage} onClick={catalog.goNextPage}>›</button></div></section>
       </main>
 
-      <footer className="control-bar"><div><kbd>← →</kbd><span>Navegar</span></div><div><kbd>ENTER</kbd><span>Link do modelo</span></div><div><kbd>A</kbd><span>Galeria</span></div><div><kbd>F</kbd><span>Favoritar</span></div><div><kbd>E</kbd><span>Explorar</span></div><div><kbd>/</kbd><span>Buscar</span></div><div className="control-bar__status"><span>{catalog.mode === 'live' ? 'Catálogo online' : 'Prévia em atualização'}</span><strong>{catalog.mode === 'live' ? 'ONLINE' : 'PREVIEW'}</strong></div></footer>
+      <footer className="control-bar"><div><kbd>← →</kbd><span>Navegar</span></div><div><kbd>ENTER</kbd><span>Link do modelo</span></div><div><kbd>A</kbd><span>Galeria</span></div><div><kbd>F</kbd><span>Favoritar</span></div><div><kbd>C</kbd><span>Comparar</span></div><div><kbd>E</kbd><span>Explorar</span></div><div><kbd>/</kbd><span>Buscar</span></div><div className="control-bar__status"><span>{catalog.mode === 'live' ? 'Catálogo online' : 'Prévia em atualização'}</span><strong>{catalog.mode === 'live' ? 'ONLINE' : 'PREVIEW'}</strong></div></footer>
 
       <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} />
+
+      <ModelComparison open={compareOpen} mode={catalog.mode} ids={compareIds} knownModels={knownModels} onClose={() => setCompareOpen(false)} onRemove={(id) => setCompareIds((current) => current.filter((item) => item !== id))} onClear={() => setCompareIds([])} onOpenModel={(id) => openKnownModel(id, () => setCompareOpen(false))} onAddToQuote={addComparisonToQuote} />
 
       {recentOpen && <div className="modal-backdrop" onMouseDown={() => setRecentOpen(false)}><section className="quote-modal recent-modal" role="dialog" aria-modal="true" aria-labelledby="recent-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>HISTÓRICO LOCAL</span><h2 id="recent-title">Vistos recentemente</h2><p>{recentIds.length ? `${recentIds.length} modelos recentes salvos somente neste navegador.` : 'Nenhum modelo visitado ainda.'}</p></div><button type="button" aria-label="Fechar recentes" onClick={() => setRecentOpen(false)}>×</button></div>{recentIds.length ? <><div className="recent-list">{recentIds.map((id, index) => <button type="button" key={id} disabled={!knownModels[id]?.slug} onClick={() => openKnownModel(id, () => setRecentOpen(false))}><span>{String(index + 1).padStart(2, '0')}</span><strong>{knownModels[id]?.name ?? id}</strong><small>abrir modelo ↗</small></button>)}</div><div className="recent-actions"><button className="share-action" type="button" onClick={() => setRecentIds([])}>Limpar histórico</button></div></> : <div className="success-state"><strong>SEM HISTÓRICO</strong><p>Os últimos modelos vistos aparecerão aqui automaticamente, sem necessidade de login.</p><button type="button" onClick={() => setRecentOpen(false)}>Explorar catálogo</button></div>}</section></div>}
 
