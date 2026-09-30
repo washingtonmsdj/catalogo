@@ -179,6 +179,14 @@ function galleryCacheKey(slug: string, query: GalleryQuery) {
   return `${slug}|page:${query.page ?? 'cursor'}|cursor:${query.cursor ?? 'first'}|limit:${query.limit ?? 24}`
 }
 
+function directGalleryCursor(query: GalleryQuery) {
+  if (query.cursor) return query.cursor
+  if (query.page === undefined) return undefined
+  const limit = query.limit ?? 24
+  const page = Math.max(0, Math.trunc(query.page))
+  return btoa(String(page * limit))
+}
+
 function rememberGalleryPage(key: string, promise: Promise<GalleryPage>) {
   if (!galleryPageCache.has(key) && galleryPageCache.size >= GALLERY_PAGE_CACHE_LIMIT) {
     const oldest = galleryPageCache.keys().next().value
@@ -195,8 +203,7 @@ function loadGalleryPage(slug: string, query: GalleryQuery): Promise<GalleryPage
   if (cached) galleryPageCache.delete(key)
 
   const pending = requestJson<GalleryPage>(endpoint(`/api/models/${encodeURIComponent(slug)}/images`, {
-    cursor: query.cursor,
-    page: query.page,
+    cursor: directGalleryCursor(query),
     limit: query.limit,
   })).catch((error) => {
     galleryPageCache.delete(key)
