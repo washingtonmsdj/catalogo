@@ -19,6 +19,7 @@ import './explorer.css'
 import './quote-confirmation.css'
 import './collection-gallery.css'
 import './gallery-navigation.css'
+import './recent-navigation.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')
