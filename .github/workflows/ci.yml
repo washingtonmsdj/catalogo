@@ -20,6 +20,8 @@ jobs:
           node-version: 22
       - name: Install frontend and tooling
         run: npm install
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
       - name: Build frontend
         run: npm run build
       - name: Check frontend performance budget
