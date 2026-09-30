@@ -339,36 +339,34 @@ export function useCatalogRuntime(initialSlug = '') {
 }
 
 export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, open: boolean) {
-  const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined])
   const [pageIndex, setPageIndex] = useState(0)
-  const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [liveItems, setLiveItems] = useState<CatalogImage[]>([])
   const [liveTotal, setLiveTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    setCursorStack([undefined])
     setPageIndex(0)
-    setNextCursor(null)
     setLiveItems([])
     setLiveTotal(0)
     setError('')
   }, [selected.id])
-
-  const cursor = cursorStack[pageIndex]
 
   useEffect(() => {
     if (mode !== 'live' || !open || selected.id === 'loading') return
     let cancelled = false
     setLoading(true)
     setError('')
-    listCatalogImages(selected.slug, { cursor, limit: GALLERY_PAGE_SIZE })
+    listCatalogImages(selected.slug, { page: pageIndex, limit: GALLERY_PAGE_SIZE })
       .then((page) => {
         if (cancelled) return
+        const totalPages = Math.max(1, Math.ceil(page.total / GALLERY_PAGE_SIZE))
+        if (pageIndex >= totalPages && page.total > 0) {
+          setPageIndex(totalPages - 1)
+          return
+        }
         setLiveItems(page.items.map(toCatalogImage))
         setLiveTotal(page.total)
-        setNextCursor(page.nextCursor)
       })
       .catch(() => {
         if (!cancelled) {
@@ -378,7 +376,7 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [mode, open, selected.id, selected.slug, cursor])
+  }, [mode, open, selected.id, selected.slug, pageIndex])
 
   const demoTotal = selected.galleryCount
   const demoStart = pageIndex * GALLERY_PAGE_SIZE
@@ -399,29 +397,25 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
   const total = mode === 'live' ? liveTotal : demoTotal
   const items = mode === 'live' ? liveItems : demoItems
   const totalPages = Math.max(1, Math.ceil(total / GALLERY_PAGE_SIZE))
+  const pageStart = total > 0 ? pageIndex * GALLERY_PAGE_SIZE + 1 : 0
+  const pageEnd = total > 0 ? Math.min(total, pageIndex * GALLERY_PAGE_SIZE + items.length) : 0
 
-  function nextPage() {
+  function goToPage(target: number) {
+    const next = Math.max(0, Math.min(totalPages - 1, Math.trunc(target)))
+    if (next === pageIndex) return
     if (mode === 'live') {
-      if (!nextCursor) return
-      const nextPageIndex = pageIndex + 1
       setLiveItems([])
       setLoading(true)
-      setCursorStack((current) => [...current.slice(0, nextPageIndex), nextCursor])
-      setPageIndex(nextPageIndex)
-      return
     }
-    setPageIndex((current) => Math.min(totalPages - 1, current + 1))
+    setPageIndex(next)
+  }
+
+  function nextPage() {
+    goToPage(pageIndex + 1)
   }
 
   function previousPage() {
-    if (mode === 'live') {
-      if (pageIndex === 0) return
-      setLiveItems([])
-      setLoading(true)
-      setPageIndex((current) => Math.max(0, current - 1))
-      return
-    }
-    setPageIndex((current) => Math.max(0, current - 1))
+    goToPage(pageIndex - 1)
   }
 
   return {
@@ -429,8 +423,11 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
     total,
     pageIndex,
     totalPages,
+    pageStart,
+    pageEnd,
     hasPreviousPage: pageIndex > 0,
-    hasNextPage: mode === 'live' ? Boolean(nextCursor) : pageIndex < totalPages - 1,
+    hasNextPage: pageIndex < totalPages - 1,
+    goToPage,
     nextPage,
     previousPage,
     loading,
