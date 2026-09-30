@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "budget:frontend": "node tools/check_frontend_budget.mjs",
     "typecheck:worker": "tsc -p tsconfig.worker.json --noEmit",
-    "check": "npm run build && npm run typecheck:worker",
+    "check": "npm run build && npm run budget:frontend && npm run typecheck:worker",
     "cloudflare:config": "node tools/render_wrangler_config.mjs",
     "preview": "vite preview"
   },
