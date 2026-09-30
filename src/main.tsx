@@ -4,6 +4,7 @@ import App from './App'
 import './styles.css'
 import './hierarchy.css'
 import './runtime.css'
+import './premium.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

@@ -16,7 +16,7 @@ import type { CatalogCategory, CatalogFranchise, CatalogImage, CatalogModel } fr
 const MODEL_PAGE_SIZE = 24
 const GALLERY_PAGE_SIZE = 12
 
-const emptyModel: CatalogModel = {
+const loadingModel: CatalogModel = {
   id: 'loading',
   slug: 'loading',
   code: '—',
@@ -31,6 +31,13 @@ const emptyModel: CatalogModel = {
   tags: [],
   accent: '#8f7a5c',
   images: [],
+}
+
+const emptyModel: CatalogModel = {
+  ...loadingModel,
+  slug: 'sem-resultados',
+  name: 'Nenhum modelo encontrado',
+  description: 'Ajuste a busca ou os filtros para ver outros modelos.',
 }
 
 function cardToModel(card: CatalogModelCard): CatalogModel {
@@ -209,8 +216,8 @@ export function useCatalogRuntime(initialSlug = '') {
   const franchises = mode === 'live' ? liveFranchises : demoFranchises(category)
   const models = mode === 'live' ? liveModels : demoVisibleModels
   const selected = mode === 'live'
-    ? selectedDetail ?? liveModels.find((model) => model.id === selectedId) ?? liveModels[0] ?? emptyModel
-    : demoModels.find((model) => model.id === selectedId) ?? demoVisibleModels[0] ?? demoModels[0]
+    ? selectedDetail ?? liveModels.find((model) => model.id === selectedId) ?? liveModels[0] ?? (loading ? loadingModel : emptyModel)
+    : demoVisibleModels.find((model) => model.id === selectedId) ?? demoVisibleModels[0] ?? emptyModel
 
   useEffect(() => {
     if (mode === 'demo' && demoVisibleModels.length && !demoVisibleModels.some((model) => model.id === selectedId)) {
