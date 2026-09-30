@@ -14,6 +14,17 @@ Retorna a lista curta de categorias e suas contagens agregadas. A resposta inclu
 
 A faixa de franquias é deliberadamente limitada. Ela retorna primeiro as franquias com mais modelos e informa se existem outras além do recorte exibido.
 
+O Navegador do Acervo também pode pesquisar diretamente nas franquias:
+
+`GET /api/franchises?category=games&q=resident&limit=48`
+
+Parâmetros:
+
+- `category` é opcional e restringe a descoberta a uma categoria;
+- `q` é opcional, aceita até 80 caracteres e procura por nome ou slug da franquia;
+- `limit` é limitado no servidor a no máximo 48 itens;
+- a resposta usa `truncated=true` quando existem mais correspondências do que o recorte retornado.
+
 ```json
 {
   "items": [
@@ -28,7 +39,9 @@ A faixa de franquias é deliberadamente limitada. Ela retorna primeiro as franqu
 }
 ```
 
-`limit` é limitado no servidor. A UI principal usa 24 itens; o acervo nunca deve enviar milhares de franquias para montar a faixa superior.
+A UI principal continua usando um recorte pequeno para a faixa superior. O navegador de franquias consulta a taxonomia sob demanda e nunca precisa carregar os 100 mil+ modelos para montar a descoberta.
+
+Consultas sem `q` recebem cache público mais longo. Buscas de franquia usam cache menor para equilibrar resposta rápida e atualização do acervo.
 
 ## Listagem
 
