@@ -53,8 +53,16 @@ export type FranchiseDiscoveryPage = {
   truncated: boolean
 }
 
+type GalleryCacheEntry = {
+  expiresAt: number
+  promise: Promise<GalleryPage>
+}
+
 const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
 const mediaBase = (import.meta.env.VITE_MEDIA_BASE_URL as string | undefined)?.replace(/\/$/, '')
+const GALLERY_PAGE_CACHE_LIMIT = 40
+const GALLERY_PAGE_CACHE_TTL_MS = 5 * 60 * 1000
+const galleryPageCache = new Map<string, GalleryCacheEntry>()
 
 export function getCatalogRuntimeMode(): CatalogRuntimeMode {
   return apiBase ? 'live' : 'demo'
@@ -167,11 +175,51 @@ export async function getCatalogModel(slug: string): Promise<CatalogModel | null
   }
 }
 
-export async function listCatalogImages(slug: string, query: GalleryQuery = {}): Promise<GalleryPage> {
-  return requestJson<GalleryPage>(endpoint(`/api/models/${encodeURIComponent(slug)}/images`, {
+function galleryCacheKey(slug: string, query: GalleryQuery) {
+  return `${slug}|${query.cursor ?? 'first'}|${query.limit ?? 24}`
+}
+
+function rememberGalleryPage(key: string, promise: Promise<GalleryPage>) {
+  if (!galleryPageCache.has(key) && galleryPageCache.size >= GALLERY_PAGE_CACHE_LIMIT) {
+    const oldest = galleryPageCache.keys().next().value
+    if (oldest) galleryPageCache.delete(oldest)
+  }
+  galleryPageCache.set(key, { expiresAt: Date.now() + GALLERY_PAGE_CACHE_TTL_MS, promise })
+  return promise
+}
+
+function loadGalleryPage(slug: string, query: GalleryQuery): Promise<GalleryPage> {
+  const key = galleryCacheKey(slug, query)
+  const cached = galleryPageCache.get(key)
+  if (cached && cached.expiresAt > Date.now()) return cached.promise
+  if (cached) galleryPageCache.delete(key)
+
+  const pending = requestJson<GalleryPage>(endpoint(`/api/models/${encodeURIComponent(slug)}/images`, {
     cursor: query.cursor,
     limit: query.limit,
-  }))
+  })).catch((error) => {
+    galleryPageCache.delete(key)
+    throw error
+  })
+
+  return rememberGalleryPage(key, pending)
+}
+
+export async function listCatalogImages(slug: string, query: GalleryQuery = {}): Promise<GalleryPage> {
+  const page = await loadGalleryPage(slug, query)
+
+  // Antecipamos apenas o JSON da página seguinte. As imagens continuam lazy e só
+  // são baixadas quando a página entra na interface.
+  if (page.nextCursor) {
+    const nextQuery: GalleryQuery = { cursor: page.nextCursor, limit: query.limit }
+    const nextKey = galleryCacheKey(slug, nextQuery)
+    const cached = galleryPageCache.get(nextKey)
+    if (!cached || cached.expiresAt <= Date.now()) {
+      void loadGalleryPage(slug, nextQuery).catch(() => undefined)
+    }
+  }
+
+  return page
 }
 
 export function imageVariantUrl(image: ApiGalleryImage, variant: keyof ApiGalleryImage['variantKeys'] = 'detail') {
