@@ -174,14 +174,19 @@ export async function listCatalogImages(slug: string, query: GalleryQuery = {}):
 }
 
 export function imageVariantUrl(image: ApiGalleryImage, variant: keyof ApiGalleryImage['variantKeys'] = 'detail') {
-  const key = image.variantKeys[variant] ?? image.variantKeys.card ?? image.variantKeys.thumb
+  const key = image.variantKeys[variant]
+    ?? image.variantKeys.card
+    ?? image.variantKeys.thumb
+    ?? image.variantKeys.detail
+    ?? image.variantKeys.original
   return mediaObjectUrl(key)
 }
 
 export function toCatalogImage(image: ApiGalleryImage): CatalogImage {
   return {
     id: image.id,
-    url: imageVariantUrl(image),
+    url: imageVariantUrl(image, 'card'),
+    detailUrl: imageVariantUrl(image, 'detail'),
     width: image.width,
     height: image.height,
     bytes: image.bytes,

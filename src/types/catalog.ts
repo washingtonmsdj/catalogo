@@ -13,7 +13,10 @@ export type CatalogFranchise = {
 
 export type CatalogImage = {
   id: string
+  /** Variante leve usada na grade/miniatura da galeria. */
   url?: string
+  /** Variante de maior resolução, carregada somente ao ampliar a imagem. */
+  detailUrl?: string
   width: number
   height: number
   bytes: number
