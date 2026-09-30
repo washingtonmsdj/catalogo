@@ -1,14 +1,15 @@
 PRAGMA foreign_keys = ON;
 
--- Trigram FTS preserves arbitrary substring search without scanning every model.
--- model_id is stored for the join but is not itself indexed as full text.
+-- Trigram FTS keeps substring search indexed once the query has 3+ Unicode
+-- characters. Diacritics are removed so "pokemon" can match "Pokémon".
 CREATE VIRTUAL TABLE IF NOT EXISTS models_fts USING fts5(
   model_id UNINDEXED,
   search_text,
-  tokenize='trigram'
+  tokenize='trigram remove_diacritics 1'
 );
 
--- Migration runs once; seed the search index from all current models.
+-- D1 migrations run once. Seed existing rows, then keep the index synchronized
+-- incrementally with the source table.
 INSERT INTO models_fts(model_id, search_text)
 SELECT id, search_text FROM models;
 
