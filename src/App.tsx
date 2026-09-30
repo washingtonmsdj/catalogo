@@ -2,12 +2,14 @@ import { FormEvent, useEffect, useRef, useState } from 'react'
 import { FranchiseBrowser } from './components/FranchiseBrowser'
 import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
+import { discoveryShareUrl } from './services/catalogNavigation'
 import { submitQuoteRequest } from './services/quotes'
 import type { CatalogImage, CatalogModel } from './types/catalog'
 
 const formatter = new Intl.NumberFormat('pt-BR')
 const MAX_QUOTE_ITEMS = 50
 const GALLERY_PAGE_SIZE = 12
+const MAX_RECENT_MODELS = 12
 
 type KnownModel = {
   name: string
@@ -37,6 +39,16 @@ function galleryPageTokens(pageIndex: number, totalPages: number): GalleryPageTo
     tokens.push(page)
   })
   return tokens
+}
+
+function loadStoredIds(key: string, maxItems = 100) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) ?? '[]') as unknown
+    if (!Array.isArray(parsed)) return []
+    return Array.from(new Set(parsed.filter((value): value is string => typeof value === 'string' && value.trim().length > 0))).slice(0, maxItems)
+  } catch {
+    return []
+  }
 }
 
 function ModelArt({ model, compact = false, angle = 0 }: { model: CatalogModel; compact?: boolean; angle?: number }) {
@@ -76,10 +88,12 @@ export default function App() {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const rosterTrackRef = useRef<HTMLDivElement>(null)
   const previewPrefetchedUrls = useRef(new Set<string>())
-  const [favorites, setFavorites] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:favorites') ?? '[]'))
-  const [quoteList, setQuoteList] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:quote') ?? '[]'))
+  const [favorites, setFavorites] = useState<string[]>(() => loadStoredIds('tonecos:favorites'))
+  const [quoteList, setQuoteList] = useState<string[]>(() => loadStoredIds('tonecos:quote', MAX_QUOTE_ITEMS))
+  const [recentIds, setRecentIds] = useState<string[]>(() => loadStoredIds('tonecos:recent-models', MAX_RECENT_MODELS))
   const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
   const [explorerOpen, setExplorerOpen] = useState(false)
+  const [recentOpen, setRecentOpen] = useState(false)
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [previewImage, setPreviewImage] = useState<CatalogImage | null>(null)
   const [previewPageTarget, setPreviewPageTarget] = useState<PreviewPageTarget>(null)
@@ -93,13 +107,14 @@ export default function App() {
   const [quoteError, setQuoteError] = useState('')
   const [turnstileResetKey, setTurnstileResetKey] = useState(0)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [scopeLinkCopied, setScopeLinkCopied] = useState(false)
 
   const gallery = useModelGallery(catalog.mode, catalog.selected, galleryOpen)
   const selected = catalog.selected
   const visibleModels = catalog.models
   const selectedIndex = visibleModels.findIndex((model) => model.id === selected.id)
   const selectedInVisiblePage = selectedIndex >= 0
-  const anyModalOpen = explorerOpen || galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
+  const anyModalOpen = explorerOpen || recentOpen || galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
   const noResults = !catalog.loading && visibleModels.length === 0
   const searchCharacters = Array.from(catalog.search.trim()).length
   const searchActive = Boolean(catalog.search.trim()) && !catalog.searchPending
@@ -122,6 +137,7 @@ export default function App() {
 
   useEffect(() => localStorage.setItem('tonecos:favorites', JSON.stringify(favorites)), [favorites])
   useEffect(() => localStorage.setItem('tonecos:quote', JSON.stringify(quoteList)), [quoteList])
+  useEffect(() => localStorage.setItem('tonecos:recent-models', JSON.stringify(recentIds)), [recentIds])
   useEffect(() => localStorage.setItem('tonecos:known-models', JSON.stringify(knownModels)), [knownModels])
 
   useEffect(() => {
@@ -138,9 +154,18 @@ export default function App() {
   }, [visibleModels, selected])
 
   useEffect(() => {
+    if (selected.id === 'loading') return
+    setRecentIds((current) => [selected.id, ...current.filter((id) => id !== selected.id)].slice(0, MAX_RECENT_MODELS))
+  }, [selected.id])
+
+  useEffect(() => {
     setLinkCopied(false); setPreviewImage(null); setPreviewPageTarget(null)
     document.title = selected.id === 'loading' ? 'Catálogo — Tonecos Studios' : `${selected.name} — Tonecos Studios`
   }, [selected.id, selected.name])
+
+  useEffect(() => {
+    setScopeLinkCopied(false)
+  }, [catalog.category, catalog.franchise, catalog.search])
 
   useEffect(() => {
     if (!selectedInVisiblePage) return
@@ -173,7 +198,7 @@ export default function App() {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (previewImage) closePreview(); else if (quoteOpen) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false)
+        if (previewImage) closePreview(); else if (quoteOpen) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (recentOpen) setRecentOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false)
         return
       }
       if (previewImage && event.key === 'ArrowRight') { event.preventDefault(); navigatePreview(1); return }
@@ -199,15 +224,11 @@ export default function App() {
   function safeToggleQuote(id: string) {
     setQuoteList((current) => {
       if (current.includes(id)) return current.filter((item) => item !== id)
-      if (current.length >= MAX_QUOTE_ITEMS) {
-        setQuoteError(`Cada solicitação aceita até ${MAX_QUOTE_ITEMS} modelos.`)
-        setQuoteOpen(true)
-        return current
-      }
+      if (current.length >= MAX_QUOTE_ITEMS) { setQuoteError(`Cada solicitação aceita até ${MAX_QUOTE_ITEMS} modelos.`); setQuoteOpen(true); return current }
       return [...current, id]
     })
   }
-  function openFavorite(id: string) { const slug = knownModels[id]?.slug; if (!slug) return; setFavoritesOpen(false); window.location.hash = `modelo=${encodeURIComponent(slug)}` }
+  function openKnownModel(id: string, close: () => void) { const slug = knownModels[id]?.slug; if (!slug) return; close(); window.location.hash = `modelo=${encodeURIComponent(slug)}` }
   function addFavoritesToQuote() { setQuoteList((current) => { const next = [...current]; for (const id of favorites) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setFavoritesOpen(false); setQuoteOpen(true) }
   function chooseExplorerCategory(category: string) { catalog.setSearch(''); catalog.setCategory(category) }
   function chooseExplorerFranchise(category: string, franchise: string) { catalog.setSearch(''); catalog.setCategory(category); catalog.setFranchise(franchise) }
@@ -230,8 +251,15 @@ export default function App() {
 
   async function copyModelLink() {
     if (selected.id === 'loading') return
-    const url = `${window.location.origin}${window.location.pathname}#modelo=${encodeURIComponent(selected.slug)}`; window.history.replaceState(null, '', `#modelo=${encodeURIComponent(selected.slug)}`)
-    try { await navigator.clipboard.writeText(url); setLinkCopied(true) } catch { setLinkCopied(false) }
+    const url = new URL(window.location.href)
+    url.hash = `modelo=${encodeURIComponent(selected.slug)}`
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+    try { await navigator.clipboard.writeText(url.toString()); setLinkCopied(true) } catch { setLinkCopied(false) }
+  }
+
+  async function copyDiscoveryLink() {
+    const url = discoveryShareUrl({ category: catalog.category, franchise: catalog.franchise, search: catalog.search })
+    try { await navigator.clipboard.writeText(url); setScopeLinkCopied(true) } catch { setScopeLinkCopied(false) }
   }
 
   async function submitQuote(event: FormEvent<HTMLFormElement>) {
@@ -256,7 +284,7 @@ export default function App() {
     <div className="app-shell">
       <header className="topbar">
         <a className="brand" href="#catalogo" aria-label="Tonecos Studios — voltar ao catálogo"><span className="brand__title">CATÁLOGO</span><span className="brand__studio">TONECOS STUDIOS</span></a>
-        <nav className="topnav" aria-label="Navegação principal"><a href="#catalogo" className="is-active">Catálogo</a><button type="button" onClick={() => setExplorerOpen(true)}>Explorar</button><button type="button" onClick={() => setFavoritesOpen(true)}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={() => setQuoteOpen(true)}>Orçamento <b>{quoteList.length}</b></button></nav>
+        <nav className="topnav" aria-label="Navegação principal"><a href="#catalogo" className="is-active">Catálogo</a><button type="button" onClick={() => setExplorerOpen(true)}>Explorar</button><button type="button" onClick={() => setRecentOpen(true)}>Recentes <b>{recentIds.length}</b></button><button type="button" onClick={() => setFavoritesOpen(true)}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={() => setQuoteOpen(true)}>Orçamento <b>{quoteList.length}</b></button></nav>
         <label className={`searchbox ${catalog.searchPending ? 'is-pending' : ''}`}><span aria-hidden="true">⌕</span><input ref={searchInputRef} aria-label="Buscar no catálogo" value={catalog.search} onChange={(event) => catalog.setSearch(event.target.value)} placeholder="Buscar personagem, franquia ou categoria..." /><kbd aria-hidden="true">/</kbd></label>
       </header>
 
@@ -265,7 +293,7 @@ export default function App() {
         <div className="scope-strip__franchises"><button type="button" className={catalog.franchise === 'all' ? 'is-active' : ''} onClick={() => catalog.setFranchise('all')}>TODAS</button>{catalog.franchises.map((item) => <button type="button" key={`${item.category}:${item.id}`} className={catalog.franchise === item.id ? 'is-active' : ''} onClick={() => catalog.setFranchise(item.id)}>{item.label}</button>)}{catalog.franchisesTruncated && <button type="button" className="scope-strip__explore" onClick={() => setExplorerOpen(true)}>Mais franquias…</button>}</div>
       </section>
 
-      {catalog.hasActiveFilters && <section className="discovery-status" aria-label="Filtros ativos"><div className="discovery-status__content"><span className="discovery-status__eyebrow">Recorte atual</span>{catalog.category !== 'all' && <button type="button" className="discovery-chip" onClick={() => catalog.setCategory('all')}>Categoria <strong>{categoryLabel}</strong> ×</button>}{catalog.franchise !== 'all' && <button type="button" className="discovery-chip" onClick={() => catalog.setFranchise('all')}>Franquia <strong>{franchiseLabel}</strong> ×</button>}{catalog.search.trim() && <button type="button" className="discovery-chip" onClick={() => catalog.setSearch('')}>Busca <strong>{catalog.search.trim()}</strong> ×</button>}{catalog.searchPending && <span className="discovery-status__hint">Digite mais <strong>{catalog.searchMinLength - searchCharacters}</strong> caractere{catalog.searchMinLength - searchCharacters === 1 ? '' : 's'} para pesquisar no acervo completo.</span>}</div><button type="button" className="discovery-reset" onClick={catalog.resetDiscovery}>Limpar filtros</button></section>}
+      {catalog.hasActiveFilters && <section className="discovery-status" aria-label="Filtros ativos"><div className="discovery-status__content"><span className="discovery-status__eyebrow">Recorte atual</span>{catalog.category !== 'all' && <button type="button" className="discovery-chip" onClick={() => catalog.setCategory('all')}>Categoria <strong>{categoryLabel}</strong> ×</button>}{catalog.franchise !== 'all' && <button type="button" className="discovery-chip" onClick={() => catalog.setFranchise('all')}>Franquia <strong>{franchiseLabel}</strong> ×</button>}{catalog.search.trim() && <button type="button" className="discovery-chip" onClick={() => catalog.setSearch('')}>Busca <strong>{catalog.search.trim()}</strong> ×</button>}{catalog.searchPending && <span className="discovery-status__hint">Digite mais <strong>{catalog.searchMinLength - searchCharacters}</strong> caractere{catalog.searchMinLength - searchCharacters === 1 ? '' : 's'} para pesquisar no acervo completo.</span>}</div><div className="discovery-status__actions"><button type="button" className="discovery-share" onClick={copyDiscoveryLink}>{scopeLinkCopied ? '✓ Link do recorte copiado' : '↗ Copiar recorte'}</button><button type="button" className="discovery-reset" onClick={catalog.resetDiscovery}>Limpar filtros</button></div></section>}
       {catalog.error && <div className="runtime-alert" role="alert">{catalog.error}</div>}
 
       <main id="catalogo" className="catalog-layout" aria-busy={catalog.loading}>
@@ -282,11 +310,13 @@ export default function App() {
 
       <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} />
 
+      {recentOpen && <div className="modal-backdrop" onMouseDown={() => setRecentOpen(false)}><section className="quote-modal recent-modal" role="dialog" aria-modal="true" aria-labelledby="recent-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>HISTÓRICO LOCAL</span><h2 id="recent-title">Vistos recentemente</h2><p>{recentIds.length ? `${recentIds.length} modelos recentes salvos somente neste navegador.` : 'Nenhum modelo visitado ainda.'}</p></div><button type="button" aria-label="Fechar recentes" onClick={() => setRecentOpen(false)}>×</button></div>{recentIds.length ? <><div className="recent-list">{recentIds.map((id, index) => <button type="button" key={id} disabled={!knownModels[id]?.slug} onClick={() => openKnownModel(id, () => setRecentOpen(false))}><span>{String(index + 1).padStart(2, '0')}</span><strong>{knownModels[id]?.name ?? id}</strong><small>abrir modelo ↗</small></button>)}</div><div className="recent-actions"><button className="share-action" type="button" onClick={() => setRecentIds([])}>Limpar histórico</button></div></> : <div className="success-state"><strong>SEM HISTÓRICO</strong><p>Os últimos modelos vistos aparecerão aqui automaticamente, sem necessidade de login.</p><button type="button" onClick={() => setRecentOpen(false)}>Explorar catálogo</button></div>}</section></div>}
+
       {galleryOpen && <div className="modal-backdrop" onMouseDown={() => setGalleryOpen(false)}><section className="gallery-modal" role="dialog" aria-modal="true" aria-labelledby="gallery-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>GALERIA DO PERSONAGEM</span><h2 id="gallery-title">{selected.name}</h2><p>{gallery.total ? `${formatter.format(gallery.pageStart)}–${formatter.format(gallery.pageEnd)} de ${formatter.format(gallery.total)} imagens` : `${selected.galleryCount} imagens`} · página {gallery.pageIndex + 1} de {gallery.totalPages}</p></div><button type="button" aria-label="Fechar galeria" onClick={() => setGalleryOpen(false)}>×</button></div>{gallery.error && <p className="runtime-alert" role="alert">{gallery.error}</p>}<div className="gallery-grid" aria-busy={gallery.loading}>{gallery.items.map((image, localIndex) => { const canPreview = Boolean(image.detailUrl ?? image.url); return <button type="button" key={image.id} disabled={!canPreview} aria-label={canPreview ? `Ampliar imagem ${gallery.pageIndex * GALLERY_PAGE_SIZE + localIndex + 1} de ${selected.name}` : undefined} className={image.role === 'cover' ? 'is-cover' : ''} onPointerEnter={() => prefetchPreview(image)} onFocus={() => prefetchPreview(image)} onClick={() => canPreview && setPreviewImage(image)}><GalleryArt image={image} model={selected} angle={((localIndex % 5) - 2) * 3} /><span>{image.role === 'cover' ? 'CAPA · MELHOR QUALIDADE' : `VISTA ${String(gallery.pageIndex * GALLERY_PAGE_SIZE + localIndex + 1).padStart(2, '0')}`}</span></button> })}{gallery.loading && <div className="gallery-loading">Carregando imagens...</div>}{!gallery.loading && !gallery.items.length && <div className="gallery-loading">Nenhuma imagem disponível nesta página.</div>}</div><div className="gallery-collection-progress"><div><strong>{gallery.total ? `${formatter.format(gallery.pageStart)}–${formatter.format(gallery.pageEnd)}` : '0'}</strong><span>de {formatter.format(gallery.total || selected.galleryCount)} imagens</span></div><div className="gallery-collection-progress__track" aria-hidden="true"><i style={{ width: `${galleryProgress}%` }} /></div><small>PgUp/PgDn navegar · Home/End início/fim</small></div><div className="gallery-footer gallery-footer--paged"><span>Miniaturas otimizadas na grade · alta resolução carregada somente ao ampliar.</span><div className="gallery-pager"><button type="button" aria-label="Primeira página da galeria" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={() => gallery.goToPage(0)}>« início</button><button type="button" aria-label="Página anterior" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={gallery.previousPage}>‹</button><div className="gallery-page-rail" aria-label="Páginas da galeria">{galleryTokens.map((token) => typeof token === 'number' ? <button type="button" key={token} aria-current={token === gallery.pageIndex ? 'page' : undefined} className={token === gallery.pageIndex ? 'is-current' : ''} disabled={gallery.loading} onClick={() => gallery.goToPage(token)}>{token + 1}</button> : <span key={token} aria-hidden="true">…</span>)}</div><button type="button" aria-label="Próxima página" disabled={!gallery.hasNextPage || gallery.loading} onClick={gallery.nextPage}>›</button><button type="button" aria-label="Última página da galeria" disabled={!gallery.hasNextPage || gallery.loading} onClick={() => gallery.goToPage(gallery.totalPages - 1)}>fim »</button></div></div></section></div>}
 
       {expandedImageUrl && previewImage && <div className="image-lightbox-backdrop" onMouseDown={closePreview}><section className="image-lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" onMouseDown={(event) => event.stopPropagation()}><div className="image-lightbox__head"><div><span>VISUALIZAÇÃO · USE ← → PARA NAVEGAR</span><h2 id="lightbox-title">{selected.name}</h2></div><button type="button" aria-label="Fechar imagem ampliada" onClick={closePreview}>×</button></div><div className="image-lightbox__stage"><button type="button" className="image-lightbox__nav image-lightbox__nav--prev" aria-label="Imagem anterior" disabled={!canPreviewPrevious || gallery.loading} onClick={() => navigatePreview(-1)}>‹</button><img src={expandedImageUrl} alt={`${selected.name} — imagem ampliada`} /><button type="button" className="image-lightbox__nav image-lightbox__nav--next" aria-label="Próxima imagem" disabled={!canPreviewNext || gallery.loading} onClick={() => navigatePreview(1)}>›</button></div><div className="image-lightbox__footer"><span className="image-lightbox__position"><strong>{previewGlobalPosition ? `${formatter.format(previewGlobalPosition)} / ${formatter.format(gallery.total || selected.galleryCount)}` : 'Imagem do catálogo'}</strong>{previewImage.width > 0 && previewImage.height > 0 && <span>{formatter.format(previewImage.width)} × {formatter.format(previewImage.height)} px</span>}</span><a href={expandedImageUrl} target="_blank" rel="noreferrer">Abrir imagem em nova aba ↗</a></div></section></div>}
 
-      {favoritesOpen && <div className="modal-backdrop" onMouseDown={() => setFavoritesOpen(false)}><section className="quote-modal" role="dialog" aria-modal="true" aria-labelledby="favorites-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>COLEÇÃO PESSOAL</span><h2 id="favorites-title">Favoritos</h2><p>{favorites.length ? `${favorites.length} modelos salvos neste navegador.` : 'Nenhum modelo favoritado ainda.'}</p></div><button type="button" aria-label="Fechar favoritos" onClick={() => setFavoritesOpen(false)}>×</button></div>{favorites.length ? <><div className="quote-selected"><span>Modelos salvos</span><strong>{favorites.length}</strong></div><div className="quote-chips">{favorites.map((id) => <button type="button" key={id} disabled={!knownModels[id]?.slug} onClick={() => openFavorite(id)}>{knownModels[id]?.name ?? id} ↗</button>)}</div><button className="primary-action" type="button" onClick={addFavoritesToQuote}>Adicionar favoritos ao orçamento <span>›</span></button><button className="share-action" type="button" onClick={() => setFavorites([])}>Limpar favoritos</button></> : <div className="success-state"><strong>LISTA VAZIA</strong><p>Use “♡ Favoritar” nos modelos que quiser guardar para comparar ou consultar depois.</p><button type="button" onClick={() => setFavoritesOpen(false)}>Voltar ao catálogo</button></div>}</section></div>}
+      {favoritesOpen && <div className="modal-backdrop" onMouseDown={() => setFavoritesOpen(false)}><section className="quote-modal" role="dialog" aria-modal="true" aria-labelledby="favorites-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>COLEÇÃO PESSOAL</span><h2 id="favorites-title">Favoritos</h2><p>{favorites.length ? `${favorites.length} modelos salvos neste navegador.` : 'Nenhum modelo favoritado ainda.'}</p></div><button type="button" aria-label="Fechar favoritos" onClick={() => setFavoritesOpen(false)}>×</button></div>{favorites.length ? <><div className="quote-selected"><span>Modelos salvos</span><strong>{favorites.length}</strong></div><div className="quote-chips">{favorites.map((id) => <button type="button" key={id} disabled={!knownModels[id]?.slug} onClick={() => openKnownModel(id, () => setFavoritesOpen(false))}>{knownModels[id]?.name ?? id} ↗</button>)}</div><button className="primary-action" type="button" onClick={addFavoritesToQuote}>Adicionar favoritos ao orçamento <span>›</span></button><button className="share-action" type="button" onClick={() => setFavorites([])}>Limpar favoritos</button></> : <div className="success-state"><strong>LISTA VAZIA</strong><p>Use “♡ Favoritar” nos modelos que quiser guardar para comparar ou consultar depois.</p><button type="button" onClick={() => setFavoritesOpen(false)}>Voltar ao catálogo</button></div>}</section></div>}
 
       {quoteOpen && <div className="modal-backdrop" onMouseDown={() => setQuoteOpen(false)}><section className="quote-modal" role="dialog" aria-modal="true" aria-labelledby="quote-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>FORMULÁRIO</span><h2 id="quote-title">Solicitar orçamento</h2><p>Envie sua seleção pelo formulário. Não é necessário informar telefone.</p></div><button type="button" aria-label="Fechar formulário" onClick={() => setQuoteOpen(false)}>×</button></div>{sent ? <div className="success-state"><strong>SOLICITAÇÃO REGISTRADA</strong><p>{quoteMode === 'live' ? 'Sua solicitação foi enviada com sucesso. Guarde o protocolo abaixo para referência.' : 'Esta prévia não envia pedidos reais. O protocolo abaixo demonstra como será a confirmação em produção.'}</p>{quoteReference && <div className="quote-receipt"><span>{quoteMode === 'live' ? 'PROTOCOLO' : 'PROTOCOLO DEMO'}</span><code>{quoteReference}</code><small>{submittedQuoteCount} modelo{submittedQuoteCount === 1 ? '' : 's'} nesta solicitação</small></div>}<button type="button" onClick={() => { setSent(false); setQuoteOpen(false) }}>Voltar ao catálogo</button></div> : <form onSubmit={submitQuote}><label>Nome completo<input required autoComplete="name" maxLength={120} name="name" placeholder="Seu nome" /></label><label>E-mail<input required autoComplete="email" maxLength={254} type="email" name="email" placeholder="voce@email.com" /></label><div className="quote-selected"><span>Itens selecionados</span><strong>{quoteList.length}/{MAX_QUOTE_ITEMS}</strong></div><div className="quote-chips">{quoteList.map((id) => <button type="button" key={id} onClick={() => safeToggleQuote(id)}>{knownModels[id]?.name ?? id} ×</button>)}</div><label>Observações<textarea maxLength={4000} name="notes" rows={5} placeholder="Quantidade, tamanho desejado, acabamento ou outras informações..." /></label>{catalog.mode === 'live' && <TurnstileWidget resetKey={turnstileResetKey} />}{quoteError && <p role="alert">{quoteError}</p>}<button className="primary-action" type="submit" disabled={!quoteList.length || quoteSubmitting || (catalog.mode === 'live' && !isTurnstileConfigured())}>{quoteSubmitting ? 'Enviando...' : 'Enviar solicitação'} <span>›</span></button></form>}</section></div>}
     </div>
