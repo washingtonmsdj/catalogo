@@ -22,8 +22,15 @@ class CatalogSearchSchemaTests(unittest.TestCase):
             self.db.executescript((MIGRATIONS / name).read_text(encoding="utf-8"))
 
         self.db.execute("INSERT INTO categories(slug,name) VALUES('games','Games')")
+        self.db.execute("INSERT INTO categories(slug,name) VALUES('animes','Animes')")
         self.db.execute(
             "INSERT INTO franchises(category_id,slug,name) VALUES(1,'pokemon','Pokémon')"
+        )
+        self.db.execute(
+            "INSERT INTO franchises(category_id,slug,name) VALUES(1,'resident-evil','Resident Evil')"
+        )
+        self.db.execute(
+            "INSERT INTO franchises(category_id,slug,name) VALUES(2,'dragon-ball','Dragon Ball')"
         )
 
     def tearDown(self) -> None:
@@ -34,6 +41,21 @@ class CatalogSearchSchemaTests(unittest.TestCase):
         rows = self.db.execute(
             "SELECT model_id FROM models_fts WHERE models_fts MATCH ? ORDER BY model_id",
             (f'"{escaped}"',),
+        ).fetchall()
+        return [row[0] for row in rows]
+
+    def search_franchises(self, phrase: str, category: str | None = None) -> list[str]:
+        where = ["(instr(lower(f.name),lower(?))>0 OR instr(lower(f.slug),lower(?))>0)"]
+        values: list[object] = [phrase, phrase]
+        if category:
+            where.append("c.slug=?")
+            values.append(category)
+        rows = self.db.execute(
+            f"""SELECT f.slug
+            FROM franchises f JOIN categories c ON c.id=f.category_id
+            WHERE {' AND '.join(where)}
+            ORDER BY f.model_count DESC,f.name COLLATE NOCASE,f.id""",
+            values,
         ).fetchall()
         return [row[0] for row in rows]
 
@@ -52,7 +74,7 @@ class CatalogSearchSchemaTests(unittest.TestCase):
         self.db.execute(
             """INSERT INTO models(
               id,franchise_id,slug,code,name,published,search_text
-            ) VALUES('mdl-2',1,'jill','TS-000002','Jill',1,'resident evil jill')"""
+            ) VALUES('mdl-2',2,'jill','TS-000002','Jill',1,'resident evil jill')"""
         )
         self.assertEqual(self.search("resident"), ["mdl-2"])
 
@@ -72,6 +94,13 @@ class CatalogSearchSchemaTests(unittest.TestCase):
         }
         self.assertIn("idx_franchises_category_discovery", names)
         self.assertIn("idx_franchises_global_discovery", names)
+
+    def test_franchise_browser_search_matches_name_or_slug_and_category(self) -> None:
+        self.assertEqual(self.search_franchises("resident"), ["resident-evil"])
+        self.assertEqual(self.search_franchises("dragon"), ["dragon-ball"])
+        self.assertEqual(self.search_franchises("evil", "games"), ["resident-evil"])
+        self.assertEqual(self.search_franchises("evil", "animes"), [])
+        self.assertEqual(self.search_franchises("resident-evil"), ["resident-evil"])
 
 
 if __name__ == "__main__":
