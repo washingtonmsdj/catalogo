@@ -1,8 +1,9 @@
-import { gzipSync } from 'node:zlib'
-import { readdir, readFile, stat } from 'node:fs/promises'
+import { readdir, readFile } from 'node:fs/promises'
 import { extname, join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { gzipSync } from 'node:zlib'
 
-const DIST = new URL('../dist/', import.meta.url)
+const DIST = fileURLToPath(new URL('../dist/', import.meta.url))
 
 const LIMITS = {
   singleJsGzip: 180 * 1024,
@@ -32,7 +33,7 @@ for (const file of files) {
   if (!['.js', '.css'].includes(extension)) continue
   const body = await readFile(file)
   measured.push({
-    file: relative(DIST.pathname, file),
+    file: relative(DIST, file),
     type: extension.slice(1),
     raw: body.byteLength,
     gzip: gzipSync(body, { level: 9 }).byteLength,
