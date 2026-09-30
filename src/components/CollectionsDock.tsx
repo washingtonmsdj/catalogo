@@ -15,6 +15,7 @@ import {
 } from '../services/collections'
 
 type KnownModel = { name: string; slug: string }
+type CollectionSort = 'added' | 'name'
 
 type LocalSources = {
   known: Record<string, KnownModel>
@@ -69,6 +70,10 @@ function mergeCollections(current: UserCollection[], incoming: UserCollection[])
   return Array.from(byId.values()).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)).slice(0, MAX_COLLECTIONS)
 }
 
+function normalizedSearch(value: string) {
+  return value.trim().toLocaleLowerCase('pt-BR')
+}
+
 export function CollectionsDock() {
   const importInputRef = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
@@ -77,6 +82,8 @@ export function CollectionsDock() {
   const [sources, setSources] = useState<LocalSources>(loadSources)
   const [newName, setNewName] = useState('')
   const [renameValue, setRenameValue] = useState('')
+  const [collectionQuery, setCollectionQuery] = useState('')
+  const [collectionSort, setCollectionSort] = useState<CollectionSort>('added')
   const [message, setMessage] = useState('')
 
   useEffect(() => saveCollections(collections), [collections])
@@ -119,6 +126,19 @@ export function CollectionsDock() {
   const active = collections.find((item) => item.id === activeId) ?? null
   const currentModelId = sources.recent[0] ?? ''
   const candidateIds = useMemo(() => Array.from(new Set([...sources.recent, ...sources.favorites])).filter((id) => !active?.modelIds.includes(id)).slice(0, 24), [sources, active])
+  const visibleCollectionIds = useMemo(() => {
+    if (!active) return []
+    const query = normalizedSearch(collectionQuery)
+    const filtered = active.modelIds.filter((id) => {
+      if (!query) return true
+      const name = sources.known[id]?.name ?? ''
+      return normalizedSearch(name).includes(query) || normalizedSearch(id).includes(query)
+    })
+    if (collectionSort === 'name') {
+      return [...filtered].sort((left, right) => (sources.known[left]?.name ?? left).localeCompare(sources.known[right]?.name ?? right, 'pt-BR', { sensitivity: 'base' }))
+    }
+    return filtered
+  }, [active, collectionQuery, collectionSort, sources.known])
 
   function persist(next: UserCollection[]) {
     setCollections(next)
@@ -133,6 +153,7 @@ export function CollectionsDock() {
       persist([created, ...collections])
       setActiveId(created.id)
       setRenameValue(created.name)
+      setCollectionQuery('')
       setNewName('')
       setMessage('Coleção criada.')
     } catch {
@@ -154,6 +175,7 @@ export function CollectionsDock() {
     const item = collections.find((collection) => collection.id === id)
     setActiveId(id)
     setRenameValue(item?.name ?? '')
+    setCollectionQuery('')
     setMessage('')
   }
 
@@ -175,6 +197,7 @@ export function CollectionsDock() {
     persist(remaining)
     setActiveId(remaining[0]?.id ?? '')
     setRenameValue(remaining[0]?.name ?? '')
+    setCollectionQuery('')
     setMessage('Coleção excluída deste navegador.')
   }
 
@@ -204,10 +227,23 @@ export function CollectionsDock() {
       const nextActive = merged.find((item) => item.id === activeId) ?? merged[0] ?? null
       setActiveId(nextActive?.id ?? '')
       setRenameValue(nextActive?.name ?? '')
+      setCollectionQuery('')
       setMessage(`Backup importado: ${imported.length} coleção${imported.length === 1 ? '' : 'ões'} válida${imported.length === 1 ? '' : 's'}.`)
     } catch (error) {
       const code = error instanceof Error ? error.message : ''
       setMessage(code === 'collection_backup_version' ? 'Este backup pertence a uma versão incompatível.' : 'Arquivo de backup inválido ou corrompido.')
+    }
+  }
+
+  async function copyCollectionList() {
+    if (!active) return
+    const lines = active.modelIds.map((id, index) => `${index + 1}. ${sources.known[id]?.name ?? id}`)
+    const text = `${active.name}\n${active.modelIds.length} modelo${active.modelIds.length === 1 ? '' : 's'}\n\n${lines.join('\n')}`
+    try {
+      await navigator.clipboard.writeText(text)
+      setMessage('Lista da coleção copiada para a área de transferência.')
+    } catch {
+      setMessage('Não foi possível copiar a lista neste navegador.')
     }
   }
 
@@ -259,9 +295,17 @@ export function CollectionsDock() {
                   {currentModelId && !active.modelIds.includes(currentModelId) && <button type="button" className="primary-action" onClick={() => updateActive((item) => toggleCollectionModel(item, currentModelId))}>＋ Adicionar último modelo visto</button>}
                 </div>
 
+                <div className="collections-model-controls">
+                  <label><span>Buscar nesta coleção</span><input type="search" value={collectionQuery} onChange={(event) => setCollectionQuery(event.target.value)} placeholder="Nome ou código do modelo" /></label>
+                  <label><span>Ordenar</span><select value={collectionSort} onChange={(event) => setCollectionSort(event.target.value as CollectionSort)}><option value="added">Ordem adicionada</option><option value="name">Nome A–Z</option></select></label>
+                  <button type="button" onClick={copyCollectionList} disabled={!active.modelIds.length}>Copiar lista</button>
+                  <div className="collections-model-summary"><strong>{visibleCollectionIds.length}</strong><span>de {active.modelIds.length} exibidos</span></div>
+                </div>
+
                 <div className="collections-models">
-                  {active.modelIds.map((id) => <article key={id}><button type="button" className="collections-model-open" disabled={!sources.known[id]?.slug} onClick={() => openModel(id)}><strong>{sources.known[id]?.name ?? id}</strong><small>{sources.known[id]?.slug ? 'abrir modelo ↗' : 'modelo ainda não visitado nesta sessão'}</small></button><button type="button" className="collections-remove" aria-label={`Remover ${sources.known[id]?.name ?? id}`} onClick={() => updateActive((item) => toggleCollectionModel(item, id))}>×</button></article>)}
+                  {visibleCollectionIds.map((id) => <article key={id}><button type="button" className="collections-model-open" disabled={!sources.known[id]?.slug} onClick={() => openModel(id)}><strong>{sources.known[id]?.name ?? id}</strong><small>{sources.known[id]?.slug ? 'abrir modelo ↗' : 'modelo ainda não visitado nesta sessão'}</small></button><button type="button" className="collections-remove" aria-label={`Remover ${sources.known[id]?.name ?? id}`} onClick={() => updateActive((item) => toggleCollectionModel(item, id))}>×</button></article>)}
                   {!active.modelIds.length && <div className="collections-empty"><strong>COLEÇÃO VAZIA</strong><p>Adicione o modelo atual, um favorito ou algum item visto recentemente.</p></div>}
+                  {!!active.modelIds.length && !visibleCollectionIds.length && <div className="collections-empty"><strong>NENHUM RESULTADO</strong><p>Nenhum modelo desta coleção corresponde a “{collectionQuery.trim()}”.</p><button type="button" onClick={() => setCollectionQuery('')}>Limpar busca</button></div>}
                 </div>
 
                 {!!candidateIds.length && <div className="collections-sources"><div><strong>Favoritos e recentes</strong><span>atalhos disponíveis neste navegador</span></div><div className="collections-source-chips">{candidateIds.map((id) => <button type="button" key={id} onClick={() => updateActive((item) => toggleCollectionModel(item, id))}>＋ {sources.known[id]?.name ?? id}</button>)}</div></div>}
