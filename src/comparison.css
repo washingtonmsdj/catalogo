@@ -225,6 +225,26 @@
   white-space: nowrap;
 }
 
+.detail-actions--triple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.detail-actions--triple button {
+  min-width: 0;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+@media (max-width: 1120px) {
+  .topnav {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .topnav::-webkit-scrollbar { display: none; }
+  .topnav a,
+  .topnav button { flex: 0 0 auto; }
+}
+
 @media (max-width: 780px) {
   .comparison-backdrop { padding: 8px; }
   .comparison-modal { width: calc(100vw - 16px); max-height: 96vh; }
@@ -239,4 +259,6 @@
   .comparison-footer { align-items: stretch; flex-direction: column; }
   .comparison-footer__actions { width: 100%; }
   .comparison-footer__actions button { flex: 1; }
+  .detail-actions--triple { grid-template-columns: 1fr 1fr; }
+  .detail-actions--triple button:last-child { grid-column: 1 / -1; }
 }
