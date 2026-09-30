@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useEffect, useRef, useState } from 'react'
 import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
 import { submitQuoteRequest } from './services/quotes'
@@ -10,6 +10,15 @@ const MAX_QUOTE_ITEMS = 50
 type KnownModel = {
   name: string
   slug: string
+}
+
+function initialSlugFromHash() {
+  if (!window.location.hash.startsWith('#modelo=')) return ''
+  try {
+    return decodeURIComponent(window.location.hash.slice(8))
+  } catch {
+    return ''
+  }
 }
 
 function ModelArt({ model, compact = false, angle = 0 }: { model: CatalogModel; compact?: boolean; angle?: number }) {
@@ -66,8 +75,8 @@ function loadKnownModels(): Record<string, KnownModel> {
 }
 
 export default function App() {
-  const initialSlug = window.location.hash.startsWith('#modelo=') ? decodeURIComponent(window.location.hash.slice(8)) : ''
-  const catalog = useCatalogRuntime(initialSlug)
+  const catalog = useCatalogRuntime(initialSlugFromHash())
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [favorites, setFavorites] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:favorites') ?? '[]'))
   const [quoteList, setQuoteList] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:quote') ?? '[]'))
   const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
@@ -85,6 +94,7 @@ export default function App() {
   const selected = catalog.selected
   const visibleModels = catalog.models
   const selectedIndex = Math.max(0, visibleModels.findIndex((model) => model.id === selected.id))
+  const anyModalOpen = galleryOpen || favoritesOpen || quoteOpen
 
   const categoryLabel = catalog.categories.find((item) => item.id === catalog.category)?.label ?? 'Todos'
   const franchiseLabel = catalog.franchises.find((item) => item.id === catalog.franchise)?.label
@@ -94,6 +104,11 @@ export default function App() {
   const pageLabel = catalog.mode === 'live'
     ? `PÁG. ${catalog.pageIndex + 1}`
     : `PÁG. 1 / ${formatter.format(demoEstimatedPages)}`
+  const stageIndexLabel = catalog.loading
+    ? 'CARREGANDO'
+    : visibleModels.length
+      ? `${String(selectedIndex + 1).padStart(3, '0')} / ${formatter.format(catalog.totalCount)}`
+      : 'SEM RESULTADOS'
 
   useEffect(() => localStorage.setItem('tonecos:favorites', JSON.stringify(favorites)), [favorites])
   useEffect(() => localStorage.setItem('tonecos:quote', JSON.stringify(quoteList)), [quoteList])
@@ -118,11 +133,39 @@ export default function App() {
 
   useEffect(() => {
     setLinkCopied(false)
-  }, [selected.id])
+    document.title = selected.id === 'loading'
+      ? 'Catálogo — Tonecos Studios'
+      : `${selected.name} — Tonecos Studios`
+  }, [selected.id, selected.name])
+
+  useEffect(() => {
+    if (!anyModalOpen) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = previousOverflow }
+  }, [anyModalOpen])
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+      if (event.key === 'Escape') {
+        if (quoteOpen) setQuoteOpen(false)
+        else if (favoritesOpen) setFavoritesOpen(false)
+        else if (galleryOpen) setGalleryOpen(false)
+        return
+      }
+
+      const target = event.target
+      const isTyping = target instanceof HTMLInputElement
+        || target instanceof HTMLTextAreaElement
+        || target instanceof HTMLSelectElement
+        || (target instanceof HTMLElement && target.isContentEditable)
+
+      if (event.key === '/' && !isTyping && !anyModalOpen) {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        return
+      }
+      if (isTyping || anyModalOpen) return
       if (event.key === 'ArrowRight') navigate(1)
       if (event.key === 'ArrowLeft') navigate(-1)
       if (event.key.toLowerCase() === 'f' && selected.id !== 'loading') toggleFavorite(selected.id)
@@ -137,7 +180,7 @@ export default function App() {
     setFavorites((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id])
   }
 
-  function toggleQuote(id: string) {
+  function safeToggleQuote(id: string) {
     setQuoteList((current) => {
       if (current.includes(id)) return current.filter((item) => item !== id)
       if (current.length >= MAX_QUOTE_ITEMS) {
@@ -235,22 +278,21 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <a className="brand" href="#catalogo" aria-label="Tonecos Studios">
+        <a className="brand" href="#catalogo" aria-label="Tonecos Studios — voltar ao catálogo">
           <span className="brand__title">CATÁLOGO</span>
           <span className="brand__studio">TONECOS STUDIOS</span>
         </a>
         <nav className="topnav" aria-label="Navegação principal">
           <a href="#catalogo" className="is-active">Catálogo</a>
-          <button onClick={() => catalog.setCategory('all')}>Categorias</button>
-          <button onClick={() => setFavoritesOpen(true)}>Favoritos <b>{favorites.length}</b></button>
-          <button onClick={() => setQuoteOpen(true)}>Orçamento <b>{quoteList.length}</b></button>
+          <button type="button" onClick={() => catalog.setCategory('all')}>Categorias</button>
+          <button type="button" onClick={() => setFavoritesOpen(true)}>Favoritos <b>{favorites.length}</b></button>
+          <button type="button" onClick={() => setQuoteOpen(true)}>Orçamento <b>{quoteList.length}</b></button>
         </nav>
         <label className="searchbox">
-          <span>⌕</span>
-          <input value={catalog.search} onChange={(event) => catalog.setSearch(event.target.value)} placeholder="Buscar personagem, franquia ou categoria..." />
-          <kbd>/</kbd>
+          <span aria-hidden="true">⌕</span>
+          <input ref={searchInputRef} aria-label="Buscar no catálogo" value={catalog.search} onChange={(event) => catalog.setSearch(event.target.value)} placeholder="Buscar personagem, franquia ou categoria..." />
+          <kbd aria-hidden="true">/</kbd>
         </label>
-        <button className="account-button">Entrar</button>
       </header>
 
       <section className="scope-strip" aria-label="Navegação hierárquica">
@@ -261,9 +303,9 @@ export default function App() {
           <span>{selected.name}</span>
         </div>
         <div className="scope-strip__franchises">
-          <button className={catalog.franchise === 'all' ? 'is-active' : ''} onClick={() => catalog.setFranchise('all')}>TODAS</button>
+          <button type="button" className={catalog.franchise === 'all' ? 'is-active' : ''} onClick={() => catalog.setFranchise('all')}>TODAS</button>
           {catalog.franchises.map((item) => (
-            <button key={`${item.category}:${item.id}`} className={catalog.franchise === item.id ? 'is-active' : ''} onClick={() => catalog.setFranchise(item.id)}>
+            <button type="button" key={`${item.category}:${item.id}`} className={catalog.franchise === item.id ? 'is-active' : ''} onClick={() => catalog.setFranchise(item.id)}>
               {item.label}
             </button>
           ))}
@@ -277,7 +319,7 @@ export default function App() {
           <div className="panel-title"><span>Categorias</span><small>{formatter.format(catalog.categories[0]?.count ?? catalog.totalCount)}</small></div>
           <div className="category-list">
             {catalog.categories.map((item) => (
-              <button key={item.id} className={catalog.category === item.id ? 'is-active' : ''} onClick={() => catalog.setCategory(item.id)}>
+              <button type="button" key={item.id} className={catalog.category === item.id ? 'is-active' : ''} onClick={() => catalog.setCategory(item.id)} aria-pressed={catalog.category === item.id}>
                 <span className="category-mark">{catalog.category === item.id ? '◆' : '◇'}</span>
                 <strong>{item.label}</strong>
                 <em>{formatter.format(item.count)}</em>
@@ -292,16 +334,16 @@ export default function App() {
         </aside>
 
         <section className="selection-stage panel">
-          <button className="stage-arrow stage-arrow--left" onClick={() => navigate(-1)} aria-label="Anterior">‹</button>
+          <button type="button" className="stage-arrow stage-arrow--left" disabled={!visibleModels.length || catalog.loading} onClick={() => navigate(-1)} aria-label="Modelo anterior">‹</button>
           <div className="stage-visual">
             <div className="stage-watermark">{selected.name.toUpperCase()}</div>
-            <div className="stage-index">{catalog.loading ? 'CARREGANDO' : `${String(selectedIndex + 1).padStart(3, '0')} / ${formatter.format(catalog.totalCount)}`}</div>
+            <div className="stage-index" aria-live="polite">{stageIndexLabel}</div>
             <ModelArt model={selected} />
-            <button className="gallery-badge" disabled={selected.id === 'loading'} onClick={() => setGalleryOpen(true)}>
+            <button type="button" className="gallery-badge" disabled={selected.id === 'loading'} onClick={() => setGalleryOpen(true)}>
               <strong>{selected.galleryCount}</strong><span>IMAGENS</span><small>abrir galeria paginada</small>
             </button>
           </div>
-          <button className="stage-arrow stage-arrow--right" onClick={() => navigate(1)} aria-label="Próximo">›</button>
+          <button type="button" className="stage-arrow stage-arrow--right" disabled={!visibleModels.length || catalog.loading} onClick={() => navigate(1)} aria-label="Próximo modelo">›</button>
         </section>
 
         <aside className="detail-panel panel">
@@ -317,21 +359,21 @@ export default function App() {
             <div><dt>Código</dt><dd>{selected.code}</dd></div>
           </dl>
           <div className="detail-actions">
-            <button disabled={selected.id === 'loading'} className={favorites.includes(selected.id) ? 'is-selected' : ''} onClick={() => toggleFavorite(selected.id)}>♡ Favoritar</button>
-            <button disabled={selected.id === 'loading'} className={quoteList.includes(selected.id) ? 'is-selected' : ''} onClick={() => toggleQuote(selected.id)}>＋ Lista</button>
+            <button type="button" disabled={selected.id === 'loading'} aria-pressed={favorites.includes(selected.id)} className={favorites.includes(selected.id) ? 'is-selected' : ''} onClick={() => toggleFavorite(selected.id)}>♡ Favoritar</button>
+            <button type="button" disabled={selected.id === 'loading'} aria-pressed={quoteList.includes(selected.id)} className={quoteList.includes(selected.id) ? 'is-selected' : ''} onClick={() => safeToggleQuote(selected.id)}>＋ Lista</button>
           </div>
-          <button className="share-action" disabled={selected.id === 'loading'} onClick={copyModelLink}>{linkCopied ? '✓ Link copiado' : '↗ Copiar link deste modelo'}</button>
-          <button className="primary-action" disabled={selected.id === 'loading'} onClick={() => { if (!quoteList.includes(selected.id)) toggleQuote(selected.id); setQuoteOpen(true) }}>Solicitar orçamento <span>›</span></button>
+          <button type="button" className="share-action" disabled={selected.id === 'loading'} onClick={copyModelLink}>{linkCopied ? '✓ Link copiado' : '↗ Copiar link deste modelo'}</button>
+          <button type="button" className="primary-action" disabled={selected.id === 'loading'} onClick={() => { if (!quoteList.includes(selected.id)) safeToggleQuote(selected.id); setQuoteOpen(true) }}>Solicitar orçamento <span>›</span></button>
         </aside>
 
         <section className="roster panel" aria-label="Seleção de modelos">
           <div className="roster-header">
             <div><strong>SELECIONE O PERSONAGEM</strong><span>{catalog.loading ? 'Carregando...' : `${visibleModels.length} modelos neste recorte`}</span></div>
-            <div className="roster-hint">← → navegar · ENTER link · A galeria · F favoritar</div>
+            <div className="roster-hint">← → navegar · ENTER link · A galeria · F favoritar · / buscar</div>
           </div>
           <div className="roster-track">
             {visibleModels.map((model, index) => (
-              <button key={model.id} className={`roster-card ${model.id === selected.id ? 'is-active' : ''}`} onClick={() => catalog.setSelectedId(model.id)}>
+              <button type="button" key={model.id} aria-pressed={model.id === selected.id} className={`roster-card ${model.id === selected.id ? 'is-active' : ''}`} onClick={() => catalog.setSelectedId(model.id)}>
                 <ModelArt model={model} compact angle={(index % 3) - 1} />
                 <span className="roster-card__index">{String(index + 1).padStart(3, '0')}</span>
                 <span className="roster-card__name">{model.name}</span>
@@ -341,8 +383,8 @@ export default function App() {
           </div>
           <div className="roster-pagination">
             <span>{pageLabel}</span>
-            <button disabled={!catalog.hasPreviousPage} onClick={catalog.goPreviousPage}>‹</button>
-            <button disabled={!catalog.hasNextPage} onClick={catalog.goNextPage}>›</button>
+            <button type="button" aria-label="Página anterior" disabled={!catalog.hasPreviousPage} onClick={catalog.goPreviousPage}>‹</button>
+            <button type="button" aria-label="Próxima página" disabled={!catalog.hasNextPage} onClick={catalog.goNextPage}>›</button>
           </div>
         </section>
       </main>
@@ -352,6 +394,7 @@ export default function App() {
         <div><kbd>ENTER</kbd><span>Link do modelo</span></div>
         <div><kbd>A</kbd><span>Galeria</span></div>
         <div><kbd>F</kbd><span>Favoritar</span></div>
+        <div><kbd>/</kbd><span>Buscar</span></div>
         <div className="control-bar__status">
           <span>{catalog.mode === 'live' ? (catalog.apiHealthy ? 'Catálogo conectado à API' : 'API configurada · verificando') : 'Preview em modo demonstração'}</span>
           <strong>{catalog.mode === 'live' ? 'LIVE' : 'DEMO'}</strong>
@@ -360,27 +403,28 @@ export default function App() {
 
       {galleryOpen && (
         <div className="modal-backdrop" onMouseDown={() => setGalleryOpen(false)}>
-          <section className="gallery-modal" onMouseDown={(event) => event.stopPropagation()}>
+          <section className="gallery-modal" role="dialog" aria-modal="true" aria-labelledby="gallery-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="modal-head">
-              <div><span>GALERIA DO PERSONAGEM</span><h2>{selected.name}</h2><p>{gallery.total || selected.galleryCount} imagens · página {gallery.pageIndex + 1} de {gallery.totalPages}</p></div>
-              <button onClick={() => setGalleryOpen(false)}>×</button>
+              <div><span>GALERIA DO PERSONAGEM</span><h2 id="gallery-title">{selected.name}</h2><p>{gallery.total || selected.galleryCount} imagens · página {gallery.pageIndex + 1} de {gallery.totalPages}</p></div>
+              <button type="button" aria-label="Fechar galeria" onClick={() => setGalleryOpen(false)}>×</button>
             </div>
             {gallery.error && <p className="runtime-alert" role="alert">{gallery.error}</p>}
             <div className="gallery-grid" aria-busy={gallery.loading}>
               {gallery.items.map((image, localIndex) => (
-                <button key={image.id} className={image.role === 'cover' ? 'is-cover' : ''}>
+                <button type="button" key={image.id} className={image.role === 'cover' ? 'is-cover' : ''}>
                   <GalleryArt image={image} model={selected} angle={((localIndex % 5) - 2) * 3} />
                   <span>{image.role === 'cover' ? 'CAPA · MELHOR QUALIDADE' : `VISTA ${String(gallery.pageIndex * 12 + localIndex + 1).padStart(2, '0')}`}</span>
                 </button>
               ))}
               {gallery.loading && <div className="gallery-loading">Carregando imagens...</div>}
+              {!gallery.loading && !gallery.items.length && <div className="gallery-loading">Nenhuma imagem disponível nesta página.</div>}
             </div>
             <div className="gallery-footer gallery-footer--paged">
               <span>A capa prioriza a versão de melhor qualidade entre imagens equivalentes.</span>
               <div>
-                <button disabled={!gallery.hasPreviousPage || gallery.loading} onClick={gallery.previousPage}>← anterior</button>
+                <button type="button" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={gallery.previousPage}>← anterior</button>
                 <strong>{gallery.pageIndex + 1}/{gallery.totalPages}</strong>
-                <button disabled={!gallery.hasNextPage || gallery.loading} onClick={gallery.nextPage}>próxima →</button>
+                <button type="button" disabled={!gallery.hasNextPage || gallery.loading} onClick={gallery.nextPage}>próxima →</button>
               </div>
             </div>
           </section>
@@ -389,10 +433,10 @@ export default function App() {
 
       {favoritesOpen && (
         <div className="modal-backdrop" onMouseDown={() => setFavoritesOpen(false)}>
-          <section className="quote-modal" onMouseDown={(event) => event.stopPropagation()}>
+          <section className="quote-modal" role="dialog" aria-modal="true" aria-labelledby="favorites-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="modal-head">
-              <div><span>COLEÇÃO PESSOAL</span><h2>Favoritos</h2><p>{favorites.length ? `${favorites.length} modelos salvos neste navegador.` : 'Nenhum modelo favoritado ainda.'}</p></div>
-              <button onClick={() => setFavoritesOpen(false)}>×</button>
+              <div><span>COLEÇÃO PESSOAL</span><h2 id="favorites-title">Favoritos</h2><p>{favorites.length ? `${favorites.length} modelos salvos neste navegador.` : 'Nenhum modelo favoritado ainda.'}</p></div>
+              <button type="button" aria-label="Fechar favoritos" onClick={() => setFavoritesOpen(false)}>×</button>
             </div>
             {favorites.length ? (
               <>
@@ -408,7 +452,7 @@ export default function App() {
                 <button className="share-action" type="button" onClick={() => setFavorites([])}>Limpar favoritos</button>
               </>
             ) : (
-              <div className="success-state"><strong>LISTA VAZIA</strong><p>Use “♡ Favoritar” nos modelos que quiser guardar para comparar ou consultar depois.</p><button onClick={() => setFavoritesOpen(false)}>Voltar ao catálogo</button></div>
+              <div className="success-state"><strong>LISTA VAZIA</strong><p>Use “♡ Favoritar” nos modelos que quiser guardar para comparar ou consultar depois.</p><button type="button" onClick={() => setFavoritesOpen(false)}>Voltar ao catálogo</button></div>
             )}
           </section>
         </div>
@@ -416,16 +460,16 @@ export default function App() {
 
       {quoteOpen && (
         <div className="modal-backdrop" onMouseDown={() => setQuoteOpen(false)}>
-          <section className="quote-modal" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="modal-head"><div><span>FORMULÁRIO</span><h2>Solicitar orçamento</h2><p>Sem WhatsApp. Você recebe a solicitação pelo sistema.</p></div><button onClick={() => setQuoteOpen(false)}>×</button></div>
+          <section className="quote-modal" role="dialog" aria-modal="true" aria-labelledby="quote-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modal-head"><div><span>FORMULÁRIO</span><h2 id="quote-title">Solicitar orçamento</h2><p>Sem WhatsApp. Você recebe a solicitação pelo sistema.</p></div><button type="button" aria-label="Fechar formulário" onClick={() => setQuoteOpen(false)}>×</button></div>
             {sent ? (
-              <div className="success-state"><strong>SOLICITAÇÃO REGISTRADA</strong><p>{quoteMode === 'live' ? 'Pedido enviado para o sistema.' : 'Modo demonstração ativo. Ao publicar a API, este mesmo formulário passará a gravar os pedidos sem mudar a interface.'}</p><button onClick={() => { setSent(false); setQuoteOpen(false) }}>Voltar ao catálogo</button></div>
+              <div className="success-state"><strong>SOLICITAÇÃO REGISTRADA</strong><p>{quoteMode === 'live' ? 'Pedido enviado para o sistema.' : 'Modo demonstração ativo. Ao publicar a API, este mesmo formulário passará a gravar os pedidos sem mudar a interface.'}</p><button type="button" onClick={() => { setSent(false); setQuoteOpen(false) }}>Voltar ao catálogo</button></div>
             ) : (
               <form onSubmit={submitQuote}>
-                <label>Nome completo<input required maxLength={120} name="name" placeholder="Seu nome" /></label>
-                <label>E-mail<input required maxLength={254} type="email" name="email" placeholder="voce@email.com" /></label>
+                <label>Nome completo<input required autoComplete="name" maxLength={120} name="name" placeholder="Seu nome" /></label>
+                <label>E-mail<input required autoComplete="email" maxLength={254} type="email" name="email" placeholder="voce@email.com" /></label>
                 <div className="quote-selected"><span>Itens selecionados</span><strong>{quoteList.length}/{MAX_QUOTE_ITEMS}</strong></div>
-                <div className="quote-chips">{quoteList.map((id) => <button type="button" key={id} onClick={() => toggleQuote(id)}>{knownModels[id]?.name ?? id} ×</button>)}</div>
+                <div className="quote-chips">{quoteList.map((id) => <button type="button" key={id} onClick={() => safeToggleQuote(id)}>{knownModels[id]?.name ?? id} ×</button>)}</div>
                 <label>Observações<textarea maxLength={4000} name="notes" rows={5} placeholder="Quantidade, tamanho desejado, acabamento ou outras informações..." /></label>
                 {catalog.mode === 'live' && <TurnstileWidget resetKey={turnstileResetKey} />}
                 {quoteError && <p role="alert">{quoteError}</p>}
