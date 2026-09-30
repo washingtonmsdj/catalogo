@@ -46,3 +46,14 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Smoke test published preview
+        shell: bash
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          HTML="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors "$PAGE_URL")"
+          printf '%s' "$HTML" | grep -q 'Tonecos Studios'
+          MANIFEST_URL="${PAGE_URL%/}/site.webmanifest"
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors "$MANIFEST_URL" \
+            | node -e "let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (data.name !== 'Catálogo Tonecos Studios') process.exit(1); console.log('Preview ready:', data.name); });"

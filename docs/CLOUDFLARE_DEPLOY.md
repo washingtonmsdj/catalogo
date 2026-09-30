@@ -49,7 +49,10 @@ Ao alterar `worker/`, `migrations/` ou configuração Cloudflare na `main`, o wo
 6. publica o Worker;
 7. verifica se `TURNSTILE_SECRET_KEY` já existe no Worker e envia o GitHub Secret somente quando necessário;
 8. confirma novamente que o nome do secret está ativo;
-9. consulta `/api/health` quando `VITE_API_BASE_URL` estiver configurada.
+9. consulta `/api/health` para provar que o Worker está respondendo;
+10. consulta `/api/categories` e valida a estrutura JSON para provar que o binding D1 e o schema do catálogo estão acessíveis.
+
+O R2 é validado antes do deploy via Wrangler. Assim, Worker, D1 e bucket precisam estar operacionais para o pipeline de produção terminar com sucesso.
 
 Na rotação da chave Turnstile, execute manualmente o workflow com `force_turnstile_secret_sync=true`. O valor do segredo continua mascarado pelo GitHub e é enviado ao Wrangler por stdin.
 
@@ -64,6 +67,8 @@ O workflow do GitHub Pages injeta durante o build:
 - `VITE_TURNSTILE_SITE_KEY`
 
 Assim que API/mídia estiverem configuradas, o mesmo frontend muda de DEMO para LIVE sem alteração de código. A site key do Turnstile é pública por definição; o secret nunca é exposto ao frontend.
+
+Após cada publicação, o workflow do Pages executa um smoke test HTTP no endereço publicado, confirma a presença da identidade Tonecos Studios no HTML e valida o `site.webmanifest`. O workflow só termina com sucesso se a versão publicada estiver realmente acessível.
 
 ## Formulário de orçamento
 
