@@ -52,14 +52,25 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(summary["models"], 1)
             self.assertEqual(summary["canonicalImages"], 2)
             self.assertEqual(summary["variantFiles"], 6)
+            self.assertEqual(summary["galleryManifests"], 1)
 
             model_index = [json.loads(line) for line in (output / "models.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual(len(model_index), 1)
-            self.assertEqual(model_index[0]["displayName"], "Heroi")
-            self.assertEqual(model_index[0]["imageCount"], 2)
+            model = model_index[0]
+            self.assertEqual(model["displayName"], "Heroi")
+            self.assertEqual(model["categoryName"], "Games")
+            self.assertEqual(model["categorySlug"], "games")
+            self.assertEqual(model["franchiseName"], "Saga")
+            self.assertEqual(model["franchiseSlug"], "saga")
+            self.assertEqual(model["slug"], "saga-heroi")
+            self.assertTrue(model["code"].startswith("TS-"))
+            self.assertEqual(model["imageCount"], 2)
+            self.assertRegex(model["galleryManifestKey"], rf"^gallery/{model['id']}/[0-9a-f]{{24}}\.json$")
+            self.assertIsInstance(model["galleryVersion"], int)
 
-            gallery_path = output / "r2" / model_index[0]["galleryManifestKey"]
+            gallery_path = output / "r2" / model["galleryManifestKey"]
             gallery = json.loads(gallery_path.read_text(encoding="utf-8"))
+            self.assertEqual(gallery["version"], model["galleryVersion"])
             self.assertEqual(len(gallery["images"]), 2)
             self.assertEqual(gallery["images"][0]["sourceSha256"], "a" * 64)
             self.assertEqual(gallery["images"][0]["role"], "cover")
@@ -68,6 +79,74 @@ class MediaBundleTests(unittest.TestCase):
             for variant in low_item["variants"].values():
                 self.assertLessEqual(variant["width"], 300)
                 self.assertLessEqual(variant["height"], 200)
+
+    def test_gallery_manifest_key_is_deterministic_and_changes_with_gallery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "Games" / "Saga" / "Heroi"
+            model_dir.mkdir(parents=True)
+            first = model_dir / "first.png"
+            second = model_dir / "second.png"
+            Image.new("RGB", (640, 960), "#202428").save(first)
+            Image.new("RGB", (640, 960), "#303438").save(second)
+            manifest = root / "manifest.jsonl"
+
+            def row(path: Path, sha: str, score: float) -> dict:
+                return {
+                    "path": str(path.relative_to(source)), "size": path.stat().st_size,
+                    "status": "OK", "canonical": True, "sha256": sha,
+                    "width": 640, "height": 960, "quality_score": score,
+                    "model_key": "Games / Saga / Heroi",
+                }
+
+            manifest.write_text(json.dumps(row(first, "1" * 64, 80.0)) + "\n", encoding="utf-8")
+            output_a = root / "bundle-a"
+            output_b = root / "bundle-b"
+            build_bundle(source, manifest, output_a, include_original=False)
+            build_bundle(source, manifest, output_b, include_original=False)
+            model_a = json.loads((output_a / "models.jsonl").read_text(encoding="utf-8"))
+            model_b = json.loads((output_b / "models.jsonl").read_text(encoding="utf-8"))
+            self.assertEqual(model_a["galleryManifestKey"], model_b["galleryManifestKey"])
+            self.assertEqual(model_a["galleryVersion"], model_b["galleryVersion"])
+
+            manifest.write_text(
+                json.dumps(row(first, "1" * 64, 80.0)) + "\n" + json.dumps(row(second, "2" * 64, 70.0)) + "\n",
+                encoding="utf-8",
+            )
+            output_c = root / "bundle-c"
+            build_bundle(source, manifest, output_c, include_original=False)
+            model_c = json.loads((output_c / "models.jsonl").read_text(encoding="utf-8"))
+            self.assertNotEqual(model_a["galleryManifestKey"], model_c["galleryManifestKey"])
+            self.assertNotEqual(model_a["galleryVersion"], model_c["galleryVersion"])
+
+    def test_slug_collision_gets_stable_model_suffix(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            paths = [
+                source / "Games" / "Saga A" / "Heroi",
+                source / "Games" / "Saga-A" / "Heroi",
+            ]
+            rows = []
+            for index, model_dir in enumerate(paths):
+                model_dir.mkdir(parents=True)
+                image_path = model_dir / "vista.png"
+                Image.new("RGB", (320, 480), f"#{index + 2}{index + 2}{index + 2}333").save(image_path)
+                model_key = " / ".join(image_path.relative_to(source).parts[:-1])
+                rows.append({
+                    "path": str(image_path.relative_to(source)), "size": image_path.stat().st_size,
+                    "status": "OK", "canonical": True, "sha256": str(index + 3) * 64,
+                    "width": 320, "height": 480, "quality_score": 50.0,
+                    "model_key": model_key,
+                })
+            manifest = root / "manifest.jsonl"
+            manifest.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            output = root / "bundle"
+            build_bundle(source, manifest, output, include_original=False)
+            models = [json.loads(line) for line in (output / "models.jsonl").read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(len({model["slug"] for model in models}), 2)
+            self.assertTrue(all(model["slug"].startswith("saga-a-heroi-") for model in models))
 
     def test_include_original_is_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
