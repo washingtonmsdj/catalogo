@@ -4,6 +4,13 @@ export type CatalogCategory = {
   count: number
 }
 
+export type CatalogFranchise = {
+  id: string
+  label: string
+  count: number
+  category: string
+}
+
 export type CatalogImage = {
   id: string
   url?: string
@@ -20,6 +27,7 @@ export type CatalogModel = {
   code: string
   name: string
   franchise: string
+  franchiseSlug?: string
   category: string
   collection: string
   material: string
@@ -28,6 +36,7 @@ export type CatalogModel = {
   description: string
   tags: string[]
   accent: string
+  coverUrl?: string
   images: CatalogImage[]
 }
 
