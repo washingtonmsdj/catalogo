@@ -67,9 +67,10 @@ O estado de descoberta faz parte da URL pública do catálogo:
 - `categoria` identifica o recorte de categoria;
 - `franquia` identifica a franquia;
 - `q` preserva o termo de busca;
-- `#modelo=...` identifica um modelo específico.
+- `#modelo=...` identifica um modelo específico;
+- `colecao` pode identificar uma coleção pública temporária criada explicitamente pelo cliente.
 
-Isso permite compartilhar um recorte ou modelo sem criar rotas estáticas para cada combinação e sem carregar dados adicionais. No modo LIVE, uma busca recebida pela URL já inicia o runtime filtrado, evitando uma consulta intermediária sem filtro.
+Isso permite compartilhar um recorte, modelo ou coleção sem criar rotas estáticas para cada combinação e sem carregar dados adicionais. No modo LIVE, uma busca recebida pela URL já inicia o runtime filtrado, evitando uma consulta intermediária sem filtro.
 
 Favoritos, coleções pessoais, lista de comparação, lista de orçamento ainda não enviada e até 12 modelos vistos recentemente ficam em `localStorage`. Esses dados são locais ao navegador e não exigem login. Dados locais inválidos ou corrompidos devem ser ignorados com segurança, nunca impedir a abertura do catálogo.
 
@@ -100,9 +101,31 @@ Regras atuais:
 - estruturas inválidas ou corrompidas são descartadas com segurança;
 - mudanças são sincronizadas entre abas usando o evento `storage`;
 - abrir o gerenciador recarrega Favoritos, Recentes e modelos conhecidos antes de oferecer atalhos de inclusão;
-- coleções não são enviadas ao backend e não alteram o orçamento automaticamente.
+- coleções não alteram o orçamento automaticamente;
+- nenhuma coleção é enviada ao backend sem uma ação explícita do cliente para compartilhar.
 
 O componente `CollectionsDock` é independente do runtime principal do catálogo. Isso reduz acoplamento e permite, no futuro, trocar `localStorage` por sincronização autenticada sem reescrever a navegação pública.
+
+### Compartilhamento temporário de coleções
+
+O compartilhamento é uma camada separada do armazenamento local. `SharedCollectionsDock` lê uma coleção já existente e somente quando o usuário solicita cria uma representação pública no D1.
+
+O contrato usa duas tabelas: `shared_collections` para o código, fingerprint, nome e expiração; e `shared_collection_items` para manter a ordem dos modelos. O link público contém apenas um código aleatório `TCL-...`, e nunca a lista completa de IDs.
+
+Regras de segurança e ciclo de vida:
+
+- criação protegida por Cloudflare Turnstile com ação `collection-share`;
+- validação server-side de que todos os modelos enviados continuam publicados;
+- código público gerado com 96 bits aleatórios;
+- validade de 30 dias;
+- coleções expiradas deixam de ser legíveis imediatamente e são limpas oportunisticamente nas novas criações;
+- conteúdo idêntico ainda válido é deduplicado por SHA-256 para evitar registros repetidos;
+- a ordem dos modelos faz parte do conteúdo compartilhado e é preservada;
+- nenhum nome, e-mail ou identificador pessoal do cliente é persistido nessa entidade;
+- ao abrir um link, modelos que deixaram de ser publicados são omitidos e a interface informa a diferença entre quantidade original e disponível;
+- importar a coleção compartilhada para `localStorage` é uma ação explícita do destinatário e nunca sobrescreve outra coleção apenas para liberar espaço.
+
+A leitura pública usa o código como segredo de posse do link e pode receber cache curto. A escrita continua protegida, validada e limitada, sem exigir login para a navegação anônima do catálogo.
 
 ## Stack planejada
 
@@ -111,7 +134,7 @@ O componente `CollectionsDock` é independente do runtime principal do catálogo
 - API: Cloudflare Workers
 - Banco: D1 inicialmente, com camada de repositório para permitir migração se a escala exigir
 - Imagens: Cloudflare R2 + CDN
-- Proteção de formulários: Turnstile
+- Proteção de formulários e gravações públicas: Turnstile
 - Login: camada de autenticação desacoplada do catálogo público
 
 ## Repositório
