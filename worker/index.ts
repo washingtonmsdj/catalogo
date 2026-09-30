@@ -160,6 +160,11 @@ function toFtsPhrase(value: string) {
   return `"${value.replace(/"/g, '""')}"`
 }
 
+function quoteReference(id: string) {
+  const compact = id.replace(/-/g, '').slice(0, 20).toUpperCase()
+  return `TCS-${compact.match(/.{1,4}/g)?.join('-') ?? compact}`
+}
+
 const encodeOffsetCursor = (offset: number) => btoa(String(offset))
 
 async function listCategories(request: Request, env: Env) {
@@ -365,6 +370,7 @@ async function createQuote(request: Request, env: Env) {
   }
 
   const id = crypto.randomUUID()
+  const reference = quoteReference(id)
   const itemValues: unknown[] = []
   const itemRows = modelIds.map((modelId) => {
     itemValues.push(id, modelId)
@@ -372,10 +378,10 @@ async function createQuote(request: Request, env: Env) {
   }).join(',')
 
   await env.DB.batch([
-    env.DB.prepare('INSERT INTO quote_requests(id,name,email,notes) VALUES(?,?,?,?)').bind(id, name, email, notes || null),
+    env.DB.prepare('INSERT INTO quote_requests(id,reference,name,email,notes) VALUES(?,?,?,?,?)').bind(id, reference, name, email, notes || null),
     env.DB.prepare(`INSERT INTO quote_request_items(quote_request_id,model_id,quantity) VALUES ${itemRows}`).bind(...itemValues),
   ])
-  return json(request, env, { id, status: 'received' }, { status: 201 })
+  return json(request, env, { id, reference, status: 'received' }, { status: 201 })
 }
 
 export default {
