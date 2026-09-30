@@ -1,0 +1,29 @@
+.image-lightbox__stage {
+  touch-action: pan-y pinch-zoom;
+  overscroll-behavior: contain;
+}
+
+.image-lightbox__stage img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+@media (pointer: coarse) {
+  .image-lightbox__stage::after {
+    content: "DESLIZE PARA NAVEGAR";
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    z-index: 3;
+    transform: translateX(-50%);
+    padding: 5px 8px;
+    border: 1px solid rgba(255,255,255,.06);
+    background: rgba(8,10,12,.62);
+    color: #777f83;
+    font: 800 7px/1 "Courier New", monospace;
+    letter-spacing: .8px;
+    white-space: nowrap;
+    pointer-events: none;
+    backdrop-filter: blur(8px);
+  }
+}
