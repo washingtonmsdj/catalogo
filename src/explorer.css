@@ -241,6 +241,36 @@
   line-height: 1.45;
 }
 
+.scope-strip__explore {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px dashed #655034 !important;
+  background: #15120e !important;
+  color: #cda15f !important;
+  cursor: pointer;
+  font: 800 9px/1 "Courier New", monospace !important;
+  text-transform: uppercase;
+}
+.scope-strip__explore:hover { border-style: solid !important; color: #efc47c !important; }
+
+.scale-note__explore {
+  width: 100%;
+  min-height: 36px;
+  margin-top: 13px;
+  padding: 0 10px;
+  border: 1px solid #4b3d29;
+  background: #15120e;
+  color: #c99b58;
+  cursor: pointer;
+  font: 800 9px/1 "Courier New", monospace;
+  letter-spacing: .35px;
+  text-transform: uppercase;
+  text-align: left;
+}
+.scale-note__explore span { float: right; font-size: 15px; }
+.scale-note__explore:hover { border-color: #846536; color: #e8b66c; }
+
 @media (max-width: 960px) {
   .explorer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
