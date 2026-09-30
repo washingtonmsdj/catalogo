@@ -77,6 +77,7 @@ function loadKnownModels(): Record<string, KnownModel> {
 export default function App() {
   const catalog = useCatalogRuntime(initialSlugFromHash())
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const rosterTrackRef = useRef<HTMLDivElement>(null)
   const [favorites, setFavorites] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:favorites') ?? '[]'))
   const [quoteList, setQuoteList] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:quote') ?? '[]'))
   const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
@@ -94,10 +95,12 @@ export default function App() {
   const gallery = useModelGallery(catalog.mode, catalog.selected, galleryOpen)
   const selected = catalog.selected
   const visibleModels = catalog.models
-  const selectedIndex = Math.max(0, visibleModels.findIndex((model) => model.id === selected.id))
+  const selectedIndex = visibleModels.findIndex((model) => model.id === selected.id)
+  const selectedInVisiblePage = selectedIndex >= 0
   const anyModalOpen = galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
   const noResults = !catalog.loading && visibleModels.length === 0
   const searchCharacters = Array.from(catalog.search.trim()).length
+  const searchActive = Boolean(catalog.search.trim()) && !catalog.searchPending
 
   const categoryLabel = catalog.categories.find((item) => item.id === catalog.category)?.label ?? 'Todos'
   const franchiseLabel = catalog.franchises.find((item) => item.id === catalog.franchise)?.label
@@ -106,13 +109,23 @@ export default function App() {
 
   const demoEstimatedPages = Math.max(1, Math.ceil(catalog.totalCount / 12))
   const pageLabel = catalog.mode === 'live'
-    ? `PÁG. ${catalog.pageIndex + 1}`
-    : `PÁG. 1 / ${formatter.format(demoEstimatedPages)}`
+    ? catalog.searchPending
+      ? `BUSCA · DIGITE ${catalog.searchMinLength}+ CARACTERES`
+      : searchActive
+        ? `BUSCA · PÁG. ${catalog.pageIndex + 1}`
+        : `PÁG. ${catalog.pageIndex + 1}`
+    : searchActive
+      ? `${formatter.format(visibleModels.length)} RESULTADOS`
+      : `PÁG. 1 / ${formatter.format(demoEstimatedPages)}`
   const stageIndexLabel = catalog.loading
     ? 'CARREGANDO'
     : noResults
       ? 'SEM RESULTADOS'
-      : `${String(selectedIndex + 1).padStart(3, '0')} / ${formatter.format(catalog.totalCount)}`
+      : !selectedInVisiblePage
+        ? 'LINK DIRETO'
+        : searchActive
+          ? `${String(selectedIndex + 1).padStart(3, '0')} / ${formatter.format(visibleModels.length)} NESTA PÁG.`
+          : `${String(selectedIndex + 1).padStart(3, '0')} / ${formatter.format(catalog.totalCount)}`
 
   useEffect(() => localStorage.setItem('tonecos:favorites', JSON.stringify(favorites)), [favorites])
   useEffect(() => localStorage.setItem('tonecos:quote', JSON.stringify(quoteList)), [quoteList])
@@ -142,6 +155,21 @@ export default function App() {
       ? 'Catálogo — Tonecos Studios'
       : `${selected.name} — Tonecos Studios`
   }, [selected.id, selected.name])
+
+  useEffect(() => {
+    if (!selectedInVisiblePage) return
+    const frame = window.requestAnimationFrame(() => {
+      const activeCard = rosterTrackRef.current?.querySelector<HTMLElement>('.roster-card.is-active')
+      if (!activeCard) return
+      const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      activeCard.scrollIntoView({
+        behavior: reducedMotion ? 'auto' : 'smooth',
+        block: 'nearest',
+        inline: 'center',
+      })
+    })
+    return () => window.cancelAnimationFrame(frame)
+  }, [selected.id, selectedInVisiblePage, catalog.pageIndex])
 
   useEffect(() => {
     if (!anyModalOpen) return
@@ -220,6 +248,10 @@ export default function App() {
 
   function navigate(offset: number) {
     if (!visibleModels.length) return
+    if (!selectedInVisiblePage) {
+      catalog.setSelectedId(visibleModels[offset > 0 ? 0 : visibleModels.length - 1].id)
+      return
+    }
     if (offset > 0 && selectedIndex >= visibleModels.length - 1 && catalog.hasNextPage) {
       catalog.goNextPage()
       return
@@ -432,7 +464,7 @@ export default function App() {
             <div><strong>SELECIONE O PERSONAGEM</strong><span>{catalog.loading ? 'Carregando...' : noResults ? 'Nenhum modelo neste recorte' : `${visibleModels.length} modelos neste recorte`}</span></div>
             <div className="roster-hint">← → navegar · ENTER link · A galeria · F favoritar · / buscar</div>
           </div>
-          <div className="roster-track">
+          <div className="roster-track" ref={rosterTrackRef}>
             {noResults ? (
               <div className="roster-empty">
                 <strong>Sem modelos para exibir</strong>
