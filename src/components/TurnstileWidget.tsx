@@ -43,7 +43,13 @@ export function isTurnstileConfigured() {
   return Boolean(siteKey)
 }
 
-export function TurnstileWidget({ resetKey = 0 }: { resetKey?: number }) {
+type TurnstileWidgetProps = {
+  resetKey?: number
+  action?: 'quote' | 'collection-share'
+  fieldName?: string
+}
+
+export function TurnstileWidget({ resetKey = 0, action = 'quote', fieldName = 'turnstileToken' }: TurnstileWidgetProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [token, setToken] = useState('')
   const [failed, setFailed] = useState(false)
@@ -63,7 +69,7 @@ export function TurnstileWidget({ resetKey = 0 }: { resetKey?: number }) {
           theme: 'dark',
           size: 'flexible',
           appearance: 'interaction-only',
-          action: 'quote',
+          action,
           callback: (value: string) => setToken(value),
           'expired-callback': () => setToken(''),
           'timeout-callback': () => setToken(''),
@@ -79,14 +85,14 @@ export function TurnstileWidget({ resetKey = 0 }: { resetKey?: number }) {
       disposed = true
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId)
     }
-  }, [resetKey])
+  }, [resetKey, action])
 
   if (!siteKey) return null
 
   return (
     <div className="turnstile-field">
       <div ref={containerRef} />
-      <input type="hidden" name="turnstileToken" value={token} readOnly />
+      <input type="hidden" name={fieldName} value={token} readOnly />
       {failed && <p role="alert">A verificação anti-bot não carregou. Atualize a página e tente novamente.</p>}
     </div>
   )
