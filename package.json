@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "typecheck:worker": "tsc -p tsconfig.worker.json --noEmit",
     "check": "npm run build && npm run typecheck:worker",
+    "cloudflare:config": "node tools/render_wrangler_config.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -19,6 +20,7 @@
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.2",
     "typescript": "^5.9.2",
-    "vite": "^7.1.4"
+    "vite": "^7.1.4",
+    "wrangler": "4.143.0"
   }
 }
