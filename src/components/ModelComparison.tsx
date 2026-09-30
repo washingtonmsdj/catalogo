@@ -25,15 +25,35 @@ function valueOrFallback(value: string | number | null | undefined, fallback = '
   return String(value)
 }
 
+function comparisonSummary(ids: string[], modelById: Map<string, CatalogModel>, knownModels: Record<string, ComparisonKnownModel>) {
+  const lines = ['TONECOS STUDIOS — COMPARAÇÃO DE MODELOS', '']
+  ids.forEach((id, index) => {
+    const model = modelById.get(id)
+    const known = knownModels[id]
+    lines.push(`${index + 1}. ${model?.name ?? known?.name ?? id}`)
+    lines.push(`Franquia: ${valueOrFallback(model?.franchise)}`)
+    lines.push(`Coleção: ${valueOrFallback(model?.collection)}`)
+    lines.push(`Altura aprox.: ${model?.heightCm && model.heightCm > 0 ? `${model.heightCm} cm` : 'Sob consulta'}`)
+    lines.push(`Material: ${valueOrFallback(model?.material)}`)
+    lines.push(`Imagens: ${model ? `${model.galleryCount} vistas` : '—'}`)
+    lines.push(`Código: ${valueOrFallback(model?.code, '—')}`)
+    lines.push('')
+  })
+  lines.push('Catálogo Tonecos Studios')
+  return lines.join('\n')
+}
+
 export function ModelComparison({ open, mode, ids, knownModels, onClose, onRemove, onClear, onOpenModel, onAddToQuote }: Props) {
   const [models, setModels] = useState<CatalogModel[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!open) return
     let cancelled = false
     setError('')
+    setCopied(false)
 
     if (!ids.length) {
       setModels([])
@@ -70,6 +90,16 @@ export function ModelComparison({ open, mode, ids, knownModels, onClose, onRemov
   }, [open, mode, ids, knownModels])
 
   const modelById = useMemo(() => new Map(models.map((model) => [model.id, model])), [models])
+
+  async function copySummary() {
+    try {
+      await navigator.clipboard.writeText(comparisonSummary(ids, modelById, knownModels))
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+  }
+
   if (!open) return null
 
   return (
@@ -138,7 +168,12 @@ export function ModelComparison({ open, mode, ids, knownModels, onClose, onRemov
 
             <div className="comparison-footer">
               <div><strong>{ids.length < 2 ? 'Adicione mais um modelo para uma comparação completa.' : `${ids.length} modelos prontos para comparação.`}</strong><span>Máximo de 4 por vez para manter a leitura clara.</span></div>
-              <div className="comparison-footer__actions"><button type="button" className="share-action" onClick={onClear}>Limpar</button><button type="button" className="primary-action" onClick={() => onAddToQuote(ids)}>Adicionar ao orçamento <span>›</span></button></div>
+              <div className="comparison-footer__actions">
+                <button type="button" className="share-action" onClick={copySummary}>{copied ? '✓ Resumo copiado' : 'Copiar resumo'}</button>
+                <button type="button" className="share-action" onClick={() => window.print()}>Imprimir / PDF</button>
+                <button type="button" className="share-action" onClick={onClear}>Limpar</button>
+                <button type="button" className="primary-action" onClick={() => onAddToQuote(ids)}>Adicionar ao orçamento <span>›</span></button>
+              </div>
             </div>
           </>
         )}
