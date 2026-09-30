@@ -15,6 +15,8 @@ import type { CatalogCategory, CatalogFranchise, CatalogImage, CatalogModel } fr
 
 const MODEL_PAGE_SIZE = 24
 const GALLERY_PAGE_SIZE = 12
+const FRANCHISE_STRIP_LIMIT = 24
+const LIVE_SEARCH_MIN_LENGTH = 3
 
 const loadingModel: CatalogModel = {
   id: 'loading',
@@ -56,7 +58,7 @@ function demoFranchises(category: string): CatalogFranchise[] {
   const counts = new Map<string, number>()
   for (const model of scoped) counts.set(model.franchise, (counts.get(model.franchise) ?? 0) + 1)
   return Array.from(counts, ([label, count]) => ({ id: label, label, count, category }))
-    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'pt-BR'))
 }
 
 function slugFromHash() {
@@ -78,6 +80,7 @@ export function useCatalogRuntime(initialSlug = '') {
   const [selectedId, setSelectedId] = useState(() => demoModels.find((model) => model.slug === initialSlug)?.id ?? demoModels[0].id)
   const [liveCategories, setLiveCategories] = useState<CatalogCategory[]>([])
   const [liveFranchises, setLiveFranchises] = useState<CatalogFranchise[]>([])
+  const [franchisesTruncated, setFranchisesTruncated] = useState(false)
   const [liveModels, setLiveModels] = useState<CatalogModel[]>([])
   const [selectedDetail, setSelectedDetail] = useState<CatalogModel | null>(null)
   const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined])
@@ -94,7 +97,12 @@ export function useCatalogRuntime(initialSlug = '') {
   }, [])
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedSearch(search.trim()), mode === 'live' ? 300 : 0)
+    const trimmed = search.trim()
+    if (mode === 'live' && trimmed && Array.from(trimmed).length < LIVE_SEARCH_MIN_LENGTH) {
+      setDebouncedSearch('')
+      return
+    }
+    const timer = window.setTimeout(() => setDebouncedSearch(trimmed), mode === 'live' ? 300 : 0)
     return () => window.clearTimeout(timer)
   }, [mode, search])
 
@@ -122,9 +130,18 @@ export function useCatalogRuntime(initialSlug = '') {
   useEffect(() => {
     if (mode !== 'live') return
     let cancelled = false
-    listCatalogFranchises(category)
-      .then((items) => { if (!cancelled) setLiveFranchises(items) })
-      .catch(() => { if (!cancelled) setLiveFranchises([]) })
+    listCatalogFranchises(category, FRANCHISE_STRIP_LIMIT)
+      .then((page) => {
+        if (cancelled) return
+        setLiveFranchises(page.items)
+        setFranchisesTruncated(page.truncated)
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLiveFranchises([])
+          setFranchisesTruncated(false)
+        }
+      })
     return () => { cancelled = true }
   }, [mode, category])
 
@@ -213,7 +230,9 @@ export function useCatalogRuntime(initialSlug = '') {
   }, [category, franchise, search])
 
   const categories = mode === 'live' ? liveCategories : demoCategories
-  const franchises = mode === 'live' ? liveFranchises : demoFranchises(category)
+  const allDemoFranchises = useMemo(() => demoFranchises(category), [category])
+  const franchises = mode === 'live' ? liveFranchises : allDemoFranchises.slice(0, FRANCHISE_STRIP_LIMIT)
+  const demoFranchisesTruncated = mode === 'demo' && allDemoFranchises.length > FRANCHISE_STRIP_LIMIT
   const models = mode === 'live' ? liveModels : demoVisibleModels
   const selected = mode === 'live'
     ? selectedDetail ?? liveModels.find((model) => model.id === selectedId) ?? liveModels[0] ?? (loading ? loadingModel : emptyModel)
@@ -236,6 +255,15 @@ export function useCatalogRuntime(initialSlug = '') {
     setSelectedDetail(null)
   }
 
+  function resetDiscovery() {
+    setSearch('')
+    setCategoryState('all')
+    setFranchiseState('all')
+    setSelectedDetail(null)
+    setCursorStack([undefined])
+    setPageIndex(0)
+  }
+
   function goNextPage() {
     if (mode !== 'live' || !nextCursor) return
     const nextPage = pageIndex + 1
@@ -250,7 +278,12 @@ export function useCatalogRuntime(initialSlug = '') {
     setSelectedDetail(null)
   }
 
-  const totalCount = categories.find((item) => item.id === category)?.count ?? categories[0]?.count ?? models.length
+  const categoryCount = categories.find((item) => item.id === category)?.count ?? categories[0]?.count ?? models.length
+  const franchiseCount = franchise === 'all' ? null : franchises.find((item) => item.id === franchise)?.count ?? null
+  const totalCount = franchiseCount ?? categoryCount
+  const searchLength = Array.from(search.trim()).length
+  const searchPending = mode === 'live' && searchLength > 0 && searchLength < LIVE_SEARCH_MIN_LENGTH
+  const hasActiveFilters = Boolean(search.trim()) || category !== 'all' || franchise !== 'all'
 
   return {
     mode,
@@ -261,14 +294,19 @@ export function useCatalogRuntime(initialSlug = '') {
     setCategory,
     setFranchise,
     setSearch,
+    resetDiscovery,
     categories,
     franchises,
+    franchisesTruncated: mode === 'live' ? franchisesTruncated : demoFranchisesTruncated,
     models,
     selected,
     selectedId,
     setSelectedId,
     pageIndex,
     totalCount,
+    searchPending,
+    searchMinLength: LIVE_SEARCH_MIN_LENGTH,
+    hasActiveFilters,
     hasPreviousPage: mode === 'live' && pageIndex > 0,
     hasNextPage: mode === 'live' && Boolean(nextCursor),
     goNextPage,
