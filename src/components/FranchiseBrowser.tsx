@@ -4,6 +4,7 @@ import { listCatalogFranchises, type CatalogRuntimeMode } from '../services/cata
 import type { CatalogCategory, CatalogFranchise } from '../types/catalog'
 
 const DISCOVERY_LIMIT = 48
+const SEARCH_MIN_LENGTH = 3
 const numberFormatter = new Intl.NumberFormat('pt-BR')
 
 type Props = {
@@ -61,9 +62,19 @@ export function FranchiseBrowser({
   }, [open, activeCategory])
 
   const demoItems = useMemo(() => demoFranchises(category, query), [category, query])
+  const queryLength = Array.from(query.trim()).length
+  const searchPending = mode === 'live' && queryLength > 0 && queryLength < SEARCH_MIN_LENGTH
 
   useEffect(() => {
     if (!open || mode !== 'live') return
+    if (queryLength > 0 && queryLength < SEARCH_MIN_LENGTH) {
+      setLoading(false)
+      setError('')
+      setItems([])
+      setTruncated(false)
+      return
+    }
+
     let cancelled = false
     const timer = window.setTimeout(() => {
       setLoading(true)
@@ -81,12 +92,12 @@ export function FranchiseBrowser({
           setError('Não foi possível carregar as franquias agora.')
         })
         .finally(() => { if (!cancelled) setLoading(false) })
-    }, 220)
+    }, query.trim() ? 220 : 0)
     return () => {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [open, mode, category, query])
+  }, [open, mode, category, query, queryLength])
 
   if (!open) return null
 
@@ -124,7 +135,7 @@ export function FranchiseBrowser({
         </div>
 
         <div className="explorer-toolbar">
-          <label className="explorer-search">
+          <label className={`explorer-search ${searchPending ? 'is-pending' : ''}`}>
             <span aria-hidden="true">⌕</span>
             <input
               ref={searchRef}
@@ -159,14 +170,20 @@ export function FranchiseBrowser({
           <div className="explorer-results__head">
             <div>
               <span>{selectedCategoryLabel}</span>
-              <strong>{query.trim() ? `Resultados para “${query.trim()}”` : 'Franquias em destaque'}</strong>
+              <strong>{searchPending ? `Digite ${SEARCH_MIN_LENGTH}+ caracteres` : query.trim() ? `Resultados para “${query.trim()}”` : 'Franquias em destaque'}</strong>
             </div>
-            <small>{loading ? 'Carregando…' : `${visible.length} exibidas`}</small>
+            <small>{loading ? 'Carregando…' : searchPending ? 'Busca indexada' : `${visible.length} exibidas`}</small>
           </div>
 
           {error && <p className="runtime-alert" role="alert">{error}</p>}
 
-          {!loading && !error && visible.length === 0 ? (
+          {searchPending ? (
+            <div className="explorer-empty explorer-empty--hint">
+              <span>⌕</span>
+              <strong>Continue digitando</strong>
+              <p>Use pelo menos {SEARCH_MIN_LENGTH} caracteres para pesquisar rapidamente em todas as franquias.</p>
+            </div>
+          ) : !loading && !error && visible.length === 0 ? (
             <div className="explorer-empty">
               <span>⌕</span>
               <strong>Nenhuma franquia encontrada</strong>
@@ -192,8 +209,8 @@ export function FranchiseBrowser({
             </div>
           )}
 
-          {truncated && !loading && (
-            <div className="explorer-more">Mostrando as {DISCOVERY_LIMIT} franquias de maior volume neste recorte. Use a busca principal do catálogo para encontrar personagens de outras coleções.</div>
+          {truncated && !loading && !searchPending && (
+            <div className="explorer-more">Mostrando as {DISCOVERY_LIMIT} franquias de maior volume neste recorte. Refine a busca para localizar outras coleções.</div>
           )}
         </div>
       </section>
