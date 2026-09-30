@@ -60,6 +60,19 @@ Um personagem pode ter dezenas ou centenas de imagens sem que a tela principal r
 
 Essa separação evita transformar um personagem com muitas vistas em uma página pesada e mantém previsível o custo de mídia.
 
+## Estado público e histórico local
+
+O estado de descoberta faz parte da URL pública do catálogo:
+
+- `categoria` identifica o recorte de categoria;
+- `franquia` identifica a franquia;
+- `q` preserva o termo de busca;
+- `#modelo=...` identifica um modelo específico.
+
+Isso permite compartilhar um recorte ou modelo sem criar rotas estáticas para cada combinação e sem carregar dados adicionais. No modo LIVE, uma busca recebida pela URL já inicia o runtime filtrado, evitando uma consulta intermediária sem filtro.
+
+Favoritos, lista de orçamento ainda não enviada e até 12 modelos vistos recentemente ficam em `localStorage`. Esses dados são locais ao navegador e não exigem login. Dados locais inválidos ou corrompidos devem ser ignorados com segurança, nunca impedir a abertura do catálogo.
+
 ## Stack planejada
 
 - Frontend: React + TypeScript + Vite
