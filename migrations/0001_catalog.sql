@@ -28,33 +28,17 @@ CREATE TABLE IF NOT EXISTS models (
   height_cm REAL,
   description TEXT,
   image_count INTEGER NOT NULL DEFAULT 0,
-  cover_image_id TEXT,
+  cover_storage_key TEXT,
+  gallery_manifest_key TEXT,
+  gallery_version INTEGER NOT NULL DEFAULT 1,
   published INTEGER NOT NULL DEFAULT 0,
   search_text TEXT NOT NULL DEFAULT '',
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS images (
-  id TEXT PRIMARY KEY,
-  model_id TEXT NOT NULL REFERENCES models(id) ON DELETE CASCADE,
-  sha256 TEXT NOT NULL,
-  phash TEXT,
-  width INTEGER NOT NULL,
-  height INTEGER NOT NULL,
-  bytes INTEGER NOT NULL,
-  mime TEXT NOT NULL,
-  role TEXT NOT NULL DEFAULT 'gallery',
-  quality_score REAL NOT NULL DEFAULT 0,
-  duplicate_group TEXT,
-  storage_key TEXT NOT NULL UNIQUE,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS idx_images_model_sha ON images(model_id, sha256);
 CREATE INDEX IF NOT EXISTS idx_models_franchise_published ON models(franchise_id, published, name);
 CREATE INDEX IF NOT EXISTS idx_models_search ON models(published, search_text);
-CREATE INDEX IF NOT EXISTS idx_images_model_quality ON images(model_id, quality_score DESC, id);
 
 CREATE TABLE IF NOT EXISTS quote_requests (
   id TEXT PRIMARY KEY,
