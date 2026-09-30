@@ -1,0 +1,125 @@
+.image-lightbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 3, 4, .93);
+  backdrop-filter: blur(18px) saturate(80%);
+}
+
+.image-lightbox {
+  width: min(1180px, 96vw);
+  max-height: 94vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  border: 1px solid #454d51;
+  border-radius: 4px;
+  background: linear-gradient(180deg, #101416, #090c0e);
+  box-shadow: 0 42px 140px rgba(0,0,0,.78), 0 0 0 1px rgba(255,255,255,.015);
+}
+
+.image-lightbox__head,
+.image-lightbox__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 18px;
+  background: rgba(14,17,19,.96);
+}
+
+.image-lightbox__head { border-bottom: 1px solid #2b3236; }
+.image-lightbox__footer { border-top: 1px solid #2b3236; color: #7f878b; font-size: 11px; }
+
+.image-lightbox__head span {
+  color: #cfa05d;
+  font: 900 9px "Courier New", monospace;
+  letter-spacing: 1.2px;
+}
+
+.image-lightbox__head h2 {
+  margin: 4px 0 0;
+  color: #f0ece3;
+  font: 900 23px/1 "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+.image-lightbox__head button {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #3b4347;
+  background: transparent;
+  color: #c6cac8;
+  cursor: pointer;
+  font-size: 24px;
+}
+
+.image-lightbox__head button:hover {
+  border-color: #765b34;
+  color: #d7a253;
+}
+
+.image-lightbox__stage {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,255,255,.035), transparent 36%),
+    #080b0d;
+}
+
+.image-lightbox__stage img {
+  display: block;
+  max-width: 100%;
+  max-height: calc(94vh - 150px);
+  object-fit: contain;
+  filter: drop-shadow(0 22px 34px rgba(0,0,0,.38));
+}
+
+.image-lightbox__footer a {
+  color: #d1a15e;
+  font: 800 10px "Courier New", monospace;
+  text-transform: uppercase;
+}
+
+.image-lightbox__footer a:hover { color: #edc27e; }
+
+.gallery-grid > button:disabled {
+  opacity: .72;
+  cursor: default;
+}
+
+.gallery-grid > button:not(:disabled)::after {
+  content: "AMPLIAR";
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+  padding: 4px 6px;
+  border: 1px solid rgba(215,162,83,.28);
+  background: rgba(8,10,12,.7);
+  color: #c99b59;
+  opacity: 0;
+  transform: translateY(-2px);
+  font: 800 8px "Courier New", monospace;
+  letter-spacing: .5px;
+  transition: opacity .18s ease, transform .18s ease;
+}
+
+.gallery-grid > button:not(:disabled):hover::after,
+.gallery-grid > button:not(:disabled):focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .image-lightbox-backdrop { padding: 8px; }
+  .image-lightbox { width: 100%; max-height: 96vh; }
+  .image-lightbox__stage { padding: 8px; }
+  .image-lightbox__stage img { max-height: calc(96vh - 145px); }
+  .image-lightbox__footer { align-items: flex-start; flex-direction: column; gap: 8px; }
+}

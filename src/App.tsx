@@ -81,6 +81,7 @@ export default function App() {
   const [quoteList, setQuoteList] = useState<string[]>(() => JSON.parse(localStorage.getItem('tonecos:quote') ?? '[]'))
   const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
   const [galleryOpen, setGalleryOpen] = useState(false)
+  const [previewImage, setPreviewImage] = useState<CatalogImage | null>(null)
   const [favoritesOpen, setFavoritesOpen] = useState(false)
   const [quoteOpen, setQuoteOpen] = useState(false)
   const [sent, setSent] = useState(false)
@@ -94,11 +95,12 @@ export default function App() {
   const selected = catalog.selected
   const visibleModels = catalog.models
   const selectedIndex = Math.max(0, visibleModels.findIndex((model) => model.id === selected.id))
-  const anyModalOpen = galleryOpen || favoritesOpen || quoteOpen
+  const anyModalOpen = galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
 
   const categoryLabel = catalog.categories.find((item) => item.id === catalog.category)?.label ?? 'Todos'
   const franchiseLabel = catalog.franchises.find((item) => item.id === catalog.franchise)?.label
     ?? (catalog.franchise === 'all' ? 'Todas as franquias' : selected.franchise || catalog.franchise)
+  const catalogTotal = catalog.categories.find((item) => item.id === 'all')?.count ?? catalog.totalCount
 
   const demoEstimatedPages = Math.max(1, Math.ceil(catalog.totalCount / 12))
   const pageLabel = catalog.mode === 'live'
@@ -133,6 +135,7 @@ export default function App() {
 
   useEffect(() => {
     setLinkCopied(false)
+    setPreviewImage(null)
     document.title = selected.id === 'loading'
       ? 'Catálogo — Tonecos Studios'
       : `${selected.name} — Tonecos Studios`
@@ -148,7 +151,8 @@ export default function App() {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (quoteOpen) setQuoteOpen(false)
+        if (previewImage) setPreviewImage(null)
+        else if (quoteOpen) setQuoteOpen(false)
         else if (favoritesOpen) setFavoritesOpen(false)
         else if (galleryOpen) setGalleryOpen(false)
         return
@@ -316,7 +320,7 @@ export default function App() {
 
       <main id="catalogo" className="catalog-layout" aria-busy={catalog.loading}>
         <aside className="category-panel panel">
-          <div className="panel-title"><span>Categorias</span><small>{formatter.format(catalog.categories[0]?.count ?? catalog.totalCount)}</small></div>
+          <div className="panel-title"><span>Categorias</span><small>{formatter.format(catalogTotal)}</small></div>
           <div className="category-list">
             {catalog.categories.map((item) => (
               <button type="button" key={item.id} className={catalog.category === item.id ? 'is-active' : ''} onClick={() => catalog.setCategory(item.id)} aria-pressed={catalog.category === item.id}>
@@ -327,9 +331,9 @@ export default function App() {
             ))}
           </div>
           <div className="scale-note">
-            <span className="scale-note__eyebrow">ARQUIVO PREPARADO PARA</span>
-            <strong>100.000+</strong>
-            <p>Categoria → franquia → personagem → galeria. Nada de carregar o acervo inteiro.</p>
+            <span className="scale-note__eyebrow">ACERVO DIGITAL</span>
+            <strong>{formatter.format(catalogTotal)}</strong>
+            <p>modelos organizados por categoria, franquia e personagem para uma navegação rápida e direta.</p>
           </div>
         </aside>
 
@@ -340,7 +344,7 @@ export default function App() {
             <div className="stage-index" aria-live="polite">{stageIndexLabel}</div>
             <ModelArt model={selected} />
             <button type="button" className="gallery-badge" disabled={selected.id === 'loading'} onClick={() => setGalleryOpen(true)}>
-              <strong>{selected.galleryCount}</strong><span>IMAGENS</span><small>abrir galeria paginada</small>
+              <strong>{selected.galleryCount}</strong><span>IMAGENS</span><small>abrir galeria</small>
             </button>
           </div>
           <button type="button" className="stage-arrow stage-arrow--right" disabled={!visibleModels.length || catalog.loading} onClick={() => navigate(1)} aria-label="Próximo modelo">›</button>
@@ -396,8 +400,8 @@ export default function App() {
         <div><kbd>F</kbd><span>Favoritar</span></div>
         <div><kbd>/</kbd><span>Buscar</span></div>
         <div className="control-bar__status">
-          <span>{catalog.mode === 'live' ? (catalog.apiHealthy ? 'Catálogo conectado à API' : 'API configurada · verificando') : 'Preview em modo demonstração'}</span>
-          <strong>{catalog.mode === 'live' ? 'LIVE' : 'DEMO'}</strong>
+          <span>{catalog.mode === 'live' ? 'Catálogo online' : 'Prévia em atualização'}</span>
+          <strong>{catalog.mode === 'live' ? 'ONLINE' : 'PREVIEW'}</strong>
         </div>
       </footer>
 
@@ -411,7 +415,14 @@ export default function App() {
             {gallery.error && <p className="runtime-alert" role="alert">{gallery.error}</p>}
             <div className="gallery-grid" aria-busy={gallery.loading}>
               {gallery.items.map((image, localIndex) => (
-                <button type="button" key={image.id} className={image.role === 'cover' ? 'is-cover' : ''}>
+                <button
+                  type="button"
+                  key={image.id}
+                  disabled={!image.url}
+                  aria-label={image.url ? `Ampliar imagem ${gallery.pageIndex * 12 + localIndex + 1} de ${selected.name}` : undefined}
+                  className={image.role === 'cover' ? 'is-cover' : ''}
+                  onClick={() => image.url && setPreviewImage(image)}
+                >
                   <GalleryArt image={image} model={selected} angle={((localIndex % 5) - 2) * 3} />
                   <span>{image.role === 'cover' ? 'CAPA · MELHOR QUALIDADE' : `VISTA ${String(gallery.pageIndex * 12 + localIndex + 1).padStart(2, '0')}`}</span>
                 </button>
@@ -420,12 +431,30 @@ export default function App() {
               {!gallery.loading && !gallery.items.length && <div className="gallery-loading">Nenhuma imagem disponível nesta página.</div>}
             </div>
             <div className="gallery-footer gallery-footer--paged">
-              <span>A capa prioriza a versão de melhor qualidade entre imagens equivalentes.</span>
+              <span>A capa usa a melhor versão disponível entre imagens equivalentes.</span>
               <div>
                 <button type="button" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={gallery.previousPage}>← anterior</button>
                 <strong>{gallery.pageIndex + 1}/{gallery.totalPages}</strong>
                 <button type="button" disabled={!gallery.hasNextPage || gallery.loading} onClick={gallery.nextPage}>próxima →</button>
               </div>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {previewImage?.url && (
+        <div className="image-lightbox-backdrop" onMouseDown={() => setPreviewImage(null)}>
+          <section className="image-lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="image-lightbox__head">
+              <div><span>VISUALIZAÇÃO</span><h2 id="lightbox-title">{selected.name}</h2></div>
+              <button type="button" aria-label="Fechar imagem ampliada" onClick={() => setPreviewImage(null)}>×</button>
+            </div>
+            <div className="image-lightbox__stage">
+              <img src={previewImage.url} alt={`${selected.name} — imagem ampliada`} />
+            </div>
+            <div className="image-lightbox__footer">
+              <span>{previewImage.width > 0 && previewImage.height > 0 ? `${formatter.format(previewImage.width)} × ${formatter.format(previewImage.height)} px` : 'Imagem do catálogo'}</span>
+              <a href={previewImage.url} target="_blank" rel="noreferrer">Abrir imagem em nova aba ↗</a>
             </div>
           </section>
         </div>
@@ -461,9 +490,9 @@ export default function App() {
       {quoteOpen && (
         <div className="modal-backdrop" onMouseDown={() => setQuoteOpen(false)}>
           <section className="quote-modal" role="dialog" aria-modal="true" aria-labelledby="quote-title" onMouseDown={(event) => event.stopPropagation()}>
-            <div className="modal-head"><div><span>FORMULÁRIO</span><h2 id="quote-title">Solicitar orçamento</h2><p>Sem WhatsApp. Você recebe a solicitação pelo sistema.</p></div><button type="button" aria-label="Fechar formulário" onClick={() => setQuoteOpen(false)}>×</button></div>
+            <div className="modal-head"><div><span>FORMULÁRIO</span><h2 id="quote-title">Solicitar orçamento</h2><p>Envie sua seleção pelo formulário. Não é necessário informar telefone.</p></div><button type="button" aria-label="Fechar formulário" onClick={() => setQuoteOpen(false)}>×</button></div>
             {sent ? (
-              <div className="success-state"><strong>SOLICITAÇÃO REGISTRADA</strong><p>{quoteMode === 'live' ? 'Pedido enviado para o sistema.' : 'Modo demonstração ativo. Ao publicar a API, este mesmo formulário passará a gravar os pedidos sem mudar a interface.'}</p><button type="button" onClick={() => { setSent(false); setQuoteOpen(false) }}>Voltar ao catálogo</button></div>
+              <div className="success-state"><strong>SOLICITAÇÃO REGISTRADA</strong><p>{quoteMode === 'live' ? 'Sua solicitação foi enviada com sucesso.' : 'Esta prévia não envia pedidos reais; sua seleção permanece salva neste navegador.'}</p><button type="button" onClick={() => { setSent(false); setQuoteOpen(false) }}>Voltar ao catálogo</button></div>
             ) : (
               <form onSubmit={submitQuote}>
                 <label>Nome completo<input required autoComplete="name" maxLength={120} name="name" placeholder="Seu nome" /></label>
