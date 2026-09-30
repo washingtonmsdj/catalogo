@@ -6,11 +6,14 @@ import type { CatalogImage, CatalogModel } from './types/catalog'
 
 const formatter = new Intl.NumberFormat('pt-BR')
 const MAX_QUOTE_ITEMS = 50
+const GALLERY_PAGE_SIZE = 12
 
 type KnownModel = {
   name: string
   slug: string
 }
+
+type PreviewPageTarget = 'first' | 'last' | null
 
 function initialSlugFromHash() {
   if (!window.location.hash.startsWith('#modelo=')) return ''
@@ -84,6 +87,7 @@ export default function App() {
   const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [previewImage, setPreviewImage] = useState<CatalogImage | null>(null)
+  const [previewPageTarget, setPreviewPageTarget] = useState<PreviewPageTarget>(null)
   const [favoritesOpen, setFavoritesOpen] = useState(false)
   const [quoteOpen, setQuoteOpen] = useState(false)
   const [sent, setSent] = useState(false)
@@ -103,6 +107,10 @@ export default function App() {
   const searchCharacters = Array.from(catalog.search.trim()).length
   const searchActive = Boolean(catalog.search.trim()) && !catalog.searchPending
   const expandedImageUrl = previewImage?.detailUrl ?? previewImage?.url
+  const previewIndex = previewImage ? gallery.items.findIndex((image) => image.id === previewImage.id) : -1
+  const canPreviewPrevious = previewIndex > 0 || (previewIndex >= 0 && gallery.hasPreviousPage)
+  const canPreviewNext = previewIndex >= 0 && (previewIndex < gallery.items.length - 1 || gallery.hasNextPage)
+  const previewGlobalPosition = previewIndex >= 0 ? gallery.pageIndex * GALLERY_PAGE_SIZE + previewIndex + 1 : null
 
   const categoryLabel = catalog.categories.find((item) => item.id === catalog.category)?.label ?? 'Todos'
   const franchiseLabel = catalog.franchises.find((item) => item.id === catalog.franchise)?.label
@@ -153,6 +161,7 @@ export default function App() {
   useEffect(() => {
     setLinkCopied(false)
     setPreviewImage(null)
+    setPreviewPageTarget(null)
     document.title = selected.id === 'loading'
       ? 'Catálogo — Tonecos Studios'
       : `${selected.name} — Tonecos Studios`
@@ -174,6 +183,23 @@ export default function App() {
   }, [selected.id, selectedInVisiblePage, catalog.pageIndex])
 
   useEffect(() => {
+    if (!previewPageTarget || gallery.loading || !gallery.items.length) return
+    const target = previewPageTarget === 'first' ? gallery.items[0] : gallery.items[gallery.items.length - 1]
+    setPreviewPageTarget(null)
+    if (!target) return
+    prefetchPreview(target)
+    setPreviewImage(target)
+  }, [previewPageTarget, gallery.loading, gallery.items])
+
+  useEffect(() => {
+    if (!previewImage || previewIndex < 0) return
+    const previous = gallery.items[previewIndex - 1]
+    const next = gallery.items[previewIndex + 1]
+    if (previous) prefetchPreview(previous)
+    if (next) prefetchPreview(next)
+  }, [previewImage?.id, previewIndex, gallery.items])
+
+  useEffect(() => {
     if (!anyModalOpen) return
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -187,6 +213,17 @@ export default function App() {
         else if (quoteOpen) setQuoteOpen(false)
         else if (favoritesOpen) setFavoritesOpen(false)
         else if (galleryOpen) setGalleryOpen(false)
+        return
+      }
+
+      if (previewImage && event.key === 'ArrowRight') {
+        event.preventDefault()
+        navigatePreview(1)
+        return
+      }
+      if (previewImage && event.key === 'ArrowLeft') {
+        event.preventDefault()
+        navigatePreview(-1)
         return
       }
 
@@ -218,13 +255,7 @@ export default function App() {
 
   function safeToggleQuote(id: string) {
     setQuoteList((current) => {
-      if (current.includes(id)) return current.filter((item) => item !== id)
-      if (current.length >= MAX_QUOTE_ITEMS) {
-        setQuoteError(`Cada solicitação aceita até ${MAX_QUOTE_ITEMS} modelos.`)
-        setQuoteOpen(true)
-        return current
-      }
-      return [...current, id]
+      if (current.includes(id)) return current.filter((item) => item !== id) : [...current, id]
     })
   }
 
@@ -255,6 +286,25 @@ export default function App() {
     const preload = new Image()
     preload.decoding = 'async'
     preload.src = url
+  }
+
+  function navigatePreview(offset: number) {
+    if (!previewImage || gallery.loading || previewIndex < 0) return
+    const nextImage = gallery.items[previewIndex + offset]
+    if (nextImage) {
+      prefetchPreview(nextImage)
+      setPreviewImage(nextImage)
+      return
+    }
+    if (offset > 0 && gallery.hasNextPage) {
+      setPreviewPageTarget('first')
+      gallery.nextPage()
+      return
+    }
+    if (offset < 0 && gallery.hasPreviousPage) {
+      setPreviewPageTarget('last')
+      gallery.previousPage()
+    }
   }
 
   function navigate(offset: number) {
@@ -526,14 +576,14 @@ export default function App() {
                     type="button"
                     key={image.id}
                     disabled={!canPreview}
-                    aria-label={canPreview ? `Ampliar imagem ${gallery.pageIndex * 12 + localIndex + 1} de ${selected.name}` : undefined}
+                    aria-label={canPreview ? `Ampliar imagem ${gallery.pageIndex * GALLERY_PAGE_SIZE + localIndex + 1} de ${selected.name}` : undefined}
                     className={image.role === 'cover' ? 'is-cover' : ''}
                     onPointerEnter={() => prefetchPreview(image)}
                     onFocus={() => prefetchPreview(image)}
                     onClick={() => canPreview && setPreviewImage(image)}
                   >
                     <GalleryArt image={image} model={selected} angle={((localIndex % 5) - 2) * 3} />
-                    <span>{image.role === 'cover' ? 'CAPA · MELHOR QUALIDADE' : `VISTA ${String(gallery.pageIndex * 12 + localIndex + 1).padStart(2, '0')}`}</span>
+                    <span>{image.role === 'cover' ? 'CAPA · MELHOR QUALIDADE' : `VISTA ${String(gallery.pageIndex * GALLERY_PAGE_SIZE + localIndex + 1).padStart(2, '0')}`}</span>
                   </button>
                 )
               })}
@@ -556,14 +606,19 @@ export default function App() {
         <div className="image-lightbox-backdrop" onMouseDown={() => setPreviewImage(null)}>
           <section className="image-lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" onMouseDown={(event) => event.stopPropagation()}>
             <div className="image-lightbox__head">
-              <div><span>VISUALIZAÇÃO</span><h2 id="lightbox-title">{selected.name}</h2></div>
+              <div><span>VISUALIZAÇÃO · USE ← → PARA NAVEGAR</span><h2 id="lightbox-title">{selected.name}</h2></div>
               <button type="button" aria-label="Fechar imagem ampliada" onClick={() => setPreviewImage(null)}>×</button>
             </div>
             <div className="image-lightbox__stage">
+              <button type="button" className="image-lightbox__nav image-lightbox__nav--prev" aria-label="Imagem anterior" disabled={!canPreviewPrevious || gallery.loading} onClick={() => navigatePreview(-1)}>‹</button>
               <img src={expandedImageUrl} alt={`${selected.name} — imagem ampliada`} />
+              <button type="button" className="image-lightbox__nav image-lightbox__nav--next" aria-label="Próxima imagem" disabled={!canPreviewNext || gallery.loading} onClick={() => navigatePreview(1)}>›</button>
             </div>
             <div className="image-lightbox__footer">
-              <span>{previewImage.width > 0 && previewImage.height > 0 ? `${formatter.format(previewImage.width)} × ${formatter.format(previewImage.height)} px` : 'Imagem do catálogo'}</span>
+              <span className="image-lightbox__position">
+                <strong>{previewGlobalPosition ? `${formatter.format(previewGlobalPosition)} / ${formatter.format(gallery.total || selected.galleryCount)}` : 'Imagem do catálogo'}</strong>
+                {previewImage.width > 0 && previewImage.height > 0 && <span>{formatter.format(previewImage.width)} × {formatter.format(previewImage.height)} px</span>}
+              </span>
               <a href={expandedImageUrl} target="_blank" rel="noreferrer">Abrir imagem em nova aba ↗</a>
             </div>
           </section>
