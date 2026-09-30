@@ -82,6 +82,8 @@ Favoritos, lista de comparação, lista de orçamento ainda não enviada e até 
 
 Esses estados não devem ser misturados. Adicionar um modelo à comparação não o adiciona automaticamente ao orçamento; o cliente decide quando transferir a comparação para a lista comercial. No modo LIVE, o comparador busca detalhes somente dos modelos selecionados, no máximo quatro, sem carregar páginas adicionais do catálogo.
 
+O comparador também pode gerar um resumo textual copiável e uma visualização própria para impressão/PDF sem expor o restante da interface.
+
 ## Stack planejada
 
 - Frontend: React + TypeScript + Vite
@@ -98,4 +100,14 @@ O GitHub armazena código, testes, documentação e dados de demonstração. Nã
 
 ## Orçamento
 
-O cliente monta uma lista de interesse e envia um formulário. Nenhum número de WhatsApp é necessário. O backend grava a solicitação, gera um protocolo público separado do UUID interno e poderá enviar notificação/e-mail para a administração.
+O cliente monta uma lista de interesse e envia um formulário. Nenhum número de WhatsApp é necessário.
+
+- O backend valida origem, Turnstile, limites de campos, quantidade máxima e existência dos modelos publicados antes de gravar.
+- O UUID interno do pedido nunca é retornado ao navegador; o cliente recebe apenas o protocolo público `TCS-...`.
+- Reenvios com o mesmo cliente, mesmas observações e o mesmo conjunto de modelos dentro de uma janela curta de 10 minutos reutilizam o pedido existente.
+- A ordem dos modelos não altera a deduplicação.
+- Pedidos com seleção ou observações diferentes continuam sendo novos pedidos.
+- Um identificador determinístico por janela reduz também a chance de duplicidade causada por submissões concorrentes; se outra gravação vencer a corrida, o Worker recupera e devolve o protocolo existente.
+- Depois da janela de deduplicação, o mesmo cliente pode enviar legitimamente um novo pedido idêntico.
+
+O backend poderá enviar notificação/e-mail para a administração em uma etapa posterior, sempre usando o protocolo público na comunicação com o cliente.
