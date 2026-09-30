@@ -176,7 +176,7 @@ export async function getCatalogModel(slug: string): Promise<CatalogModel | null
 }
 
 function galleryCacheKey(slug: string, query: GalleryQuery) {
-  return `${slug}|${query.cursor ?? 'first'}|${query.limit ?? 24}`
+  return `${slug}|page:${query.page ?? 'cursor'}|cursor:${query.cursor ?? 'first'}|limit:${query.limit ?? 24}`
 }
 
 function rememberGalleryPage(key: string, promise: Promise<GalleryPage>) {
@@ -196,6 +196,7 @@ function loadGalleryPage(slug: string, query: GalleryQuery): Promise<GalleryPage
 
   const pending = requestJson<GalleryPage>(endpoint(`/api/models/${encodeURIComponent(slug)}/images`, {
     cursor: query.cursor,
+    page: query.page,
     limit: query.limit,
   })).catch((error) => {
     galleryPageCache.delete(key)
@@ -211,7 +212,9 @@ export async function listCatalogImages(slug: string, query: GalleryQuery = {}):
   // Antecipamos apenas o JSON da página seguinte. As imagens continuam lazy e só
   // são baixadas quando a página entra na interface.
   if (page.nextCursor) {
-    const nextQuery: GalleryQuery = { cursor: page.nextCursor, limit: query.limit }
+    const nextQuery: GalleryQuery = query.page !== undefined
+      ? { page: query.page + 1, limit: query.limit }
+      : { cursor: page.nextCursor, limit: query.limit }
     const nextKey = galleryCacheKey(slug, nextQuery)
     const cached = galleryPageCache.get(nextKey)
     if (!cached || cached.expiresAt <= Date.now()) {
