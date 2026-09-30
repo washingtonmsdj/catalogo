@@ -1,3 +1,5 @@
+import { createSharedCollection, getSharedCollection } from './sharedCollections'
+
 type D1Statement = {
   bind(...values: unknown[]): D1Statement
   all<T = unknown>(): Promise<{ results: T[] }>
@@ -340,7 +342,7 @@ async function listImages(request: Request, slug: string, env: Env) {
   }, {}, 'public, max-age=300, s-maxage=1800')
 }
 
-async function validateTurnstile(request: Request, env: Env, token: string) {
+async function validateTurnstile(request: Request, env: Env, token: string, action = 'quote') {
   if (!env.TURNSTILE_SECRET_KEY || !token || token.length > 2048) return false
 
   const body = new FormData()
@@ -358,7 +360,7 @@ async function validateTurnstile(request: Request, env: Env, token: string) {
     })
     if (!response.ok) return false
     const result = await response.json() as TurnstileResult
-    return result.success === true && result.action === 'quote'
+    return result.success === true && result.action === action
   } catch {
     return false
   }
@@ -441,6 +443,13 @@ export default {
     if (request.method === 'GET' && imageMatch) return listImages(request, decodeURIComponent(imageMatch[1]), env)
     const modelMatch = url.pathname.match(/^\/api\/models\/([^/]+)$/)
     if (request.method === 'GET' && modelMatch) return getModel(request, decodeURIComponent(modelMatch[1]), env)
+    if (request.method === 'POST' && url.pathname === '/api/shared-collections') {
+      return createSharedCollection(request, env, { allowedOrigin, json, validateTurnstile })
+    }
+    const sharedMatch = url.pathname.match(/^\/api\/shared-collections\/([^/]+)$/)
+    if (request.method === 'GET' && sharedMatch) {
+      return getSharedCollection(request, decodeURIComponent(sharedMatch[1]), env, { allowedOrigin, json, validateTurnstile })
+    }
     if (request.method === 'POST' && url.pathname === '/api/quotes') return createQuote(request, env)
     if (request.method === 'GET' && url.pathname === '/api/health') return json(request, env, { ok: true, service: 'tonecos-catalogo' })
     return json(request, env, { error: 'not_found' }, { status: 404 })
