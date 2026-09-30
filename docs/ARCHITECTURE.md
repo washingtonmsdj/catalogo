@@ -45,6 +45,21 @@ Fluxo:
 
 Cada resposta da API deve retornar apenas uma página de modelos e os metadados necessários para a tela atual.
 
+## Galerias extensas
+
+Um personagem pode ter dezenas ou centenas de imagens sem que a tela principal receba todas elas.
+
+- A grade da galeria usa páginas de 12 imagens.
+- A interface trabalha com índice de página e permite acesso aleatório a qualquer página, inclusive início e fim.
+- O cliente de API converte esse índice para o cursor já aceito pelo Worker; o contrato HTTP continua único.
+- O frontend mantém cache curto e limitado de páginas de metadados já consultadas.
+- Apenas o JSON da próxima página pode ser antecipado; imagens escondidas continuam `lazy` e não são pré-baixadas.
+- A variante `card` é usada na grade e no destaque da capa; a variante `detail` só é solicitada ao ampliar a imagem.
+- A interface mostra posição global, por exemplo `25–36 de 87`, e não apenas “página 3”.
+- Navegação por teclado na galeria: `PageUp`/`PageDown` entre páginas e `Home`/`End` para primeira/última página.
+
+Essa separação evita transformar um personagem com muitas vistas em uma página pesada e mantém previsível o custo de mídia.
+
 ## Stack planejada
 
 - Frontend: React + TypeScript + Vite
@@ -61,4 +76,4 @@ O GitHub armazena código, testes, documentação e dados de demonstração. Nã
 
 ## Orçamento
 
-O cliente monta uma lista de interesse e envia um formulário. Nenhum número de WhatsApp é necessário. O backend futuro grava a solicitação e envia notificação/e-mail para a administração.
+O cliente monta uma lista de interesse e envia um formulário. Nenhum número de WhatsApp é necessário. O backend grava a solicitação, gera um protocolo público separado do UUID interno e poderá enviar notificação/e-mail para a administração.
