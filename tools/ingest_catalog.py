@@ -12,6 +12,7 @@ import csv
 import hashlib
 import json
 import math
+import os
 import re
 import sys
 from collections import defaultdict
@@ -24,6 +25,7 @@ from PIL import Image, ImageFilter, ImageOps, ImageStat, UnidentifiedImageError
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff", ".avif", ".jfif"}
 COUNT_SUFFIX = re.compile(r"\s*\[\d+\]\s*$")
 OK_PREFIX = re.compile(r"^OK\s*-\s*", re.IGNORECASE)
+CHECKPOINT_INTERVAL = 25
 
 
 @dataclass
@@ -296,6 +298,20 @@ def record_from_checkpoint(row: dict) -> ImageRecord:
     return ImageRecord(**{key: row.get(key) for key in allowed})
 
 
+def save_progress_manifest(output: Path, records: list[ImageRecord]) -> None:
+    """Atomically persist resumable progress without final duplicate decisions."""
+    output.mkdir(parents=True, exist_ok=True)
+    manifest = output / "manifest.jsonl"
+    temporary = output / "manifest.jsonl.tmp"
+    with temporary.open("w", encoding="utf-8") as handle:
+        for record in sorted(records, key=lambda item: item.path.casefold()):
+            checkpoint_record = ImageRecord(**asdict(record))
+            checkpoint_record.duplicate_group = None
+            checkpoint_record.canonical = True
+            handle.write(json.dumps(asdict(checkpoint_record), ensure_ascii=False) + "\n")
+    os.replace(temporary, manifest)
+
+
 def write_outputs(output: Path, records: list[ImageRecord], groups: list[dict]) -> None:
     output.mkdir(parents=True, exist_ok=True)
     manifest = output / "manifest.jsonl"
@@ -386,6 +402,9 @@ def main() -> int:
                 f"(esperado {expected_sha}, obtido {record.sha256})"
             )
         records.append(record)
+        if index % CHECKPOINT_INTERVAL == 0:
+            save_progress_manifest(args.output, records)
+            print(f"CHECKPOINT={len(records)}", flush=True)
 
     groups = mark_duplicates(records, args.visual_threshold)
     write_outputs(args.output, records, groups)

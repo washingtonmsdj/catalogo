@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from ingest_catalog import analyze, clean_folder, discover_catalog_roots, hamming, iter_images, load_audit_registry, mark_duplicates
+from ingest_catalog import analyze, clean_folder, discover_catalog_roots, hamming, iter_images, load_audit_registry, mark_duplicates, save_progress_manifest
 
 
 class CatalogIngestTests(unittest.TestCase):
@@ -73,6 +73,27 @@ class CatalogIngestTests(unittest.TestCase):
 
             with self.assertRaisesRegex(RuntimeError, "fora de categoria auditada"):
                 load_audit_registry(root, registry)
+
+    def test_progress_checkpoint_is_atomic_and_resumable(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "OK - Games [1]" / "OK - Saga [1]" / "OK - Heroi [1]"
+            target.mkdir(parents=True)
+            path = target / "hero.png"
+            Image.new("RGB", (64, 64), "white").save(path)
+            record = analyze(root, path)
+            record.duplicate_group = "visual-000001"
+            record.canonical = False
+            output = root / "checkpoint"
+
+            save_progress_manifest(output, [record])
+
+            manifest = output / "manifest.jsonl"
+            self.assertTrue(manifest.exists())
+            self.assertFalse((output / "manifest.jsonl.tmp").exists())
+            row = __import__("json").loads(manifest.read_text(encoding="utf-8"))
+            self.assertIsNone(row["duplicate_group"])
+            self.assertTrue(row["canonical"])
 
     def test_analysis_preserves_hierarchy_and_hashes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
