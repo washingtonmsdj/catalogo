@@ -343,7 +343,16 @@ def write_outputs(output: Path, records: list[ImageRecord], groups: list[dict]) 
     print(json.dumps(summary, ensure_ascii=False))
 
 
+def configure_console() -> None:
+    """Use UTF-8 for progress output on Windows and other legacy consoles."""
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if callable(reconfigure):
+            reconfigure(encoding="utf-8", errors="backslashreplace")
+
+
 def main() -> int:
+    configure_console()
     parser = argparse.ArgumentParser(description="Analisa um catálogo sem modificar os arquivos de origem.")
     parser.add_argument("source", type=Path)
     parser.add_argument("--output", type=Path, default=Path(".catalog-ingest"))
