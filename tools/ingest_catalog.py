@@ -84,7 +84,11 @@ def sha256_file(path: Path) -> str:
 
 def dhash_image(image: Image.Image) -> str:
     sample = ImageOps.grayscale(image).resize((9, 8), Image.Resampling.LANCZOS)
-    pixels = list(sample.get_flattened_data())
+    if hasattr(sample, "get_flattened_data"):
+        pixels = list(sample.get_flattened_data())
+    else:
+        # Pillow < 12: compatibilidade com a versão 11.3 fixada no pipeline.
+        pixels = list(sample.getdata())
     value = 0
     bit = 0
     for row in range(8):
