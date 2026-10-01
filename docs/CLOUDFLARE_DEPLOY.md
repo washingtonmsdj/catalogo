@@ -61,11 +61,16 @@ O R2 é validado antes do deploy via Wrangler. Assim, Worker, D1 e bucket precis
 
 Na rotação da chave Turnstile, execute manualmente o workflow com `force_turnstile_secret_sync=true`. O valor do segredo continua mascarado pelo GitHub e é enviado ao Wrangler por stdin.
 
-## Estado DEMO antes do bootstrap
+## Estado de produção
 
-Enquanto `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID` e `VITE_API_BASE_URL` não estiverem configurados, o GitHub Pages continua publicando o frontend em modo DEMO. Nenhuma migration é aplicada remotamente e nenhum Worker novo é publicado.
+O bootstrap inicial foi executado em 2026-09-30/2026-10-01 com recursos próprios e isolados do OrdaX Control Plane:
 
-Isso é intencional: IDs reais, tokens e secrets não devem ser inventados nem commitados apenas para fazer o pipeline parecer verde.
+- Worker `tonecos-catalogo-api` publicado em `workers.dev`;
+- D1 `tonecos-catalogo` com as migrações `0001`–`0008` aplicadas e reconciliadas na tabela `d1_migrations`;
+- R2 `tonecos-catalogo-media` criado com endpoint público `r2.dev` para as variantes web;
+- widget Turnstile Managed próprio do catálogo, autorizado para `washingtonmsdj.github.io`.
+
+O workflow do Pages possui defaults públicos de produção para API, mídia e site key do Turnstile. Repository Variables continuam podendo sobrescrever esses valores sem mudança de código. Segredos privados continuam fora do Git.
 
 ## Frontend
 
