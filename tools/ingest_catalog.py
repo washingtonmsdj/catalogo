@@ -84,8 +84,10 @@ def iter_images(root: Path) -> Iterable[Path]:
 def load_audit_registry(root: Path, registry: Path) -> tuple[list[Path], dict[str, str]]:
     """Load the audited source-of-truth list without recursively crawling Drive.
 
-    Every row must point to an existing image under an audited top-level
-    category. Duplicate paths and hashes with invalid shape are rejected.
+    Every row must point under an audited top-level category. Duplicate
+    paths, invalid hashes and unsupported extensions are rejected here; file
+    existence is checked once in the processing loop to avoid duplicate remote
+    metadata calls on mounted cloud drives.
     """
     paths: list[Path] = []
     expected_hashes: dict[str, str] = {}
@@ -118,8 +120,6 @@ def load_audit_registry(root: Path, registry: Path) -> tuple[list[Path], dict[st
             path = root.joinpath(*normalized.split("/"))
             if path.suffix.lower() not in IMAGE_EXTS:
                 raise RuntimeError(f"extensão não suportada no registro de auditoria: {rel}")
-            if not path.is_file():
-                raise RuntimeError(f"arquivo auditado ausente: {rel}")
             canonical_rel = str(path.relative_to(root))
             paths.append(path)
             expected_hashes[canonical_rel] = digest
@@ -366,7 +366,10 @@ def main() -> int:
 
     for index, path in enumerate(paths, 1):
         rel = str(path.relative_to(root))
-        stat = path.stat()
+        try:
+            stat = path.stat()
+        except FileNotFoundError as exc:
+            raise RuntimeError(f"arquivo auditado ausente: {rel}") from exc
         cached = old.get(rel)
         if cached and cached.get("size") == stat.st_size and cached.get("mtime_ns") == stat.st_mtime_ns:
             record = record_from_checkpoint(cached)
