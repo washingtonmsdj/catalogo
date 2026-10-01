@@ -81,6 +81,54 @@ def iter_images(root: Path) -> Iterable[Path]:
                 yield path
 
 
+def load_audit_registry(root: Path, registry: Path) -> tuple[list[Path], dict[str, str]]:
+    """Load the audited source-of-truth list without recursively crawling Drive.
+
+    Every row must point to an existing image under an audited top-level
+    category. Duplicate paths and hashes with invalid shape are rejected.
+    """
+    paths: list[Path] = []
+    expected_hashes: dict[str, str] = {}
+    seen: set[str] = set()
+
+    with registry.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        required = {"caminho", "sha256"}
+        if not required.issubset(reader.fieldnames or []):
+            raise RuntimeError(
+                f"registro de auditoria sem colunas obrigatórias {sorted(required)}: {registry}"
+            )
+        for line_no, row in enumerate(reader, 2):
+            rel = (row.get("caminho") or "").strip()
+            digest = (row.get("sha256") or "").strip().lower()
+            if not rel:
+                raise RuntimeError(f"caminho vazio no registro de auditoria, linha {line_no}")
+            normalized = rel.replace("\\", "/")
+            first = normalized.split("/", 1)[0]
+            if not OK_PREFIX.match(first):
+                raise RuntimeError(
+                    f"caminho fora de categoria auditada na linha {line_no}: {rel}"
+                )
+            if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+                raise RuntimeError(f"SHA-256 inválido na linha {line_no}: {rel}")
+            key = normalized.casefold()
+            if key in seen:
+                raise RuntimeError(f"caminho duplicado no registro de auditoria: {rel}")
+            seen.add(key)
+            path = root.joinpath(*normalized.split("/"))
+            if path.suffix.lower() not in IMAGE_EXTS:
+                raise RuntimeError(f"extensão não suportada no registro de auditoria: {rel}")
+            if not path.is_file():
+                raise RuntimeError(f"arquivo auditado ausente: {rel}")
+            canonical_rel = str(path.relative_to(root))
+            paths.append(path)
+            expected_hashes[canonical_rel] = digest
+
+    if not paths:
+        raise RuntimeError(f"registro de auditoria vazio: {registry}")
+    return paths, expected_hashes
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -285,6 +333,11 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=Path(".catalog-ingest"))
     parser.add_argument("--visual-threshold", type=int, default=6)
     parser.add_argument("--no-resume", action="store_true")
+    parser.add_argument(
+        "--audit-registry",
+        type=Path,
+        help="CSV auditado com colunas caminho/sha256; evita varredura recursiva do Drive",
+    )
     args = parser.parse_args()
 
     root = args.source.resolve()
@@ -295,8 +348,21 @@ def main() -> int:
 
     old = {} if args.no_resume else load_checkpoint(args.output / "manifest.jsonl")
     records: list[ImageRecord] = []
-    paths = sorted(iter_images(root), key=lambda item: str(item).casefold())
-    print(f"TOTAL={len(paths)} CHECKPOINT={len(old)}")
+    expected_hashes: dict[str, str] = {}
+    if args.audit_registry:
+        registry = args.audit_registry.resolve()
+        if not registry.is_file():
+            parser.error(f"registro de auditoria não encontrado: {registry}")
+        try:
+            paths, expected_hashes = load_audit_registry(root, registry)
+        except RuntimeError as exc:
+            parser.error(str(exc))
+        paths = sorted(paths, key=lambda item: str(item).casefold())
+        source_mode = "audit-registry"
+    else:
+        paths = sorted(iter_images(root), key=lambda item: str(item).casefold())
+        source_mode = "directory-scan"
+    print(f"TOTAL={len(paths)} CHECKPOINT={len(old)} SOURCE={source_mode}")
 
     for index, path in enumerate(paths, 1):
         rel = str(path.relative_to(root))
@@ -310,6 +376,12 @@ def main() -> int:
         else:
             print(f"PROGRESSO={index}/{len(paths)} {rel}", flush=True)
             record = analyze(root, path)
+        expected_sha = expected_hashes.get(rel)
+        if expected_sha and record.sha256 != expected_sha:
+            raise RuntimeError(
+                f"integridade divergente do registro auditado: {rel} "
+                f"(esperado {expected_sha}, obtido {record.sha256})"
+            )
         records.append(record)
 
     groups = mark_duplicates(records, args.visual_threshold)
