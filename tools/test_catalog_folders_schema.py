@@ -79,6 +79,33 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
         ).fetchone()[0]
         self.assertEqual(count, 2)
 
+    def test_tmnt_root_keeps_hero_and_groups_villain_subtree(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
+            (self.franchise_id, "leonardo", "Leonardo", "leonardo", 1),
+        )
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
+            (self.franchise_id, "viloes", "Vilões", "viloes", 1),
+        )
+        villains_id = self.db.execute("SELECT id FROM catalog_folders WHERE path='viloes'").fetchone()[0]
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,parent_id,slug,name,path,depth) VALUES(?,?,?,?,?,2)",
+            (self.franchise_id, villains_id, "destruidor", "Destruidor", "viloes/destruidor"),
+        )
+
+        root = self.db.execute(
+            "SELECT name,path FROM catalog_folders WHERE franchise_id=? AND parent_id IS NULL ORDER BY name",
+            (self.franchise_id,),
+        ).fetchall()
+        children = self.db.execute(
+            "SELECT name,path FROM catalog_folders WHERE franchise_id=? AND parent_id=? ORDER BY name",
+            (self.franchise_id, villains_id),
+        ).fetchall()
+
+        self.assertEqual(root, [("Leonardo", "leonardo"), ("Vilões", "viloes")])
+        self.assertEqual(children, [("Destruidor", "viloes/destruidor")])
+
     def test_folder_path_is_unique_per_franchise(self) -> None:
         self.db.execute(
             "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
