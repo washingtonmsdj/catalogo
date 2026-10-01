@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from ingest_catalog import analyze, clean_folder, discover_catalog_roots, hamming, iter_images, mark_duplicates
+from ingest_catalog import analyze, clean_folder, discover_catalog_roots, hamming, iter_images, load_audit_registry, mark_duplicates
 
 
 class CatalogIngestTests(unittest.TestCase):
@@ -34,6 +34,45 @@ class CatalogIngestTests(unittest.TestCase):
             (root / "Novos").mkdir()
             with self.assertRaisesRegex(RuntimeError, "nenhuma categoria ativa"):
                 list(iter_images(root))
+
+    def test_audit_registry_is_explicit_and_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            active = root / "OK - Games [1]" / "OK - Saga [1]"
+            active.mkdir(parents=True)
+            image_path = active / "hero.png"
+            Image.new("RGB", (64, 64), "white").save(image_path)
+            import hashlib
+            digest = hashlib.sha256(image_path.read_bytes()).hexdigest()
+            registry = root / "audit.csv"
+            registry.write_text(
+                "codigo,sha256,caminho,status\\n"
+                f"AUD-1,{digest},OK - Games [1]\\\\OK - Saga [1]\\\\hero.png,OK_VISUAL|RV1\\n",
+                encoding="utf-8-sig",
+            )
+
+            paths, hashes = load_audit_registry(root, registry)
+
+            self.assertEqual(paths, [image_path])
+            self.assertEqual(hashes[str(image_path.relative_to(root))], digest)
+
+    def test_audit_registry_rejects_operational_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            operational = root / "99 - LOTES CONSOLIDADOS"
+            operational.mkdir()
+            image_path = operational / "duplicate.png"
+            Image.new("RGB", (64, 64), "white").save(image_path)
+            registry = root / "audit.csv"
+            registry.write_text(
+                "sha256,caminho\\n"
+                + ("0" * 64)
+                + ",99 - LOTES CONSOLIDADOS\\\\duplicate.png\\n",
+                encoding="utf-8-sig",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "fora de categoria auditada"):
+                load_audit_registry(root, registry)
 
     def test_analysis_preserves_hierarchy_and_hashes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
