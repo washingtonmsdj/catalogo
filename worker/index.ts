@@ -1,4 +1,5 @@
 import { createSharedCollection, getSharedCollection } from './sharedCollections'
+import { putMediaObject } from './mediaIngest'
 
 type D1Statement = {
   bind(...values: unknown[]): D1Statement
@@ -16,8 +17,21 @@ type R2ObjectBody = {
   json<T = unknown>(): Promise<T>
 }
 
+type R2ObjectHead = {
+  customMetadata?: Record<string, string>
+}
+
 type R2Bucket = {
   get(key: string): Promise<R2ObjectBody | null>
+  head(key: string): Promise<R2ObjectHead | null>
+  put(
+    key: string,
+    value: ReadableStream<Uint8Array>,
+    options: {
+      httpMetadata: { contentType: string; cacheControl: string }
+      customMetadata: Record<string, string>
+    },
+  ): Promise<unknown>
 }
 
 type Env = {
@@ -25,6 +39,7 @@ type Env = {
   MEDIA: R2Bucket
   CORS_ORIGINS?: string
   TURNSTILE_SECRET_KEY?: string
+  MEDIA_INGEST_SECRET?: string
 }
 
 type CatalogRow = {
@@ -516,6 +531,9 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') return options(request, env)
     const url = new URL(request.url)
+    if (request.method === 'PUT' && url.pathname === '/api/admin/media') {
+      return putMediaObject(request, env, (data, init) => json(request, env, data, init))
+    }
     if (request.method === 'GET' && url.pathname === '/api/categories') return listCategories(request, env)
     if (request.method === 'GET' && url.pathname === '/api/franchises') return listFranchises(request, env)
     if (request.method === 'GET' && url.pathname === '/api/folders') return listFolders(request, env)
