@@ -69,13 +69,36 @@ def franchise_index(hierarchy: list[str]) -> int:
     return 1
 
 
+def validate_taxonomy_config(data: dict, config_path: Path) -> None:
+    if data.get("version") != 1 or not isinstance(data.get("franchises"), dict):
+        raise RuntimeError(f"configuração de taxonomia inválida: {config_path}")
+    for franchise_key, rule in data["franchises"].items():
+        if not isinstance(franchise_key, str) or franchise_key.count("/") != 1 or not all(part.strip() for part in franchise_key.split("/")):
+            raise RuntimeError(f"chave de franquia inválida em {config_path}: {franchise_key!r}")
+        if not isinstance(rule, dict):
+            raise RuntimeError(f"regra de franquia inválida em {config_path}: {franchise_key}")
+        overrides = rule.get("pathOverrides", {})
+        if not isinstance(overrides, dict):
+            raise RuntimeError(f"pathOverrides inválido em {config_path}: {franchise_key}")
+        for source_key, replacement in overrides.items():
+            if not isinstance(source_key, str) or not source_key.strip() or any(not part.strip() for part in source_key.split(" / ")):
+                raise RuntimeError(f"caminho fonte inválido em {config_path}: {franchise_key} -> {source_key!r}")
+            if not isinstance(replacement, list) or not replacement:
+                raise RuntimeError(f"caminho público inválido em {config_path}: {franchise_key} -> {source_key}")
+            for part in replacement:
+                if not isinstance(part, str) or not part.strip() or part.strip() in {".", ".."} or "/" in part or "\\" in part:
+                    raise RuntimeError(f"segmento público inválido em {config_path}: {franchise_key} -> {source_key}")
+
+
 def load_taxonomy_config(path: Path | None = None) -> dict:
     config_path = path or DEFAULT_TAXONOMY_CONFIG
     if not config_path.is_file():
         return {"version": 1, "franchises": {}}
-    data = json.loads(config_path.read_text(encoding="utf-8"))
-    if data.get("version") != 1 or not isinstance(data.get("franchises"), dict):
-        raise RuntimeError(f"configuração de taxonomia inválida: {config_path}")
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"JSON de taxonomia inválido: {config_path}: {exc}") from exc
+    validate_taxonomy_config(data, config_path)
     return data
 
 
