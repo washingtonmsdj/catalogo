@@ -6,13 +6,34 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from ingest_catalog import analyze, clean_folder, hamming, mark_duplicates
+from ingest_catalog import analyze, clean_folder, discover_catalog_roots, hamming, iter_images, mark_duplicates
 
 
 class CatalogIngestTests(unittest.TestCase):
     def test_clean_folder_removes_audit_prefix_and_count(self) -> None:
         self.assertEqual(clean_folder("OK - Games [539]"), "Games")
         self.assertEqual(clean_folder("OK - Resident Evil [32]"), "Resident Evil")
+
+    def test_discovery_only_selects_audited_top_level_categories(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            active = root / "OK - Games [1]"
+            stats = root / "00 - ESTATISTICAS - CATALOGO [1]"
+            incoming = root / "Novos"
+            consolidated = root / "99 - LOTES CONSOLIDADOS"
+            for folder in (active, stats, incoming, consolidated):
+                folder.mkdir(parents=True)
+                Image.new("RGB", (32, 32), "white").save(folder / "sample.png")
+
+            self.assertEqual(discover_catalog_roots(root), [active])
+            self.assertEqual(list(iter_images(root)), [active / "sample.png"])
+
+    def test_discovery_fails_closed_without_audited_categories(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "Novos").mkdir()
+            with self.assertRaisesRegex(RuntimeError, "nenhuma categoria ativa"):
+                list(iter_images(root))
 
     def test_analysis_preserves_hierarchy_and_hashes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
