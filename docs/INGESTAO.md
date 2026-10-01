@@ -7,10 +7,11 @@ O importador foi desenhado para um acervo com 100 mil+ modelos/imagens e **nunca
 Transformar a árvore de pastas auditada em um manifesto técnico reutilizável pelo backend e pelo futuro upload ao R2/D1.
 
 ```bash
-python tools/ingest_catalog.py "G:\Meu Drive\Catalogo" --output ".catalog-ingest"
+python tools/ingest_catalog.py "G:\Meu Drive\Catalogo" --output ".catalog-ingest" \
+  --audit-registry "G:\Meu Drive\Catalogo\00 - ESTATISTICAS - CATALOGO [2596] - NOVOS [0]\REGISTRO-AUDITORIA-IMAGENS.csv"
 ```
 
-Na primeira execução cada imagem elegível é aberta e analisada. Nas execuções seguintes, arquivos cujo caminho, tamanho e `mtime_ns` não mudaram são reaproveitados do checkpoint.\n\n### Fronteira de publicação\n\nA raiz real também contém pastas operacionais de auditoria. Por segurança, a ingestão pública é **fail-closed**: somente diretórios de primeiro nível com prefixo `OK - ` entram no manifesto. Pastas como `00 - ESTATISTICAS...`, `Novos` e `99 - LOTES CONSOLIDADOS` ficam fora mesmo que contenham imagens. Se nenhuma categoria auditada existir, o processo falha em vez de publicar conteúdo auxiliar.
+Na primeira execução cada imagem elegível é aberta e analisada. Nas execuções seguintes, arquivos cujo caminho, tamanho e `mtime_ns` não mudaram são reaproveitados do checkpoint.\n\n### Fronteira de publicação\n\nA raiz real também contém pastas operacionais de auditoria. Por segurança, a ingestão pública é **fail-closed**: somente diretórios de primeiro nível com prefixo `OK - ` entram no manifesto. Pastas como `00 - ESTATISTICAS...`, `Novos` e `99 - LOTES CONSOLIDADOS` ficam fora mesmo que contenham imagens. Se nenhuma categoria auditada existir, o processo falha em vez de publicar conteúdo auxiliar.\n\nEm produção, prefira `--audit-registry` apontando para `REGISTRO-AUDITORIA-IMAGENS.csv`. Esse modo usa os caminhos já revisados como fonte de verdade, evita uma varredura recursiva lenta do Google Drive e ainda recalcula o SHA-256 de cada imagem: qualquer divergência entre o arquivo atual e o hash auditado interrompe a ingestão.
 
 ## Saídas
 
