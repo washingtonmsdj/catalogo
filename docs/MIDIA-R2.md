@@ -97,6 +97,18 @@ O modo `--verify-remote` é propositalmente opcional: em um acervo com milhões 
 
 O publicador grava o SHA-256 como metadata de cada objeto. Galerias content-addressed recebem cache `immutable`; variantes de mídia recebem cache longo, mas não `immutable`, permitindo futura evolução do renderizador sem deixar uma URL permanentemente presa a uma versão antiga.
 
+## Publicação de metadados no D1
+
+Depois que a mídia estiver confirmada no R2, valide primeiro o manifesto sem escrita:
+
+```bash
+python tools/publish_d1.py ".publish-bundle/models.jsonl" --dry-run
+```
+
+Para publicar, configure `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID` e `CLOUDFLARE_API_TOKEN`, então execute o mesmo comando sem `--dry-run`.
+
+O publicador valida colisões de ID/slug/código e consistência categoria/franquia antes da primeira escrita. Categorias e franquias são deduplicadas; modelos usam upsert idempotente em lotes limitados. O processo publica o modelo somente depois da mídia e **não apaga nem despublica** registros ausentes de um lote parcial. Campos editoriais não presentes no manifesto, como material, altura e descrição, não são sobrescritos.
+
 ## Segurança e exclusões
 
 - O publicador **não apaga objetos do R2**.

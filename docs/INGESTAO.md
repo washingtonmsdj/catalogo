@@ -12,6 +12,18 @@ python tools/ingest_catalog.py "G:\Meu Drive\Catalogo" --output ".catalog-ingest
 
 Na primeira execução cada imagem é aberta e analisada. Nas execuções seguintes, arquivos cujo caminho, tamanho e `mtime_ns` não mudaram são reaproveitados do checkpoint.
 
+### Escopo seletivo sem copiar o acervo
+
+Quando a raiz mistura categorias auditadas e material ainda em revisão, preserve a raiz original e limite explicitamente as categorias:
+
+```bash
+python tools/ingest_catalog.py "G:\Meu Drive\Catalogo" \
+  --include-category "Tokusatsu & Cultura Japonesa" \
+  --output ".catalog-ingest"
+```
+
+`--include-category` pode ser repetido. A comparação usa o nome auditado normalizado (remove `OK -` e o contador `[N]`), mas a taxonomia continua relativa à raiz completa. Categoria inexistente é erro fatal; o pipeline nunca cai silenciosamente para uma varredura ampla.
+
 ## Saídas
 
 - `manifest.jsonl`: fonte técnica completa, uma linha por imagem;

@@ -11,3 +11,5 @@ Thumbs.db
 .publish-bundle/
 .wrangler.deploy.jsonc
 .wrangler/
+__pycache__/
+*.py[cod]

@@ -6,13 +6,36 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from ingest_catalog import analyze, clean_folder, hamming, mark_duplicates
+from ingest_catalog import analyze, clean_folder, hamming, iter_images, mark_duplicates
 
 
 class CatalogIngestTests(unittest.TestCase):
     def test_clean_folder_removes_audit_prefix_and_count(self) -> None:
         self.assertEqual(clean_folder("OK - Games [539]"), "Games")
         self.assertEqual(clean_folder("OK - Resident Evil [32]"), "Resident Evil")
+
+    def test_category_filter_keeps_catalog_root_taxonomy(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            wanted = root / "OK - Games [1]" / "OK - Saga [1]" / "OK - Heroi [1]"
+            ignored = root / "Novos" / "Pendente"
+            wanted.mkdir(parents=True)
+            ignored.mkdir(parents=True)
+            Image.new("RGB", (20, 20), "white").save(wanted / "heroi.jpg")
+            Image.new("RGB", (20, 20), "black").save(ignored / "pendente.jpg")
+
+            paths = list(iter_images(root, ["Games"]))
+
+            self.assertEqual(paths, [wanted / "heroi.jpg"])
+            record = analyze(root, paths[0])
+            self.assertEqual(record.category, "Games")
+            self.assertEqual(record.franchise, "Saga")
+
+    def test_category_filter_rejects_unknown_category(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            with self.assertRaisesRegex(ValueError, "categorias não encontradas"):
+                list(iter_images(root, ["Games"]))
 
     def test_analysis_preserves_hierarchy_and_hashes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

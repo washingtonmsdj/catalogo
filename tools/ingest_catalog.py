@@ -51,10 +51,27 @@ def clean_folder(value: str) -> str:
     return COUNT_SUFFIX.sub("", OK_PREFIX.sub("", value)).strip()
 
 
-def iter_images(root: Path) -> Iterable[Path]:
-    for path in root.rglob("*"):
-        if path.is_file() and path.suffix.lower() in IMAGE_EXTS:
-            yield path
+def iter_images(root: Path, include_categories: Iterable[str] = ()) -> Iterable[Path]:
+    requested = {clean_folder(value).casefold(): value for value in include_categories if value.strip()}
+    if not requested:
+        targets = [root]
+    else:
+        matched: dict[str, Path] = {}
+        for child in root.iterdir():
+            if not child.is_dir():
+                continue
+            normalized = clean_folder(child.name).casefold()
+            if normalized in requested:
+                matched[normalized] = child
+        missing = [requested[key] for key in requested if key not in matched]
+        if missing:
+            raise ValueError(f"categorias não encontradas: {', '.join(sorted(missing))}")
+        targets = [matched[key] for key in requested]
+
+    for target in targets:
+        for path in target.rglob("*"):
+            if path.is_file() and path.suffix.lower() in IMAGE_EXTS:
+                yield path
 
 
 def sha256_file(path: Path) -> str:
@@ -67,7 +84,7 @@ def sha256_file(path: Path) -> str:
 
 def dhash_image(image: Image.Image) -> str:
     sample = ImageOps.grayscale(image).resize((9, 8), Image.Resampling.LANCZOS)
-    pixels = list(sample.getdata())
+    pixels = list(sample.get_flattened_data())
     value = 0
     bit = 0
     for row in range(8):
@@ -260,6 +277,12 @@ def main() -> int:
     parser.add_argument("source", type=Path)
     parser.add_argument("--output", type=Path, default=Path(".catalog-ingest"))
     parser.add_argument("--visual-threshold", type=int, default=6)
+    parser.add_argument(
+        "--include-category",
+        action="append",
+        default=[],
+        help="limita a ingestão a uma categoria de primeiro nível; pode ser repetido",
+    )
     parser.add_argument("--no-resume", action="store_true")
     args = parser.parse_args()
 
@@ -271,7 +294,13 @@ def main() -> int:
 
     old = {} if args.no_resume else load_checkpoint(args.output / "manifest.jsonl")
     records: list[ImageRecord] = []
-    paths = sorted(iter_images(root), key=lambda item: str(item).casefold())
+    try:
+        paths = sorted(
+            iter_images(root, args.include_category),
+            key=lambda item: str(item).casefold(),
+        )
+    except ValueError as exc:
+        parser.error(str(exc))
     print(f"TOTAL={len(paths)} CHECKPOINT={len(old)}")
 
     for index, path in enumerate(paths, 1):
