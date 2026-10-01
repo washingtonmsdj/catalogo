@@ -131,7 +131,9 @@ def render_variants(source: Path, r2_root: Path, base_key: str) -> tuple[dict[st
             image = base_image.copy()
             image.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
             width, height = image.size
-            # method=4: benchmark real no catálogo auditado mostrou ~2x menos CPU\n            # com a mesma resolução/quality, ~3-4% mais bytes e PSNR equivalente.\n            image.save(destination, "WEBP", quality=quality, method=4, optimize=True)
+            # method=4: benchmark real no catálogo auditado mostrou ~2x menos CPU
+            # com a mesma resolução/quality, ~3-4% mais bytes e PSNR equivalente.
+            image.save(destination, "WEBP", quality=quality, method=4, optimize=True)
             variants[variant] = key
             variant_meta[variant] = {
                 "width": width,
