@@ -51,10 +51,34 @@ def clean_folder(value: str) -> str:
     return COUNT_SUFFIX.sub("", OK_PREFIX.sub("", value)).strip()
 
 
+def discover_catalog_roots(root: Path) -> list[Path]:
+    """Return only audited top-level catalog categories.
+
+    Operational folders such as statistics, incoming batches and consolidated
+    audit material live beside the public catalog. Production ingestion is
+    explicit: only top-level directories marked with the audited `OK - `
+    prefix are eligible.
+    """
+    roots = sorted(
+        (
+            path
+            for path in root.iterdir()
+            if path.is_dir() and OK_PREFIX.match(path.name)
+        ),
+        key=lambda path: path.name.casefold(),
+    )
+    if not roots:
+        raise RuntimeError(
+            f"nenhuma categoria ativa 'OK - ' encontrada em: {root}"
+        )
+    return roots
+
+
 def iter_images(root: Path) -> Iterable[Path]:
-    for path in root.rglob("*"):
-        if path.is_file() and path.suffix.lower() in IMAGE_EXTS:
-            yield path
+    for catalog_root in discover_catalog_roots(root):
+        for path in catalog_root.rglob("*"):
+            if path.is_file() and path.suffix.lower() in IMAGE_EXTS:
+                yield path
 
 
 def sha256_file(path: Path) -> str:
