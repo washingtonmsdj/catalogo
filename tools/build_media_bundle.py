@@ -46,6 +46,7 @@ GROUPING_FOLDERS = {
     "Animes & Desenhos": {"Animes", "Clássicos", "Outros"},
     "Marvel & DC": {"Marvel", "DC"},
 }
+DEFAULT_TAXONOMY_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-taxonomy.json"
 
 
 def humanize_stem(value: str) -> str:
@@ -65,6 +66,28 @@ def franchise_index(hierarchy: list[str]) -> int:
     if category == "Games" and second == "00 - Fliperama" and len(hierarchy) > 2:
         return 2
     return 1
+
+
+def load_taxonomy_config(path: Path | None = None) -> dict:
+    config_path = path or DEFAULT_TAXONOMY_CONFIG
+    if not config_path.is_file():
+        return {"version": 1, "franchises": {}}
+    data = json.loads(config_path.read_text(encoding="utf-8"))
+    if data.get("version") != 1 or not isinstance(data.get("franchises"), dict):
+        raise RuntimeError(f"configuração de taxonomia inválida: {config_path}")
+    return data
+
+
+def public_folder_path(category_slug: str, franchise_slug: str, source_parts: list[str], taxonomy: dict) -> list[str]:
+    rule = taxonomy.get("franchises", {}).get(f"{category_slug}/{franchise_slug}", {})
+    overrides = rule.get("pathOverrides", {}) if isinstance(rule, dict) else {}
+    source_key = " / ".join(source_parts)
+    replacement = overrides.get(source_key)
+    if replacement is None:
+        return source_parts
+    if not isinstance(replacement, list) or not replacement or not all(isinstance(item, str) and item.strip() for item in replacement):
+        raise RuntimeError(f"pathOverride inválido para {category_slug}/{franchise_slug}: {source_key}")
+    return [item.strip() for item in replacement]
 
 
 def read_manifest(path: Path) -> list[dict]:
@@ -97,7 +120,7 @@ def gallery_identity(payload: dict) -> tuple[str, int]:
     return digest, version
 
 
-def model_metadata(identity_key: str, hierarchy_key: str, source_path: str, slug_collisions: Counter[str], audited_public: bool = False) -> dict:
+def model_metadata(identity_key: str, hierarchy_key: str, source_path: str, slug_collisions: Counter[str], taxonomy: dict, audited_public: bool = False) -> dict:
     hierarchy = hierarchy_key.split(" / ")
     model_id = stable_id("mdl", identity_key)
     category_name = hierarchy[0] if hierarchy else "Outros"
@@ -105,10 +128,13 @@ def model_metadata(identity_key: str, hierarchy_key: str, source_path: str, slug
     franchise_name = hierarchy[franchise_pos] if hierarchy else category_name
     source_stem = Path(source_path).stem
     display_name = humanize_stem(source_stem) if audited_public else (hierarchy[-1] if hierarchy else humanize_stem(source_stem))
-    collection_parts = hierarchy[franchise_pos + 1:-1] if not audited_public else hierarchy[franchise_pos + 1:]
+    source_collection_parts = hierarchy[franchise_pos + 1:-1] if not audited_public else hierarchy[franchise_pos + 1:]
+    category_slug = slugify(category_name)
+    franchise_slug = slugify(franchise_name)
+    collection_parts = public_folder_path(category_slug, franchise_slug, source_collection_parts, taxonomy) if audited_public else source_collection_parts
     collection = " / ".join(collection_parts)
 
-    clean_parts = [franchise_name, *collection_parts, display_name]
+    clean_parts = [franchise_name, display_name] if audited_public else [franchise_name, *collection_parts, display_name]
     base_slug = slugify(" ".join(clean_parts) or display_name)
     model_slug = base_slug
     if slug_collisions[base_slug] > 1:
@@ -116,7 +142,7 @@ def model_metadata(identity_key: str, hierarchy_key: str, source_path: str, slug
 
     code_hash = hashlib.sha256(identity_key.encode("utf-8")).hexdigest()[:12].upper()
     code = f"TS-{code_hash}"
-    search_text = " ".join(dict.fromkeys([*hierarchy, display_name, code])).casefold()
+    search_text = " ".join(dict.fromkeys([*hierarchy, *collection_parts, display_name, code])).casefold()
 
     return {
         "id": model_id,
@@ -124,16 +150,19 @@ def model_metadata(identity_key: str, hierarchy_key: str, source_path: str, slug
         "code": code,
         "sourceHierarchy": hierarchy,
         "categoryName": category_name,
-        "categorySlug": slugify(category_name),
+        "categorySlug": category_slug,
         "franchiseName": franchise_name,
-        "franchiseSlug": slugify(franchise_name),
+        "franchiseSlug": franchise_slug,
         "displayName": display_name,
         "collection": collection,
+        "folderPath": collection_parts,
+        "folderPathKey": "/".join(slugify(part) for part in collection_parts),
         "searchText": search_text,
     }
 
 
-def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_original: bool) -> dict:
+def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_original: bool, taxonomy_config: Path | None = None) -> dict:
+    taxonomy = load_taxonomy_config(taxonomy_config)
     records = [row for row in read_manifest(manifest_path) if row.get("status") == "OK" and row.get("canonical") is True]
     by_model: dict[str, list[dict]] = defaultdict(list)
     for row in records:
@@ -148,9 +177,14 @@ def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_o
         franchise_pos = franchise_index(hierarchy)
         franchise_name = hierarchy[franchise_pos] if hierarchy else "Outros"
         audited_public = bool(row.get("public_model_key"))
-        collection_parts = hierarchy[franchise_pos + 1:] if audited_public else hierarchy[franchise_pos + 1:-1]
+        source_collection_parts = hierarchy[franchise_pos + 1:] if audited_public else hierarchy[franchise_pos + 1:-1]
+        category_name = hierarchy[0] if hierarchy else "Outros"
+        category_slug = slugify(category_name)
+        franchise_slug = slugify(franchise_name)
+        collection_parts = public_folder_path(category_slug, franchise_slug, source_collection_parts, taxonomy) if audited_public else source_collection_parts
         display_name = humanize_stem(Path(str(row["path"])).stem) if audited_public else (hierarchy[-1] if hierarchy else "Modelo")
-        base_slugs.append(slugify(" ".join([franchise_name, *collection_parts, display_name])))
+        slug_parts = [franchise_name, display_name] if audited_public else [franchise_name, *collection_parts, display_name]
+        base_slugs.append(slugify(" ".join(slug_parts)))
     slug_collisions = Counter(base_slugs)
 
     r2_root = output / "r2"
@@ -170,7 +204,7 @@ def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_o
                 ),
                 reverse=True,
             )
-            metadata = model_metadata(identity_key, str(rows[0]["model_key"]), str(rows[0]["path"]), slug_collisions, bool(rows[0].get("public_model_key")))
+            metadata = model_metadata(identity_key, str(rows[0]["model_key"]), str(rows[0]["path"]), slug_collisions, taxonomy, bool(rows[0].get("public_model_key")))
             model_id = metadata["id"]
             gallery_images = []
 
@@ -272,6 +306,7 @@ def main() -> int:
     parser.add_argument("manifest", type=Path, help="manifest.jsonl gerado por ingest_catalog.py")
     parser.add_argument("--output", type=Path, default=Path(".publish-bundle"))
     parser.add_argument("--include-original", action="store_true", help="inclui cópia do original no bundle R2")
+    parser.add_argument("--taxonomy-config", type=Path, default=DEFAULT_TAXONOMY_CONFIG, help="regras explícitas de pastas públicas")
     args = parser.parse_args()
 
     if not args.source.is_dir():
@@ -279,7 +314,7 @@ def main() -> int:
     if not args.manifest.is_file():
         parser.error(f"manifesto não encontrado: {args.manifest}")
 
-    summary = build_bundle(source_root=args.source.resolve(), manifest_path=args.manifest.resolve(), output=args.output.resolve(), include_original=args.include_original)
+    summary = build_bundle(source_root=args.source.resolve(), manifest_path=args.manifest.resolve(), output=args.output.resolve(), include_original=args.include_original, taxonomy_config=args.taxonomy_config.resolve())
     print(json.dumps(summary, ensure_ascii=False))
     return 0
 

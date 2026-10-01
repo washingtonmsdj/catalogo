@@ -1,4 +1,4 @@
-import type { CatalogCategory, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
+import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 
 export const DEFAULT_PAGE_SIZE = 24
 export const MAX_PAGE_SIZE = 60
@@ -11,7 +11,7 @@ export type CursorPage<T> = {
 
 export type CatalogModelCard = Pick<
   CatalogModel,
-  'id' | 'slug' | 'code' | 'name' | 'franchise' | 'category' | 'collection' | 'galleryCount' | 'accent'
+  'id' | 'slug' | 'code' | 'name' | 'franchise' | 'category' | 'collection' | 'folderPath' | 'galleryCount' | 'accent'
 > & {
   franchiseSlug?: string
   coverUrl?: string
@@ -20,6 +20,7 @@ export type CatalogModelCard = Pick<
 export type CatalogListQuery = {
   category?: string
   franchise?: string
+  folder?: string
   search?: string
   cursor?: string
   limit?: number
@@ -35,6 +36,7 @@ export type GalleryQuery = {
 export interface CatalogRepository {
   listCategories(): Promise<CatalogCategory[]>
   listFranchises(category?: string): Promise<CatalogFranchise[]>
+  listFolders(category: string, franchise: string, parent?: string): Promise<CatalogFolder[]>
   listModels(query: CatalogListQuery): Promise<CursorPage<CatalogModelCard>>
   getModel(slug: string): Promise<CatalogModel | null>
   listModelImages(slug: string, query?: GalleryQuery): Promise<CursorPage<CatalogImage>>

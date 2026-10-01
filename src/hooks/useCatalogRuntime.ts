@@ -6,13 +6,14 @@ import {
   getCatalogRuntimeMode,
   listCatalogCategories,
   listCatalogFranchises,
+  listCatalogFolders,
   listCatalogImages,
   listCatalogModels,
   toCatalogImage,
 } from '../services/catalogApi'
 import { readDiscoveryScope, replaceDiscoveryScope } from '../services/catalogNavigation'
 import type { CatalogModelCard } from '../services/catalogRepository'
-import type { CatalogCategory, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
+import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 
 const MODEL_PAGE_SIZE = 24
 const GALLERY_PAGE_SIZE = 12
@@ -77,6 +78,7 @@ export function useCatalogRuntime(initialSlug = '') {
   const [routeSlug, setRouteSlug] = useState(initialSlug)
   const [category, setCategoryState] = useState(initialScope.category)
   const [franchise, setFranchiseState] = useState(initialScope.franchise)
+  const [folder, setFolderState] = useState(initialScope.folder)
   const [search, setSearch] = useState(initialScope.search)
   const [debouncedSearch, setDebouncedSearch] = useState(() => {
     const trimmed = initialScope.search.trim()
@@ -88,6 +90,8 @@ export function useCatalogRuntime(initialSlug = '') {
   const prefetchedCoverUrls = useRef(new Set<string>())
   const [liveCategories, setLiveCategories] = useState<CatalogCategory[]>([])
   const [liveFranchises, setLiveFranchises] = useState<CatalogFranchise[]>([])
+  const [liveFolders, setLiveFolders] = useState<CatalogFolder[]>([])
+  const [currentFolder, setCurrentFolder] = useState<Pick<CatalogFolder, 'id' | 'label' | 'count'> | null>(null)
   const [franchisesTruncated, setFranchisesTruncated] = useState(false)
   const [liveModels, setLiveModels] = useState<CatalogModel[]>([])
   const [selectedDetail, setSelectedDetail] = useState<CatalogModel | null>(null)
@@ -113,6 +117,7 @@ export function useCatalogRuntime(initialSlug = '') {
       const next = readDiscoveryScope()
       setCategoryState(next.category)
       setFranchiseState(next.franchise)
+      setFolderState(next.folder)
       setSearch(next.search)
       setSelectedDetail(null)
     }
@@ -121,8 +126,8 @@ export function useCatalogRuntime(initialSlug = '') {
   }, [])
 
   useEffect(() => {
-    replaceDiscoveryScope({ category, franchise, search })
-  }, [category, franchise, search])
+    replaceDiscoveryScope({ category, franchise, folder, search })
+  }, [category, franchise, folder, search])
 
   useEffect(() => {
     const trimmed = search.trim()
@@ -174,10 +179,31 @@ export function useCatalogRuntime(initialSlug = '') {
   }, [mode, category])
 
   useEffect(() => {
+    if (mode !== 'live' || category === 'all' || franchise === 'all') {
+      setLiveFolders([])
+      setCurrentFolder(null)
+      return
+    }
+    let cancelled = false
+    listCatalogFolders(category, franchise, folder || undefined)
+      .then((page) => {
+        if (cancelled) return
+        setLiveFolders(page.items)
+        setCurrentFolder(page.current)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setLiveFolders([])
+        setCurrentFolder(null)
+      })
+    return () => { cancelled = true }
+  }, [mode, category, franchise, folder])
+
+  useEffect(() => {
     setCursorStack([undefined])
     setPageIndex(0)
     setSelectedDetail(null)
-  }, [category, franchise, debouncedSearch])
+  }, [category, franchise, folder, debouncedSearch])
 
   const currentCursor = cursorStack[pageIndex]
 
@@ -189,6 +215,7 @@ export function useCatalogRuntime(initialSlug = '') {
     listCatalogModels({
       category,
       franchise,
+      folder: folder || undefined,
       search: debouncedSearch || undefined,
       cursor: currentCursor,
       limit: MODEL_PAGE_SIZE,
@@ -217,7 +244,7 @@ export function useCatalogRuntime(initialSlug = '') {
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [mode, category, franchise, debouncedSearch, currentCursor])
+  }, [mode, category, franchise, folder, debouncedSearch, currentCursor])
 
   useEffect(() => {
     if (!routeSlug) return
@@ -291,11 +318,18 @@ export function useCatalogRuntime(initialSlug = '') {
   function setCategory(next: string) {
     setCategoryState(next)
     setFranchiseState('all')
+    setFolderState('')
     setSelectedDetail(null)
   }
 
   function setFranchise(next: string) {
     setFranchiseState(next)
+    setFolderState('')
+    setSelectedDetail(null)
+  }
+
+  function setFolder(next: string) {
+    setFolderState(next)
     setSelectedDetail(null)
   }
 
@@ -303,6 +337,7 @@ export function useCatalogRuntime(initialSlug = '') {
     setSearch('')
     setCategoryState('all')
     setFranchiseState('all')
+    setFolderState('')
     setSelectedDetail(null)
     setCursorStack([undefined])
     setPageIndex(0)
@@ -324,23 +359,30 @@ export function useCatalogRuntime(initialSlug = '') {
 
   const categoryCount = categories.find((item) => item.id === category)?.count ?? categories[0]?.count ?? models.length
   const franchiseCount = franchise === 'all' ? null : franchises.find((item) => item.id === franchise)?.count ?? null
-  const totalCount = franchiseCount ?? categoryCount
+  const folderCount = folder ? currentFolder?.count ?? null : null
+  const totalCount = folderCount ?? franchiseCount ?? categoryCount
   const searchLength = Array.from(search.trim()).length
   const searchPending = mode === 'live' && searchLength > 0 && searchLength < LIVE_SEARCH_MIN_LENGTH
-  const hasActiveFilters = Boolean(search.trim()) || category !== 'all' || franchise !== 'all'
+  const hasActiveFilters = Boolean(search.trim()) || category !== 'all' || franchise !== 'all' || Boolean(folder)
+  const folderBackPath = folder.includes('/') ? folder.split('/').slice(0, -1).join('/') : ''
 
   return {
     mode,
     apiHealthy,
     category,
     franchise,
+    folder,
+    folderBackPath,
+    folderLabel: currentFolder?.label ?? '',
     search,
     setCategory,
     setFranchise,
+    setFolder,
     setSearch,
     resetDiscovery,
     categories,
     franchises,
+    folders: mode === 'live' ? liveFolders : [],
     franchisesTruncated: mode === 'live' ? franchisesTruncated : demoFranchisesTruncated,
     models,
     selected,

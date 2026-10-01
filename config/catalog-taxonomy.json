@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "franchises": {
+    "animes-desenhos/as-tartarugas-ninja": {
+      "pathOverrides": {
+        "Destruidor": ["Vilões", "Destruidor"],
+        "Bebop": ["Vilões", "Bebop"],
+        "Rocksteady": ["Vilões", "Rocksteady"],
+        "Krang": ["Vilões", "Krang"],
+        "Armaggon": ["Vilões", "Armaggon"]
+      }
+    }
+  }
+}

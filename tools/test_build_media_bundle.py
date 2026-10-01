@@ -179,6 +179,33 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual({model["imageCount"] for model in models}, {1})
             self.assertEqual({model["displayName"] for model in models}, {"Androide 18 busto display", "Androide 18 traje azul"})
 
+    def test_explicit_taxonomy_override_creates_nested_villain_folder(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "OK - Animes & Desenhos [1]" / "OK - Clássicos [1]" / "OK - As Tartarugas Ninja [1]" / "OK - Destruidor [1]"
+            model_dir.mkdir(parents=True)
+            image_path = model_dir / "destruidor-01.jpg"
+            Image.new("RGB", (640, 960), "#223344").save(image_path)
+            hierarchy = "Animes & Desenhos / Clássicos / As Tartarugas Ninja / Destruidor"
+            row = {
+                "path": str(image_path.relative_to(source)), "size": image_path.stat().st_size,
+                "status": "OK", "canonical": True, "sha256": "e" * 64,
+                "width": 640, "height": 960, "quality_score": 70.0,
+                "model_key": hierarchy, "public_model_key": f"{hierarchy} / {image_path.stem}",
+            }
+            manifest = root / "manifest.jsonl"
+            manifest.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            output = root / "bundle"
+            build_bundle(source, manifest, output, include_original=False)
+            model = json.loads((output / "models.jsonl").read_text(encoding="utf-8"))
+            self.assertEqual(model["franchiseName"], "As Tartarugas Ninja")
+            self.assertEqual(model["folderPath"], ["Vilões", "Destruidor"])
+            self.assertEqual(model["folderPathKey"], "viloes/destruidor")
+            self.assertEqual(model["collection"], "Vilões / Destruidor")
+            self.assertIn("vilões", model["searchText"])
+            self.assertTrue(model["slug"].startswith("as-tartarugas-ninja-destruidor-01"))
+
     def test_include_original_is_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

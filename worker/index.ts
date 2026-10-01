@@ -37,6 +37,7 @@ type CatalogRow = {
   category: string
   category_slug: string
   collection: string | null
+  folder_path: string | null
   image_count: number
   cover_storage_key: string | null
 }
@@ -255,10 +256,72 @@ async function listFranchises(request: Request, env: Env) {
   return json(request, env, { items, truncated }, {}, cacheControl)
 }
 
+async function listFolders(request: Request, env: Env) {
+  const url = new URL(request.url)
+  const category = url.searchParams.get('category')?.trim() || ''
+  const franchise = url.searchParams.get('franchise')?.trim() || ''
+  const parent = url.searchParams.get('parent')?.trim() || ''
+  if (!category || !franchise) return json(request, env, { error: 'folder_scope_required' }, { status: 400 })
+  if (parent.length > 240) return json(request, env, { error: 'folder_path_too_long' }, { status: 400 })
+
+  const result = await env.DB.prepare(`WITH RECURSIVE roots AS (
+      SELECT cf.id,cf.path,cf.name
+      FROM catalog_folders cf
+      JOIN franchises f ON f.id=cf.franchise_id
+      JOIN categories c ON c.id=f.category_id
+      WHERE c.slug=? AND f.slug=? AND (
+        (?='' AND cf.parent_id IS NULL) OR
+        (?<>'' AND cf.parent_id=(SELECT p.id FROM catalog_folders p WHERE p.franchise_id=f.id AND p.path=? LIMIT 1))
+      )
+    ), subtree(root_id,id) AS (
+      SELECT id,id FROM roots
+      UNION ALL
+      SELECT subtree.root_id,child.id
+      FROM subtree JOIN catalog_folders child ON child.parent_id=subtree.id
+    )
+    SELECT r.path AS id,r.name AS label,COUNT(m.id) AS count,
+      EXISTS(SELECT 1 FROM catalog_folders child WHERE child.parent_id=r.id) AS has_children
+    FROM roots r
+    LEFT JOIN subtree s ON s.root_id=r.id
+    LEFT JOIN models m ON m.folder_id=s.id AND m.published=1
+    GROUP BY r.id,r.path,r.name
+    ORDER BY r.name COLLATE NOCASE,r.id`).bind(category, franchise, parent, parent, parent)
+    .all<{ id: string; label: string; count: number; has_children: number }>()
+
+  const current = parent ? await env.DB.prepare(`WITH RECURSIVE current_folder AS (
+      SELECT cf.id,cf.path,cf.name
+      FROM catalog_folders cf
+      JOIN franchises f ON f.id=cf.franchise_id
+      JOIN categories c ON c.id=f.category_id
+      WHERE c.slug=? AND f.slug=? AND cf.path=?
+    ), scope(id) AS (
+      SELECT id FROM current_folder
+      UNION ALL
+      SELECT child.id FROM catalog_folders child JOIN scope ON child.parent_id=scope.id
+    )
+    SELECT current_folder.path AS id,current_folder.name AS label,COUNT(m.id) AS count
+    FROM current_folder
+    LEFT JOIN scope ON 1=1
+    LEFT JOIN models m ON m.folder_id=scope.id AND m.published=1
+    GROUP BY current_folder.id,current_folder.path,current_folder.name`).bind(category, franchise, parent)
+    .first<{ id: string; label: string; count: number }>() : null
+
+  return json(request, env, {
+    current: current ? { id: current.id, label: current.label, count: Number(current.count || 0) } : null,
+    items: result.results.map((item) => ({
+      id: item.id,
+      label: item.label,
+      count: Number(item.count || 0),
+      hasChildren: Boolean(item.has_children),
+    })),
+  }, {}, 'public, max-age=300, s-maxage=1800')
+}
+
 async function listCatalog(request: Request, env: Env) {
   const url = new URL(request.url)
   const category = url.searchParams.get('category')?.trim() || null
   const franchise = url.searchParams.get('franchise')?.trim() || null
+  const folder = url.searchParams.get('folder')?.trim() || null
   const query = url.searchParams.get('q')?.trim().toLocaleLowerCase('pt-BR') || null
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '24', 10) || 24, 1, 60)
   const rawCursor = url.searchParams.get('cursor')
@@ -273,6 +336,21 @@ async function listCatalog(request: Request, env: Env) {
 
   const where = ['m.published = 1']
   const values: unknown[] = []
+  let folderCte = ''
+  if (folder) {
+    if (!category || !franchise) return json(request, env, { error: 'folder_scope_required' }, { status: 400 })
+    if (folder.length > 240) return json(request, env, { error: 'folder_path_too_long' }, { status: 400 })
+    folderCte = `WITH RECURSIVE folder_scope(id) AS (
+      SELECT cf.id FROM catalog_folders cf
+      JOIN franchises ff ON ff.id=cf.franchise_id
+      JOIN categories cc ON cc.id=ff.category_id
+      WHERE cc.slug=? AND ff.slug=? AND cf.path=?
+      UNION ALL
+      SELECT child.id FROM catalog_folders child JOIN folder_scope scope ON child.parent_id=scope.id
+    )`
+    values.push(category, franchise, folder)
+    where.push('m.folder_id IN (SELECT id FROM folder_scope)')
+  }
   if (category) { where.push('c.slug = ?'); values.push(category) }
   if (franchise) { where.push('f.slug = ?'); values.push(franchise) }
   if (query) { where.push('models_fts MATCH ?'); values.push(toFtsPhrase(query)) }
@@ -282,11 +360,12 @@ async function listCatalog(request: Request, env: Env) {
   }
 
   const searchJoin = query ? 'JOIN models_fts ON models_fts.model_id = m.id' : ''
-  const sql = `SELECT m.id,m.slug,m.code,m.name,m.collection,m.image_count,m.cover_storage_key,
+  const sql = `${folderCte} SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,m.image_count,m.cover_storage_key,
     f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m
     JOIN franchises f ON f.id=m.franchise_id
     JOIN categories c ON c.id=f.category_id
+    LEFT JOIN catalog_folders cf ON cf.id=m.folder_id
     ${searchJoin}
     WHERE ${where.join(' AND ')}
     ORDER BY m.name COLLATE NOCASE, m.id
@@ -304,8 +383,9 @@ async function listCatalog(request: Request, env: Env) {
 }
 
 async function getModel(request: Request, slug: string, env: Env) {
-  const model = await env.DB.prepare(`SELECT m.*,f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
+  const model = await env.DB.prepare(`SELECT m.*,cf.path AS folder_path,f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m JOIN franchises f ON f.id=m.franchise_id JOIN categories c ON c.id=f.category_id
+    LEFT JOIN catalog_folders cf ON cf.id=m.folder_id
     WHERE m.slug=? AND m.published=1 LIMIT 1`).bind(slug).first()
   return model
     ? json(request, env, model, {}, 'public, max-age=300, s-maxage=1800')
@@ -438,6 +518,7 @@ export default {
     const url = new URL(request.url)
     if (request.method === 'GET' && url.pathname === '/api/categories') return listCategories(request, env)
     if (request.method === 'GET' && url.pathname === '/api/franchises') return listFranchises(request, env)
+    if (request.method === 'GET' && url.pathname === '/api/folders') return listFolders(request, env)
     if (request.method === 'GET' && url.pathname === '/api/catalog') return listCatalog(request, env)
     const imageMatch = url.pathname.match(/^\/api\/models\/([^/]+)\/images$/)
     if (request.method === 'GET' && imageMatch) return listImages(request, decodeURIComponent(imageMatch[1]), env)
