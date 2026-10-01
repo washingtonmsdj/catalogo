@@ -42,6 +42,31 @@ def slugify(value: str) -> str:
     return slug or "modelo"
 
 
+GROUPING_FOLDERS = {
+    "Animes & Desenhos": {"Animes", "Clássicos", "Outros"},
+    "Marvel & DC": {"Marvel", "DC"},
+}
+
+
+def humanize_stem(value: str) -> str:
+    text = re.sub(r"[-_]+", " ", value).strip()
+    return text[:1].upper() + text[1:] if text else "Modelo"
+
+
+def franchise_index(hierarchy: list[str]) -> int:
+    if len(hierarchy) < 2:
+        return 0
+    category = hierarchy[0]
+    second = hierarchy[1]
+    if category in GROUPING_FOLDERS and second in GROUPING_FOLDERS[category] and len(hierarchy) > 2:
+        return 2
+    if category == "Filmes & Séries" and re.match(r"^\d{2}\s*-\s*", second) and len(hierarchy) > 2:
+        return 2
+    if category == "Games" and second == "00 - Fliperama" and len(hierarchy) > 2:
+        return 2
+    return 1
+
+
 def read_manifest(path: Path) -> list[dict]:
     with path.open("r", encoding="utf-8") as handle:
         return [json.loads(line) for line in handle if line.strip()]
@@ -72,21 +97,24 @@ def gallery_identity(payload: dict) -> tuple[str, int]:
     return digest, version
 
 
-def model_metadata(model_key: str, slug_collisions: Counter[str]) -> dict:
-    hierarchy = model_key.split(" / ")
-    model_id = stable_id("mdl", model_key)
+def model_metadata(identity_key: str, hierarchy_key: str, source_path: str, slug_collisions: Counter[str], audited_public: bool = False) -> dict:
+    hierarchy = hierarchy_key.split(" / ")
+    model_id = stable_id("mdl", identity_key)
     category_name = hierarchy[0] if hierarchy else "Outros"
-    franchise_name = hierarchy[1] if len(hierarchy) > 1 else category_name
-    display_name = hierarchy[-1] if hierarchy else model_key
-    collection = " / ".join(hierarchy[2:-1]) if len(hierarchy) > 3 else ""
+    franchise_pos = franchise_index(hierarchy)
+    franchise_name = hierarchy[franchise_pos] if hierarchy else category_name
+    source_stem = Path(source_path).stem
+    display_name = humanize_stem(source_stem) if audited_public else (hierarchy[-1] if hierarchy else humanize_stem(source_stem))
+    collection_parts = hierarchy[franchise_pos + 1:-1] if not audited_public else hierarchy[franchise_pos + 1:]
+    collection = " / ".join(collection_parts)
 
-    clean_parts = hierarchy[1:] if len(hierarchy) > 1 else hierarchy
+    clean_parts = [franchise_name, *collection_parts, display_name]
     base_slug = slugify(" ".join(clean_parts) or display_name)
     model_slug = base_slug
     if slug_collisions[base_slug] > 1:
         model_slug = f"{base_slug}-{model_id.split('_', 1)[1][:10]}"
 
-    code_hash = hashlib.sha256(model_key.encode("utf-8")).hexdigest()[:12].upper()
+    code_hash = hashlib.sha256(identity_key.encode("utf-8")).hexdigest()[:12].upper()
     code = f"TS-{code_hash}"
     search_text = " ".join(dict.fromkeys([*hierarchy, display_name, code])).casefold()
 
@@ -109,14 +137,20 @@ def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_o
     records = [row for row in read_manifest(manifest_path) if row.get("status") == "OK" and row.get("canonical") is True]
     by_model: dict[str, list[dict]] = defaultdict(list)
     for row in records:
-        by_model[str(row["model_key"])].append(row)
+        identity_key = str(row.get("public_model_key") or row["model_key"])
+        by_model[identity_key].append(row)
 
     model_keys = sorted(by_model, key=str.casefold)
     base_slugs = []
-    for model_key in model_keys:
-        hierarchy = model_key.split(" / ")
-        clean_parts = hierarchy[1:] if len(hierarchy) > 1 else hierarchy
-        base_slugs.append(slugify(" ".join(clean_parts) or hierarchy[-1]))
+    for identity_key in model_keys:
+        row = by_model[identity_key][0]
+        hierarchy = str(row["model_key"]).split(" / ")
+        franchise_pos = franchise_index(hierarchy)
+        franchise_name = hierarchy[franchise_pos] if hierarchy else "Outros"
+        audited_public = bool(row.get("public_model_key"))
+        collection_parts = hierarchy[franchise_pos + 1:] if audited_public else hierarchy[franchise_pos + 1:-1]
+        display_name = humanize_stem(Path(str(row["path"])).stem) if audited_public else (hierarchy[-1] if hierarchy else "Modelo")
+        base_slugs.append(slugify(" ".join([franchise_name, *collection_parts, display_name])))
     slug_collisions = Counter(base_slugs)
 
     r2_root = output / "r2"
@@ -126,9 +160,9 @@ def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_o
     variant_files = 0
 
     with model_index.open("w", encoding="utf-8") as index_handle:
-        for model_key in model_keys:
+        for identity_key in model_keys:
             rows = sorted(
-                by_model[model_key],
+                by_model[identity_key],
                 key=lambda row: (
                     float(row.get("quality_score") or 0),
                     int(row.get("width") or 0),
@@ -136,7 +170,7 @@ def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_o
                 ),
                 reverse=True,
             )
-            metadata = model_metadata(model_key, slug_collisions)
+            metadata = model_metadata(identity_key, str(rows[0]["model_key"]), str(rows[0]["path"]), slug_collisions, bool(rows[0].get("public_model_key")))
             model_id = metadata["id"]
             gallery_images = []
 

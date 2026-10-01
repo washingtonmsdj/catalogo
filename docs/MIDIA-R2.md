@@ -54,9 +54,15 @@ O manifesto da galeria é **content-addressed**: se a galeria não muda, a chave
 
 Slugs colidentes recebem um sufixo determinístico derivado do ID do modelo. Portanto dois personagens diferentes nunca disputam a mesma URL por acidente.
 
+### Catálogo auditado atual
+
+Quando a ingestão usa `--audit-registry`, cada linha do registro RV1 representa uma entrada pública individual. Nesse modo, duas imagens distintas na mesma pasta continuam sendo **dois modelos/versões públicos distintos**. A hierarquia da pasta continua servindo para categoria/franquia/coleção, mas não é usada sozinha como identidade do modelo.
+
+Exemplo: 17 imagens auditadas dentro de `Dragon Ball/Androides/Androide 18` resultam em 17 entradas públicas, não em uma galeria única de 17 imagens.
+
 ## IDs determinísticos
 
-O ID do modelo deriva da hierarquia completa, e o ID da imagem deriva do SHA-256. Portanto uma nova execução não gera IDs aleatórios para conteúdo que não mudou.
+O ID do modelo deriva de uma chave pública determinística. No modo de galeria legado, essa chave é a hierarquia do modelo; no catálogo auditado, ela inclui também a entrada pública representativa. O ID da imagem deriva do SHA-256. Portanto uma nova execução não gera IDs aleatórios para conteúdo que não mudou.
 
 ## Capa
 
@@ -96,6 +102,30 @@ python tools/publish_r2.py ".publish-bundle/r2" --verify-remote
 O modo `--verify-remote` é propositalmente opcional: em um acervo com milhões de arquivos, consultar cada objeto a cada execução seria caro e lento. O checkpoint local guarda tamanho, `mtime`, SHA-256 publicado e metadados HTTP; ele é salvo atomicamente durante a execução para permitir retomada após interrupção.
 
 O publicador grava o SHA-256 como metadata de cada objeto. Galerias content-addressed recebem cache `immutable`; variantes de mídia recebem cache longo, mas não `immutable`, permitindo futura evolução do renderizador sem deixar uma URL permanentemente presa a uma versão antiga.
+
+## Publicação do índice no D1
+
+`tools/publish_d1.py` valida `models.jsonl` e prepara upserts idempotentes para categorias, franquias e modelos.
+
+Sem `--apply`, o comando é somente leitura e imprime o plano:
+
+```bash
+python tools/publish_d1.py ".publish-bundle/models.jsonl"
+```
+
+Para aplicar em produção:
+
+```text
+CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_D1_DATABASE_ID=
+CLOUDFLARE_API_TOKEN=
+```
+
+```bash
+python tools/publish_d1.py ".publish-bundle/models.jsonl" --apply
+```
+
+Os statements são enviados em batches transacionais. O publicador não executa `DELETE`, não despublica itens ausentes e não tenta reconciliar remoções automaticamente; qualquer política destrutiva futura deverá ter fluxo e revisão próprios.
 
 ## Segurança e exclusões
 

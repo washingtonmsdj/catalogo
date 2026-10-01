@@ -51,10 +51,11 @@ class CatalogIngestTests(unittest.TestCase):
                 encoding="utf-8-sig",
             )
 
-            paths, hashes = load_audit_registry(root, registry)
+            paths, hashes, metadata = load_audit_registry(root, registry)
 
             self.assertEqual(paths, [image_path])
             self.assertEqual(hashes[str(image_path.relative_to(root))], digest)
+            self.assertEqual(metadata[str(image_path.relative_to(root))]["codigo"], "AUD-1")
 
     def test_audit_registry_rejects_operational_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
