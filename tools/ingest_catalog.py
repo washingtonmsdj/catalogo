@@ -227,6 +227,23 @@ def choose_canonical(records: list[ImageRecord]) -> ImageRecord:
     return max(records, key=lambda item: (item.quality_score or -1, item.width or 0, item.height or 0, item.size))
 
 
+def disambiguate_public_model_keys(records: list[ImageRecord]) -> None:
+    """Keep stable stem-based identities unless audited entries genuinely collide."""
+    by_key: dict[str, list[ImageRecord]] = defaultdict(list)
+    for record in records:
+        if record.public_model_key:
+            by_key[record.public_model_key].append(record)
+
+    for public_key, members in by_key.items():
+        if len(members) < 2:
+            continue
+        for record in members:
+            discriminator = record.audit_code or (record.sha256[:16] if record.sha256 else None)
+            if not discriminator:
+                raise RuntimeError(f"identidade pública ambígua sem discriminador auditado: {public_key}")
+            record.public_model_key = f"{public_key} / {discriminator}"
+
+
 def mark_duplicates(records: list[ImageRecord], visual_threshold: int) -> list[dict]:
     groups: list[dict] = []
     valid = [record for record in records if record.status == "OK" and record.sha256 and record.dhash]
@@ -429,6 +446,8 @@ def main() -> int:
             save_progress_manifest(args.output, records)
             print(f"CHECKPOINT={len(records)}", flush=True)
 
+    if args.audit_registry:
+        disambiguate_public_model_keys(records)
     groups = mark_duplicates(records, args.visual_threshold)
     write_outputs(args.output, records, groups)
     return 1 if any(record.status != "OK" for record in records) else 0
