@@ -5,7 +5,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
+import unicodedata
 import urllib.error
 import urllib.request
 from collections import Counter
@@ -22,9 +24,38 @@ CATEGORY_ORDER = {
 }
 REQUIRED = {
     "id", "slug", "code", "displayName", "categoryName", "categorySlug",
-    "franchiseName", "franchiseSlug", "collection", "searchText",
+    "franchiseName", "franchiseSlug", "collection", "folderPath", "folderPathKey", "searchText",
     "imageCount", "coverStorageKey", "galleryManifestKey", "galleryVersion",
 }
+
+
+def slugify(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    ascii_value = normalized.encode("ascii", "ignore").decode("ascii").lower()
+    return re.sub(r"[^a-z0-9]+", "-", ascii_value).strip("-") or "pasta"
+
+
+def folder_entries(rows: list[dict[str, Any]]) -> list[tuple[str, str, str, str, str, int]]:
+    entries: dict[tuple[str, str, str], tuple[str, str, str, str, str, int]] = {}
+    for row in rows:
+        names = row.get("folderPath")
+        if not isinstance(names, list) or not all(isinstance(item, str) and item.strip() for item in names):
+            raise RuntimeError(f"folderPath inválido no modelo {row['id']}")
+        slugs = [slugify(item) for item in names]
+        expected_key = "/".join(slugs)
+        if str(row.get("folderPathKey") or "") != expected_key:
+            raise RuntimeError(f"folderPathKey divergente no modelo {row['id']}")
+        for depth in range(1, len(names) + 1):
+            path = "/".join(slugs[:depth])
+            parent = "/".join(slugs[:depth - 1])
+            key = (str(row["categorySlug"]), str(row["franchiseSlug"]), path)
+            value = (str(row["categorySlug"]), str(row["franchiseSlug"]), parent, slugs[depth - 1], names[depth - 1].strip(), depth)
+            previous = entries.get(key)
+            if previous and previous != value:
+                raise RuntimeError(f"conflito de pasta pública: {key}")
+            entries[key] = value
+    return sorted(entries.values(), key=lambda item: (item[5], item[0], item[1], item[2], item[3]))
+
 def load_models(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as handle:
@@ -56,6 +87,7 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
             raise RuntimeError(f"taxonomia vazia no modelo {row['id']}")
         if int(row["imageCount"]) < 1:
             raise RuntimeError(f"modelo sem imagem publicável: {row['id']}")
+    folder_entries(rows)
 def build_statements(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     statements: list[dict[str, Any]] = []
     categories = {
@@ -84,23 +116,39 @@ SELECT id,?,? FROM categories WHERE slug=?
 ON CONFLICT(category_id,slug) DO UPDATE SET name=excluded.name""",
             "params": [slug, name, category_slug],
         })
+
+    for category_slug, franchise_slug, parent_path, folder_slug, folder_name, depth in folder_entries(rows):
+        path = "/".join([part for part in [parent_path, folder_slug] if part])
+        statements.append({
+            "sql": """INSERT INTO catalog_folders(franchise_id,parent_id,slug,name,path,depth,sort_order)
+SELECT f.id,
+  CASE WHEN ?='' THEN NULL ELSE (SELECT id FROM catalog_folders WHERE franchise_id=f.id AND path=?) END,
+  ?,?,?,?,0
+FROM franchises f JOIN categories c ON c.id=f.category_id
+WHERE c.slug=? AND f.slug=?
+ON CONFLICT(franchise_id,path) DO UPDATE SET
+parent_id=excluded.parent_id,slug=excluded.slug,name=excluded.name,depth=excluded.depth,sort_order=excluded.sort_order""",
+            "params": [parent_path, parent_path, folder_slug, folder_name, path, str(depth), category_slug, franchise_slug],
+        })
     for row in sorted(rows, key=lambda item: str(item["id"])):
         statements.append({
             "sql": """INSERT INTO models(
-id,franchise_id,slug,code,name,collection,image_count,cover_storage_key,
+id,franchise_id,folder_id,slug,code,name,collection,image_count,cover_storage_key,
 gallery_manifest_key,gallery_version,published,search_text,updated_at)
-SELECT ?,f.id,?,?,?,?,?,?,?,?,1,?,CURRENT_TIMESTAMP
+SELECT ?,f.id,
+  CASE WHEN ?='' THEN NULL ELSE (SELECT id FROM catalog_folders WHERE franchise_id=f.id AND path=?) END,
+  ?,?,?,?,?,?,?,?,1,?,CURRENT_TIMESTAMP
 FROM franchises f JOIN categories c ON c.id=f.category_id
 WHERE c.slug=? AND f.slug=?
 ON CONFLICT(id) DO UPDATE SET
-franchise_id=excluded.franchise_id,slug=excluded.slug,code=excluded.code,
+franchise_id=excluded.franchise_id,folder_id=excluded.folder_id,slug=excluded.slug,code=excluded.code,
 name=excluded.name,collection=excluded.collection,image_count=excluded.image_count,
 cover_storage_key=excluded.cover_storage_key,
 gallery_manifest_key=excluded.gallery_manifest_key,
 gallery_version=excluded.gallery_version,published=1,
 search_text=excluded.search_text,updated_at=CURRENT_TIMESTAMP""",
             "params": [
-                str(row["id"]), str(row["slug"]), str(row["code"]),
+                str(row["id"]), str(row["folderPathKey"] or ""), str(row["folderPathKey"] or ""), str(row["slug"]), str(row["code"]),
                 str(row["displayName"]), str(row["collection"] or ""),
                 str(int(row["imageCount"])), str(row["coverStorageKey"] or ""),
                 str(row["galleryManifestKey"] or ""),
@@ -164,6 +212,7 @@ def main() -> int:
             "models": len(rows),
             "categories": len({row["categorySlug"] for row in rows}),
             "franchises": len({(row["categorySlug"], row["franchiseSlug"]) for row in rows}),
+            "folders": len(folder_entries(rows)),
             "statements": len(statements),
             "apply": args.apply,
             "destructiveDeletes": 0,

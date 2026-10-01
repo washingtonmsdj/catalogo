@@ -45,6 +45,16 @@ A UI principal continua usando um recorte pequeno para a faixa superior. O naveg
 
 Consultas sem `q` recebem cache público mais longo. Buscas de franquia usam cache menor para equilibrar resposta rápida e atualização do acervo.
 
+## Pastas da franquia
+
+`GET /api/folders?category=animes-desenhos&franchise=as-tartarugas-ninja`
+
+A árvore de pastas é carregada sob demanda. `parent` recebe o caminho estável da pasta atual para listar somente seus filhos imediatos:
+
+`GET /api/folders?category=animes-desenhos&franchise=as-tartarugas-ninja&parent=viloes`
+
+A resposta inclui `current` com a contagem de toda a subárvore selecionada e `items` com os filhos, suas contagens recursivas e `hasChildren`. Pastas são taxonomia pública; não correspondem obrigatoriamente a movimentos físicos na origem auditada.
+
 ## Listagem
 
 `GET /api/catalog?category=games&franchise=resident-evil&q=jill&limit=24&cursor=...`
@@ -58,7 +68,9 @@ Resposta:
 }
 ```
 
-A paginação é por cursor/keyset, não por `OFFSET`. O card recebe somente os dados necessários para a seleção: id, slug, código, nome, categoria, franquia, coleção, quantidade de imagens e referência da capa.
+A paginação é por cursor/keyset, não por `OFFSET`. O card recebe somente os dados necessários para a seleção: id, slug, código, nome, categoria, franquia, caminho de pasta, coleção, quantidade de imagens e referência da capa.
+
+Quando `folder` é informado, `category` e `franchise` também são obrigatórios. O filtro inclui recursivamente a pasta escolhida e todos os seus descendentes; por exemplo, `folder=viloes` retorna todos os modelos dentro de `Vilões`, inclusive os que estão em `Vilões/Destruidor`, `Vilões/Bebop` etc.
 
 A busca pública usa o índice FTS e exige pelo menos 3 caracteres no modo LIVE. O frontend não dispara consultas de busca para termos menores.
 

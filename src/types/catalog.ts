@@ -11,6 +11,13 @@ export type CatalogFranchise = {
   category: string
 }
 
+export type CatalogFolder = {
+  id: string
+  label: string
+  count: number
+  hasChildren: boolean
+}
+
 export type CatalogImage = {
   id: string
   /** Variante leve usada na grade/miniatura da galeria. */
@@ -33,6 +40,7 @@ export type CatalogModel = {
   franchiseSlug?: string
   category: string
   collection: string
+  folderPath?: string
   material: string
   heightCm: number
   galleryCount: number

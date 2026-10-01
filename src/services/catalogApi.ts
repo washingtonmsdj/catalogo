@@ -1,4 +1,4 @@
-import type { CatalogCategory, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
+import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 import type { CatalogListQuery, CatalogModelCard, CursorPage, GalleryQuery } from './catalogRepository'
 
 export type CatalogRuntimeMode = 'demo' | 'live'
@@ -13,6 +13,7 @@ export type ApiCatalogRow = {
   category: string
   category_slug: string
   collection: string | null
+  folder_path: string | null
   image_count: number
   cover_storage_key: string | null
 }
@@ -51,6 +52,11 @@ export type GalleryPage = {
 export type FranchiseDiscoveryPage = {
   items: CatalogFranchise[]
   truncated: boolean
+}
+
+export type FolderDiscoveryPage = {
+  current: Pick<CatalogFolder, 'id' | 'label' | 'count'> | null
+  items: CatalogFolder[]
 }
 
 type GalleryCacheEntry = {
@@ -109,6 +115,14 @@ export async function listCatalogFranchises(category?: string, limit = 24, searc
   }))
 }
 
+export async function listCatalogFolders(category: string, franchise: string, parent?: string): Promise<FolderDiscoveryPage> {
+  return requestJson<FolderDiscoveryPage>(endpoint('/api/folders', {
+    category,
+    franchise,
+    parent: parent?.trim() || undefined,
+  }))
+}
+
 function mediaObjectUrl(key: string | null | undefined) {
   if (!key || !mediaBase) return undefined
   return `${mediaBase}/${key.split('/').map(encodeURIComponent).join('/')}`
@@ -124,6 +138,7 @@ export async function listCatalogModels(query: CatalogListQuery = {}): Promise<C
   const result = await requestJson<{ items: ApiCatalogRow[]; nextCursor: string | null }>(endpoint('/api/catalog', {
     category: query.category && query.category !== 'all' ? query.category : undefined,
     franchise: query.franchise && query.franchise !== 'all' ? query.franchise : undefined,
+    folder: query.folder?.trim() || undefined,
     q: liveSearchTerm(query.search),
     cursor: query.cursor,
     limit: query.limit,
@@ -139,6 +154,7 @@ export async function listCatalogModels(query: CatalogListQuery = {}): Promise<C
       franchiseSlug: row.franchise_slug,
       category: row.category_slug,
       collection: row.collection ?? '',
+      folderPath: row.folder_path ?? '',
       galleryCount: row.image_count,
       accent: '#c98a3d',
       coverUrl: mediaObjectUrl(row.cover_storage_key),
@@ -160,6 +176,7 @@ export async function getCatalogModel(slug: string): Promise<CatalogModel | null
       franchiseSlug: row.franchise_slug,
       category: row.category_slug,
       collection: row.collection ?? '',
+      folderPath: row.folder_path ?? '',
       material: row.material ?? 'Sob consulta',
       heightCm: row.height_cm ?? 0,
       galleryCount: row.image_count,

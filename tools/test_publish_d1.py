@@ -20,6 +20,8 @@ def model(model_id: str, slug: str, code: str, *, variant: str) -> dict:
         "franchiseName": "Dragon Ball",
         "franchiseSlug": "dragon-ball",
         "collection": "Androides / Androide 18",
+        "folderPath": ["Androides", "Androide 18"],
+        "folderPathKey": "androides/androide-18",
         "searchText": f"dragon ball {variant}".casefold(),
         "imageCount": 1,
         "coverStorageKey": f"media/{model_id}/card.webp",
@@ -37,9 +39,10 @@ class PublishD1Tests(unittest.TestCase):
 
         statements = build_statements(rows)
 
-        self.assertEqual(len(statements), 4)
+        self.assertEqual(len(statements), 6)
         self.assertIn("INSERT INTO categories", statements[0]["sql"])
         self.assertIn("INSERT INTO franchises", statements[1]["sql"])
+        self.assertEqual(sum("INSERT INTO catalog_folders" in item["sql"] for item in statements), 2)
         self.assertEqual(sum("INSERT INTO models" in item["sql"] for item in statements), 2)
         self.assertFalse(any("DELETE" in item["sql"].upper() for item in statements))
 
@@ -58,7 +61,7 @@ class PublishD1Tests(unittest.TestCase):
     def test_statements_apply_idempotently_against_catalog_schema(self) -> None:
         db = sqlite3.connect(':memory:')
         migrations = Path(__file__).resolve().parents[1] / 'migrations'
-        for name in ('0001_catalog.sql', '0002_keyset_pagination.sql', '0003_catalog_counts.sql'):
+        for name in ('0001_catalog.sql', '0002_keyset_pagination.sql', '0003_catalog_counts.sql', '0009_catalog_folders.sql'):
             db.executescript((migrations / name).read_text(encoding='utf-8'))
         rows = [
             model('mdl-1', 'android-18-a', 'TS-1', variant='Androide 18 A'),
@@ -70,6 +73,8 @@ class PublishD1Tests(unittest.TestCase):
                 for statement in statements:
                     db.execute(statement['sql'], statement['params'])
         self.assertEqual(db.execute('SELECT COUNT(*) FROM models').fetchone()[0], 2)
+        self.assertEqual(db.execute('SELECT COUNT(*) FROM catalog_folders').fetchone()[0], 2)
+        self.assertEqual(db.execute('SELECT COUNT(*) FROM models WHERE folder_id IS NOT NULL').fetchone()[0], 2)
         self.assertEqual(db.execute('SELECT model_count FROM franchises').fetchone()[0], 2)
         self.assertEqual(db.execute('SELECT model_count FROM categories').fetchone()[0], 2)
 

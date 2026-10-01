@@ -49,6 +49,47 @@
 .scope-strip__franchises button:hover { border-color: #6d5732; color: #e5dfd1; }
 .scope-strip__franchises button.is-active { background: var(--accent); border-color: var(--accent); color: #17130b; }
 
+
+.scope-strip__folders {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-top: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.scope-strip__folders > span,
+.scope-strip__folders > strong {
+  flex: 0 0 auto;
+  padding: 0 6px;
+  color: #737b80;
+  font: 800 9px/1 "Courier New", monospace;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+}
+.scope-strip__folders > strong { color: var(--accent); }
+.scope-strip__folders button {
+  flex: 0 0 auto;
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid #2d3438;
+  background: #0f1315;
+  color: #9da3a5;
+  cursor: pointer;
+  font: 800 9px/1 "Courier New", monospace;
+  text-transform: uppercase;
+}
+.scope-strip__folders button:hover { border-color: #6d5732; color: #e5dfd1; }
+.scope-strip__folders button b { color: var(--accent); }
+.scope-strip__folders button small { color: #626b70; font-size: 9px; }
+.scope-strip__folders .scope-strip__back { border-color: #51452f; color: #c7ad7b; }
+
 .share-action {
   width: 100%;
   min-height: 42px;
@@ -78,5 +119,7 @@
   .scope-strip__path { overflow-x: auto; }
   .scope-strip__franchises { padding: 7px; }
   .scope-strip__franchises button { min-height: 32px; padding: 0 10px; font-size: 9px; }
+  .scope-strip__folders { padding: 6px 7px; }
+  .scope-strip__folders button { min-height: 29px; padding: 0 9px; }
   .gallery-footer--paged { align-items: flex-start; flex-direction: column; }
 }

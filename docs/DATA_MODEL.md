@@ -19,14 +19,26 @@ O catálogo não trata imagem como produto. O produto/modelo é a entidade princ
 - `name`
 - `category_id`
 
+### catalog_folders
+- `id`
+- `franchise_id`
+- `parent_id` opcional
+- `slug`
+- `name`
+- `path` estável dentro da franquia
+- `depth`
+- `sort_order`
+
+A árvore usa relação pai/filho e é independente da árvore física do acervo mestre. Isso permite organizar a navegação (`Vilões/Destruidor`, por exemplo) sem mover arquivos auditados.
+
 ### models
 - `id`
 - `slug`
 - `code`
 - `name`
 - `franchise_id`
-- `category_id`
-- `collection`
+- `folder_id` opcional
+- `collection` (rótulo/caminho público derivado)
 - `material`
 - `height_cm`
 - `description`
@@ -63,7 +75,9 @@ Usar cursor em vez de `offset` para grandes volumes. O contrato inicial limita c
 
 Fluxo recomendado:
 
-`Categoria -> Franquia -> Modelo -> Galeria paginada`
+`Categoria -> Franquia -> Pasta(s) opcional(is) -> Modelo -> Galeria paginada`
+
+A pasta é um filtro hierárquico: selecionar um nó pai inclui os modelos de todos os descendentes. Franquias pequenas podem não precisar de agrupadores extras; franquias grandes podem introduzir grupos como `Vilões`, `Dioramas` ou outras divisões explícitas sem mudar o contrato geral.
 
 ## Índices previstos
 

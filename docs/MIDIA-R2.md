@@ -60,6 +60,12 @@ Quando a ingestão usa `--audit-registry`, cada linha do registro RV1 representa
 
 Exemplo: 17 imagens auditadas dentro de `Dragon Ball/Androides/Androide 18` resultam em 17 entradas públicas, não em uma galeria única de 17 imagens.
 
+### Taxonomia pública sem mover a origem
+
+`config/catalog-taxonomy.json` permite reorganizar a navegação pública sem renomear ou mover a árvore auditada no Drive. As regras são explícitas por franquia e caminho; não existe classificação automática baseada apenas no nome do personagem.
+
+O bundle grava `folderPath` e `folderPathKey` em cada modelo. Por exemplo, a origem `As Tartarugas Ninja/Destruidor` pode continuar intacta enquanto a navegação web publica `Vilões/Destruidor`. Alterar essa pasta pública não altera o ID do modelo nem exige reescrever o arquivo mestre.
+
 ## IDs determinísticos
 
 O ID do modelo deriva de uma chave pública determinística. No modo de galeria legado, essa chave é a hierarquia do modelo; no catálogo auditado, ela inclui também a entrada pública representativa. O ID da imagem deriva do SHA-256. Portanto uma nova execução não gera IDs aleatórios para conteúdo que não mudou.
@@ -105,7 +111,7 @@ O publicador grava o SHA-256 como metadata de cada objeto. Galerias content-addr
 
 ## Publicação do índice no D1
 
-`tools/publish_d1.py` valida `models.jsonl` e prepara upserts idempotentes para categorias, franquias e modelos.
+`tools/publish_d1.py` valida `models.jsonl` e prepara upserts idempotentes para categorias, franquias, árvore de pastas e modelos. Nós pais são publicados antes dos filhos e os modelos recebem `folder_id` somente após a pasta existir.
 
 Sem `--apply`, o comando é somente leitura e imprime o plano:
 
