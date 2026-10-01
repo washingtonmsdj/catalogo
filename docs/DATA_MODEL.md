@@ -79,6 +79,8 @@ Fluxo recomendado:
 
 A pasta é um filtro hierárquico: selecionar um nó pai inclui os modelos de todos os descendentes. Franquias pequenas podem não precisar de agrupadores extras; franquias grandes podem introduzir grupos como `Vilões`, `Dioramas` ou outras divisões explícitas sem mudar o contrato geral.
 
+Exemplo canônico: em `As Tartarugas Ninja`, heróis/aliados como `Leonardo`, `Raphael`, `Donatello`, `Michelangelo`, `Splinter`, `April O'Neil` e `Casey Jones` permanecem como pastas diretamente na raiz da franquia; vilões explicitamente revisados podem ser apresentados em `Vilões/<Personagem>`. A árvore pública é configurável e não move o acervo auditado. Personagens ambíguos não são classificados por heurística: permanecem no caminho de origem até existir decisão explícita no arquivo de taxonomia.
+
 ## Índices previstos
 
 - `models(category_id, name)`
