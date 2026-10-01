@@ -19,6 +19,7 @@ import shutil
 import sys
 import unicodedata
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from PIL import Image, ImageOps
@@ -95,14 +96,27 @@ def read_manifest(path: Path) -> list[dict]:
         return [json.loads(line) for line in handle if line.strip()]
 
 
-def render_variant(source: Path, destination: Path, max_side: int, quality: int) -> tuple[int, int, int]:
-    destination.parent.mkdir(parents=True, exist_ok=True)
+def render_variants(source: Path, r2_root: Path, base_key: str) -> tuple[dict[str, str], dict[str, dict]]:
+    variants: dict[str, str] = {}
+    variant_meta: dict[str, dict] = {}
     with Image.open(source) as opened:
-        image = ImageOps.exif_transpose(opened).convert("RGB")
-        image.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
-        width, height = image.size
-        image.save(destination, "WEBP", quality=quality, method=6, optimize=True)
-    return width, height, destination.stat().st_size
+        base_image = ImageOps.exif_transpose(opened).convert("RGB")
+        for variant, (max_side, quality) in VARIANTS.items():
+            key = f"{base_key}/{variant}.webp"
+            destination = r2_root / key
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            image = base_image.copy()
+            image.thumbnail((max_side, max_side), Image.Resampling.LANCZOS)
+            width, height = image.size
+            image.save(destination, "WEBP", quality=quality, method=6, optimize=True)
+            variants[variant] = key
+            variant_meta[variant] = {
+                "width": width,
+                "height": height,
+                "bytes": destination.stat().st_size,
+                "mime": "image/webp",
+            }
+    return variants, variant_meta
 
 
 def copy_original(source: Path, destination: Path) -> int:
@@ -161,7 +175,103 @@ def model_metadata(identity_key: str, hierarchy_key: str, source_path: str, slug
     }
 
 
-def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_original: bool, taxonomy_config: Path | None = None) -> dict:
+def build_model_bundle(
+    identity_key: str,
+    rows: list[dict],
+    source_root: Path,
+    r2_root: Path,
+    slug_collisions: Counter[str],
+    taxonomy: dict,
+    include_original: bool,
+) -> tuple[dict, int, int]:
+    rows = sorted(
+        rows,
+        key=lambda row: (
+            float(row.get("quality_score") or 0),
+            int(row.get("width") or 0),
+            int(row.get("height") or 0),
+        ),
+        reverse=True,
+    )
+    metadata = model_metadata(
+        identity_key,
+        str(rows[0]["model_key"]),
+        str(rows[0]["path"]),
+        slug_collisions,
+        taxonomy,
+        bool(rows[0].get("public_model_key")),
+    )
+    model_id = metadata["id"]
+    gallery_images = []
+    variant_files = 0
+
+    for position, row in enumerate(rows):
+        source = source_root / str(row["path"])
+        if not source.is_file():
+            raise FileNotFoundError(f"imagem ausente: {source}")
+        sha = str(row["sha256"])
+        image_id = stable_id("img", sha)
+        base_key = f"media/{model_id}/{image_id}"
+        variants, variant_meta = render_variants(source, r2_root, base_key)
+        variant_files += len(variants)
+
+        if include_original:
+            suffix = source.suffix.lower() or ".bin"
+            key = f"{base_key}/original{suffix}"
+            byte_count = copy_original(source, r2_root / key)
+            variants["original"] = key
+            variant_meta["original"] = {
+                "width": row.get("width"),
+                "height": row.get("height"),
+                "bytes": byte_count,
+                "mime": f"image/{suffix.lstrip('.').replace('jpg', 'jpeg')}",
+            }
+            variant_files += 1
+
+        gallery_images.append({
+            "id": image_id,
+            "role": "cover" if position == 0 else "gallery",
+            "width": row.get("width"),
+            "height": row.get("height"),
+            "bytes": row.get("size"),
+            "mime": f"image/{source.suffix.lower().lstrip('.').replace('jpg', 'jpeg')}",
+            "qualityScore": row.get("quality_score"),
+            "sourceSha256": sha,
+            "variantKeys": variants,
+            "variants": variant_meta,
+        })
+
+    identity_payload = {
+        "modelId": model_id,
+        "sourceHierarchy": metadata["sourceHierarchy"],
+        "images": gallery_images,
+    }
+    gallery_digest, gallery_version = gallery_identity(identity_payload)
+    gallery_key = f"gallery/{model_id}/{gallery_digest[:24]}.json"
+    gallery = {
+        "version": gallery_version,
+        **identity_payload,
+        "generatedBy": "tools/build_media_bundle.py",
+    }
+    gallery_path = r2_root / gallery_key
+    gallery_path.parent.mkdir(parents=True, exist_ok=True)
+    gallery_path.write_text(
+        json.dumps(gallery, ensure_ascii=False, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+
+    cover_key = gallery_images[0]["variantKeys"]["card"] if gallery_images else None
+    model_entry = {
+        **metadata,
+        "imageCount": len(gallery_images),
+        "coverStorageKey": cover_key,
+        "galleryManifestKey": gallery_key,
+        "galleryVersion": gallery_version,
+    }
+    return model_entry, len(gallery_images), variant_files
+
+
+def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_original: bool, taxonomy_config: Path | None = None, workers: int = 4) -> dict:
     taxonomy = load_taxonomy_config(taxonomy_config)
     records = [row for row in read_manifest(manifest_path) if row.get("status") == "OK" and row.get("canonical") is True]
     by_model: dict[str, list[dict]] = defaultdict(list)
@@ -193,97 +303,26 @@ def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_o
     published_images = 0
     variant_files = 0
 
+    if workers < 1 or workers > 16:
+        raise ValueError("workers deve ficar entre 1 e 16")
+
+    def build_one(identity_key: str) -> tuple[dict, int, int]:
+        return build_model_bundle(
+            identity_key=identity_key,
+            rows=by_model[identity_key],
+            source_root=source_root,
+            r2_root=r2_root,
+            slug_collisions=slug_collisions,
+            taxonomy=taxonomy,
+            include_original=include_original,
+        )
+
     with model_index.open("w", encoding="utf-8") as index_handle:
-        for identity_key in model_keys:
-            rows = sorted(
-                by_model[identity_key],
-                key=lambda row: (
-                    float(row.get("quality_score") or 0),
-                    int(row.get("width") or 0),
-                    int(row.get("height") or 0),
-                ),
-                reverse=True,
-            )
-            metadata = model_metadata(identity_key, str(rows[0]["model_key"]), str(rows[0]["path"]), slug_collisions, taxonomy, bool(rows[0].get("public_model_key")))
-            model_id = metadata["id"]
-            gallery_images = []
-
-            for position, row in enumerate(rows):
-                source = source_root / str(row["path"])
-                if not source.is_file():
-                    raise FileNotFoundError(f"imagem ausente: {source}")
-                sha = str(row["sha256"])
-                image_id = stable_id("img", sha)
-                base_key = f"media/{model_id}/{image_id}"
-                variants: dict[str, str] = {}
-                variant_meta: dict[str, dict] = {}
-
-                for variant, (max_side, quality) in VARIANTS.items():
-                    key = f"{base_key}/{variant}.webp"
-                    width, height, byte_count = render_variant(source, r2_root / key, max_side, quality)
-                    variants[variant] = key
-                    variant_meta[variant] = {
-                        "width": width,
-                        "height": height,
-                        "bytes": byte_count,
-                        "mime": "image/webp",
-                    }
-                    variant_files += 1
-
-                if include_original:
-                    suffix = source.suffix.lower() or ".bin"
-                    key = f"{base_key}/original{suffix}"
-                    byte_count = copy_original(source, r2_root / key)
-                    variants["original"] = key
-                    variant_meta["original"] = {
-                        "width": row.get("width"),
-                        "height": row.get("height"),
-                        "bytes": byte_count,
-                        "mime": f"image/{suffix.lstrip('.').replace('jpg', 'jpeg')}",
-                    }
-                    variant_files += 1
-
-                gallery_images.append({
-                    "id": image_id,
-                    "role": "cover" if position == 0 else "gallery",
-                    "width": row.get("width"),
-                    "height": row.get("height"),
-                    "bytes": row.get("size"),
-                    "mime": f"image/{source.suffix.lower().lstrip('.').replace('jpg', 'jpeg')}",
-                    "qualityScore": row.get("quality_score"),
-                    "sourceSha256": sha,
-                    "variantKeys": variants,
-                    "variants": variant_meta,
-                })
-                published_images += 1
-
-            identity_payload = {
-                "modelId": model_id,
-                "sourceHierarchy": metadata["sourceHierarchy"],
-                "images": gallery_images,
-            }
-            gallery_digest, gallery_version = gallery_identity(identity_payload)
-            gallery_key = f"gallery/{model_id}/{gallery_digest[:24]}.json"
-            gallery = {
-                "version": gallery_version,
-                **identity_payload,
-                "generatedBy": "tools/build_media_bundle.py",
-            }
-            gallery_path = r2_root / gallery_key
-            gallery_path.parent.mkdir(parents=True, exist_ok=True)
-            gallery_path.write_text(
-                json.dumps(gallery, ensure_ascii=False, separators=(",", ":")) + "\n",
-                encoding="utf-8",
-            )
-
-            cover_key = gallery_images[0]["variantKeys"]["card"] if gallery_images else None
-            index_handle.write(json.dumps({
-                **metadata,
-                "imageCount": len(gallery_images),
-                "coverStorageKey": cover_key,
-                "galleryManifestKey": gallery_key,
-                "galleryVersion": gallery_version,
-            }, ensure_ascii=False) + "\n")
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="media-build") as executor:
+            for model_entry, image_count, model_variant_files in executor.map(build_one, model_keys):
+                index_handle.write(json.dumps(model_entry, ensure_ascii=False) + "\n")
+                published_images += image_count
+                variant_files += model_variant_files
 
     summary = {
         "models": len(by_model),
@@ -307,6 +346,7 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=Path(".publish-bundle"))
     parser.add_argument("--include-original", action="store_true", help="inclui cópia do original no bundle R2")
     parser.add_argument("--taxonomy-config", type=Path, default=DEFAULT_TAXONOMY_CONFIG, help="regras explícitas de pastas públicas")
+    parser.add_argument("--workers", type=int, default=4, help="modelos processados em paralelo; padrão: 4")
     args = parser.parse_args()
 
     if not args.source.is_dir():
@@ -314,7 +354,7 @@ def main() -> int:
     if not args.manifest.is_file():
         parser.error(f"manifesto não encontrado: {args.manifest}")
 
-    summary = build_bundle(source_root=args.source.resolve(), manifest_path=args.manifest.resolve(), output=args.output.resolve(), include_original=args.include_original, taxonomy_config=args.taxonomy_config.resolve())
+    summary = build_bundle(source_root=args.source.resolve(), manifest_path=args.manifest.resolve(), output=args.output.resolve(), include_original=args.include_original, taxonomy_config=args.taxonomy_config.resolve(), workers=args.workers)
     print(json.dumps(summary, ensure_ascii=False))
     return 0
 

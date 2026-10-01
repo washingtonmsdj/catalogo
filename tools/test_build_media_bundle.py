@@ -230,6 +230,35 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(model["folderPathKey"], "leonardo")
             self.assertEqual(model["collection"], "Leonardo")
 
+    def test_parallel_workers_keep_deterministic_model_index(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            rows = []
+            for index, hero in enumerate(("Heroi A", "Heroi B"), 1):
+                model_dir = source / "Games" / "Saga" / hero
+                model_dir.mkdir(parents=True)
+                image_path = model_dir / "vista.png"
+                Image.new("RGB", (640, 960), f"#{index}{index}3344").save(image_path)
+                rows.append({
+                    "path": str(image_path.relative_to(source)), "size": image_path.stat().st_size,
+                    "status": "OK", "canonical": True, "sha256": str(index) * 64,
+                    "width": 640, "height": 960, "quality_score": 70.0,
+                    "model_key": f"Games / Saga / {hero}",
+                })
+            manifest = root / "manifest.jsonl"
+            manifest.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+            output_single = root / "single"
+            output_parallel = root / "parallel"
+            build_bundle(source, manifest, output_single, include_original=False, workers=1)
+            build_bundle(source, manifest, output_parallel, include_original=False, workers=3)
+
+            self.assertEqual(
+                (output_single / "models.jsonl").read_text(encoding="utf-8"),
+                (output_parallel / "models.jsonl").read_text(encoding="utf-8"),
+            )
+
     def test_include_original_is_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
