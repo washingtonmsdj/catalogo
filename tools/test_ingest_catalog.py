@@ -46,8 +46,8 @@ class CatalogIngestTests(unittest.TestCase):
             digest = hashlib.sha256(image_path.read_bytes()).hexdigest()
             registry = root / "audit.csv"
             registry.write_text(
-                "codigo,sha256,caminho,status\\n"
-                f"AUD-1,{digest},OK - Games [1]\\\\OK - Saga [1]\\\\hero.png,OK_VISUAL|RV1\\n",
+                "codigo,sha256,caminho,status\n"
+                f"AUD-1,{digest},OK - Games [1]\\OK - Saga [1]\\hero.png,OK_VISUAL|RV1\n",
                 encoding="utf-8-sig",
             )
 
@@ -65,9 +65,9 @@ class CatalogIngestTests(unittest.TestCase):
             Image.new("RGB", (64, 64), "white").save(image_path)
             registry = root / "audit.csv"
             registry.write_text(
-                "sha256,caminho\\n"
+                "sha256,caminho\n"
                 + ("0" * 64)
-                + ",99 - LOTES CONSOLIDADOS\\\\duplicate.png\\n",
+                + ",99 - LOTES CONSOLIDADOS\\duplicate.png\n",
                 encoding="utf-8-sig",
             )
 
