@@ -104,3 +104,28 @@ O publicador grava o SHA-256 como metadata de cada objeto. Galerias content-addr
 - Credenciais R2 nunca entram no repositório.
 - Gere credenciais S3 com acesso somente ao bucket do catálogo quando possível.
 - `.publish-bundle/` é ignorado pelo Git e nunca deve ser commitado.
+
+
+## Publicar metadados no D1
+
+Depois de gerar o bundle e antes de expor uma nova revisão do acervo, valide o índice:
+
+```bash
+python tools/publish_d1.py ".publish-bundle/models.jsonl" --dry-run
+```
+
+A publicação real exige:
+
+```text
+CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_D1_DATABASE_ID=
+CLOUDFLARE_API_TOKEN=
+```
+
+E executa:
+
+```bash
+python tools/publish_d1.py ".publish-bundle/models.jsonl"
+```
+
+O publicador é idempotente e trabalha em lotes: primeiro categorias, depois franquias e por fim modelos. Ele atualiza modelos já conhecidos e marca os enviados como publicados, mas **não apaga nem despublica automaticamente** registros ausentes do lote. Remoção/despublicação deve permanecer uma operação explícita e auditável.
