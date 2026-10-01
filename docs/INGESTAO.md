@@ -10,7 +10,7 @@ Transformar a árvore de pastas auditada em um manifesto técnico reutilizável 
 python tools/ingest_catalog.py "G:\Meu Drive\Catalogo" --output ".catalog-ingest"
 ```
 
-Na primeira execução cada imagem é aberta e analisada. Nas execuções seguintes, arquivos cujo caminho, tamanho e `mtime_ns` não mudaram são reaproveitados do checkpoint.
+Na primeira execução cada imagem elegível é aberta e analisada. Nas execuções seguintes, arquivos cujo caminho, tamanho e `mtime_ns` não mudaram são reaproveitados do checkpoint.\n\n### Fronteira de publicação\n\nA raiz real também contém pastas operacionais de auditoria. Por segurança, a ingestão pública é **fail-closed**: somente diretórios de primeiro nível com prefixo `OK - ` entram no manifesto. Pastas como `00 - ESTATISTICAS...`, `Novos` e `99 - LOTES CONSOLIDADOS` ficam fora mesmo que contenham imagens. Se nenhuma categoria auditada existir, o processo falha em vez de publicar conteúdo auxiliar.
 
 ## Saídas
 
