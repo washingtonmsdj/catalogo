@@ -6,7 +6,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from ingest_catalog import analyze, clean_folder, discover_catalog_roots, hamming, iter_images, load_audit_registry, mark_duplicates, save_progress_manifest
+from ingest_catalog import analyze, clean_folder, discover_catalog_roots, disambiguate_public_model_keys, hamming, iter_images, load_audit_registry, mark_duplicates, save_progress_manifest
 
 
 class CatalogIngestTests(unittest.TestCase):
@@ -115,6 +115,26 @@ class CatalogIngestTests(unittest.TestCase):
             self.assertEqual(len(record.sha256 or ""), 64)
             self.assertEqual(len(record.dhash or ""), 16)
             self.assertIsNotNone(record.quality_score)
+
+    def test_audited_same_stem_models_are_disambiguated_only_on_collision(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "OK - Animes [2]" / "OK - Dragon Ball [2]" / "OK - Goku [2]"
+            target.mkdir(parents=True)
+            first = target / "legacy-goku-(1).jpg"
+            second = target / "legacy-goku-(1).png"
+            Image.new("RGB", (320, 480), "#223344").save(first)
+            Image.new("RGB", (320, 480), "#334455").save(second)
+            records = [analyze(root, first), analyze(root, second)]
+            for index, record in enumerate(records, 1):
+                record.public_model_key = f"{record.model_key} / legacy-goku-(1)"
+                record.audit_code = f"AUD-{index}"
+
+            disambiguate_public_model_keys(records)
+
+            self.assertEqual(len({record.public_model_key for record in records}), 2)
+            self.assertTrue(records[0].public_model_key.endswith("/ AUD-1"))
+            self.assertTrue(records[1].public_model_key.endswith("/ AUD-2"))
 
     def test_exact_duplicates_are_grouped_without_deleting_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
