@@ -10,6 +10,8 @@ python tools/build_media_bundle.py "/caminho/do/catalogo" ".catalog-ingest/manif
 
 A geração mantém `media-build-state.json` no diretório de saída. Cada modelo concluído recebe um fingerprint que inclui SHA/metadados da origem, variantes, opção de original e a regra de taxonomia relevante. Em nova execução, o modelo só é reutilizado se o fingerprint coincidir **e** galeria/capa/variantes ainda existirem e forem legíveis. Isso permite retomar após queda de Drive ou interrupção sem aceitar saída parcial como válida.
 
+O diretório de saída aceita apenas **um gerador por vez**: `.media-build.lock` usa lock do sistema operacional e falha imediatamente se outro processo tentar gerar o mesmo bundle. O checkpoint continua sendo gravado por troca atômica; locks de leitura transitórios do Windows têm retry limitado, enquanto um lock persistente continua abortando a execução em modo fail-closed.
+
 Para forçar uma recomposição completa, ignorando o checkpoint:
 
 ```bash
