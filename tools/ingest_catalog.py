@@ -45,6 +45,9 @@ class ImageRecord:
     category: str | None
     franchise: str | None
     model_key: str
+    public_model_key: str | None = None
+    audit_code: str | None = None
+    identification: str | None = None
     duplicate_group: str | None = None
     canonical: bool = True
 
@@ -83,7 +86,7 @@ def iter_images(root: Path) -> Iterable[Path]:
                 yield path
 
 
-def load_audit_registry(root: Path, registry: Path) -> tuple[list[Path], dict[str, str]]:
+def load_audit_registry(root: Path, registry: Path) -> tuple[list[Path], dict[str, str], dict[str, dict[str, str]]]:
     """Load the audited source-of-truth list without recursively crawling Drive.
 
     Every row must point under an audited top-level category. Duplicate
@@ -93,6 +96,7 @@ def load_audit_registry(root: Path, registry: Path) -> tuple[list[Path], dict[st
     """
     paths: list[Path] = []
     expected_hashes: dict[str, str] = {}
+    metadata: dict[str, dict[str, str]] = {}
     seen: set[str] = set()
 
     with registry.open("r", encoding="utf-8-sig", newline="") as handle:
@@ -125,10 +129,14 @@ def load_audit_registry(root: Path, registry: Path) -> tuple[list[Path], dict[st
             canonical_rel = str(path.relative_to(root))
             paths.append(path)
             expected_hashes[canonical_rel] = digest
+            metadata[canonical_rel] = {
+                "codigo": (row.get("codigo") or "").strip(),
+                "identificacao": (row.get("identificacao") or "").strip(),
+            }
 
     if not paths:
         raise RuntimeError(f"registro de auditoria vazio: {registry}")
-    return paths, expected_hashes
+    return paths, expected_hashes, metadata
 
 
 def sha256_file(path: Path) -> str:
@@ -141,7 +149,7 @@ def sha256_file(path: Path) -> str:
 
 def dhash_image(image: Image.Image) -> str:
     sample = ImageOps.grayscale(image).resize((9, 8), Image.Resampling.LANCZOS)
-    pixels = list(sample.getdata())
+    pixels = sample.tobytes()
     value = 0
     bit = 0
     for row in range(8):
@@ -228,7 +236,7 @@ def mark_duplicates(records: list[ImageRecord], visual_threshold: int) -> list[d
     # diorama). Removing it globally would make one model lose its image.
     exact: dict[tuple[str, str], list[ImageRecord]] = defaultdict(list)
     for record in valid:
-        exact[(record.model_key, record.sha256 or "")].append(record)
+        exact[(record.public_model_key or record.model_key, record.sha256 or "")].append(record)
     exact_counter = 0
     for (model_key, digest), members in exact.items():
         if len(members) < 2:
@@ -253,7 +261,7 @@ def mark_duplicates(records: list[ImageRecord], visual_threshold: int) -> list[d
     by_model: dict[str, list[ImageRecord]] = defaultdict(list)
     for record in valid:
         if not record.duplicate_group:
-            by_model[record.model_key].append(record)
+            by_model[record.public_model_key or record.model_key].append(record)
 
     visual_counter = 0
     for model_key, members in by_model.items():
@@ -337,7 +345,7 @@ def write_outputs(output: Path, records: list[ImageRecord], groups: list[dict]) 
         "duplicate_groups": len(groups),
         "duplicate_members": sum(len(group["members"]) for group in groups),
         "canonical_images": sum(record.status == "OK" and record.canonical for record in records),
-        "models_detected": len({record.model_key for record in records}),
+        "models_detected": len({record.public_model_key or record.model_key for record in records}),
     }
     (output / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False))
@@ -374,12 +382,13 @@ def main() -> int:
     old = {} if args.no_resume else load_checkpoint(args.output / "manifest.jsonl")
     records: list[ImageRecord] = []
     expected_hashes: dict[str, str] = {}
+    audit_metadata: dict[str, dict[str, str]] = {}
     if args.audit_registry:
         registry = args.audit_registry.resolve()
         if not registry.is_file():
             parser.error(f"registro de auditoria não encontrado: {registry}")
         try:
-            paths, expected_hashes = load_audit_registry(root, registry)
+            paths, expected_hashes, audit_metadata = load_audit_registry(root, registry)
         except RuntimeError as exc:
             parser.error(str(exc))
         paths = sorted(paths, key=lambda item: str(item).casefold())
@@ -404,6 +413,11 @@ def main() -> int:
         else:
             print(f"PROGRESSO={index}/{len(paths)} {rel}", flush=True)
             record = analyze(root, path)
+        if args.audit_registry:
+            meta = audit_metadata.get(rel, {})
+            record.public_model_key = f"{record.model_key} / {path.stem}"
+            record.audit_code = meta.get("codigo") or None
+            record.identification = meta.get("identificacao") or None
         expected_sha = expected_hashes.get(rel)
         if expected_sha and record.sha256 != expected_sha:
             raise RuntimeError(

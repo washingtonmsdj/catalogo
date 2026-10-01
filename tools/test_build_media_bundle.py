@@ -148,6 +148,37 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(len({model["slug"] for model in models}), 2)
             self.assertTrue(all(model["slug"].startswith("saga-a-heroi-") for model in models))
 
+    def test_audited_public_entries_remain_distinct_models(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "OK - Animes & Desenhos [2]" / "OK - Animes [2]" / "OK - Dragon Ball [2]" / "OK - Androide 18 [2]"
+            model_dir.mkdir(parents=True)
+            first = model_dir / "androide-18-busto-display.webp"
+            second = model_dir / "androide-18-traje-azul.webp"
+            Image.new("RGB", (640, 960), "#223344").save(first, "WEBP")
+            Image.new("RGB", (640, 960), "#334455").save(second, "WEBP")
+            rows = []
+            hierarchy = "Animes & Desenhos / Animes / Dragon Ball / Androide 18"
+            for index, path in enumerate((first, second), 1):
+                rows.append({
+                    "path": str(path.relative_to(source)), "size": path.stat().st_size,
+                    "status": "OK", "canonical": True, "sha256": str(index) * 64,
+                    "width": 640, "height": 960, "quality_score": 70.0,
+                    "model_key": hierarchy,
+                    "public_model_key": f"{hierarchy} / {path.stem}",
+                })
+            manifest = root / "manifest.jsonl"
+            manifest.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            output = root / "bundle"
+            summary = build_bundle(source, manifest, output, include_original=False)
+            models = [json.loads(line) for line in (output / "models.jsonl").read_text(encoding="utf-8").splitlines()]
+            self.assertEqual(summary["models"], 2)
+            self.assertEqual(len(models), 2)
+            self.assertTrue(all(model["franchiseName"] == "Dragon Ball" for model in models))
+            self.assertEqual({model["imageCount"] for model in models}, {1})
+            self.assertEqual({model["displayName"] for model in models}, {"Androide 18 busto display", "Androide 18 traje azul"})
+
     def test_include_original_is_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
