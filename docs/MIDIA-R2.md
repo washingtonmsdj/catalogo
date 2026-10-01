@@ -8,6 +8,14 @@ O bundle de publicação transforma somente imagens `OK` e `canonical=true` do m
 python tools/build_media_bundle.py "/caminho/do/catalogo" ".catalog-ingest/manifest.jsonl" --output ".publish-bundle"
 ```
 
+A geração mantém `media-build-state.json` no diretório de saída. Cada modelo concluído recebe um fingerprint que inclui SHA/metadados da origem, variantes, opção de original e a regra de taxonomia relevante. Em nova execução, o modelo só é reutilizado se o fingerprint coincidir **e** galeria/capa/variantes ainda existirem e forem legíveis. Isso permite retomar após queda de Drive ou interrupção sem aceitar saída parcial como válida.
+
+Para forçar uma recomposição completa, ignorando o checkpoint:
+
+```bash
+python tools/build_media_bundle.py "/caminho/do/catalogo" ".catalog-ingest/manifest.jsonl" --output ".publish-bundle" --no-resume
+```
+
 Por padrão o bundle **não copia o original** para o R2. O arquivo mestre continua preservado no acervo de origem. Para incluir também o original:
 
 ```bash
@@ -30,6 +38,7 @@ Imagens menores nunca são ampliadas artificialmente.
 .publish-bundle/
   models.jsonl
   publish-summary.json
+  media-build-state.json
   r2-publish-state.json
   r2/
     gallery/<model-id>/<hash-do-manifesto>.json

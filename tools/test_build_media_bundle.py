@@ -300,5 +300,62 @@ class MediaBundleTests(unittest.TestCase):
             self.assertTrue((output / "r2" / original_key).is_file())
 
 
+    def test_media_build_resume_reuses_verified_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "Games" / "Saga" / "Heroi"
+            model_dir.mkdir(parents=True)
+            image_path = model_dir / "vista.png"
+            Image.new("RGB", (640, 960), "#445566").save(image_path)
+            manifest = root / "manifest.jsonl"
+            manifest.write_text(json.dumps({
+                "path": str(image_path.relative_to(source)), "size": image_path.stat().st_size,
+                "status": "OK", "canonical": True, "sha256": "9" * 64,
+                "width": 640, "height": 960, "quality_score": 70.0,
+                "model_key": "Games / Saga / Heroi",
+            }) + "\n", encoding="utf-8")
+            output = root / "bundle"
+
+            first = build_bundle(source, manifest, output, include_original=False, workers=1)
+            index_before = (output / "models.jsonl").read_text(encoding="utf-8")
+            second = build_bundle(source, manifest, output, include_original=False, workers=1)
+
+            self.assertEqual(first["builtModels"], 1)
+            self.assertEqual(first["resumedModels"], 0)
+            self.assertEqual(second["builtModels"], 0)
+            self.assertEqual(second["resumedModels"], 1)
+            self.assertEqual((output / "models.jsonl").read_text(encoding="utf-8"), index_before)
+            self.assertTrue((output / "media-build-state.json").is_file())
+
+    def test_media_build_resume_rebuilds_when_cached_output_is_missing(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "Games" / "Saga" / "Heroi"
+            model_dir.mkdir(parents=True)
+            image_path = model_dir / "vista.png"
+            Image.new("RGB", (640, 960), "#556677").save(image_path)
+            manifest = root / "manifest.jsonl"
+            manifest.write_text(json.dumps({
+                "path": str(image_path.relative_to(source)), "size": image_path.stat().st_size,
+                "status": "OK", "canonical": True, "sha256": "8" * 64,
+                "width": 640, "height": 960, "quality_score": 70.0,
+                "model_key": "Games / Saga / Heroi",
+            }) + "\n", encoding="utf-8")
+            output = root / "bundle"
+
+            build_bundle(source, manifest, output, include_original=False, workers=1)
+            model = json.loads((output / "models.jsonl").read_text(encoding="utf-8"))
+            cover = output / "r2" / model["coverStorageKey"]
+            cover.unlink()
+
+            resumed = build_bundle(source, manifest, output, include_original=False, workers=1)
+
+            self.assertEqual(resumed["builtModels"], 1)
+            self.assertEqual(resumed["resumedModels"], 0)
+            self.assertTrue(cover.is_file())
+
+
 if __name__ == "__main__":
     unittest.main()
