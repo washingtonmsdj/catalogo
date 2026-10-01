@@ -28,7 +28,7 @@ jobs:
         with:
           node-version: 22
       - name: Install
-        run: npm install
+        run: npm ci
       - name: Build
         run: npm run build
         env:
@@ -57,3 +57,4 @@ jobs:
           MANIFEST_URL="${PAGE_URL%/}/site.webmanifest"
           curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors "$MANIFEST_URL" \
             | node -e "let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (data.name !== 'Catálogo Tonecos Studios') process.exit(1); console.log('Preview ready:', data.name); });"
+
