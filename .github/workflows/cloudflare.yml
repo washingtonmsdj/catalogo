@@ -87,7 +87,7 @@ jobs:
         with:
           node-version: 22
       - name: Install
-        run: npm install
+        run: npm ci
       - name: Validate deployment credentials
         shell: bash
         run: |
@@ -145,3 +145,4 @@ jobs:
           test "$status" = '404'
           node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); if (data.error !== 'shared_collection_not_found') { console.error(data); process.exit(1); }" "$body_file"
           rm -f "$body_file"
+
