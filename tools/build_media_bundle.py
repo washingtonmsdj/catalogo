@@ -19,7 +19,7 @@ import shutil
 import sys
 import unicodedata
 from collections import Counter, defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from PIL import Image, ImageOps
@@ -48,6 +48,9 @@ GROUPING_FOLDERS = {
     "Marvel & DC": {"Marvel", "DC"},
 }
 DEFAULT_TAXONOMY_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-taxonomy.json"
+MEDIA_BUILD_STATE_VERSION = 1
+MEDIA_RENDERER_VERSION = 1
+MEDIA_CHECKPOINT_INTERVAL = 10
 
 
 def humanize_stem(value: str) -> str:
@@ -294,7 +297,104 @@ def build_model_bundle(
     return model_entry, len(gallery_images), variant_files
 
 
-def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_original: bool, taxonomy_config: Path | None = None, workers: int = 4) -> dict:
+
+def model_build_fingerprint(identity_key: str, rows: list[dict], include_original: bool, taxonomy: dict) -> str:
+    hierarchy = str(rows[0]["model_key"]).split(" / ")
+    franchise_pos = franchise_index(hierarchy)
+    category_name = hierarchy[0] if hierarchy else "Outros"
+    franchise_name = hierarchy[franchise_pos] if hierarchy else category_name
+    taxonomy_key = f"{slugify(category_name)}/{slugify(franchise_name)}"
+    relevant_rule = taxonomy.get("franchises", {}).get(taxonomy_key, {})
+    normalized_rows = [
+        {
+            "path": str(row.get("path") or ""),
+            "sha256": str(row.get("sha256") or ""),
+            "size": int(row.get("size") or 0),
+            "width": int(row.get("width") or 0),
+            "height": int(row.get("height") or 0),
+            "quality_score": float(row.get("quality_score") or 0),
+            "model_key": str(row.get("model_key") or ""),
+            "public_model_key": str(row.get("public_model_key") or ""),
+        }
+        for row in sorted(rows, key=lambda item: str(item.get("path") or "").casefold())
+    ]
+    payload = {
+        "stateVersion": MEDIA_BUILD_STATE_VERSION,
+        "rendererVersion": MEDIA_RENDERER_VERSION,
+        "identityKey": identity_key,
+        "includeOriginal": include_original,
+        "variants": VARIANTS,
+        "taxonomyRule": relevant_rule,
+        "rows": normalized_rows,
+    }
+    encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def load_media_build_state(path: Path) -> dict:
+    if not path.exists():
+        return {"version": MEDIA_BUILD_STATE_VERSION, "models": {}}
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"checkpoint de mídia inválido: {path}: {exc}") from exc
+    if state.get("version") != MEDIA_BUILD_STATE_VERSION or not isinstance(state.get("models"), dict):
+        raise RuntimeError(f"versão de checkpoint de mídia incompatível: {path}")
+    return state
+
+
+def save_media_build_state(path: Path, state: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(state, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def cached_model_outputs_valid(entry: dict, r2_root: Path, include_original: bool) -> bool:
+    model_entry = entry.get("modelEntry")
+    if not isinstance(model_entry, dict):
+        return False
+    gallery_key = model_entry.get("galleryManifestKey")
+    cover_key = model_entry.get("coverStorageKey")
+    if not isinstance(gallery_key, str) or not gallery_key or not isinstance(cover_key, str) or not cover_key:
+        return False
+    gallery_path = r2_root / gallery_key
+    cover_path = r2_root / cover_key
+    if not gallery_path.is_file() or gallery_path.stat().st_size <= 0 or not cover_path.is_file() or cover_path.stat().st_size <= 0:
+        return False
+    try:
+        gallery = json.loads(gallery_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    images = gallery.get("images")
+    if gallery.get("modelId") != model_entry.get("id") or not isinstance(images, list) or len(images) != int(entry.get("imageCount") or -1):
+        return False
+    for image in images:
+        keys = image.get("variantKeys")
+        if not isinstance(keys, dict) or not all(name in keys for name in VARIANTS):
+            return False
+        if include_original and "original" not in keys:
+            return False
+        for key in keys.values():
+            if not isinstance(key, str) or not key:
+                return False
+            path = r2_root / key
+            if not path.is_file() or path.stat().st_size <= 0:
+                return False
+    return True
+
+def build_bundle(
+    source_root: Path,
+    manifest_path: Path,
+    output: Path,
+    include_original: bool,
+    taxonomy_config: Path | None = None,
+    workers: int = 4,
+    resume: bool = True,
+) -> dict:
     taxonomy = load_taxonomy_config(taxonomy_config)
     records = [row for row in read_manifest(manifest_path) if row.get("status") == "OK" and row.get("canonical") is True]
     by_model: dict[str, list[dict]] = defaultdict(list)
@@ -320,14 +420,38 @@ def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_o
         base_slugs.append(slugify(" ".join(slug_parts)))
     slug_collisions = Counter(base_slugs)
 
-    r2_root = output / "r2"
-    model_index = output / "models.jsonl"
-    output.mkdir(parents=True, exist_ok=True)
-    published_images = 0
-    variant_files = 0
-
     if workers < 1 or workers > 16:
         raise ValueError("workers deve ficar entre 1 e 16")
+
+    r2_root = output / "r2"
+    model_index = output / "models.jsonl"
+    state_path = output / "media-build-state.json"
+    output.mkdir(parents=True, exist_ok=True)
+    state = load_media_build_state(state_path) if resume else {"version": MEDIA_BUILD_STATE_VERSION, "models": {}}
+    fingerprints = {
+        identity_key: model_build_fingerprint(identity_key, by_model[identity_key], include_original, taxonomy)
+        for identity_key in model_keys
+    }
+    results: dict[str, tuple[dict, int, int]] = {}
+    pending: list[str] = []
+    resumed_models = 0
+
+    for identity_key in model_keys:
+        cached = state["models"].get(identity_key)
+        if (
+            resume
+            and isinstance(cached, dict)
+            and cached.get("fingerprint") == fingerprints[identity_key]
+            and cached_model_outputs_valid(cached, r2_root, include_original)
+        ):
+            results[identity_key] = (
+                cached["modelEntry"],
+                int(cached["imageCount"]),
+                int(cached["variantFiles"]),
+            )
+            resumed_models += 1
+        else:
+            pending.append(identity_key)
 
     def build_one(identity_key: str) -> tuple[dict, int, int]:
         return build_model_bundle(
@@ -340,12 +464,46 @@ def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_o
             include_original=include_original,
         )
 
-    with model_index.open("w", encoding="utf-8") as index_handle:
-        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="media-build") as executor:
-            for model_entry, image_count, model_variant_files in executor.map(build_one, model_keys):
-                index_handle.write(json.dumps(model_entry, ensure_ascii=False) + "\n")
-                published_images += image_count
-                variant_files += model_variant_files
+    built_models = 0
+    executor = ThreadPoolExecutor(max_workers=workers, thread_name_prefix="media-build")
+    futures = {executor.submit(build_one, identity_key): identity_key for identity_key in pending}
+    try:
+        for future in as_completed(futures):
+            identity_key = futures[future]
+            model_entry, image_count, model_variant_files = future.result()
+            results[identity_key] = (model_entry, image_count, model_variant_files)
+            state["models"][identity_key] = {
+                "fingerprint": fingerprints[identity_key],
+                "modelEntry": model_entry,
+                "imageCount": image_count,
+                "variantFiles": model_variant_files,
+            }
+            built_models += 1
+            if built_models % MEDIA_CHECKPOINT_INTERVAL == 0:
+                save_media_build_state(state_path, state)
+                print(f"MEDIA_CHECKPOINT={built_models} RESUMED={resumed_models}", flush=True)
+    except Exception:
+        save_media_build_state(state_path, state)
+        for future in futures:
+            future.cancel()
+        executor.shutdown(wait=False, cancel_futures=True)
+        raise
+    else:
+        executor.shutdown(wait=True)
+
+    state["models"] = {identity_key: state["models"][identity_key] for identity_key in model_keys}
+    save_media_build_state(state_path, state)
+
+    temporary_index = model_index.with_suffix(model_index.suffix + ".tmp")
+    published_images = 0
+    variant_files = 0
+    with temporary_index.open("w", encoding="utf-8") as index_handle:
+        for identity_key in model_keys:
+            model_entry, image_count, model_variant_files = results[identity_key]
+            index_handle.write(json.dumps(model_entry, ensure_ascii=False) + "\n")
+            published_images += image_count
+            variant_files += model_variant_files
+    temporary_index.replace(model_index)
 
     summary = {
         "models": len(by_model),
@@ -353,7 +511,10 @@ def build_bundle(source_root: Path, manifest_path: Path, output: Path, include_o
         "variantFiles": variant_files,
         "galleryManifests": len(by_model),
         "includeOriginal": include_original,
+        "resumedModels": resumed_models,
+        "builtModels": built_models,
         "r2Root": str(r2_root),
+        "mediaBuildState": str(state_path),
     }
     (output / "publish-summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
@@ -370,6 +531,7 @@ def main() -> int:
     parser.add_argument("--include-original", action="store_true", help="inclui cópia do original no bundle R2")
     parser.add_argument("--taxonomy-config", type=Path, default=DEFAULT_TAXONOMY_CONFIG, help="regras explícitas de pastas públicas")
     parser.add_argument("--workers", type=int, default=4, help="modelos processados em paralelo; padrão: 4")
+    parser.add_argument("--no-resume", action="store_true", help="ignora o checkpoint de mídia e recompõe todos os modelos")
     args = parser.parse_args()
 
     if not args.source.is_dir():
@@ -377,7 +539,7 @@ def main() -> int:
     if not args.manifest.is_file():
         parser.error(f"manifesto não encontrado: {args.manifest}")
 
-    summary = build_bundle(source_root=args.source.resolve(), manifest_path=args.manifest.resolve(), output=args.output.resolve(), include_original=args.include_original, taxonomy_config=args.taxonomy_config.resolve(), workers=args.workers)
+    summary = build_bundle(source_root=args.source.resolve(), manifest_path=args.manifest.resolve(), output=args.output.resolve(), include_original=args.include_original, taxonomy_config=args.taxonomy_config.resolve(), workers=args.workers, resume=not args.no_resume)
     print(json.dumps(summary, ensure_ascii=False))
     return 0
 
