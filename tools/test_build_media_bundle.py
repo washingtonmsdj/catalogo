@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from build_media_bundle import build_bundle
+from build_media_bundle import build_bundle, load_taxonomy_config
 
 
 class MediaBundleTests(unittest.TestCase):
@@ -229,6 +229,23 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(model["folderPath"], ["Leonardo"])
             self.assertEqual(model["folderPathKey"], "leonardo")
             self.assertEqual(model["collection"], "Leonardo")
+
+    def test_taxonomy_config_rejects_unsafe_public_segments(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "taxonomy.json"
+            config.write_text(json.dumps({
+                "version": 1,
+                "franchises": {
+                    "animes-desenhos/as-tartarugas-ninja": {
+                        "pathOverrides": {
+                            "Destruidor": ["Vilões", ".."]
+                        }
+                    }
+                }
+            }), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "segmento público inválido"):
+                load_taxonomy_config(config)
 
     def test_parallel_workers_keep_deterministic_model_index(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
