@@ -38,22 +38,26 @@ jobs:
           ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
           API_URL: ${{ vars.VITE_API_BASE_URL }}
+          API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
         run: |
           set -euo pipefail
           missing=()
           [ -n "$ACCOUNT_ID" ] || missing+=(CLOUDFLARE_ACCOUNT_ID)
           [ -n "$D1_DATABASE_ID" ] || missing+=(CLOUDFLARE_D1_DATABASE_ID)
+          [ -n "$API_TOKEN" ] || missing+=(CLOUDFLARE_API_TOKEN)
+          [ -n "$TURNSTILE_SECRET" ] || missing+=(TURNSTILE_SECRET_KEY)
 
           if [ "${#missing[@]}" -gt 0 ]; then
             echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo "::warning::Deploy Cloudflare não executado: faltam Repository Variables: ${missing[*]}"
+            echo "::warning::Deploy Cloudflare não executado: faltam credenciais/configurações: ${missing[*]}"
             {
               echo '## Cloudflare API — bootstrap pendente'
               echo
-              echo 'O código foi validado pelo CI, mas o deploy de produção está desabilitado até configurar:'
+              echo 'O código foi validado pelo CI, mas o deploy de produção está pendente até configurar:'
               for item in "${missing[@]}"; do echo "- \`$item\`"; done
               echo
-              echo 'Consulte `docs/CLOUDFLARE_DEPLOY.md`. Nenhum ID real deve ser commitado no repositório.'
+              echo 'Consulte `docs/CLOUDFLARE_DEPLOY.md`. Secrets continuam fora do Git; ausência de credencial não invalida o build.'
             } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi

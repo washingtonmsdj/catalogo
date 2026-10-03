@@ -23,6 +23,8 @@ O deploy normal do backend é automatizado; somente o provisionamento inicial da
 
 O arquivo `wrangler.jsonc` mantém um placeholder de D1. O UUID real nunca precisa ser commitado: `tools/render_wrangler_config.mjs` gera a configuração efêmera usada pelo CI.
 
+`preview_urls` fica explicitamente desabilitado no `wrangler.jsonc`. O endpoint estável em `workers.dev` permanece ativo, mas versões de preview não são expostas por default implícito do Wrangler.
+
 ## GitHub Repository Variables
 
 - `CLOUDFLARE_ACCOUNT_ID`
@@ -41,7 +43,7 @@ O arquivo `wrangler.jsonc` mantém um placeholder de D1. O UUID real nunca preci
 
 Ao alterar `worker/`, `migrations/` ou configuração Cloudflare na `main`, o workflow `Deploy Cloudflare API` executa primeiro um **preflight sempre visível**.
 
-O preflight verifica se `CLOUDFLARE_ACCOUNT_ID` e `CLOUDFLARE_D1_DATABASE_ID` existem. Se algum deles estiver ausente, o workflow termina de forma controlada com um aviso e registra no resumo exatamente quais variáveis faltam; o job de produção é pulado. Isso evita confundir “deploy não configurado” com “deploy executado com sucesso”.
+O preflight verifica `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_API_TOKEN` e `TURNSTILE_SECRET_KEY`. Se qualquer item estiver ausente, o workflow termina de forma controlada com um aviso, registra no resumo exatamente o que falta e pula o job de produção. O build/CI continua representando corretamente a qualidade do código, enquanto o resumo deixa explícito que a publicação ficou pendente — sem confundir “deploy não configurado” com “deploy executado com sucesso”.
 
 Quando o bootstrap está disponível, o job de produção:
 
