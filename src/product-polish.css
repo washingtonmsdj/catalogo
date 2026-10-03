@@ -335,8 +335,7 @@ body {
 
 @media (max-width: 680px) {
   .topbar { min-height: auto; }
-  .brand { padding-left: 10px; }
-  .brand__title { font-size: 25px; }
+  .brand { padding-left: 0; }
   .scope-strip { border-radius: 3px; }
   .catalog-layout { width: calc(100% - 20px); }
   .selection-stage::before { inset: 7px; }
