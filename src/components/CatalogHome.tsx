@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode, type RefObject } from 'react'
+import { useEffect, useMemo, useState, type ReactNode, type RefObject } from 'react'
 import { useCatalogRuntime } from '../hooks/useCatalogRuntime'
 import { CatalogSidebarTree } from './CatalogSidebarTree'
 import type { CatalogCategory, CatalogFranchise, CatalogModel } from '../types/catalog'
@@ -102,6 +102,7 @@ function CategoryTile({ category, cover, active, onSelect }: {
 export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, compareIds, quoteList, onOpenExplorer, onOpenRecent, onOpenFavorites, onOpenCompare, onOpenQuote, onOpenGallery, onToggleFavorite }: CatalogHomeProps) {
   const [franchiseFilter, setFranchiseFilter] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [expandedFranchiseKey, setExpandedFranchiseKey] = useState<string | null>(null)
   const selected = catalog.selected
   const models = catalog.models
   const catalogTotal = catalog.categories.find((item) => item.id === 'all')?.count ?? catalog.totalCount
@@ -113,6 +114,12 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
   const categoryLabels = useMemo(() => new Map(catalog.categories.map((item) => [item.id, item.label])), [catalog.categories])
   const heroSelectedIndex = models.findIndex((model) => model.id === selected.id)
   const heroDots = models.slice(0, 4)
+
+  useEffect(() => {
+    if (catalog.franchise === 'all') return
+    const current = catalog.franchises.find((item) => item.id === catalog.franchise && item.category === catalog.category)
+    if (current) setExpandedFranchiseKey(`${current.category}:${current.id}`)
+  }, [catalog.category, catalog.franchise, catalog.franchises])
 
   function selectModel(model: CatalogModel) {
     catalog.setSelectedId(model.id)
@@ -133,7 +140,17 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
     return item.coverUrl ?? models.find((model) => model.franchise === item.label && model.coverUrl)?.coverUrl
   }
 
+  function franchiseKey(item: CatalogFranchise) {
+    return `${item.category}:${item.id}`
+  }
+
+  function toggleFranchise(item: CatalogFranchise) {
+    const key = franchiseKey(item)
+    setExpandedFranchiseKey((current) => current === key ? null : key)
+  }
+
   function selectFranchise(item: CatalogFranchise) {
+    setExpandedFranchiseKey(franchiseKey(item))
     if (catalog.category !== item.category) catalog.setCategory(item.category)
     catalog.setFranchise(item.id)
   }
@@ -165,19 +182,26 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
 
         <div className="storefront-franchise-list">
           {visibleFranchises.slice(0, 12).map((item) => {
-            const active = catalog.franchise === item.id
+            const key = franchiseKey(item)
+            const active = catalog.franchise === item.id && catalog.category === item.category
+            const expanded = expandedFranchiseKey === key && catalog.mode === 'live'
             return (
-              <div className={`storefront-franchise-entry ${active ? 'is-active' : ''}`} key={`${item.category}:${item.id}`}>
-                <button type="button" className="storefront-franchise-row" aria-expanded={active && catalog.mode === 'live'} onClick={() => selectFranchise(item)}>
-                  <FranchiseMark item={item} /><strong>{item.label}</strong><small>{formatter.format(item.count)}</small><Icon name="chevron" />
-                </button>
-                {active && catalog.mode === 'live' && (
+              <div className={`storefront-franchise-entry ${active ? 'is-active' : ''} ${expanded ? 'is-expanded' : ''}`} key={key}>
+                <div className="storefront-franchise-row">
+                  <button type="button" className="storefront-franchise-select" aria-current={active ? 'page' : undefined} onClick={() => selectFranchise(item)}>
+                    <FranchiseMark item={item} /><strong>{item.label}</strong><small>{formatter.format(item.count)}</small>
+                  </button>
+                  <button type="button" className="storefront-franchise-expand" aria-label={`${expanded ? 'Recolher' : 'Expandir'} estrutura de ${item.label}`} aria-expanded={expanded} disabled={catalog.mode !== 'live'} onClick={() => toggleFranchise(item)}>
+                    <Icon name="chevron" />
+                  </button>
+                </div>
+                {expanded && (
                   <CatalogSidebarTree
-                    key={`${item.category}:${item.id}`}
+                    key={key}
                     category={item.category}
                     franchise={item.id}
-                    activeFolder={catalog.folder}
-                    trail={catalog.folderTrail}
+                    activeFolder={active ? catalog.folder : ''}
+                    trail={active ? catalog.folderTrail : []}
                     onSelectFolder={(folder) => selectFranchiseFolder(item, folder)}
                   />
                 )}
