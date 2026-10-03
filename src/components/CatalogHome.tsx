@@ -5,6 +5,10 @@ import type { CatalogCategory, CatalogFranchise, CatalogModel } from '../types/c
 
 const formatter = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 })
 
+function imageCountLabel(count: number) {
+  return `${formatter.format(count)} ${count === 1 ? 'imagem' : 'imagens'}`
+}
+
 type CatalogRuntime = ReturnType<typeof useCatalogRuntime>
 
 type CatalogHomeProps = {
@@ -57,7 +61,7 @@ function ModelCard({ model, favorite, active, onSelect, onFavorite }: {
         <span className="storefront-model-card__copy">
           <strong>{model.name}</strong>
           <small>{model.franchise || 'Catálogo'}</small>
-          <span className="storefront-model-card__meta"><b>{formatter.format(model.galleryCount)}</b> imagens</span>
+          <span className="storefront-model-card__meta"><b>{model.code}</b><i aria-hidden="true" /><span>{imageCountLabel(model.galleryCount)}</span></span>
         </span>
       </button>
       <button type="button" className={`storefront-model-card__heart ${favorite ? 'is-active' : ''}`} onClick={onFavorite} aria-label={favorite ? `Remover ${model.name} dos favoritos` : `Favoritar ${model.name}`} aria-pressed={favorite}>
@@ -188,7 +192,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
               </div>
             </div>
             <div className="storefront-hero__feature">
-              <span>{selected.franchise || 'Catálogo'}</span><strong>{selected.name}</strong><p>{selected.galleryCount ? `${formatter.format(selected.galleryCount)} imagens disponíveis` : 'Modelo do catálogo Tonecos Studios'}</p>
+              <span>{selected.franchise || 'Catálogo'}</span><strong>{selected.name}</strong><p>{selected.galleryCount ? `${imageCountLabel(selected.galleryCount)} disponíveis` : 'Modelo do catálogo Tonecos Studios'}</p>
             </div>
           </section>
 
