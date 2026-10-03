@@ -44,10 +44,12 @@ function Icon({ name }: { name: IconName }) {
   }
   return <svg className="storefront-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>
 }
-function ModelCard({ model, favorite, active, onSelect, onFavorite }: {
+function ModelCard({ model, favorite, active, priority = false, categoryLabel, onSelect, onFavorite }: {
   model: CatalogModel
   favorite: boolean
   active?: boolean
+  priority?: boolean
+  categoryLabel?: string
   onSelect: () => void
   onFavorite: () => void
 }) {
@@ -55,8 +57,9 @@ function ModelCard({ model, favorite, active, onSelect, onFavorite }: {
     <article className={`storefront-model-card ${active ? 'is-active' : ''}`}>
       <button type="button" className="storefront-model-card__main" onClick={onSelect}>
         <div className="storefront-model-card__media">
-          {model.coverUrl ? <img src={model.coverUrl} alt="" loading="lazy" decoding="async" /> : <span className="storefront-model-card__fallback">{model.name.slice(0, 1)}</span>}
+          {model.coverUrl ? <img src={model.coverUrl} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" /> : <span className="storefront-model-card__fallback">{model.name.slice(0, 1)}</span>}
           <span className="storefront-model-card__shade" />
+          {categoryLabel && <span className="storefront-model-card__category">{categoryLabel}</span>}
         </div>
         <span className="storefront-model-card__copy">
           <strong>{model.name}</strong>
@@ -68,6 +71,15 @@ function ModelCard({ model, favorite, active, onSelect, onFavorite }: {
         <Icon name="heart" />
       </button>
     </article>
+  )
+}
+
+function FranchiseMark({ item }: { item: CatalogFranchise }) {
+  const fallback = item.label.trim().slice(0, 1).toLocaleUpperCase('pt-BR') || '•'
+  return (
+    <span className={`storefront-franchise-list__mark ${item.coverUrl ? 'has-image' : ''}`} aria-hidden="true">
+      {item.coverUrl ? <img src={item.coverUrl} alt="" loading="lazy" decoding="async" /> : <span>{fallback}</span>}
+    </span>
   )
 }
 
@@ -98,10 +110,19 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
   const categoryTiles = catalog.categories.filter((item) => item.id !== 'all').slice(0, 6)
   const visibleFranchises = useMemo(() => catalog.franchises.filter((item) => item.label.toLocaleLowerCase('pt-BR').includes(franchiseFilter.trim().toLocaleLowerCase('pt-BR'))), [catalog.franchises, franchiseFilter])
   const franchiseCards = catalog.franchises.slice(0, 4)
+  const categoryLabels = useMemo(() => new Map(catalog.categories.map((item) => [item.id, item.label])), [catalog.categories])
+  const heroSelectedIndex = models.findIndex((model) => model.id === selected.id)
+  const heroDots = models.slice(0, 4)
 
   function selectModel(model: CatalogModel) {
     catalog.setSelectedId(model.id)
     document.querySelector('.storefront-hero')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+  }
+
+  function selectAdjacentHero(offset: number) {
+    if (models.length < 2) return
+    const currentIndex = heroSelectedIndex >= 0 ? heroSelectedIndex : 0
+    selectModel(models[(currentIndex + offset + models.length) % models.length])
   }
 
   function coverForCategory(category: CatalogCategory) {
@@ -148,7 +169,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
             return (
               <div className={`storefront-franchise-entry ${active ? 'is-active' : ''}`} key={`${item.category}:${item.id}`}>
                 <button type="button" className="storefront-franchise-row" aria-expanded={active && catalog.mode === 'live'} onClick={() => selectFranchise(item)}>
-                  <span className="storefront-franchise-list__mark">◆</span><strong>{item.label}</strong><small>{formatter.format(item.count)}</small><Icon name="chevron" />
+                  <FranchiseMark item={item} /><strong>{item.label}</strong><small>{formatter.format(item.count)}</small><Icon name="chevron" />
                 </button>
                 {active && catalog.mode === 'live' && (
                   <CatalogSidebarTree
@@ -181,7 +202,8 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
           {catalog.error && <div className="storefront-alert" role="alert">{catalog.error}</div>}
 
           <section className="storefront-hero">
-            <div className="storefront-hero__backdrop">{selected.coverUrl && <img src={selected.coverUrl} alt="" decoding="async" />}</div>
+            <div className="storefront-hero__backdrop">{selected.coverUrl && <img src={selected.coverUrl} alt="" loading="eager" fetchPriority="high" decoding="async" />}</div>
+            {models.length > 1 && <button type="button" className="storefront-hero__nav storefront-hero__nav--next" aria-label="Próximo modelo em destaque" onClick={() => selectAdjacentHero(1)}><Icon name="chevron" /></button>}
             <div className="storefront-hero__copy">
               <span className="storefront-hero__eyebrow"><Icon name="star" /> Coleção em destaque</span>
               <h1>Explore o catálogo com uma <em>experiência visual premium.</em></h1>
@@ -194,6 +216,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
             <div className="storefront-hero__feature">
               <span>{selected.franchise || 'Catálogo'}</span><strong>{selected.name}</strong><p>{selected.galleryCount ? `${imageCountLabel(selected.galleryCount)} disponíveis` : 'Modelo do catálogo Tonecos Studios'}</p>
             </div>
+            {heroDots.length > 1 && <div className="storefront-hero__dots" aria-label="Modelos em destaque">{heroDots.map((model) => <button type="button" key={model.id} aria-label={`Abrir ${model.name}`} aria-current={model.id === selected.id ? 'true' : undefined} onClick={() => selectModel(model)} />)}</div>}
           </section>
 
           <div className="storefront-filterbar" aria-label="Categorias do catálogo">
@@ -215,7 +238,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
           )}
           <section id="destaques" className="storefront-section">
             <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="star" /></span><div><h2>Em destaque</h2><p>Modelos do recorte atual para explorar.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todos <Icon name="chevron" /></button></div>
-            {featuredModels.length ? <div className="storefront-model-grid">{featuredModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={model.id === selected.id} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div> : <div className="storefront-empty"><strong>Nenhum modelo neste recorte</strong><span>Remova filtros ou altere a busca para voltar ao acervo.</span><button type="button" onClick={catalog.resetDiscovery}>Limpar filtros</button></div>}
+            {featuredModels.length ? <div className="storefront-model-grid">{featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={model.id === selected.id} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div> : <div className="storefront-empty"><strong>Nenhum modelo neste recorte</strong><span>Remova filtros ou altere a busca para voltar ao acervo.</span><button type="button" onClick={catalog.resetDiscovery}>Limpar filtros</button></div>}
           </section>
 
           <section className="storefront-section storefront-section--categories">
@@ -234,7 +257,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
 
             <section className="storefront-section storefront-section--compact">
               <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" disabled={!catalog.hasPreviousPage} onClick={catalog.goPreviousPage}>‹</button><button type="button" disabled={!catalog.hasNextPage} onClick={catalog.goNextPage}>›</button></div></div>
-              <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={model.id === selected.id} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div>
+              <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={model.id === selected.id} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div>
             </section>
           </div>
 
