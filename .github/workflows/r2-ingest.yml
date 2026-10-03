@@ -1,0 +1,92 @@
+name: Open R2 ingest session
+
+on:
+  workflow_dispatch:
+    inputs:
+      allowed_ip:
+        description: IPv4/IPv6 público autorizado a enviar o lote
+        required: true
+        type: string
+      lifetime_minutes:
+        description: Duração máxima da sessão (15-120 minutos)
+        required: true
+        default: '90'
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: r2-ingest-session
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ALLOWED_IP: ${{ inputs.allowed_ip }}
+      LIFETIME_MINUTES: ${{ inputs.lifetime_minutes }}
+      SESSION_ID: ${{ github.run_id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install
+        run: npm ci
+      - name: Validate session scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import net from 'node:net'
+          if (!net.isIP(process.env.ALLOWED_IP || '')) throw new Error('allowed_ip must be a valid IPv4/IPv6 address')
+          const lifetime = Number(process.env.LIFETIME_MINUTES)
+          if (!Number.isInteger(lifetime) || lifetime < 15 || lifetime > 120) throw new Error('lifetime_minutes must be between 15 and 120')
+          NODE
+      - name: Render ephemeral Wrangler config
+        id: config
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs'
+          const lifetime = Number(process.env.LIFETIME_MINUTES)
+          const expiresAt = new Date(Date.now() + lifetime * 60_000).toISOString()
+          const config = {
+            name: 'tonecos-catalogo-r2-ingest-temp',
+            main: 'ops/r2-ingest/worker.ts',
+            compatibility_date: '2026-10-02',
+            workers_dev: true,
+            vars: {
+              ALLOWED_IP: process.env.ALLOWED_IP,
+              SESSION_ID: process.env.SESSION_ID,
+              EXPIRES_AT: expiresAt,
+            },
+            r2_buckets: [{ binding: 'MEDIA', bucket_name: 'tonecos-catalogo-media' }],
+            observability: { enabled: true },
+          }
+          fs.writeFileSync('.wrangler.r2-ingest.json', JSON.stringify(config, null, 2))
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `expires_at=${expiresAt}\n`)
+          NODE
+      - name: Typecheck ingest Worker
+        run: npm run typecheck:worker
+      - name: Deploy scoped ingest Worker
+        run: npx wrangler deploy --config .wrangler.r2-ingest.json
+      - name: Publish session receipt
+        shell: bash
+        run: |
+          {
+            echo '## R2 ingest session ready'
+            echo
+            echo "- Session: \`${SESSION_ID}\`"
+            echo "- Allowed IP: \`${ALLOWED_IP}\`"
+            echo "- Expires: \`${{ steps.config.outputs.expires_at }}\`"
+            echo '- Worker: `tonecos-catalogo-r2-ingest-temp`'
+            echo '- Scope: `PUT` only, `media/` and `gallery/` only'
+          } >> "$GITHUB_STEP_SUMMARY"
