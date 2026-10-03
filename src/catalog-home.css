@@ -93,7 +93,9 @@
 .storefront-hero::after { content: ""; position: absolute; inset: auto 0 0; z-index: 3; height: 1px; background: linear-gradient(90deg, transparent, var(--store-accent), transparent); opacity: .38; }
 .storefront-hero__backdrop { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: radial-gradient(circle at 74% 32%, rgba(26,217,166,.2), transparent 24%), linear-gradient(120deg, #071b19, #0a2422 56%, #061311); }
 .storefront-hero__backdrop::before { content: ""; position: absolute; inset: 0; z-index: 2; background-image: linear-gradient(rgba(73,198,165,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(73,198,165,.03) 1px, transparent 1px); background-size: 42px 42px; mask-image: linear-gradient(90deg, transparent 30%, #000 100%); }
-.storefront-hero__backdrop img { position: absolute; width: 62%; height: 122%; right: -1%; top: -9%; object-fit: contain; object-position: 68% 46%; transform: scale(1.12); transform-origin: 72% 48%; filter: saturate(1.08) contrast(1.04) brightness(.92) drop-shadow(0 28px 48px rgba(0,0,0,.55)); -webkit-mask-image: radial-gradient(ellipse 80% 92% at 66% 50%, #000 42%, rgba(0,0,0,.96) 66%, rgba(0,0,0,.55) 82%, transparent 100%); mask-image: radial-gradient(ellipse 80% 92% at 66% 50%, #000 42%, rgba(0,0,0,.96) 66%, rgba(0,0,0,.55) 82%, transparent 100%); }
+.storefront-hero__backdrop img { position: absolute; pointer-events: none; }
+.storefront-hero__backdrop-blur { inset: -18%; width: 136%; height: 136%; object-fit: cover; object-position: center 32%; opacity: .76; filter: blur(30px) saturate(.92) brightness(.46) contrast(1.02); transform: scale(1.04); }
+.storefront-hero__backdrop-subject { width: 62%; height: 122%; right: -1%; top: -9%; object-fit: contain; object-position: 68% 46%; transform: scale(1.12); transform-origin: 72% 48%; filter: saturate(1.08) contrast(1.04) brightness(.92) drop-shadow(0 28px 48px rgba(0,0,0,.55)); -webkit-mask-image: radial-gradient(ellipse 80% 92% at 66% 50%, #000 42%, rgba(0,0,0,.96) 66%, rgba(0,0,0,.55) 82%, transparent 100%); mask-image: radial-gradient(ellipse 80% 92% at 66% 50%, #000 42%, rgba(0,0,0,.96) 66%, rgba(0,0,0,.55) 82%, transparent 100%); }
 .storefront-hero__copy { position: relative; z-index: 5; width: min(800px, 64%); padding: 27px 0 25px 42px; }
 .storefront-hero__eyebrow { display: inline-flex; align-items: center; gap: 7px; color: var(--store-accent); font: 800 9px/1 ui-sans-serif, system-ui; letter-spacing: 1.5px; text-transform: uppercase; }
 .storefront-hero__eyebrow .storefront-icon { width: 14px; height: 14px; }
@@ -228,7 +230,7 @@
   .storefront-hero { min-height: 360px; }
   .storefront-hero__copy { width: 74%; padding: 28px 0 28px 26px; }
   .storefront-hero h1 { font-size: clamp(29px, 6vw, 42px); }
-  .storefront-hero__backdrop img { width: 72%; right: -12%; opacity: .78; }
+  .storefront-hero__backdrop-subject { width: 72%; right: -12%; opacity: .78; }
   .storefront-hero__feature { right: 16px; bottom: 14px; width: 36%; }
   .storefront-model-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .storefront-model-card:nth-child(n+4) { display: none; }
@@ -241,7 +243,7 @@
   .storefront-search kbd { display: none; }
   .storefront-hero { min-height: 470px; }
   .storefront-hero::before { background: linear-gradient(180deg, rgba(3,15,14,.1) 0%, rgba(3,15,14,.46) 42%, rgba(3,15,14,.97) 70%); }
-  .storefront-hero__backdrop img { width: 110%; height: 75%; top: -4%; right: -10%; object-position: center top; -webkit-mask-image: linear-gradient(180deg, #000 65%, transparent 100%); mask-image: linear-gradient(180deg, #000 65%, transparent 100%); }
+  .storefront-hero__backdrop-subject { width: 110%; height: 75%; top: -4%; right: -10%; object-position: center top; -webkit-mask-image: linear-gradient(180deg, #000 65%, transparent 100%); mask-image: linear-gradient(180deg, #000 65%, transparent 100%); }
   .storefront-hero__copy { position: absolute; left: 18px; right: 18px; bottom: 18px; width: auto; padding: 0; }
   .storefront-hero h1 { max-width: 14ch; font-size: clamp(30px, 9vw, 40px); }
   .storefront-hero__feature { display: none; }
@@ -369,7 +371,7 @@
   transition: width .16s ease, background .16s ease, box-shadow .16s ease;
 }
 .storefront-hero__dots button[aria-current="true"] { width: 17px; border-radius: 999px; background: var(--store-accent); box-shadow: 0 0 10px rgba(36,240,176,.5); }
-.storefront-hero__backdrop img { will-change: transform; }
+.storefront-hero__backdrop-subject { will-change: transform; }
 @media (max-width: 900px) {
   .storefront-hero__nav { right: 10px; }
   .storefront-hero__dots { left: 50%; }
