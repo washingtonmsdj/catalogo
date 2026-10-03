@@ -103,6 +103,21 @@ def validate_taxonomy_config(data: dict, config_path: Path) -> None:
         overrides = rule.get("pathOverrides", {})
         if not isinstance(overrides, dict):
             raise RuntimeError(f"pathOverrides inválido em {config_path}: {franchise_key}")
+        groups = rule.get("pathGroups", {})
+        if not isinstance(groups, dict):
+            raise RuntimeError(f"pathGroups inválido em {config_path}: {franchise_key}")
+        grouped_sources: set[str] = set()
+        for group_name, members in groups.items():
+            if not isinstance(group_name, str) or not group_name.strip() or group_name.strip() in {".", ".."} or "/" in group_name or "\\" in group_name:
+                raise RuntimeError(f"grupo público inválido em {config_path}: {franchise_key} -> {group_name!r}")
+            if not isinstance(members, list) or not members:
+                raise RuntimeError(f"membros de grupo inválidos em {config_path}: {franchise_key} -> {group_name}")
+            for source_key in members:
+                if not isinstance(source_key, str) or not source_key.strip() or any(not part.strip() for part in source_key.split(" / ")):
+                    raise RuntimeError(f"caminho fonte de grupo inválido em {config_path}: {franchise_key} -> {group_name}")
+                if source_key in grouped_sources:
+                    raise RuntimeError(f"caminho fonte em múltiplos grupos em {config_path}: {franchise_key} -> {source_key}")
+                grouped_sources.add(source_key)
         for source_key, replacement in overrides.items():
             if not isinstance(source_key, str) or not source_key.strip() or any(not part.strip() for part in source_key.split(" / ")):
                 raise RuntimeError(f"caminho fonte inválido em {config_path}: {franchise_key} -> {source_key!r}")
@@ -128,13 +143,17 @@ def load_taxonomy_config(path: Path | None = None) -> dict:
 def public_folder_path(category_slug: str, franchise_slug: str, source_parts: list[str], taxonomy: dict) -> list[str]:
     rule = taxonomy.get("franchises", {}).get(f"{category_slug}/{franchise_slug}", {})
     overrides = rule.get("pathOverrides", {}) if isinstance(rule, dict) else {}
+    groups = rule.get("pathGroups", {}) if isinstance(rule, dict) else {}
     source_key = " / ".join(source_parts)
     replacement = overrides.get(source_key)
-    if replacement is None:
-        return source_parts
-    if not isinstance(replacement, list) or not replacement or not all(isinstance(item, str) and item.strip() for item in replacement):
-        raise RuntimeError(f"pathOverride inválido para {category_slug}/{franchise_slug}: {source_key}")
-    return [item.strip() for item in replacement]
+    if replacement is not None:
+        if not isinstance(replacement, list) or not replacement or not all(isinstance(item, str) and item.strip() for item in replacement):
+            raise RuntimeError(f"pathOverride inválido para {category_slug}/{franchise_slug}: {source_key}")
+        return [item.strip() for item in replacement]
+    for group_name, members in groups.items():
+        if source_key in members:
+            return [group_name.strip(), *source_parts]
+    return source_parts
 
 
 def read_manifest(path: Path) -> list[dict]:
