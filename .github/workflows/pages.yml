@@ -29,12 +29,29 @@ jobs:
           node-version: 22
       - name: Install
         run: npm ci
+      - name: Validate public runtime configuration
+        shell: bash
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_MEDIA_BASE_URL: ${{ vars.VITE_MEDIA_BASE_URL }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+          VITE_PUBLIC_SITE_URL: ${{ vars.VITE_PUBLIC_SITE_URL }}
+        run: |
+          set -euo pipefail
+          missing=()
+          for name in VITE_API_BASE_URL VITE_MEDIA_BASE_URL VITE_TURNSTILE_SITE_KEY VITE_PUBLIC_SITE_URL; do
+            [ -n "${!name:-}" ] || missing+=("$name")
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf '::error::Missing required Repository Variables: %s\n' "${missing[*]}"
+            exit 1
+          fi
       - name: Build
         run: npm run build
         env:
-          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://tonecos-catalogo-api.ordax-ac1ca1b50d09.workers.dev' }}
-          VITE_MEDIA_BASE_URL: ${{ vars.VITE_MEDIA_BASE_URL || 'https://pub-1a55c50ce21d47bc9200eef58527ee4b.r2.dev' }}
-          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY || '0x4AAAAAAFKrlH5Vf65-ffVq' }}
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+          VITE_MEDIA_BASE_URL: ${{ vars.VITE_MEDIA_BASE_URL }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
           VITE_PUBLIC_SITE_URL: ${{ vars.VITE_PUBLIC_SITE_URL }}
       - name: Configure Pages
         uses: actions/configure-pages@v6
@@ -54,7 +71,7 @@ jobs:
           PUBLIC_SITE_URL: ${{ vars.VITE_PUBLIC_SITE_URL }}
         run: |
           set -euo pipefail
-          EXPECTED_PUBLIC_URL="${PUBLIC_SITE_URL:-https://washingtonmsdj.github.io/catalogo/}"
+          EXPECTED_PUBLIC_URL="$PUBLIC_SITE_URL"
           case "$EXPECTED_PUBLIC_URL" in */) ;; *) EXPECTED_PUBLIC_URL="$EXPECTED_PUBLIC_URL/" ;; esac
           HTML="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors "$PAGE_URL")"
           printf '%s' "$HTML" | grep -q 'Tonecos Studios'

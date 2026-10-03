@@ -70,7 +70,7 @@ O bootstrap inicial foi executado em 2026-09-30/2026-10-01 com recursos próprio
 - R2 `tonecos-catalogo-media` criado com endpoint público `r2.dev` para as variantes web;
 - widget Turnstile Managed próprio do catálogo, autorizado para `washingtonmsdj.github.io`.
 
-O workflow do Pages possui defaults públicos de produção para API, mídia e site key do Turnstile. Repository Variables continuam podendo sobrescrever esses valores sem mudança de código. Segredos privados continuam fora do Git.
+O workflow do Pages exige as Repository Variables de produção para API, mídia, site key do Turnstile e URL pública. Ele não contém endpoints ou chaves públicas de produção como fallback: configuração ausente falha explicitamente antes do build. Segredos privados continuam fora do Git.
 
 ## Frontend
 

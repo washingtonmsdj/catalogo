@@ -6,9 +6,10 @@ A URL pública usada em SEO e compartilhamento é controlada por:
 
 `VITE_PUBLIC_SITE_URL`
 
-Sem configuração, o build usa automaticamente:
+No deploy oficial, `VITE_PUBLIC_SITE_URL` é obrigatória e vem de Repository Variables.
+O workflow falha antes do build se ela estiver ausente.
 
-`https://washingtonmsdj.github.io/catalogo/`
+O fallback interno do Vite existe somente para builds locais/isolados; produção não depende dele.
 
 ## Ao conectar domínio próprio
 
