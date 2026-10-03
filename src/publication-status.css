@@ -1,0 +1,43 @@
+.catalog-publication-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(201, 138, 61, 0.12);
+  color: inherit;
+}
+
+.catalog-publication-banner__pulse {
+  width: 9px;
+  height: 9px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.8;
+  animation: catalog-publication-pulse 1.8s ease-in-out infinite;
+}
+
+.catalog-publication-banner strong {
+  display: block;
+  font-size: 0.82rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.catalog-publication-banner p {
+  margin: 3px 0 0;
+  max-width: 920px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  opacity: 0.78;
+}
+
+@keyframes catalog-publication-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .catalog-publication-banner__pulse { animation: none; }
+}
