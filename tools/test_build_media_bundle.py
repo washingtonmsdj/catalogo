@@ -269,6 +269,42 @@ class MediaBundleTests(unittest.TestCase):
             1,
         )
 
+    def test_taxonomy_path_group_adds_public_parent_without_moving_other_members(self) -> None:
+        taxonomy = {
+            "version": 1,
+            "franchises": {
+                "animes-desenhos/as-tartarugas-ninja": {
+                    "pathGroups": {"Vilões": ["Destruidor"]}
+                }
+            },
+        }
+        from build_media_bundle import public_folder_path
+        self.assertEqual(
+            public_folder_path("animes-desenhos", "as-tartarugas-ninja", ["Destruidor"], taxonomy),
+            ["Vilões", "Destruidor"],
+        )
+        self.assertEqual(
+            public_folder_path("animes-desenhos", "as-tartarugas-ninja", ["Leonardo"], taxonomy),
+            ["Leonardo"],
+        )
+
+    def test_taxonomy_config_rejects_source_in_multiple_public_groups(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "taxonomy.json"
+            config.write_text(json.dumps({
+                "version": 1,
+                "franchises": {
+                    "animes-desenhos/as-tartarugas-ninja": {
+                        "pathGroups": {
+                            "Vilões": ["Destruidor"],
+                            "Chefes": ["Destruidor"],
+                        }
+                    }
+                },
+            }), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "múltiplos grupos"):
+                load_taxonomy_config(config)
+
     def test_taxonomy_config_rejects_invalid_source_hierarchy_regex(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             config = Path(tmp) / "taxonomy.json"
