@@ -218,7 +218,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
 
       <div className="storefront-main">
         <header className="storefront-topbar">
-          <nav aria-label="Navegação principal"><a href="#catalogo" className="is-active">Explorar</a><button type="button" onClick={onOpenFavorites}>Coleções</button><button type="button" onClick={onOpenRecent}>Novos</button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
+          <nav aria-label="Navegação principal"><a href="#catalogo" className="is-active">Explorar</a><a href="#colecoes">Coleções</a><button type="button" onClick={onOpenRecent}>Novos</button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
           <label className={`storefront-search ${catalog.searchPending ? 'is-pending' : ''}`}><Icon name="search" /><input ref={searchInputRef} value={catalog.search} onChange={(event) => catalog.setSearch(event.target.value)} placeholder="Buscar modelos, personagens, franquias..." aria-label="Buscar no catálogo" /><kbd>Ctrl</kbd><kbd>K</kbd></label>
           <div className="storefront-topbar__status"><span className={catalog.mode === 'live' ? 'is-live' : ''} /><strong>{catalog.mode === 'live' ? 'Catálogo online' : 'Prévia local'}</strong></div>
         </header>
