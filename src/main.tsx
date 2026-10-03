@@ -28,6 +28,7 @@ import './collections.css'
 import './collections-organizer.css'
 import './collections-sharing.css'
 import './publication-status.css'
+import './catalog-shell.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')
