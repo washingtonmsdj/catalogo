@@ -104,16 +104,26 @@ export async function checkCatalogApi() {
 }
 
 export async function listCatalogCategories(): Promise<CatalogCategory[]> {
-  const result = await requestJson<{ items: CatalogCategory[] }>(endpoint('/api/categories'))
-  return result.items
+  const result = await requestJson<{ items: Array<Omit<CatalogCategory, 'coverUrl'> & { cover_storage_key?: string | null }> }>(endpoint('/api/categories'))
+  return result.items.map(({ cover_storage_key, ...item }) => ({
+    ...item,
+    coverUrl: mediaObjectUrl(cover_storage_key),
+  }))
 }
 
 export async function listCatalogFranchises(category?: string, limit = 24, search?: string): Promise<FranchiseDiscoveryPage> {
-  return requestJson<FranchiseDiscoveryPage>(endpoint('/api/franchises', {
+  const page = await requestJson<{ items: Array<Omit<CatalogFranchise, 'coverUrl'> & { cover_storage_key?: string | null }>; truncated: boolean }>(endpoint('/api/franchises', {
     category: category && category !== 'all' ? category : undefined,
     limit,
     q: search?.trim() || undefined,
   }))
+  return {
+    truncated: page.truncated,
+    items: page.items.map(({ cover_storage_key, ...item }) => ({
+      ...item,
+      coverUrl: mediaObjectUrl(cover_storage_key),
+    })),
+  }
 }
 
 export async function listCatalogFolders(category: string, franchise: string, parent?: string): Promise<FolderDiscoveryPage> {

@@ -207,12 +207,30 @@ function quoteResponse(request: Request, env: Env, quote: QuoteRecord, deduplica
 const encodeOffsetCursor = (offset: number) => btoa(String(offset))
 
 async function listCategories(request: Request, env: Env) {
-  const result = await env.DB.prepare(
-    'SELECT slug AS id,name AS label,model_count AS count FROM categories ORDER BY sort_order,name COLLATE NOCASE',
-  ).all<{ id: string; label: string; count: number }>()
+  const result = await env.DB.prepare(`WITH ranked_franchises AS (
+      SELECT f.id,f.category_id,
+        ROW_NUMBER() OVER (PARTITION BY f.category_id ORDER BY f.model_count DESC,f.name COLLATE NOCASE,f.id) AS rank_in_category
+      FROM franchises f
+    ), representative AS (
+      SELECT rf.category_id,
+        (SELECT m.cover_storage_key
+         FROM models m
+         WHERE m.franchise_id=rf.id
+           AND m.published=1
+           AND m.cover_storage_key IS NOT NULL
+         ORDER BY m.image_count DESC,m.name COLLATE NOCASE,m.id
+         LIMIT 1) AS cover_storage_key
+      FROM ranked_franchises rf
+      WHERE rf.rank_in_category=1
+    )
+    SELECT c.slug AS id,c.name AS label,c.model_count AS count,representative.cover_storage_key
+    FROM categories c
+    LEFT JOIN representative ON representative.category_id=c.id
+    ORDER BY c.sort_order,c.name COLLATE NOCASE`)
+    .all<{ id: string; label: string; count: number; cover_storage_key: string | null }>()
   const total = result.results.reduce((sum, item) => sum + Number(item.count || 0), 0)
   return json(request, env, {
-    items: [{ id: 'all', label: 'Todos', count: total }, ...result.results],
+    items: [{ id: 'all', label: 'Todos', count: total, cover_storage_key: null }, ...result.results],
   }, {}, 'public, max-age=300, s-maxage=1800')
 }
 
@@ -240,7 +258,14 @@ async function listFranchises(request: Request, env: Env) {
   }
 
   const searchJoin = query ? 'JOIN franchises_fts ON franchises_fts.franchise_id=f.id' : ''
-  const sql = `SELECT f.slug AS id,f.name AS label,f.model_count AS count,c.slug AS category
+  const sql = `SELECT f.slug AS id,f.name AS label,f.model_count AS count,c.slug AS category,
+      (SELECT m.cover_storage_key
+       FROM models m
+       WHERE m.franchise_id=f.id
+         AND m.published=1
+         AND m.cover_storage_key IS NOT NULL
+       ORDER BY m.image_count DESC,m.name COLLATE NOCASE,m.id
+       LIMIT 1) AS cover_storage_key
     FROM franchises f
     JOIN categories c ON c.id=f.category_id
     ${searchJoin}
@@ -249,7 +274,7 @@ async function listFranchises(request: Request, env: Env) {
     LIMIT ?`
   values.push(limit + 1)
   const result = await env.DB.prepare(sql).bind(...values)
-    .all<{ id: string; label: string; count: number; category: string }>()
+    .all<{ id: string; label: string; count: number; category: string; cover_storage_key: string | null }>()
   const truncated = result.results.length > limit
   const items = truncated ? result.results.slice(0, limit) : result.results
   const cacheControl = query ? 'public, max-age=60, s-maxage=300' : 'public, max-age=300, s-maxage=1800'

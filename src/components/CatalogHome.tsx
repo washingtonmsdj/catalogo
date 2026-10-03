@@ -100,12 +100,12 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
     document.querySelector('.storefront-hero')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
   }
 
-  function coverForCategory(categoryId: string) {
-    return models.find((model) => model.category === categoryId && model.coverUrl)?.coverUrl
+  function coverForCategory(category: CatalogCategory) {
+    return category.coverUrl ?? models.find((model) => model.category === category.id && model.coverUrl)?.coverUrl
   }
 
-  function coverForFranchise(label: string) {
-    return models.find((model) => model.franchise === label && model.coverUrl)?.coverUrl
+  function coverForFranchise(item: CatalogFranchise) {
+    return item.coverUrl ?? models.find((model) => model.franchise === item.label && model.coverUrl)?.coverUrl
   }
 
   function selectFranchise(item: CatalogFranchise) {
@@ -216,13 +216,16 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
 
           <section className="storefront-section storefront-section--categories">
             <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="grid" /></span><div><h2>Categorias</h2><p>Explore o acervo por temática.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todas <Icon name="chevron" /></button></div>
-            <div className="storefront-category-grid">{categoryTiles.map((category) => <CategoryTile key={category.id} category={category} cover={coverForCategory(category.id)} active={catalog.category === category.id} onSelect={() => catalog.setCategory(category.id)} />)}</div>
+            <div className="storefront-category-grid">{categoryTiles.map((category) => <CategoryTile key={category.id} category={category} cover={coverForCategory(category)} active={catalog.category === category.id} onSelect={() => catalog.setCategory(category.id)} />)}</div>
           </section>
 
           <div className="storefront-lower-grid">
             <section id="colecoes" className="storefront-section storefront-section--compact">
               <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="layers" /></span><div><h2>Coleções populares</h2><p>Navegue pelas coleções organizadas.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todas <Icon name="chevron" /></button></div>
-              <div className="storefront-franchise-cards">{franchiseCards.map((item) => <button type="button" key={`${item.category}:${item.id}`} onClick={() => selectFranchise(item)}>{coverForFranchise(item.label) && <img src={coverForFranchise(item.label)} alt="" loading="lazy" decoding="async" />}<span className="storefront-franchise-cards__shade" /><span><strong>{item.label}</strong><small>{formatter.format(item.count)} modelos</small></span><i><Icon name="chevron" /></i></button>)}</div>
+              <div className="storefront-franchise-cards">{franchiseCards.map((item) => {
+                const cover = coverForFranchise(item)
+                return <button type="button" key={`${item.category}:${item.id}`} onClick={() => selectFranchise(item)}>{cover && <img src={cover} alt="" loading="lazy" decoding="async" />}<span className="storefront-franchise-cards__shade" /><span><strong>{item.label}</strong><small>{formatter.format(item.count)} modelos</small></span><i><Icon name="chevron" /></i></button>
+              })}</div>
             </section>
 
             <section className="storefront-section storefront-section--compact">
