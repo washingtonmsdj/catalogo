@@ -313,7 +313,27 @@ export default function App() {
       {catalog.error && <div className="runtime-alert" role="alert">{catalog.error}</div>}
 
       <main id="catalogo" className="catalog-layout" aria-busy={catalog.loading}>
-        <aside className="category-panel panel"><div className="panel-title"><span>Categorias</span><small>{formatter.format(catalogTotal)}</small></div><div className="category-list">{catalog.categories.map((item) => <button type="button" key={item.id} className={catalog.category === item.id ? 'is-active' : ''} onClick={() => catalog.setCategory(item.id)} aria-pressed={catalog.category === item.id}><span className="category-mark">{catalog.category === item.id ? '◆' : '◇'}</span><strong>{item.label}</strong><em>{formatter.format(item.count)}</em></button>)}</div><div className="scale-note"><span className="scale-note__eyebrow">ACERVO DIGITAL</span><strong>{formatter.format(catalogTotal)}</strong><p>modelos organizados por categoria, franquia e personagem para uma navegação rápida e direta.</p><button type="button" className="scale-note__explore" onClick={() => setExplorerOpen(true)}>Explorar franquias <span>›</span></button></div></aside>
+        <aside className="category-panel panel">
+          <div className="panel-title"><span>Categorias</span><small>{formatter.format(catalogTotal)}</small></div>
+          <div className="category-list">{catalog.categories.map((item) => <button type="button" key={item.id} className={catalog.category === item.id ? 'is-active' : ''} onClick={() => catalog.setCategory(item.id)} aria-pressed={catalog.category === item.id}><span className="category-mark">{catalog.category === item.id ? '◆' : '◇'}</span><strong>{item.label}</strong><em>{formatter.format(item.count)}</em></button>)}</div>
+          {catalog.mode === 'live' && catalog.franchise !== 'all' && (catalog.folders.length > 0 || Boolean(catalog.folder)) && (
+            <section className="franchise-tree" aria-label={`Estrutura de ${franchiseLabel}`}>
+              <div className="franchise-tree__head">
+                <span>ESTRUTURA DA FRANQUIA</span>
+                <strong>{franchiseLabel}</strong>
+              </div>
+              {catalog.folder && <button type="button" className="franchise-tree__back" onClick={() => catalog.setFolder(catalog.folderBackPath)}>← Voltar um nível</button>}
+              <div className="franchise-tree__trail" aria-label="Caminho atual">
+                <button type="button" className={!catalog.folder ? 'is-current' : ''} onClick={() => catalog.setFolder('')}>{franchiseLabel}</button>
+                {catalog.folderTrail.map((item) => <Fragment key={item.id}><span>›</span><button type="button" className={item.id === catalog.folder ? 'is-current' : ''} onClick={() => catalog.setFolder(item.id)}>{item.label}</button></Fragment>)}
+              </div>
+              <div className="franchise-tree__items">
+                {catalog.folders.map((item) => <button type="button" key={item.id} onClick={() => catalog.setFolder(item.id)}><span className="franchise-tree__branch" aria-hidden="true">{item.hasChildren ? '▸' : '•'}</span><strong>{item.label}</strong><small>{formatter.format(item.count)}</small></button>)}
+              </div>
+            </section>
+          )}
+          <div className="scale-note"><span className="scale-note__eyebrow">ACERVO DIGITAL</span><strong>{formatter.format(catalogTotal)}</strong><p>modelos organizados por categoria, franquia e personagem para uma navegação rápida e direta.</p><button type="button" className="scale-note__explore" onClick={() => setExplorerOpen(true)}>Explorar franquias <span>›</span></button></div>
+        </aside>
 
         <section className="selection-stage panel"><button type="button" className="stage-arrow stage-arrow--left" disabled={!visibleModels.length || catalog.loading} onClick={() => navigate(-1)} aria-label="Modelo anterior">‹</button><div className="stage-visual">{noResults ? <div className="empty-stage" role="status"><div className="empty-stage__inner"><span className="empty-stage__mark">⌕</span><span className="empty-stage__eyebrow">Nenhuma correspondência</span><h2>Nenhum modelo neste recorte</h2><p>Remova um filtro ou limpe a busca para voltar ao acervo completo. Nenhum item foi escondido ou removido do catálogo.</p><button type="button" onClick={catalog.resetDiscovery}>Voltar ao catálogo completo</button></div></div> : <><div className="stage-watermark">{selected.name.toUpperCase()}</div><div className="stage-index" aria-live="polite">{stageIndexLabel}</div><ModelArt model={selected} /><button type="button" className="gallery-badge" disabled={selected.id === 'loading'} onClick={() => setGalleryOpen(true)}><strong>{selected.galleryCount}</strong><span>IMAGENS</span><small>abrir galeria</small></button></>}</div><button type="button" className="stage-arrow stage-arrow--right" disabled={!visibleModels.length || catalog.loading} onClick={() => navigate(1)} aria-label="Próximo modelo">›</button></section>
 
