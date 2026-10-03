@@ -7,10 +7,30 @@ from pathlib import Path
 
 from PIL import Image
 
-from build_media_bundle import build_bundle, franchise_index, load_taxonomy_config
+from build_media_bundle import build_bundle, franchise_index, load_taxonomy_config, model_display_name
 
 
 class MediaBundleTests(unittest.TestCase):
+    def test_public_display_name_uses_character_leaf_but_not_generic_group(self) -> None:
+        self.assertEqual(
+            model_display_name(
+                ["Marvel & DC", "Heróis Individuais", "Homem-Aranha", "Abutre"],
+                ["Homem-Aranha", "Abutre"],
+                "Abutre traje verde com asas em estatua",
+                True,
+            ),
+            "Abutre",
+        )
+        self.assertEqual(
+            model_display_name(
+                ["Marvel & DC", "Adão Negro", "Confrontos"],
+                ["Confrontos"],
+                "Adao negro e doutor destino",
+                True,
+            ),
+            "Adao negro e doutor destino",
+        )
+
     def test_bundle_generates_variants_without_upscaling(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -177,7 +197,11 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(len(models), 2)
             self.assertTrue(all(model["franchiseName"] == "Dragon Ball" for model in models))
             self.assertEqual({model["imageCount"] for model in models}, {1})
-            self.assertEqual({model["displayName"] for model in models}, {"Androide 18 busto display", "Androide 18 traje azul"})
+            self.assertEqual({model["displayName"] for model in models}, {"Androide 18"})
+            self.assertEqual(len({model["id"] for model in models}), 2)
+            self.assertEqual({model["slug"] for model in models}, {"dragon-ball-androide-18-busto-display", "dragon-ball-androide-18-traje-azul"})
+            self.assertTrue(any("busto display" in model["searchText"] for model in models))
+            self.assertTrue(any("traje azul" in model["searchText"] for model in models))
 
     def test_explicit_taxonomy_override_creates_nested_villain_folder(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -203,7 +227,9 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(model["folderPath"], ["Vilões", "Destruidor"])
             self.assertEqual(model["folderPathKey"], "viloes/destruidor")
             self.assertEqual(model["collection"], "Vilões / Destruidor")
+            self.assertEqual(model["displayName"], "Destruidor")
             self.assertIn("vilões", model["searchText"])
+            self.assertIn("destruidor 01", model["searchText"])
             self.assertTrue(model["slug"].startswith("as-tartarugas-ninja-destruidor-01"))
 
     def test_tmnt_hero_stays_at_franchise_root(self) -> None:
@@ -229,6 +255,8 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(model["folderPath"], ["Leonardo"])
             self.assertEqual(model["folderPathKey"], "leonardo")
             self.assertEqual(model["collection"], "Leonardo")
+            self.assertEqual(model["displayName"], "Leonardo")
+            self.assertIn("leonardo 01", model["searchText"])
 
     def test_taxonomy_config_rejects_unsafe_public_segments(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

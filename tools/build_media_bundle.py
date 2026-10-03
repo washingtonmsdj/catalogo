@@ -46,12 +46,34 @@ def slugify(value: str) -> str:
 DEFAULT_TAXONOMY_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-taxonomy.json"
 MEDIA_BUILD_STATE_VERSION = 1
 MEDIA_RENDERER_VERSION = 1
+MEDIA_METADATA_VERSION = 2
 MEDIA_CHECKPOINT_INTERVAL = 10
 
 
 def humanize_stem(value: str) -> str:
     text = re.sub(r"[-_]+", " ", value).strip()
     return text[:1].upper() + text[1:] if text else "Modelo"
+
+
+def model_display_name(hierarchy: list[str], public_collection_parts: list[str], source_stem: str, audited_public: bool) -> str:
+    """Return the customer-facing model name without discarding source search context.
+
+    Audited public models keep their file-level identity for IDs/search, while the
+    visible title comes from the semantic public taxonomy (for example
+    ``Homem-Aranha / Abutre`` -> ``Abutre``).
+    """
+    if audited_public:
+        source_slug = slugify(source_stem)
+        for part in reversed(public_collection_parts):
+            normalized = part.strip()
+            if not normalized:
+                continue
+            semantic_slug = slugify(normalized)
+            if source_slug == semantic_slug or source_slug.startswith(f"{semantic_slug}-"):
+                return normalized
+            break
+        return humanize_stem(source_stem)
+    return hierarchy[-1] if hierarchy else humanize_stem(source_stem)
 
 
 def franchise_index(hierarchy: list[str], taxonomy: dict) -> int:
@@ -208,22 +230,24 @@ def model_metadata(identity_key: str, hierarchy_key: str, source_path: str, slug
     franchise_pos = franchise_index(hierarchy, taxonomy)
     franchise_name = hierarchy[franchise_pos] if hierarchy else category_name
     source_stem = Path(source_path).stem
-    display_name = humanize_stem(source_stem) if audited_public else (hierarchy[-1] if hierarchy else humanize_stem(source_stem))
     source_collection_parts = hierarchy[franchise_pos + 1:-1] if not audited_public else hierarchy[franchise_pos + 1:]
     category_slug = slugify(category_name)
     franchise_slug = slugify(franchise_name)
     collection_parts = public_folder_path(category_slug, franchise_slug, source_collection_parts, taxonomy) if audited_public else source_collection_parts
+    display_name = model_display_name(hierarchy, collection_parts, source_stem, audited_public)
     collection = " / ".join(collection_parts)
 
-    clean_parts = [franchise_name, display_name] if audited_public else [franchise_name, *collection_parts, display_name]
-    base_slug = slugify(" ".join(clean_parts) or display_name)
+    source_label = humanize_stem(source_stem)
+    slug_name = source_label if audited_public else display_name
+    clean_parts = [franchise_name, slug_name] if audited_public else [franchise_name, *collection_parts, display_name]
+    base_slug = slugify(" ".join(clean_parts) or slug_name)
     model_slug = base_slug
     if slug_collisions[base_slug] > 1:
         model_slug = f"{base_slug}-{model_id.split('_', 1)[1][:10]}"
 
     code_hash = hashlib.sha256(identity_key.encode("utf-8")).hexdigest()[:12].upper()
     code = f"TS-{code_hash}"
-    search_text = " ".join(dict.fromkeys([*hierarchy, *collection_parts, display_name, code])).casefold()
+    search_text = " ".join(dict.fromkeys([*hierarchy, *collection_parts, display_name, source_label, code])).casefold()
 
     return {
         "id": model_id,
@@ -362,6 +386,7 @@ def model_build_fingerprint(identity_key: str, rows: list[dict], include_origina
     payload = {
         "stateVersion": MEDIA_BUILD_STATE_VERSION,
         "rendererVersion": MEDIA_RENDERER_VERSION,
+        "metadataVersion": MEDIA_METADATA_VERSION,
         "identityKey": identity_key,
         "includeOriginal": include_original,
         "variants": VARIANTS,
@@ -456,8 +481,10 @@ def build_bundle(
         category_slug = slugify(category_name)
         franchise_slug = slugify(franchise_name)
         collection_parts = public_folder_path(category_slug, franchise_slug, source_collection_parts, taxonomy) if audited_public else source_collection_parts
-        display_name = humanize_stem(Path(str(row["path"])).stem) if audited_public else (hierarchy[-1] if hierarchy else "Modelo")
-        slug_parts = [franchise_name, display_name] if audited_public else [franchise_name, *collection_parts, display_name]
+        source_stem = Path(str(row["path"])).stem
+        display_name = model_display_name(hierarchy, collection_parts, source_stem, audited_public)
+        slug_name = humanize_stem(source_stem) if audited_public else display_name
+        slug_parts = [franchise_name, slug_name] if audited_public else [franchise_name, *collection_parts, display_name]
         base_slugs.append(slugify(" ".join(slug_parts)))
     slug_collisions = Counter(base_slugs)
 
