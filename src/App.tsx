@@ -1,9 +1,9 @@
 import { FormEvent, Fragment, useEffect, useRef, useState } from 'react'
+import { CatalogHome } from './components/CatalogHome'
 import { FranchiseBrowser } from './components/FranchiseBrowser'
 import { ModelComparison } from './components/ModelComparison'
 import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
-import { discoveryShareUrl } from './services/catalogNavigation'
 import { submitQuoteRequest } from './services/quotes'
 import type { CatalogImage, CatalogModel } from './types/catalog'
 
@@ -88,7 +88,6 @@ function loadKnownModels(): Record<string, KnownModel> {
 export default function App() {
   const catalog = useCatalogRuntime(initialSlugFromHash())
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const rosterTrackRef = useRef<HTMLDivElement>(null)
   const previewPrefetchedUrls = useRef(new Set<string>())
   const [favorites, setFavorites] = useState<string[]>(() => loadStoredIds('tonecos:favorites'))
   const [quoteList, setQuoteList] = useState<string[]>(() => loadStoredIds('tonecos:quote', MAX_QUOTE_ITEMS))
@@ -110,8 +109,6 @@ export default function App() {
   const [quoteSubmitting, setQuoteSubmitting] = useState(false)
   const [quoteError, setQuoteError] = useState('')
   const [turnstileResetKey, setTurnstileResetKey] = useState(0)
-  const [linkCopied, setLinkCopied] = useState(false)
-  const [scopeLinkCopied, setScopeLinkCopied] = useState(false)
 
   const gallery = useModelGallery(catalog.mode, catalog.selected, galleryOpen)
   const selected = catalog.selected
@@ -119,9 +116,6 @@ export default function App() {
   const selectedIndex = visibleModels.findIndex((model) => model.id === selected.id)
   const selectedInVisiblePage = selectedIndex >= 0
   const anyModalOpen = explorerOpen || recentOpen || compareOpen || galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
-  const noResults = !catalog.loading && visibleModels.length === 0
-  const searchCharacters = Array.from(catalog.search.trim()).length
-  const searchActive = Boolean(catalog.search.trim()) && !catalog.searchPending
   const expandedImageUrl = previewImage?.detailUrl ?? previewImage?.url
   const previewIndex = previewImage ? gallery.items.findIndex((image) => image.id === previewImage.id) : -1
   const canPreviewPrevious = previewIndex > 0 || (previewIndex >= 0 && gallery.hasPreviousPage)
@@ -129,16 +123,6 @@ export default function App() {
   const previewGlobalPosition = previewIndex >= 0 ? gallery.pageIndex * GALLERY_PAGE_SIZE + previewIndex + 1 : null
   const galleryTokens = galleryPageTokens(gallery.pageIndex, gallery.totalPages)
   const galleryProgress = gallery.total > 0 ? Math.min(100, (gallery.pageEnd / gallery.total) * 100) : 0
-
-  const categoryLabel = catalog.categories.find((item) => item.id === catalog.category)?.label ?? 'Todos'
-  const franchiseLabel = catalog.franchises.find((item) => item.id === catalog.franchise)?.label ?? (catalog.franchise === 'all' ? 'Todas as franquias' : selected.franchise || catalog.franchise)
-  const folderLabel = catalog.folderLabel || (catalog.folder ? catalog.folder.split('/').at(-1) ?? '' : '')
-  const catalogTotal = catalog.categories.find((item) => item.id === 'all')?.count ?? catalog.totalCount
-  const demoEstimatedPages = Math.max(1, Math.ceil(catalog.totalCount / 12))
-  const pageLabel = catalog.mode === 'live'
-    ? catalog.searchPending ? `BUSCA · DIGITE ${catalog.searchMinLength}+ CARACTERES` : searchActive ? `BUSCA · PÁG. ${catalog.pageIndex + 1}` : `PÁG. ${catalog.pageIndex + 1}`
-    : searchActive ? `${formatter.format(visibleModels.length)} RESULTADOS` : `PÁG. 1 / ${formatter.format(demoEstimatedPages)}`
-  const stageIndexLabel = catalog.loading ? 'CARREGANDO' : noResults ? 'SEM RESULTADOS' : !selectedInVisiblePage ? 'LINK DIRETO' : searchActive ? `${String(selectedIndex + 1).padStart(3, '0')} / ${formatter.format(visibleModels.length)} NESTA PÁG.` : `${String(selectedIndex + 1).padStart(3, '0')} / ${formatter.format(catalog.totalCount)}`
 
   useEffect(() => localStorage.setItem('tonecos:favorites', JSON.stringify(favorites)), [favorites])
   useEffect(() => localStorage.setItem('tonecos:quote', JSON.stringify(quoteList)), [quoteList])
@@ -165,25 +149,9 @@ export default function App() {
   }, [selected.id])
 
   useEffect(() => {
-    setLinkCopied(false); setPreviewImage(null); setPreviewPageTarget(null)
-    document.title = selected.id === 'loading' ? 'Catálogo — Tonecos Studios' : `${selected.name} — Tonecos Studios`
+    setPreviewImage(null); setPreviewPageTarget(null)
+    document.title = selected.id === 'loading' ? 'STLForge Catálogo' : `${selected.name} — STLForge Catálogo`
   }, [selected.id, selected.name])
-
-  useEffect(() => {
-    setScopeLinkCopied(false)
-  }, [catalog.category, catalog.franchise, catalog.folder, catalog.search])
-
-  useEffect(() => {
-    if (!selectedInVisiblePage) return
-    const frame = window.requestAnimationFrame(() => {
-      const track = rosterTrackRef.current
-      const activeCard = track?.querySelector<HTMLElement>('.roster-card.is-active')
-      if (!track || !activeCard) return
-      const left = activeCard.offsetLeft - (track.clientWidth - activeCard.clientWidth) / 2
-      track.scrollTo({ left: Math.max(0, left), behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' })
-    })
-    return () => window.cancelAnimationFrame(frame)
-  }, [selected.id, selectedInVisiblePage, catalog.pageIndex])
 
   useEffect(() => {
     if (!previewPageTarget || gallery.loading || !gallery.items.length) return
@@ -217,6 +185,7 @@ export default function App() {
       if (galleryOpen && !previewImage && event.key === 'End') { event.preventDefault(); gallery.goToPage(gallery.totalPages - 1); return }
       const target = event.target
       const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable)
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !anyModalOpen) { event.preventDefault(); searchInputRef.current?.focus(); return }
       if (event.key === '/' && !isTyping && !anyModalOpen) { event.preventDefault(); searchInputRef.current?.focus(); return }
       if (isTyping || anyModalOpen) return
       if (event.key === 'ArrowRight') navigate(1); if (event.key === 'ArrowLeft') navigate(-1)
@@ -266,18 +235,6 @@ export default function App() {
     catalog.setSelectedId(visibleModels[(selectedIndex + offset + visibleModels.length) % visibleModels.length].id)
   }
 
-  async function copyModelLink() {
-    if (selected.id === 'loading') return
-    const url = new URL(window.location.href)
-    url.hash = `modelo=${encodeURIComponent(selected.slug)}`
-    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
-    try { await navigator.clipboard.writeText(url.toString()); setLinkCopied(true) } catch { setLinkCopied(false) }
-  }
-
-  async function copyDiscoveryLink() {
-    const url = discoveryShareUrl({ category: catalog.category, franchise: catalog.franchise, folder: catalog.folder, search: catalog.search })
-    try { await navigator.clipboard.writeText(url); setScopeLinkCopied(true) } catch { setScopeLinkCopied(false) }
-  }
 
   async function submitQuote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const data = new FormData(event.currentTarget); const turnstileToken = String(data.get('turnstileToken') ?? '').trim()
@@ -299,71 +256,21 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <header className="topbar">
-        <a className="brand" href="#catalogo" aria-label="Tonecos Studios — voltar ao catálogo"><span className="brand__mark" aria-hidden="true">TS</span><span className="brand__copy"><span className="brand__title">TONECOS</span><span className="brand__studio">CATÁLOGO 3D</span></span></a>
-        <nav className="topnav" aria-label="Navegação principal"><a href="#catalogo" className="is-active">Catálogo</a><button type="button" onClick={() => setExplorerOpen(true)}>Explorar</button><button type="button" onClick={() => setRecentOpen(true)}>Recentes <b>{recentIds.length}</b></button><button type="button" onClick={() => setFavoritesOpen(true)}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={() => setCompareOpen(true)}>Comparar <b>{compareIds.length}</b></button><button type="button" onClick={() => setQuoteOpen(true)}>Orçamento <b>{quoteList.length}</b></button></nav>
-        <label className={`searchbox ${catalog.searchPending ? 'is-pending' : ''}`}><span aria-hidden="true">⌕</span><input ref={searchInputRef} aria-label="Buscar no catálogo" value={catalog.search} onChange={(event) => catalog.setSearch(event.target.value)} placeholder="Buscar personagem, franquia ou categoria..." /><kbd aria-hidden="true">/</kbd></label>
-      </header>
-
-      <section className="scope-strip" aria-label="Navegação hierárquica">
-        <div className="scope-strip__path"><span>CATÁLOGO</span><b>›</b><strong>{categoryLabel}</strong><b>›</b><strong>{franchiseLabel}</strong>{catalog.folderTrail.map((item) => <Fragment key={item.id}><b>›</b><button type="button" onClick={() => catalog.setFolder(item.id)}>{item.label}</button></Fragment>)}{catalog.folder && catalog.folderTrail.length === 0 && <><b>›</b><strong>{folderLabel}</strong></>}<b>›</b><span>{noResults ? 'Sem resultados' : selected.name}</span></div>
-        <div className="scope-strip__franchises"><button type="button" className={catalog.franchise === 'all' ? 'is-active' : ''} onClick={() => catalog.setFranchise('all')}>TODAS</button>{catalog.franchises.map((item) => <button type="button" key={`${item.category}:${item.id}`} className={catalog.franchise === item.id ? 'is-active' : ''} onClick={() => catalog.setFranchise(item.id)}>{item.label}</button>)}{catalog.franchisesTruncated && <button type="button" className="scope-strip__explore" onClick={() => setExplorerOpen(true)}>Mais franquias…</button>}</div>
-        {catalog.mode === 'live' && catalog.franchise !== 'all' && (catalog.folders.length > 0 || Boolean(catalog.folder)) && <div className="scope-strip__folders" aria-label="Pastas da franquia">{catalog.folder ? <><button type="button" className="scope-strip__back" onClick={() => catalog.setFolder(catalog.folderBackPath)}>← voltar</button><strong>{folderLabel}</strong></> : <span>PASTAS</span>}{catalog.folders.map((item) => <button type="button" key={item.id} onClick={() => catalog.setFolder(item.id)}>{item.hasChildren && <b aria-hidden="true">▸</b>}<span>{item.label}</span><small>{formatter.format(item.count)}</small></button>)}</div>}
-      </section>
-
-      {catalog.hasActiveFilters && <section className="discovery-status" aria-label="Filtros ativos"><div className="discovery-status__content"><span className="discovery-status__eyebrow">Recorte atual</span>{catalog.category !== 'all' && <button type="button" className="discovery-chip" onClick={() => catalog.setCategory('all')}>Categoria <strong>{categoryLabel}</strong> ×</button>}{catalog.franchise !== 'all' && <button type="button" className="discovery-chip" onClick={() => catalog.setFranchise('all')}>Franquia <strong>{franchiseLabel}</strong> ×</button>}{catalog.folder && <button type="button" className="discovery-chip" onClick={() => catalog.setFolder('')}>Pasta <strong>{folderLabel}</strong> ×</button>}{catalog.search.trim() && <button type="button" className="discovery-chip" onClick={() => catalog.setSearch('')}>Busca <strong>{catalog.search.trim()}</strong> ×</button>}{catalog.searchPending && <span className="discovery-status__hint">Digite mais <strong>{catalog.searchMinLength - searchCharacters}</strong> caractere{catalog.searchMinLength - searchCharacters === 1 ? '' : 's'} para pesquisar no acervo completo.</span>}</div><div className="discovery-status__actions"><button type="button" className="discovery-share" onClick={copyDiscoveryLink}>{scopeLinkCopied ? '✓ Link do recorte copiado' : '↗ Copiar recorte'}</button><button type="button" className="discovery-reset" onClick={catalog.resetDiscovery}>Limpar filtros</button></div></section>}
-      {catalog.error && <div className="runtime-alert" role="alert">{catalog.error}</div>}
-
-      <main id="catalogo" className="catalog-layout" aria-busy={catalog.loading}>
-        <aside className="category-panel panel">
-          <div className="panel-title"><span>Categorias</span><small>{formatter.format(catalogTotal)}</small></div>
-          <div className="category-list">{catalog.categories.map((item) => <button type="button" key={item.id} className={catalog.category === item.id ? 'is-active' : ''} onClick={() => catalog.setCategory(item.id)} aria-pressed={catalog.category === item.id}><span className="category-mark">{catalog.category === item.id ? '◆' : '◇'}</span><strong>{item.label}</strong><em>{formatter.format(item.count)}</em></button>)}</div>
-          {catalog.mode === 'live' && catalog.franchise !== 'all' && (catalog.folders.length > 0 || Boolean(catalog.folder)) && (
-            <section className="franchise-tree" aria-label={`Estrutura de ${franchiseLabel}`}>
-              <div className="franchise-tree__head">
-                <span>ESTRUTURA DA FRANQUIA</span>
-                <strong>{franchiseLabel}</strong>
-              </div>
-              {catalog.folder && <button type="button" className="franchise-tree__back" onClick={() => catalog.setFolder(catalog.folderBackPath)}>← Voltar um nível</button>}
-              <div className="franchise-tree__trail" aria-label="Caminho atual">
-                <button type="button" className={!catalog.folder ? 'is-current' : ''} onClick={() => catalog.setFolder('')}>{franchiseLabel}</button>
-                {catalog.folderTrail.map((item) => <Fragment key={item.id}><span>›</span><button type="button" className={item.id === catalog.folder ? 'is-current' : ''} onClick={() => catalog.setFolder(item.id)}>{item.label}</button></Fragment>)}
-              </div>
-              <div className="franchise-tree__items">
-                {catalog.folders.map((item) => <button type="button" key={item.id} onClick={() => catalog.setFolder(item.id)}><span className="franchise-tree__branch" aria-hidden="true">{item.hasChildren ? '▸' : '•'}</span><strong>{item.label}</strong><small>{formatter.format(item.count)}</small></button>)}
-              </div>
-            </section>
-          )}
-          <div className="scale-note"><span className="scale-note__eyebrow">ACERVO DIGITAL</span><strong>{formatter.format(catalogTotal)}</strong><p>modelos organizados por categoria, franquia e personagem para uma navegação rápida e direta.</p><button type="button" className="scale-note__explore" onClick={() => setExplorerOpen(true)}>Explorar franquias <span>›</span></button></div>
-        </aside>
-
-        <section className="selection-stage panel">
-          <button type="button" className="stage-arrow stage-arrow--left" disabled={!visibleModels.length || catalog.loading} onClick={() => navigate(-1)} aria-label="Modelo anterior">‹</button>
-          <div className="stage-visual">
-            {noResults ? <div className="empty-stage" role="status"><div className="empty-stage__inner"><span className="empty-stage__mark">⌕</span><span className="empty-stage__eyebrow">Nenhuma correspondência</span><h2>Nenhum modelo neste recorte</h2><p>Remova um filtro ou limpe a busca para voltar ao acervo completo. Nenhum item foi escondido ou removido do catálogo.</p><button type="button" onClick={catalog.resetDiscovery}>Voltar ao catálogo completo</button></div></div> : <>
-              <div className="hero-copy">
-                <span className="hero-copy__eyebrow">MODELO EM DESTAQUE</span>
-                <h2>{selected.name}</h2>
-                <p>{selected.description || `Explore ${selected.franchise} em uma experiência visual focada no modelo, nas imagens e na organização do acervo.`}</p>
-                <div className="hero-copy__meta"><span>{categoryLabel}</span><span>{selected.franchise}</span><span>{formatter.format(selected.galleryCount)} imagens</span></div>
-                <div className="hero-copy__actions"><button type="button" className="hero-primary" disabled={selected.id === 'loading'} onClick={() => setGalleryOpen(true)}>Explorar galeria <span>→</span></button><button type="button" className="hero-secondary" disabled={selected.id === 'loading'} aria-pressed={favorites.includes(selected.id)} onClick={() => toggleFavorite(selected.id)}>{favorites.includes(selected.id) ? '♥ Salvo' : '♡ Favoritar'}</button></div>
-              </div>
-              <div className="stage-watermark">{selected.name.toUpperCase()}</div>
-              <div className="stage-index" aria-live="polite">{stageIndexLabel}</div>
-              <ModelArt model={selected} />
-              <button type="button" className="gallery-badge" disabled={selected.id === 'loading'} onClick={() => setGalleryOpen(true)}><strong>{selected.galleryCount}</strong><span>IMAGENS</span><small>abrir galeria</small></button>
-            </>}
-          </div>
-          <button type="button" className="stage-arrow stage-arrow--right" disabled={!visibleModels.length || catalog.loading} onClick={() => navigate(1)} aria-label="Próximo modelo">›</button>
-        </section>
-
-        <aside className="detail-panel panel">{noResults ? <div className="detail-empty"><span>Exploração do acervo</span><h2>Refine menos para descobrir mais</h2><p>Os filtros são combinados. Limpe o recorte atual para voltar às categorias e franquias disponíveis.</p><button type="button" className="share-action" onClick={catalog.resetDiscovery}>Limpar busca e filtros</button><button type="button" className="share-action" onClick={() => setExplorerOpen(true)}>Abrir navegador de franquias</button></div> : <><div className="detail-counter">MODELO {selected.code}</div><h1>{selected.name}</h1><p className="franchise">{selected.franchise}</p><div className="breadcrumb"><span>{catalog.categories.find((item) => item.id === selected.category)?.label ?? selected.category}</span><b>›</b><span>{selected.franchise}</span>{selected.collection && <>{selected.collection.split('/').map((part) => part.trim()).filter(Boolean).map((part) => <span key={part}><b>›</b><span>{part}</span></span>)}</>}<b>›</b><span>{selected.name}</span></div><p className="description">{selected.description || (catalog.mode === 'live' ? 'Informações detalhadas deste modelo serão exibidas aqui.' : '')}</p><dl className="spec-table"><div><dt>Altura aprox.</dt><dd>{selected.heightCm > 0 ? `${selected.heightCm} cm` : 'Sob consulta'}</dd></div><div><dt>Material</dt><dd>{selected.material}</dd></div><div><dt>Imagens</dt><dd>{selected.galleryCount} vistas</dd></div><div><dt>Código</dt><dd>{selected.code}</dd></div></dl><div className="detail-actions detail-actions--triple"><button type="button" disabled={selected.id === 'loading'} aria-pressed={favorites.includes(selected.id)} className={favorites.includes(selected.id) ? 'is-selected' : ''} onClick={() => toggleFavorite(selected.id)}>♡ Favoritar</button><button type="button" disabled={selected.id === 'loading'} aria-pressed={compareIds.includes(selected.id)} className={compareIds.includes(selected.id) ? 'is-selected' : ''} onClick={() => toggleCompare(selected.id)}>⇄ Comparar</button><button type="button" disabled={selected.id === 'loading'} aria-pressed={quoteList.includes(selected.id)} className={quoteList.includes(selected.id) ? 'is-selected' : ''} onClick={() => safeToggleQuote(selected.id)}>＋ Lista</button></div><button type="button" className="share-action" disabled={selected.id === 'loading'} onClick={copyModelLink}>{linkCopied ? '✓ Link copiado' : '↗ Copiar link deste modelo'}</button><button type="button" className="primary-action" disabled={selected.id === 'loading'} onClick={() => { if (!quoteList.includes(selected.id)) safeToggleQuote(selected.id); setQuoteOpen(true) }}>Solicitar orçamento <span>›</span></button></>}</aside>
-
-        <section className="roster panel" aria-label="Seleção de modelos"><div className="roster-header"><div><strong>EM DESTAQUE</strong><span>{catalog.loading ? 'Carregando...' : noResults ? 'Nenhum modelo neste recorte' : `${visibleModels.length} modelos para explorar neste recorte`}</span></div><div className="roster-hint">← → navegar · ENTER link · A galeria · F favoritar · C comparar · E explorar · / buscar</div></div><div className="roster-track" ref={rosterTrackRef}>{noResults ? <div className="roster-empty"><strong>Sem modelos para exibir</strong><span>Altere a busca, categoria ou franquia acima.</span></div> : visibleModels.map((model, index) => <button type="button" key={model.id} aria-pressed={model.id === selected.id} className={`roster-card ${model.id === selected.id ? 'is-active' : ''}`} onClick={() => catalog.setSelectedId(model.id)}><ModelArt model={model} compact angle={(index % 3) - 1} /><span className="roster-card__index">{String(index + 1).padStart(3, '0')}</span><span className="roster-card__name">{model.name}</span><span className="roster-card__gallery">{model.galleryCount} fotos · {model.franchise}</span></button>)}</div><div className="roster-pagination"><span>{pageLabel}</span><button type="button" aria-label="Página anterior" disabled={!catalog.hasPreviousPage} onClick={catalog.goPreviousPage}>‹</button><button type="button" aria-label="Próxima página" disabled={!catalog.hasNextPage} onClick={catalog.goNextPage}>›</button></div></section>
-      </main>
-
-      <footer className="control-bar"><div><kbd>← →</kbd><span>Navegar</span></div><div><kbd>ENTER</kbd><span>Link do modelo</span></div><div><kbd>A</kbd><span>Galeria</span></div><div><kbd>F</kbd><span>Favoritar</span></div><div><kbd>C</kbd><span>Comparar</span></div><div><kbd>E</kbd><span>Explorar</span></div><div><kbd>/</kbd><span>Buscar</span></div><div className="control-bar__status"><span>{catalog.mode === 'live' ? 'Catálogo online' : 'Prévia em atualização'}</span><strong>{catalog.mode === 'live' ? 'ONLINE' : 'PREVIEW'}</strong></div></footer>
-
+      <CatalogHome
+        catalog={catalog}
+        searchInputRef={searchInputRef}
+        favorites={favorites}
+        recentIds={recentIds}
+        compareIds={compareIds}
+        quoteList={quoteList}
+        onOpenExplorer={() => setExplorerOpen(true)}
+        onOpenRecent={() => setRecentOpen(true)}
+        onOpenFavorites={() => setFavoritesOpen(true)}
+        onOpenCompare={() => setCompareOpen(true)}
+        onOpenQuote={() => setQuoteOpen(true)}
+        onOpenGallery={() => setGalleryOpen(true)}
+        onToggleFavorite={toggleFavorite}
+      />
       <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} />
 
       <ModelComparison open={compareOpen} mode={catalog.mode} ids={compareIds} knownModels={knownModels} onClose={() => setCompareOpen(false)} onRemove={(id) => setCompareIds((current) => current.filter((item) => item !== id))} onClear={() => setCompareIds([])} onOpenModel={(id) => openKnownModel(id, () => setCompareOpen(false))} onAddToQuote={addComparisonToQuote} />
