@@ -43,10 +43,6 @@ def slugify(value: str) -> str:
     return slug or "modelo"
 
 
-GROUPING_FOLDERS = {
-    "Animes & Desenhos": {"Animes", "Clássicos", "Outros"},
-    "Marvel & DC": {"Marvel", "DC"},
-}
 DEFAULT_TAXONOMY_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-taxonomy.json"
 MEDIA_BUILD_STATE_VERSION = 1
 MEDIA_RENDERER_VERSION = 1
@@ -58,23 +54,47 @@ def humanize_stem(value: str) -> str:
     return text[:1].upper() + text[1:] if text else "Modelo"
 
 
-def franchise_index(hierarchy: list[str]) -> int:
+def franchise_index(hierarchy: list[str], taxonomy: dict) -> int:
     if len(hierarchy) < 2:
         return 0
     category = hierarchy[0]
     second = hierarchy[1]
-    if category in GROUPING_FOLDERS and second in GROUPING_FOLDERS[category] and len(hierarchy) > 2:
-        return 2
-    if category == "Filmes & Séries" and re.match(r"^\d{2}\s*-\s*", second) and len(hierarchy) > 2:
-        return 2
-    if category == "Games" and second == "00 - Fliperama" and len(hierarchy) > 2:
-        return 2
+    category_slug = slugify(category)
+    rules = taxonomy.get("sourceHierarchy", {}).get("categoryIntermediates", {})
+    rule = rules.get(category_slug, {}) if isinstance(rules, dict) else {}
+    if len(hierarchy) > 2 and isinstance(rule, dict):
+        names = rule.get("names", [])
+        if isinstance(names, list) and second in names:
+            return 2
+        pattern = rule.get("pattern")
+        if isinstance(pattern, str) and pattern and re.match(pattern, second):
+            return 2
     return 1
 
 
 def validate_taxonomy_config(data: dict, config_path: Path) -> None:
     if data.get("version") != 1 or not isinstance(data.get("franchises"), dict):
         raise RuntimeError(f"configuração de taxonomia inválida: {config_path}")
+    source_hierarchy = data.get("sourceHierarchy", {})
+    if not isinstance(source_hierarchy, dict):
+        raise RuntimeError(f"sourceHierarchy inválido em {config_path}")
+    category_intermediates = source_hierarchy.get("categoryIntermediates", {})
+    if not isinstance(category_intermediates, dict):
+        raise RuntimeError(f"categoryIntermediates inválido em {config_path}")
+    for category_slug, rule in category_intermediates.items():
+        if not isinstance(category_slug, str) or not category_slug.strip() or not isinstance(rule, dict):
+            raise RuntimeError(f"regra de hierarquia fonte inválida em {config_path}: {category_slug!r}")
+        names = rule.get("names", [])
+        pattern = rule.get("pattern")
+        if not isinstance(names, list) or any(not isinstance(name, str) or not name.strip() for name in names):
+            raise RuntimeError(f"names inválido em {config_path}: {category_slug}")
+        if pattern is not None:
+            if not isinstance(pattern, str) or not pattern:
+                raise RuntimeError(f"pattern inválido em {config_path}: {category_slug}")
+            try:
+                re.compile(pattern)
+            except re.error as exc:
+                raise RuntimeError(f"pattern regex inválido em {config_path}: {category_slug}: {exc}") from exc
     for franchise_key, rule in data["franchises"].items():
         if not isinstance(franchise_key, str) or franchise_key.count("/") != 1 or not all(part.strip() for part in franchise_key.split("/")):
             raise RuntimeError(f"chave de franquia inválida em {config_path}: {franchise_key!r}")
@@ -166,7 +186,7 @@ def model_metadata(identity_key: str, hierarchy_key: str, source_path: str, slug
     hierarchy = hierarchy_key.split(" / ")
     model_id = stable_id("mdl", identity_key)
     category_name = hierarchy[0] if hierarchy else "Outros"
-    franchise_pos = franchise_index(hierarchy)
+    franchise_pos = franchise_index(hierarchy, taxonomy)
     franchise_name = hierarchy[franchise_pos] if hierarchy else category_name
     source_stem = Path(source_path).stem
     display_name = humanize_stem(source_stem) if audited_public else (hierarchy[-1] if hierarchy else humanize_stem(source_stem))
@@ -302,7 +322,7 @@ def build_model_bundle(
 
 def model_build_fingerprint(identity_key: str, rows: list[dict], include_original: bool, taxonomy: dict) -> str:
     hierarchy = str(rows[0]["model_key"]).split(" / ")
-    franchise_pos = franchise_index(hierarchy)
+    franchise_pos = franchise_index(hierarchy, taxonomy)
     category_name = hierarchy[0] if hierarchy else "Outros"
     franchise_name = hierarchy[franchise_pos] if hierarchy else category_name
     taxonomy_key = f"{slugify(category_name)}/{slugify(franchise_name)}"
@@ -409,7 +429,7 @@ def build_bundle(
     for identity_key in model_keys:
         row = by_model[identity_key][0]
         hierarchy = str(row["model_key"]).split(" / ")
-        franchise_pos = franchise_index(hierarchy)
+        franchise_pos = franchise_index(hierarchy, taxonomy)
         franchise_name = hierarchy[franchise_pos] if hierarchy else "Outros"
         audited_public = bool(row.get("public_model_key"))
         source_collection_parts = hierarchy[franchise_pos + 1:] if audited_public else hierarchy[franchise_pos + 1:-1]

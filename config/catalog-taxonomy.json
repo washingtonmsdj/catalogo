@@ -1,5 +1,21 @@
 {
   "version": 1,
+  "sourceHierarchy": {
+    "categoryIntermediates": {
+      "animes-desenhos": {
+        "names": ["Animes", "Clássicos", "Outros"]
+      },
+      "marvel-dc": {
+        "names": ["Marvel", "DC"]
+      },
+      "filmes-series": {
+        "pattern": "^\\d{2}\\s*-\\s*"
+      },
+      "games": {
+        "names": ["00 - Fliperama"]
+      }
+    }
+  },
   "franchises": {
     "animes-desenhos/as-tartarugas-ninja": {
       "pathOverrides": {

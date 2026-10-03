@@ -93,3 +93,11 @@ Exemplo canônico: em `As Tartarugas Ninja`, heróis/aliados como `Leonardo`, `R
 ## Identidade
 
 O código público do modelo deve ser estável. Mover ou renomear arquivos físicos não pode alterar a identidade do modelo no catálogo.
+## Taxonomia pública e hierarquia da origem
+
+`config/catalog-taxonomy.json` é o SSOT das exceções de navegação que não devem ficar embutidas no código. Ele controla duas camadas independentes:
+
+- `sourceHierarchy.categoryIntermediates`: descreve pastas intermediárias da árvore de origem que agrupam franquias (por nome explícito ou regex). Essas pastas não viram franquias públicas.
+- `franchises.<categoria>/<franquia>.pathOverrides`: remapeia caminhos internos de uma franquia para a estrutura pública desejada, por exemplo `Destruidor -> Vilões/Destruidor`.
+
+O pipeline deve continuar seguro por padrão: sem uma regra explícita, a hierarquia observada é preservada e nenhuma franquia/personagem é reclassificada implicitamente. Novos agrupamentos devem ser adicionados ao arquivo de taxonomia e cobertos por teste, nunca por condicionais ad hoc no importador.
