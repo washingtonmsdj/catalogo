@@ -20,8 +20,13 @@ class FakeR2:
     def __init__(self) -> None:
         self.objects: dict[tuple[str, str], dict] = {}
         self.upload_calls: list[str] = []
+        self.attempt_calls: list[str] = []
+        self.fail_keys: set[str] = set()
 
     def upload_file(self, Filename: str, Bucket: str, Key: str, ExtraArgs: dict) -> None:  # noqa: N803 - boto3 signature
+        self.attempt_calls.append(Key)
+        if Key in self.fail_keys:
+            raise RuntimeError("forced upload failure")
         body = Path(Filename).read_bytes()
         self.objects[(Bucket, Key)] = {
             "body": body,
@@ -75,6 +80,41 @@ class R2PublisherTests(unittest.TestCase):
             self.assertEqual(second["uploaded"], 0)
             self.assertEqual(second["skipped"], 3)
             self.assertEqual(len(client.upload_calls), calls)
+
+    def test_media_phase_finishes_before_gallery_manifest(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bundle = self.make_bundle(root)
+            state = root / "state.json"
+            client = FakeR2()
+
+            result = publish(bundle, state, "bucket", client=client, workers=1)
+
+            self.assertEqual(result["errors"], [])
+            self.assertEqual(client.upload_calls, [
+                "media/mdl_a/img_a/card.webp",
+                "media/mdl_a/img_a/thumb.webp",
+                "gallery/mdl_a/0123456789abcdef01234567.json",
+            ])
+
+    def test_media_failure_defers_gallery_phase(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bundle = self.make_bundle(root)
+            state = root / "state.json"
+            client = FakeR2()
+            failed_key = "media/mdl_a/img_a/card.webp"
+            gallery_key = "gallery/mdl_a/0123456789abcdef01234567.json"
+            client.fail_keys.add(failed_key)
+
+            result = publish(bundle, state, "bucket", client=client, workers=1)
+
+            self.assertEqual(result["uploaded"], 1)
+            self.assertEqual(len(result["errors"]), 1)
+            self.assertEqual(result["errors"][0]["key"], failed_key)
+            self.assertEqual(result["deferred"], 1)
+            self.assertNotIn(gallery_key, client.attempt_calls)
+            self.assertNotIn(("bucket", gallery_key), client.objects)
 
     def test_only_changed_local_object_is_reuploaded(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
