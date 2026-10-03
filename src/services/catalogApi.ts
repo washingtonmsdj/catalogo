@@ -56,6 +56,7 @@ export type FranchiseDiscoveryPage = {
 
 export type FolderDiscoveryPage = {
   current: Pick<CatalogFolder, 'id' | 'label' | 'count'> | null
+  trail: Array<Pick<CatalogFolder, 'id' | 'label'>>
   items: CatalogFolder[]
 }
 

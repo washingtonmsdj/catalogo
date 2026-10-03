@@ -55,7 +55,7 @@ A árvore de pastas é carregada sob demanda. `parent` recebe o caminho estável
 
 Se `parent` não existir dentro da categoria/franquia informadas, a API responde `404 {"error":"folder_not_found"}`. O mesmo contrato vale para `folder` em `/api/catalog`; assim, um link antigo ou inválido não é confundido com uma pasta válida sem modelos.
 
-A resposta inclui `current` com a contagem de toda a subárvore selecionada e `items` com os filhos, suas contagens recursivas e `hasChildren`. Pastas são taxonomia pública; não correspondem obrigatoriamente a movimentos físicos na origem auditada.
+A resposta inclui `current` com a contagem de toda a subárvore selecionada, `trail` com os ancestrais da raiz até a pasta atual e `items` com os filhos, suas contagens recursivas e `hasChildren`. Pastas são taxonomia pública; não correspondem obrigatoriamente a movimentos físicos na origem auditada.
 
 ## Listagem
 

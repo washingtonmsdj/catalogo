@@ -23,6 +23,17 @@
   color: #737b80;
 }
 .scope-strip__path strong { color: #d8d3c8; }
+.scope-strip__path button {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d8d3c8;
+  font: inherit;
+  cursor: pointer;
+}
+.scope-strip__path button:hover,
+.scope-strip__path button:focus-visible { color: var(--accent); }
 .scope-strip__path b { color: var(--accent); }
 .scope-strip__path span:last-child { overflow: hidden; text-overflow: ellipsis; color: #9ca2a4; }
 

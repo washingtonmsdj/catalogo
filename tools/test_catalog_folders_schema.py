@@ -106,6 +106,31 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
         self.assertEqual(root, [("Leonardo", "leonardo"), ("Vilões", "viloes")])
         self.assertEqual(children, [("Destruidor", "viloes/destruidor")])
 
+    def test_folder_ancestor_trail_is_ordered_root_to_leaf(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
+            (self.franchise_id, "viloes", "Vil\u00f5es", "viloes", 1),
+        )
+        villains_id = self.db.execute("SELECT id FROM catalog_folders WHERE path='viloes'").fetchone()[0]
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,parent_id,slug,name,path,depth) VALUES(?,?,?,?,?,?)",
+            (self.franchise_id, villains_id, "destruidor", "Destruidor", "viloes/destruidor", 2),
+        )
+        rows = self.db.execute(
+            """WITH RECURSIVE ancestors AS (
+              SELECT id,parent_id,path,name,depth
+              FROM catalog_folders
+              WHERE franchise_id=? AND path=?
+              UNION ALL
+              SELECT parent.id,parent.parent_id,parent.path,parent.name,parent.depth
+              FROM catalog_folders parent
+              JOIN ancestors child ON child.parent_id=parent.id
+            )
+            SELECT path,name FROM ancestors ORDER BY depth,path""",
+            (self.franchise_id, "viloes/destruidor"),
+        ).fetchall()
+        self.assertEqual(rows, [("viloes", "Vil\u00f5es"), ("viloes/destruidor", "Destruidor")])
+
     def test_folder_lookup_is_scoped_to_category_and_franchise(self) -> None:
         self.db.execute(
             "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
