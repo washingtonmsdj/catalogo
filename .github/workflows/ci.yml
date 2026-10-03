@@ -35,7 +35,7 @@ jobs:
       - name: Dry-run Cloudflare Worker bundle
         run: npx wrangler deploy --dry-run --config .wrangler.deploy.jsonc --outdir .wrangler-dry-run
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.13'
       - name: Install ingestion dependencies
