@@ -191,10 +191,13 @@ export function useCatalogRuntime(initialSlug = '') {
         setLiveFolders(page.items)
         setCurrentFolder(page.current)
       })
-      .catch(() => {
+      .catch((caught) => {
         if (cancelled) return
         setLiveFolders([])
         setCurrentFolder(null)
+        if (caught instanceof Error && caught.message === 'folder_not_found') {
+          setError('A pasta deste recorte não existe mais nesta franquia. Remova o filtro de pasta para continuar.')
+        }
       })
     return () => { cancelled = true }
   }, [mode, category, franchise, folder])
@@ -234,12 +237,14 @@ export function useCatalogRuntime(initialSlug = '') {
           setSelectedId(items[0].id)
         }
       })
-      .catch(() => {
+      .catch((caught) => {
         if (!cancelled) {
           setLiveModels([])
           setNextCursor(null)
           setSelectedDetail(null)
-          setError('Não foi possível carregar esta página do catálogo.')
+          setError(caught instanceof Error && caught.message === 'folder_not_found'
+            ? 'A pasta deste recorte não existe mais nesta franquia. Remova o filtro de pasta para continuar.'
+            : 'Não foi possível carregar esta página do catálogo.')
         }
       })
       .finally(() => { if (!cancelled) setLoading(false) })

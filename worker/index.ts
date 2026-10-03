@@ -306,6 +306,10 @@ async function listFolders(request: Request, env: Env) {
     GROUP BY current_folder.id,current_folder.path,current_folder.name`).bind(category, franchise, parent)
     .first<{ id: string; label: string; count: number }>() : null
 
+  if (parent && !current) {
+    return json(request, env, { error: 'folder_not_found' }, { status: 404 }, 'no-store')
+  }
+
   return json(request, env, {
     current: current ? { id: current.id, label: current.label, count: Number(current.count || 0) } : null,
     items: result.results.map((item) => ({
@@ -340,6 +344,13 @@ async function listCatalog(request: Request, env: Env) {
   if (folder) {
     if (!category || !franchise) return json(request, env, { error: 'folder_scope_required' }, { status: 400 })
     if (folder.length > 240) return json(request, env, { error: 'folder_path_too_long' }, { status: 400 })
+    const folderExists = await env.DB.prepare(`SELECT 1
+      FROM catalog_folders cf
+      JOIN franchises f ON f.id=cf.franchise_id
+      JOIN categories c ON c.id=f.category_id
+      WHERE c.slug=? AND f.slug=? AND cf.path=?
+      LIMIT 1`).bind(category, franchise, folder).first()
+    if (!folderExists) return json(request, env, { error: 'folder_not_found' }, { status: 404 }, 'no-store')
     folderCte = `WITH RECURSIVE folder_scope(id) AS (
       SELECT cf.id FROM catalog_folders cf
       JOIN franchises ff ON ff.id=cf.franchise_id

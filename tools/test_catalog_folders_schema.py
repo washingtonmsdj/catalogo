@@ -106,6 +106,37 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
         self.assertEqual(root, [("Leonardo", "leonardo"), ("Vilões", "viloes")])
         self.assertEqual(children, [("Destruidor", "viloes/destruidor")])
 
+    def test_folder_lookup_is_scoped_to_category_and_franchise(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
+            (self.franchise_id, "viloes", "Vilões", "viloes", 1),
+        )
+        category_id = self.db.execute("SELECT id FROM categories WHERE slug='animes-desenhos'").fetchone()[0]
+        self.db.execute(
+            "INSERT INTO franchises(category_id,slug,name) VALUES(?,?,?)",
+            (category_id, "outra-franquia", "Outra Franquia"),
+        )
+        other_id = self.db.execute("SELECT id FROM franchises WHERE slug='outra-franquia'").fetchone()[0]
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
+            (other_id, "viloes", "Vilões", "viloes", 1),
+        )
+
+        def exists(franchise_slug: str, path: str) -> bool:
+            row = self.db.execute(
+                """SELECT 1 FROM catalog_folders cf
+                JOIN franchises f ON f.id=cf.franchise_id
+                JOIN categories c ON c.id=f.category_id
+                WHERE c.slug=? AND f.slug=? AND cf.path=? LIMIT 1""",
+                ("animes-desenhos", franchise_slug, path),
+            ).fetchone()
+            return row is not None
+
+        self.assertTrue(exists("as-tartarugas-ninja", "viloes"))
+        self.assertTrue(exists("outra-franquia", "viloes"))
+        self.assertFalse(exists("as-tartarugas-ninja", "herois"))
+        self.assertFalse(exists("franquia-inexistente", "viloes"))
+
     def test_folder_path_is_unique_per_franchise(self) -> None:
         self.db.execute(
             "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
