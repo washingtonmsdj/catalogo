@@ -42,4 +42,4 @@ jobs:
         run: python -m pip install -r tools/requirements.txt
       - name: Test catalog pipelines and schema
         working-directory: tools
-        run: python -m unittest -v test_ingest_catalog.py test_build_media_bundle.py test_publish_r2.py test_reconcile_r2_state.py test_publish_d1.py test_catalog_folders_schema.py test_search_schema.py test_quote_schema.py test_quote_dedup.py test_shared_collections_schema.py
+        run: python -m unittest -v test_ingest_catalog.py test_build_media_bundle.py test_publish_r2.py test_reconcile_r2_state.py test_publish_d1.py test_publish_readiness.py test_catalog_folders_schema.py test_search_schema.py test_quote_schema.py test_quote_dedup.py test_shared_collections_schema.py

@@ -11,8 +11,11 @@ import unicodedata
 import urllib.error
 import urllib.request
 from collections import Counter
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
+
+from publish_r2 import discover as discover_r2
+from publish_r2 import load_state as load_r2_state
 
 CATEGORY_ORDER = {
     "Animes & Desenhos": 10,
@@ -56,6 +59,7 @@ def folder_entries(rows: list[dict[str, Any]]) -> list[tuple[str, str, str, str,
             entries[key] = value
     return sorted(entries.values(), key=lambda item: (item[5], item[0], item[1], item[2], item[3]))
 
+
 def load_models(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     with path.open("r", encoding="utf-8") as handle:
@@ -88,6 +92,88 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
         if int(row["imageCount"]) < 1:
             raise RuntimeError(f"modelo sem imagem publicável: {row['id']}")
     folder_entries(rows)
+
+
+def safe_storage_key(value: Any, expected_prefix: str, model_id: str) -> str:
+    key = str(value or "").strip()
+    path = PurePosixPath(key)
+    if (
+        not key
+        or key.startswith("/")
+        or "\\" in key
+        or ".." in path.parts
+        or not key.startswith(expected_prefix)
+    ):
+        raise RuntimeError(f"chave R2 inválida no modelo {model_id}: {key!r}")
+    return key
+
+
+def validate_r2_ready(models_path: Path, rows: list[dict[str, Any]], state_path: Path) -> dict[str, Any]:
+    models_path = models_path.resolve()
+    r2_root = models_path.parent / "r2"
+    if not r2_root.is_dir():
+        raise RuntimeError(f"bundle R2 ausente: {r2_root}")
+
+    state = load_r2_state(state_path)
+    candidates = discover_r2(r2_root, state)
+    if not candidates:
+        raise RuntimeError(f"bundle R2 vazio: {r2_root}")
+
+    by_key = {candidate.key: candidate for candidate in candidates}
+    required_keys: set[str] = set()
+
+    for row in rows:
+        model_id = str(row["id"])
+        cover_key = safe_storage_key(row["coverStorageKey"], "media/", model_id)
+        manifest_key = safe_storage_key(row["galleryManifestKey"], "gallery/", model_id)
+        required_keys.update((cover_key, manifest_key))
+
+        manifest_path = r2_root / PurePosixPath(manifest_key)
+        if not manifest_path.is_file():
+            raise RuntimeError(f"manifesto de galeria ausente no bundle: {manifest_key}")
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError(f"manifesto de galeria inválido: {manifest_key}: {exc}") from exc
+        if str(manifest.get("modelId") or "") != model_id:
+            raise RuntimeError(f"manifesto pertence a outro modelo: {manifest_key}")
+        images = manifest.get("images")
+        if not isinstance(images, list) or len(images) != int(row["imageCount"]):
+            raise RuntimeError(f"quantidade de imagens divergente no manifesto: {manifest_key}")
+        for image in images:
+            if not isinstance(image, dict) or not isinstance(image.get("variantKeys"), dict):
+                raise RuntimeError(f"variantKeys inválido no manifesto: {manifest_key}")
+            variants = image["variantKeys"]
+            for variant_name in ("thumb", "card", "detail"):
+                required_keys.add(safe_storage_key(variants.get(variant_name), "media/", model_id))
+
+    missing_from_bundle = sorted(required_keys.difference(by_key))
+    if missing_from_bundle:
+        raise RuntimeError(
+            f"bundle R2 incompleto: {len(missing_from_bundle)} chave(s) referenciada(s) ausente(s): "
+            f"{missing_from_bundle[:5]}"
+        )
+
+    state_objects = state["objects"]
+    pending = sorted(
+        candidate.key
+        for candidate in candidates
+        if state_objects.get(candidate.key, {}).get("published_sha256") != candidate.sha256
+    )
+    if pending:
+        raise RuntimeError(
+            f"R2 ainda não está pronto: {len(pending)} de {len(candidates)} objeto(s) sem publicação confirmada "
+            f"no checkpoint: {pending[:5]}"
+        )
+
+    return {
+        "objects": len(candidates),
+        "requiredKeys": len(required_keys),
+        "checkpoint": str(state_path),
+        "ready": True,
+    }
+
+
 def build_statements(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     statements: list[dict[str, Any]] = []
     categories = {
@@ -143,8 +229,7 @@ WHERE c.slug=? AND f.slug=?
 ON CONFLICT(id) DO UPDATE SET
 franchise_id=excluded.franchise_id,folder_id=excluded.folder_id,slug=excluded.slug,code=excluded.code,
 name=excluded.name,collection=excluded.collection,image_count=excluded.image_count,
-cover_storage_key=excluded.cover_storage_key,
-gallery_manifest_key=excluded.gallery_manifest_key,
+cover_storage_key=excluded.cover_storage_key,gallery_manifest_key=excluded.gallery_manifest_key,
 gallery_version=excluded.gallery_version,published=1,
 search_text=excluded.search_text,updated_at=CURRENT_TIMESTAMP""",
             "params": [
@@ -162,6 +247,8 @@ search_text=excluded.search_text,updated_at=CURRENT_TIMESTAMP""",
 def chunked(items: list[dict[str, Any]], size: int):
     for start in range(0, len(items), size):
         yield items[start:start + size]
+
+
 def request_batch(account_id: str, database_id: str, token: str, batch: list[dict[str, Any]]) -> None:
     url = (
         "https://api.cloudflare.com/client/v4/accounts/"
@@ -193,11 +280,14 @@ def require_env(name: str) -> str:
     if not value:
         raise RuntimeError(f"variável obrigatória ausente: {name}")
     return value
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Publica models.jsonl no D1 de forma idempotente.")
     parser.add_argument("models", type=Path)
     parser.add_argument("--apply", action="store_true", help="executa mutações; sem esta flag apenas valida/planeja")
     parser.add_argument("--batch-size", type=int, default=100)
+    parser.add_argument("--r2-state", type=Path, help="checkpoint R2; padrão: r2-publish-state.json ao lado de models.jsonl")
     args = parser.parse_args()
 
     if not args.models.is_file():
@@ -208,7 +298,7 @@ def main() -> int:
     try:
         rows = load_models(args.models)
         statements = build_statements(rows)
-        summary = {
+        summary: dict[str, Any] = {
             "models": len(rows),
             "categories": len({row["categorySlug"] for row in rows}),
             "franchises": len({(row["categorySlug"], row["franchiseSlug"]) for row in rows}),
@@ -220,6 +310,9 @@ def main() -> int:
         if not args.apply:
             print(json.dumps(summary, ensure_ascii=False))
             return 0
+
+        state_path = args.r2_state.resolve() if args.r2_state else args.models.resolve().parent / "r2-publish-state.json"
+        summary["r2Gate"] = validate_r2_ready(args.models, rows, state_path)
 
         account_id = require_env("CLOUDFLARE_ACCOUNT_ID")
         database_id = require_env("CLOUDFLARE_D1_DATABASE_ID")
