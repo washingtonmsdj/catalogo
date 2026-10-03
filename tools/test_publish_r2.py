@@ -3,8 +3,9 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from publish_r2 import cache_control_for, publish
+from publish_r2 import cache_control_for, make_r2_client, publish
 
 
 class FakeNotFound(Exception):
@@ -61,6 +62,22 @@ class R2PublisherTests(unittest.TestCase):
         (media / "thumb.webp").write_bytes(b"webp-thumb-v1")
         (gallery / "0123456789abcdef01234567.json").write_text('{"version":1}\n', encoding="utf-8")
         return bundle
+
+    def test_r2_client_forwards_temporary_session_token(self) -> None:
+        with patch("boto3.client") as create_client:
+            make_r2_client("acct", "access", "secret", "session-token")
+
+        kwargs = create_client.call_args.kwargs
+        self.assertEqual(kwargs["endpoint_url"], "https://acct.r2.cloudflarestorage.com")
+        self.assertEqual(kwargs["aws_access_key_id"], "access")
+        self.assertEqual(kwargs["aws_secret_access_key"], "secret")
+        self.assertEqual(kwargs["aws_session_token"], "session-token")
+
+    def test_r2_client_keeps_long_lived_credentials_compatible(self) -> None:
+        with patch("boto3.client") as create_client:
+            make_r2_client("acct", "access", "secret")
+
+        self.assertIsNone(create_client.call_args.kwargs["aws_session_token"])
 
     def test_first_publish_uploads_and_second_run_skips_everything(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
