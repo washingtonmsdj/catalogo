@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode, type RefObject } from 'react'
 import { useCatalogRuntime } from '../hooks/useCatalogRuntime'
-import type { CatalogCategory, CatalogModel } from '../types/catalog'
+import { CatalogSidebarTree } from './CatalogSidebarTree'
+import type { CatalogCategory, CatalogFranchise, CatalogModel } from '../types/catalog'
 
 const formatter = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 })
 
@@ -106,6 +107,17 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
   function coverForFranchise(label: string) {
     return models.find((model) => model.franchise === label && model.coverUrl)?.coverUrl
   }
+
+  function selectFranchise(item: CatalogFranchise) {
+    if (catalog.category !== item.category) catalog.setCategory(item.category)
+    catalog.setFranchise(item.id)
+  }
+
+  function selectFranchiseFolder(item: CatalogFranchise, folder: string) {
+    if (catalog.category !== item.category) catalog.setCategory(item.category)
+    if (catalog.franchise !== item.id) catalog.setFranchise(item.id)
+    catalog.setFolder(folder)
+  }
   return (
     <div className={`storefront-shell ${sidebarCollapsed ? 'is-sidebar-collapsed' : ''}`}>
       <aside className="storefront-sidebar">
@@ -127,20 +139,27 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
         <label className="storefront-franchise-search"><Icon name="search" /><input value={franchiseFilter} onChange={(event) => setFranchiseFilter(event.target.value)} placeholder="Buscar franquias..." /></label>
 
         <div className="storefront-franchise-list">
-          {visibleFranchises.slice(0, 12).map((item) => (
-            <button type="button" key={`${item.category}:${item.id}`} className={catalog.franchise === item.id ? 'is-active' : ''} onClick={() => catalog.setFranchise(item.id)}>
-              <span className="storefront-franchise-list__mark">◆</span><strong>{item.label}</strong><small>{formatter.format(item.count)}</small><Icon name="chevron" />
-            </button>
-          ))}
+          {visibleFranchises.slice(0, 12).map((item) => {
+            const active = catalog.franchise === item.id
+            return (
+              <div className={`storefront-franchise-entry ${active ? 'is-active' : ''}`} key={`${item.category}:${item.id}`}>
+                <button type="button" className="storefront-franchise-row" aria-expanded={active && catalog.mode === 'live'} onClick={() => selectFranchise(item)}>
+                  <span className="storefront-franchise-list__mark">◆</span><strong>{item.label}</strong><small>{formatter.format(item.count)}</small><Icon name="chevron" />
+                </button>
+                {active && catalog.mode === 'live' && (
+                  <CatalogSidebarTree
+                    key={`${item.category}:${item.id}`}
+                    category={item.category}
+                    franchise={item.id}
+                    activeFolder={catalog.folder}
+                    trail={catalog.folderTrail}
+                    onSelectFolder={(folder) => selectFranchiseFolder(item, folder)}
+                  />
+                )}
+              </div>
+            )
+          })}
         </div>
-
-        {catalog.franchise !== 'all' && (catalog.folders.length > 0 || catalog.folder) && (
-          <div className="storefront-folder-tree">
-            <div className="storefront-folder-tree__title"><span>Estrutura</span><strong>{catalog.franchises.find((item) => item.id === catalog.franchise)?.label ?? selected.franchise}</strong></div>
-            {catalog.folder && <button type="button" className="storefront-folder-tree__back" onClick={() => catalog.setFolder(catalog.folderBackPath)}>← Voltar</button>}
-            {catalog.folders.slice(0, 10).map((item) => <button type="button" key={item.id} onClick={() => catalog.setFolder(item.id)}><span>{item.hasChildren ? '▾' : '•'}</span><strong>{item.label}</strong><small>{formatter.format(item.count)}</small></button>)}
-          </div>
-        )}
 
         <div className="storefront-sidebar__summary">
           <Icon name="grid" /><div><strong>{formatter.format(catalogTotal)}</strong><span>modelos no acervo</span></div>
@@ -203,7 +222,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
           <div className="storefront-lower-grid">
             <section id="colecoes" className="storefront-section storefront-section--compact">
               <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="layers" /></span><div><h2>Coleções populares</h2><p>Navegue pelas coleções organizadas.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todas <Icon name="chevron" /></button></div>
-              <div className="storefront-franchise-cards">{franchiseCards.map((item) => <button type="button" key={`${item.category}:${item.id}`} onClick={() => catalog.setFranchise(item.id)}>{coverForFranchise(item.label) && <img src={coverForFranchise(item.label)} alt="" loading="lazy" decoding="async" />}<span className="storefront-franchise-cards__shade" /><span><strong>{item.label}</strong><small>{formatter.format(item.count)} modelos</small></span><i><Icon name="chevron" /></i></button>)}</div>
+              <div className="storefront-franchise-cards">{franchiseCards.map((item) => <button type="button" key={`${item.category}:${item.id}`} onClick={() => selectFranchise(item)}>{coverForFranchise(item.label) && <img src={coverForFranchise(item.label)} alt="" loading="lazy" decoding="async" />}<span className="storefront-franchise-cards__shade" /><span><strong>{item.label}</strong><small>{formatter.format(item.count)} modelos</small></span><i><Icon name="chevron" /></i></button>)}</div>
             </section>
 
             <section className="storefront-section storefront-section--compact">
