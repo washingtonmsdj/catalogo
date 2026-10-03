@@ -5,17 +5,18 @@
   z-index: 80;
   width: 42px;
   height: 42px;
-  border: 1px solid #3b4246;
-  background: rgba(11,14,16,.94);
-  color: #d7a253;
-  box-shadow: 0 12px 36px rgba(0,0,0,.38);
+  border: 1px solid rgba(36,240,176,.3);
+  border-radius: 10px;
+  background: rgba(4,20,18,.94);
+  color: var(--store-accent);
+  box-shadow: 0 12px 36px rgba(0,0,0,.38), 0 0 20px rgba(36,240,176,.06);
   backdrop-filter: blur(14px);
   font-size: 18px;
 }
 
 .collections-share-trigger:hover {
-  border-color: #8e6d45;
-  color: #f0c27d;
+  border-color: rgba(36,240,176,.8);
+  color: #ecfff8;
 }
 
 .collections-share-backdrop {
@@ -27,8 +28,8 @@
   width: min(760px, 96vw);
   max-height: 92vh;
   overflow: auto;
-  border: 1px solid #343c40;
-  background: linear-gradient(180deg, #0f1315, #090c0e);
+  border: 1px solid rgba(82,199,167,.24);
+  background: linear-gradient(180deg, #081816, #040e0d);
   box-shadow: 0 34px 100px rgba(0,0,0,.64);
 }
 
@@ -48,7 +49,7 @@
 }
 
 .collections-share-state strong {
-  color: #d0a064;
+  color: var(--store-accent);
   font: 900 10px "Courier New", monospace;
   letter-spacing: 1px;
 }
@@ -84,7 +85,7 @@
 }
 
 .collections-share-form select:focus {
-  border-color: #8b6d47;
+  border-color: var(--store-accent-strong);
 }
 
 .collections-share-privacy {
@@ -137,7 +138,7 @@
 }
 
 .collections-share-summary strong {
-  color: #e2ad68;
+  color: var(--store-accent);
   font-size: 16px;
 }
 
@@ -163,11 +164,11 @@
 }
 
 .collections-share-items button:hover {
-  border-color: #725a3c;
+  border-color: rgba(36,240,176,.5);
 }
 
 .collections-share-items button > span {
-  color: #b1844e;
+  color: #78d8bb;
   font: 900 10px "Courier New", monospace;
 }
 
@@ -191,7 +192,7 @@
 }
 
 .collections-share-items em {
-  color: #9b815f;
+  color: #76bca8;
   font-size: 9px;
   font-style: normal;
 }
@@ -201,12 +202,12 @@
   gap: 9px;
   margin-top: 4px;
   padding: 14px;
-  border: 1px solid #655035;
-  background: rgba(162,117,57,.08);
+  border: 1px solid rgba(36,240,176,.28);
+  background: rgba(36,240,176,.055);
 }
 
 .collections-share-result > span {
-  color: #d4a766;
+  color: var(--store-accent);
   font: 900 9px "Courier New", monospace;
   letter-spacing: .7px;
 }
@@ -228,9 +229,9 @@
 
 .collections-share-result button {
   padding: 0 12px;
-  border: 1px solid #765d3e;
-  background: #15110d;
-  color: #e2b475;
+  border: 1px solid rgba(36,240,176,.48);
+  background: rgba(36,240,176,.07);
+  color: var(--store-accent);
 }
 
 .collections-share-result small {

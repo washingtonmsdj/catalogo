@@ -8,20 +8,21 @@
   gap: 8px;
   min-height: 42px;
   padding: 0 12px;
-  border: 1px solid #3b4246;
-  background: rgba(11,14,16,.94);
-  color: #d9d5cc;
-  box-shadow: 0 12px 36px rgba(0,0,0,.38);
+  border: 1px solid rgba(36,240,176,.3);
+  border-radius: 10px;
+  background: rgba(4,20,18,.94);
+  color: #dff7ef;
+  box-shadow: 0 12px 36px rgba(0,0,0,.38), 0 0 20px rgba(36,240,176,.06);
   backdrop-filter: blur(14px);
 }
 
 .collections-dock-trigger:hover {
-  border-color: #8e6d45;
-  color: #f0c27d;
+  border-color: rgba(36,240,176,.8);
+  color: var(--store-accent);
 }
 
 .collections-dock-trigger > span {
-  color: #d7a253;
+  color: var(--store-accent);
   font-size: 16px;
 }
 
@@ -35,8 +36,8 @@
   height: 20px;
   display: grid;
   place-items: center;
-  border: 1px solid #4a5154;
-  color: #b9c0c2;
+  border: 1px solid rgba(82,199,167,.28);
+  color: #8fc8b7;
   font: 800 9px "Courier New", monospace;
 }
 
@@ -49,8 +50,8 @@
   width: min(1180px, 96vw);
   max-height: 92vh;
   overflow: hidden;
-  border: 1px solid #343c40;
-  background: linear-gradient(180deg, #0f1315, #090c0e);
+  border: 1px solid rgba(82,199,167,.24);
+  background: linear-gradient(180deg, #081816, #040e0d);
   box-shadow: 0 34px 100px rgba(0,0,0,.6);
 }
 
@@ -68,8 +69,8 @@
 .collections-sidebar {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #293034;
-  background: #0a0d0f;
+  border-right: 1px solid var(--store-line-soft);
+  background: #061210;
 }
 
 .collections-create {
@@ -100,7 +101,7 @@
 
 .collections-create input:focus,
 .collections-toolbar input:focus {
-  border-color: #8b6d47;
+  border-color: var(--store-accent-strong);
 }
 
 .collections-create button,
@@ -127,8 +128,8 @@
 }
 
 .collections-backup-actions button:hover:not(:disabled) {
-  border-color: #765d3e;
-  color: #e3b575;
+  border-color: rgba(36,240,176,.55);
+  color: var(--store-accent);
 }
 
 .collections-backup-actions button:disabled {
@@ -164,12 +165,12 @@
 
 .collections-list > button:hover,
 .collections-list > button.is-active {
-  border-color: #353d41;
-  background: #111619;
+  border-color: rgba(82,199,167,.28);
+  background: rgba(36,240,176,.045);
 }
 
 .collections-list > button.is-active strong {
-  color: #e4b36f;
+  color: var(--store-accent);
 }
 
 .collections-list strong {
@@ -190,7 +191,7 @@
 .collections-content {
   overflow: auto;
   padding: 18px;
-  background: radial-gradient(circle at 50% 0%, rgba(215,162,83,.035), transparent 35%), #0d1113;
+  background: radial-gradient(circle at 50% 0%, rgba(36,240,176,.055), transparent 35%), #071311;
 }
 
 .collections-toolbar {
@@ -312,7 +313,7 @@
 }
 
 .collections-empty strong {
-  color: #c89c5d;
+  color: var(--store-accent);
   font: 900 10px "Courier New", monospace;
   letter-spacing: 1px;
 }
@@ -355,8 +356,8 @@
 }
 
 .collections-source-chips button:hover {
-  border-color: #765d3e;
-  color: #e3b575;
+  border-color: rgba(36,240,176,.55);
+  color: var(--store-accent);
 }
 
 .collections-message {
