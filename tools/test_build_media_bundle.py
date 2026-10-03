@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from build_media_bundle import build_bundle, load_taxonomy_config
+from build_media_bundle import build_bundle, franchise_index, load_taxonomy_config
 
 
 class MediaBundleTests(unittest.TestCase):
@@ -245,6 +245,43 @@ class MediaBundleTests(unittest.TestCase):
             }), encoding="utf-8")
 
             with self.assertRaisesRegex(RuntimeError, "segmento público inválido"):
+                load_taxonomy_config(config)
+
+    def test_source_hierarchy_rules_come_from_taxonomy_config(self) -> None:
+        taxonomy = load_taxonomy_config()
+        self.assertEqual(
+            franchise_index(["Animes & Desenhos", "Clássicos", "As Tartarugas Ninja", "Leonardo"], taxonomy),
+            2,
+        )
+        self.assertEqual(
+            franchise_index(["Filmes & Séries", "01 - Ficção", "Alien", "Xenomorfo"], taxonomy),
+            2,
+        )
+        self.assertEqual(
+            franchise_index(["Games", "00 - Fliperama", "Street Fighter", "Ryu"], taxonomy),
+            2,
+        )
+
+    def test_source_hierarchy_has_no_implicit_hardcoded_grouping(self) -> None:
+        taxonomy = {"version": 1, "franchises": {}}
+        self.assertEqual(
+            franchise_index(["Animes & Desenhos", "Clássicos", "As Tartarugas Ninja", "Leonardo"], taxonomy),
+            1,
+        )
+
+    def test_taxonomy_config_rejects_invalid_source_hierarchy_regex(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "taxonomy.json"
+            config.write_text(json.dumps({
+                "version": 1,
+                "sourceHierarchy": {
+                    "categoryIntermediates": {
+                        "filmes-series": {"pattern": "["}
+                    }
+                },
+                "franchises": {},
+            }), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "pattern regex inválido"):
                 load_taxonomy_config(config)
 
     def test_parallel_workers_keep_deterministic_model_index(self) -> None:
