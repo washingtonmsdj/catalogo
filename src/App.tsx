@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from 'react'
+import { FormEvent, Fragment, useEffect, useRef, useState } from 'react'
 import { FranchiseBrowser } from './components/FranchiseBrowser'
 import { ModelComparison } from './components/ModelComparison'
 import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
@@ -304,7 +304,7 @@ export default function App() {
       </header>
 
       <section className="scope-strip" aria-label="Navegação hierárquica">
-        <div className="scope-strip__path"><span>CATÁLOGO</span><b>›</b><strong>{categoryLabel}</strong><b>›</b><strong>{franchiseLabel}</strong>{catalog.folder && <><b>›</b><strong>{folderLabel}</strong></>}<b>›</b><span>{noResults ? 'Sem resultados' : selected.name}</span></div>
+        <div className="scope-strip__path"><span>CATÁLOGO</span><b>›</b><strong>{categoryLabel}</strong><b>›</b><strong>{franchiseLabel}</strong>{catalog.folderTrail.map((item) => <Fragment key={item.id}><b>›</b><button type="button" onClick={() => catalog.setFolder(item.id)}>{item.label}</button></Fragment>)}{catalog.folder && catalog.folderTrail.length === 0 && <><b>›</b><strong>{folderLabel}</strong></>}<b>›</b><span>{noResults ? 'Sem resultados' : selected.name}</span></div>
         <div className="scope-strip__franchises"><button type="button" className={catalog.franchise === 'all' ? 'is-active' : ''} onClick={() => catalog.setFranchise('all')}>TODAS</button>{catalog.franchises.map((item) => <button type="button" key={`${item.category}:${item.id}`} className={catalog.franchise === item.id ? 'is-active' : ''} onClick={() => catalog.setFranchise(item.id)}>{item.label}</button>)}{catalog.franchisesTruncated && <button type="button" className="scope-strip__explore" onClick={() => setExplorerOpen(true)}>Mais franquias…</button>}</div>
         {catalog.mode === 'live' && catalog.franchise !== 'all' && (catalog.folders.length > 0 || Boolean(catalog.folder)) && <div className="scope-strip__folders" aria-label="Pastas da franquia">{catalog.folder ? <><button type="button" className="scope-strip__back" onClick={() => catalog.setFolder(catalog.folderBackPath)}>← voltar</button><strong>{folderLabel}</strong></> : <span>PASTAS</span>}{catalog.folders.map((item) => <button type="button" key={item.id} onClick={() => catalog.setFolder(item.id)}>{item.hasChildren && <b aria-hidden="true">▸</b>}<span>{item.label}</span><small>{formatter.format(item.count)}</small></button>)}</div>}
       </section>

@@ -310,8 +310,25 @@ async function listFolders(request: Request, env: Env) {
     return json(request, env, { error: 'folder_not_found' }, { status: 404 }, 'no-store')
   }
 
+  const trail = parent ? await env.DB.prepare(`WITH RECURSIVE ancestors AS (
+      SELECT cf.id,cf.parent_id,cf.path,cf.name,cf.depth
+      FROM catalog_folders cf
+      JOIN franchises f ON f.id=cf.franchise_id
+      JOIN categories c ON c.id=f.category_id
+      WHERE c.slug=? AND f.slug=? AND cf.path=?
+      UNION ALL
+      SELECT parent_folder.id,parent_folder.parent_id,parent_folder.path,parent_folder.name,parent_folder.depth
+      FROM catalog_folders parent_folder
+      JOIN ancestors child ON child.parent_id=parent_folder.id
+    )
+    SELECT path AS id,name AS label,depth
+    FROM ancestors
+    ORDER BY depth,path`).bind(category, franchise, parent)
+    .all<{ id: string; label: string; depth: number }>() : { results: [] }
+
   return json(request, env, {
     current: current ? { id: current.id, label: current.label, count: Number(current.count || 0) } : null,
+    trail: trail.results.map((item) => ({ id: item.id, label: item.label })),
     items: result.results.map((item) => ({
       id: item.id,
       label: item.label,

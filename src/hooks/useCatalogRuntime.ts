@@ -92,6 +92,7 @@ export function useCatalogRuntime(initialSlug = '') {
   const [liveFranchises, setLiveFranchises] = useState<CatalogFranchise[]>([])
   const [liveFolders, setLiveFolders] = useState<CatalogFolder[]>([])
   const [currentFolder, setCurrentFolder] = useState<Pick<CatalogFolder, 'id' | 'label' | 'count'> | null>(null)
+  const [folderTrail, setFolderTrail] = useState<Array<Pick<CatalogFolder, 'id' | 'label'>>>([])
   const [franchisesTruncated, setFranchisesTruncated] = useState(false)
   const [liveModels, setLiveModels] = useState<CatalogModel[]>([])
   const [selectedDetail, setSelectedDetail] = useState<CatalogModel | null>(null)
@@ -182,6 +183,7 @@ export function useCatalogRuntime(initialSlug = '') {
     if (mode !== 'live' || category === 'all' || franchise === 'all') {
       setLiveFolders([])
       setCurrentFolder(null)
+      setFolderTrail([])
       return
     }
     let cancelled = false
@@ -190,11 +192,13 @@ export function useCatalogRuntime(initialSlug = '') {
         if (cancelled) return
         setLiveFolders(page.items)
         setCurrentFolder(page.current)
+        setFolderTrail(page.trail)
       })
       .catch((caught) => {
         if (cancelled) return
         setLiveFolders([])
         setCurrentFolder(null)
+        setFolderTrail([])
         if (caught instanceof Error && caught.message === 'folder_not_found') {
           setError('A pasta deste recorte não existe mais nesta franquia. Remova o filtro de pasta para continuar.')
         }
@@ -324,17 +328,21 @@ export function useCatalogRuntime(initialSlug = '') {
     setCategoryState(next)
     setFranchiseState('all')
     setFolderState('')
+    setFolderTrail([])
     setSelectedDetail(null)
   }
 
   function setFranchise(next: string) {
     setFranchiseState(next)
     setFolderState('')
+    setFolderTrail([])
     setSelectedDetail(null)
   }
 
   function setFolder(next: string) {
     setFolderState(next)
+    setCurrentFolder(null)
+    setFolderTrail([])
     setSelectedDetail(null)
   }
 
@@ -343,6 +351,8 @@ export function useCatalogRuntime(initialSlug = '') {
     setCategoryState('all')
     setFranchiseState('all')
     setFolderState('')
+    setCurrentFolder(null)
+    setFolderTrail([])
     setSelectedDetail(null)
     setCursorStack([undefined])
     setPageIndex(0)
@@ -379,6 +389,7 @@ export function useCatalogRuntime(initialSlug = '') {
     folder,
     folderBackPath,
     folderLabel: currentFolder?.label ?? '',
+    folderTrail,
     search,
     setCategory,
     setFranchise,
