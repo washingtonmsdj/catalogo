@@ -5,6 +5,9 @@ The publisher never mutates the source catalog and never deletes remote objects.
 It keeps a local checkpoint so subsequent runs skip unchanged files without a
 remote HEAD request for every object. Use --verify-remote when an explicit
 remote integrity pass is desired.
+
+Both long-lived S3 credentials and Cloudflare temporary R2 credentials are
+supported. Temporary credentials additionally provide R2_SESSION_TOKEN.
 """
 from __future__ import annotations
 
@@ -129,7 +132,12 @@ def discover(bundle_root: Path, state: dict[str, Any]) -> list[Candidate]:
     return candidates
 
 
-def make_r2_client(account_id: str, access_key_id: str, secret_access_key: str):
+def make_r2_client(
+    account_id: str,
+    access_key_id: str,
+    secret_access_key: str,
+    session_token: str | None = None,
+):
     try:
         import boto3
         from botocore.config import Config
@@ -141,6 +149,7 @@ def make_r2_client(account_id: str, access_key_id: str, secret_access_key: str):
         endpoint_url=f"https://{account_id}.r2.cloudflarestorage.com",
         aws_access_key_id=access_key_id,
         aws_secret_access_key=secret_access_key,
+        aws_session_token=session_token or None,
         region_name="auto",
         config=Config(
             signature_version="s3v4",
@@ -316,6 +325,7 @@ def main() -> int:
             account_id=env_required("CLOUDFLARE_ACCOUNT_ID"),
             access_key_id=env_required("R2_ACCESS_KEY_ID"),
             secret_access_key=env_required("R2_SECRET_ACCESS_KEY"),
+            session_token=os.environ.get("R2_SESSION_TOKEN", "").strip() or None,
         )
 
     try:
