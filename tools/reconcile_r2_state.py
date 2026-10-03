@@ -145,6 +145,7 @@ def main() -> int:
             account_id=env_required("CLOUDFLARE_ACCOUNT_ID"),
             access_key_id=env_required("R2_ACCESS_KEY_ID"),
             secret_access_key=env_required("R2_SECRET_ACCESS_KEY"),
+            session_token=os.environ.get("R2_SESSION_TOKEN", "").strip() or None,
         )
         summary = reconcile(bundle_root, state_path, args.bucket, client, apply=args.apply)
     except (FileNotFoundError, RuntimeError, ValueError) as exc:
