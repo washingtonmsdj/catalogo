@@ -64,6 +64,14 @@ def cache_control_for(key: str) -> str:
     return "public, max-age=300"
 
 
+def publication_phase(key: str) -> int:
+    if key.startswith("media/"):
+        return 0
+    if key.startswith("gallery/"):
+        return 1
+    return 2
+
+
 def default_state() -> dict[str, Any]:
     return {"version": STATE_VERSION, "objects": {}}
 
@@ -90,7 +98,14 @@ def save_state(path: Path, state: dict[str, Any]) -> None:
 def discover(bundle_root: Path, state: dict[str, Any]) -> list[Candidate]:
     candidates: list[Candidate] = []
     objects = state["objects"]
-    for path in sorted((item for item in bundle_root.rglob("*") if item.is_file()), key=lambda item: item.as_posix().casefold()):
+    paths = (item for item in bundle_root.rglob("*") if item.is_file())
+    for path in sorted(
+        paths,
+        key=lambda item: (
+            publication_phase(item.relative_to(bundle_root).as_posix()),
+            item.relative_to(bundle_root).as_posix().casefold(),
+        ),
+    ):
         key = path.relative_to(bundle_root).as_posix()
         stat = path.stat()
         previous = objects.get(key, {})
@@ -221,6 +236,7 @@ def publish(
         "skipped": skipped,
         "verified": verified,
         "uploadedBytes": 0,
+        "deferred": 0,
         "errors": [],
         "dryRun": dry_run,
     }
@@ -232,29 +248,43 @@ def publish(
         raise RuntimeError("client R2 obrigatório para publicar")
 
     completed_since_checkpoint = 0
-    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="r2-upload") as executor:
-        futures = {executor.submit(upload_one, client, bucket, candidate): candidate for candidate in pending}
-        for future in as_completed(futures):
-            candidate = futures[future]
-            try:
-                future.result()
-            except Exception as exc:  # keep successful progress resumable
-                summary["errors"].append({"key": candidate.key, "error": f"{type(exc).__name__}: {exc}"})
-            else:
-                summary["uploaded"] += 1
-                summary["uploadedBytes"] += candidate.size
-                objects[candidate.key] = {
-                    "size": candidate.size,
-                    "mtime_ns": candidate.mtime_ns,
-                    "sha256": candidate.sha256,
-                    "published_sha256": candidate.sha256,
-                    "content_type": candidate.content_type,
-                    "cache_control": candidate.cache_control,
-                }
-                completed_since_checkpoint += 1
-                if completed_since_checkpoint >= CHECKPOINT_INTERVAL:
-                    save_state(state_path, state)
-                    completed_since_checkpoint = 0
+    phases = [
+        [candidate for candidate in pending if publication_phase(candidate.key) == phase]
+        for phase in range(3)
+    ]
+
+    for phase_index, phase_candidates in enumerate(phases):
+        if not phase_candidates:
+            continue
+        if summary["errors"]:
+            summary["deferred"] += sum(len(items) for items in phases[phase_index:])
+            break
+
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="r2-upload") as executor:
+            futures = {executor.submit(upload_one, client, bucket, candidate): candidate for candidate in phase_candidates}
+            for future in as_completed(futures):
+                candidate = futures[future]
+                try:
+                    future.result()
+                except Exception as exc:  # keep successful progress resumable
+                    summary["errors"].append({"key": candidate.key, "error": f"{type(exc).__name__}: {exc}"})
+                else:
+                    summary["uploaded"] += 1
+                    summary["uploadedBytes"] += candidate.size
+                    objects[candidate.key] = {
+                        "size": candidate.size,
+                        "mtime_ns": candidate.mtime_ns,
+                        "sha256": candidate.sha256,
+                        "published_sha256": candidate.sha256,
+                        "content_type": candidate.content_type,
+                        "cache_control": candidate.cache_control,
+                    }
+                    completed_since_checkpoint += 1
+                    if completed_since_checkpoint >= CHECKPOINT_INTERVAL:
+                        save_state(state_path, state)
+                        completed_since_checkpoint = 0
+
+        save_state(state_path, state)
 
     save_state(state_path, state)
     return summary
