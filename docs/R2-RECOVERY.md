@@ -17,6 +17,18 @@ R2_BUCKET=tonecos-catalogo-media
 
 Nunca grave essas credenciais no repositório.
 
+### Credenciais temporárias oficiais
+
+O publicador e a reconciliação também aceitam credenciais temporárias do R2. Nesse caso, além do access key e secret, informe o session token retornado pela Cloudflare:
+
+```text
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_SESSION_TOKEN=
+```
+
+Essas credenciais podem ser criadas com TTL curto e escopo restrito ao bucket/prefixos. O `R2_SESSION_TOKEN` é opcional para credenciais permanentes e obrigatório quando a credencial temporária retorná-lo. Nenhum desses valores deve ser persistido no repositório, em arquivos versionados ou em logs.
+
 ## 1. Auditar sem alterar estado local
 
 ```bash
@@ -55,6 +67,8 @@ python tools/publish_r2.py ".publish-bundle/r2"
 ```
 
 O publicador ignora os objetos já adotados e envia apenas o delta pendente. Ele continua sem executar deletes.
+
+A publicação ocorre em fases: todo `media/` é concluído primeiro; manifestos `gallery/` só são enviados depois de a fase de mídia terminar sem erros. Se qualquer upload de mídia falhar, as fases posteriores ficam adiadas e o checkpoint dos sucessos é preservado.
 
 ## 4. Validar antes do D1
 
