@@ -202,7 +202,12 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
           {catalog.error && <div className="storefront-alert" role="alert">{catalog.error}</div>}
 
           <section className="storefront-hero">
-            <div className="storefront-hero__backdrop">{selected.coverUrl && <img src={selected.coverUrl} alt="" loading="eager" fetchPriority="high" decoding="async" />}</div>
+            <div className="storefront-hero__backdrop">
+              {selected.coverUrl && <>
+                <img className="storefront-hero__backdrop-blur" src={selected.coverUrl} alt="" loading="eager" fetchPriority="high" decoding="async" />
+                <img className="storefront-hero__backdrop-subject" src={selected.coverUrl} alt="" loading="eager" fetchPriority="high" decoding="async" />
+              </>}
+            </div>
             {models.length > 1 && <button type="button" className="storefront-hero__nav storefront-hero__nav--next" aria-label="Próximo modelo em destaque" onClick={() => selectAdjacentHero(1)}><Icon name="chevron" /></button>}
             <div className="storefront-hero__copy">
               <span className="storefront-hero__eyebrow"><Icon name="star" /> Coleção em destaque</span>
