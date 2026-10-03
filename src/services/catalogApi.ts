@@ -117,11 +117,16 @@ export async function listCatalogFranchises(category?: string, limit = 24, searc
 }
 
 export async function listCatalogFolders(category: string, franchise: string, parent?: string): Promise<FolderDiscoveryPage> {
-  return requestJson<FolderDiscoveryPage>(endpoint('/api/folders', {
+  const page = await requestJson<Partial<FolderDiscoveryPage>>(endpoint('/api/folders', {
     category,
     franchise,
     parent: parent?.trim() || undefined,
   }))
+  return {
+    current: page.current ?? null,
+    trail: Array.isArray(page.trail) ? page.trail : [],
+    items: Array.isArray(page.items) ? page.items : [],
+  }
 }
 
 function mediaObjectUrl(key: string | null | undefined) {

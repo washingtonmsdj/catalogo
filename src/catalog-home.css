@@ -32,22 +32,35 @@
 .storefront-franchise-search input { width: 100%; border: 0; outline: 0; background: transparent; color: #dceae6; font: 600 10px/1 ui-sans-serif, system-ui; }
 .storefront-franchise-search input::placeholder { color: #58776f; }
 .storefront-franchise-list { display: grid; gap: 2px; padding: 0 10px 8px; }
-.storefront-franchise-list button { min-height: 34px; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto 14px; align-items: center; gap: 6px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #a4b9b3; text-align: left; cursor: pointer; }
-.storefront-franchise-list button:hover, .storefront-franchise-list button.is-active { border-color: rgba(36,240,176,.18); background: rgba(36,240,176,.055); color: #effaf6; }
-.storefront-franchise-list button.is-active { box-shadow: inset 2px 0 0 var(--store-accent); }
+.storefront-franchise-entry { min-width: 0; border: 1px solid transparent; border-radius: 8px; overflow: hidden; }
+.storefront-franchise-entry.is-active { border-color: rgba(36,240,176,.18); background: rgba(36,240,176,.035); box-shadow: inset 2px 0 0 var(--store-accent); }
+.storefront-franchise-row { width: 100%; min-height: 34px; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto 14px; align-items: center; gap: 6px; padding: 0 8px; border: 0; background: transparent; color: #a4b9b3; text-align: left; cursor: pointer; }
+.storefront-franchise-row:hover, .storefront-franchise-entry.is-active > .storefront-franchise-row { background: rgba(36,240,176,.045); color: #effaf6; }
+.storefront-franchise-entry.is-active > .storefront-franchise-row .storefront-icon { transform: rotate(90deg); color: var(--store-accent); }
 .storefront-franchise-list__mark { color: var(--store-accent); font-size: 9px; text-align: center; }
-.storefront-franchise-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 650 10px/1 ui-sans-serif, system-ui; }
-.storefront-franchise-list small { color: #66867e; font: 650 9px/1 ui-sans-serif, system-ui; }
-.storefront-franchise-list .storefront-icon { width: 12px; height: 12px; color: #5f8179; }
-.storefront-folder-tree { margin: 0 10px 10px; border: 1px solid rgba(75,183,153,.16); border-radius: 9px; overflow: hidden; background: rgba(4,18,17,.66); }
-.storefront-folder-tree__title { display: grid; gap: 3px; padding: 9px 10px; border-bottom: 1px solid var(--store-line-soft); }
-.storefront-folder-tree__title span { color: #62857c; font: 750 8px/1 ui-sans-serif, system-ui; text-transform: uppercase; letter-spacing: .9px; }
-.storefront-folder-tree__title strong { color: #dceae5; font: 700 10px/1 ui-sans-serif, system-ui; }
-.storefront-folder-tree > button { width: 100%; min-height: 31px; display: grid; grid-template-columns: 16px minmax(0,1fr) auto; align-items: center; gap: 5px; padding: 0 9px; border: 0; border-bottom: 1px solid rgba(105,166,151,.07); background: transparent; color: #93aaa4; text-align: left; cursor: pointer; }
-.storefront-folder-tree > button:hover { background: rgba(36,240,176,.045); color: #eaf8f3; }
-.storefront-folder-tree > button strong { font: 630 9px/1 ui-sans-serif, system-ui; }
-.storefront-folder-tree > button small { color: #64827a; font-size: 8px; }
-.storefront-folder-tree__back { grid-template-columns: 1fr !important; color: var(--store-accent) !important; }
+.storefront-franchise-row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 650 10px/1 ui-sans-serif, system-ui; }
+.storefront-franchise-row small { color: #66867e; font: 650 9px/1 ui-sans-serif, system-ui; }
+.storefront-franchise-row .storefront-icon { width: 12px; height: 12px; color: #5f8179; transition: transform .16s ease, color .16s ease; }
+.storefront-folder-tree { position: relative; padding: 2px 5px 7px 18px; }
+.storefront-folder-tree::before { content: ""; position: absolute; top: 2px; bottom: 9px; left: 13px; border-left: 1px dotted rgba(77,185,156,.25); }
+.storefront-folder-tree__all { width: 100%; min-height: 26px; padding: 0 6px; border: 0; background: transparent; color: #6fd8b4; text-align: left; font: 650 8px/1 ui-sans-serif, system-ui; cursor: pointer; }
+.storefront-folder-tree__all:hover { color: var(--store-accent); }
+.storefront-tree-node { position: relative; min-width: 0; }
+.storefront-tree-row { --tree-indent: calc(var(--tree-depth, 0) * 13px); min-height: 29px; display: grid; grid-template-columns: 18px minmax(0,1fr); align-items: center; padding-left: var(--tree-indent); border-radius: 6px; color: #8ca59e; }
+.storefront-tree-row:hover { background: rgba(36,240,176,.035); color: #dcebe6; }
+.storefront-tree-row.is-active { background: rgba(36,240,176,.07); color: #effbf7; }
+.storefront-tree-toggle { width: 18px; height: 24px; display: grid; place-items: center; border: 0; background: transparent; color: #598279; padding: 0; cursor: pointer; font: 700 10px/1 ui-sans-serif, system-ui; }
+.storefront-tree-toggle:hover { color: var(--store-accent); }
+.storefront-tree-leaf { width: 18px; text-align: center; color: #426e63; font-size: 9px; }
+.storefront-tree-select { min-width: 0; min-height: 29px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 6px; padding: 0 5px 0 1px; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.storefront-tree-select strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 620 9px/1 ui-sans-serif, system-ui; }
+.storefront-tree-select small { color: #57776f; font: 620 8px/1 ui-sans-serif, system-ui; }
+.storefront-tree-row.is-active .storefront-tree-select strong { color: var(--store-accent); }
+.storefront-tree-row.is-active .storefront-tree-select small { color: #7bdabc; }
+.storefront-tree-children { min-width: 0; }
+.storefront-tree-status, .storefront-tree-retry { min-height: 25px; display: flex; align-items: center; padding: 0 7px 0 24px; color: #58776f; font: 600 8px/1.25 ui-sans-serif, system-ui; }
+.storefront-tree-retry { width: 100%; border: 0; background: transparent; color: #c79967; text-align: left; cursor: pointer; }
+.storefront-tree-retry:hover { color: #f0bd82; }
 .storefront-sidebar__summary { margin: auto 11px 12px; padding: 12px; border: 1px solid rgba(36,240,176,.22); border-radius: 11px; background: linear-gradient(145deg, rgba(36,240,176,.08), rgba(36,240,176,.025)); }
 .storefront-sidebar__summary > .storefront-icon { color: #76f4c9; }
 .storefront-sidebar__summary > div { display: grid; gap: 2px; margin: 8px 0 10px; }
