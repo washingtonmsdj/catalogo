@@ -122,15 +122,27 @@
 
 @media (max-width: 1080px) {
   .scope-strip { grid-template-columns: 1fr; }
-  .scope-strip__path { min-height: 42px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .scope-strip__path,
+  .scope-strip__franchises,
+  .scope-strip__folders {
+    scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: x proximity;
+  }
+  .scope-strip__path::-webkit-scrollbar,
+  .scope-strip__franchises::-webkit-scrollbar,
+  .scope-strip__folders::-webkit-scrollbar { display: none; }
+  .scope-strip__path { min-height: 42px; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
+  .scope-strip__franchises button,
+  .scope-strip__folders button { scroll-snap-align: start; }
 }
 
 @media (max-width: 680px) {
-  .scope-strip { width: calc(100% - 20px); margin-top: 10px; }
-  .scope-strip__path { overflow-x: auto; }
-  .scope-strip__franchises { padding: 7px; }
-  .scope-strip__franchises button { min-height: 32px; padding: 0 10px; font-size: 9px; }
-  .scope-strip__folders { padding: 6px 7px; }
+  .scope-strip { width: calc(100% - 20px); margin-top: 8px; }
+  .scope-strip__path { min-height: 36px; }
+  .scope-strip__franchises { padding: 6px 7px; }
+  .scope-strip__franchises button { min-height: 30px; padding: 0 10px; font-size: 9px; }
+  .scope-strip__folders { padding: 5px 7px; }
   .scope-strip__folders button { min-height: 29px; padding: 0 9px; }
   .gallery-footer--paged { align-items: flex-start; flex-direction: column; }
 }
