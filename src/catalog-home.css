@@ -53,6 +53,11 @@
 .storefront-tree-row { --tree-indent: calc(var(--tree-depth, 0) * 13px); min-height: 29px; display: grid; grid-template-columns: 18px minmax(0,1fr); align-items: center; padding-left: var(--tree-indent); border-radius: 6px; color: #8ca59e; }
 .storefront-tree-row:hover { background: rgba(36,240,176,.035); color: #dcebe6; }
 .storefront-tree-row.is-active { background: rgba(36,240,176,.07); color: #effbf7; }
+.storefront-tree-row.is-group { margin-block: 2px; border: 1px solid rgba(66,190,157,.12); background: rgba(36,240,176,.025); color: #b6cec7; }
+.storefront-tree-row.is-group:hover { border-color: rgba(36,240,176,.24); background: rgba(36,240,176,.055); }
+.storefront-tree-row.is-group .storefront-tree-toggle { color: #6fe3bd; }
+.storefront-tree-row.is-group .storefront-tree-select strong { font-weight: 760; color: #d8eee7; }
+.storefront-tree-row.is-group .storefront-tree-select small { color: #72a99a; }
 .storefront-tree-toggle { width: 18px; height: 24px; display: grid; place-items: center; border: 0; background: transparent; color: #598279; padding: 0; cursor: pointer; font: 700 10px/1 ui-sans-serif, system-ui; }
 .storefront-tree-toggle:hover { color: var(--store-accent); }
 .storefront-tree-leaf { width: 18px; text-align: center; color: #426e63; font-size: 9px; }

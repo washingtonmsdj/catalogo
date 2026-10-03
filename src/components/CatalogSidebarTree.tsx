@@ -120,14 +120,14 @@ export function CatalogSidebarTree({ category, franchise, activeFolder, trail = 
 
   function renderBranch(parent: string, depth: number): React.ReactNode {
     const key = cacheKey(parent)
-    const items = childrenByParent[key] ?? []
+    const items = [...(childrenByParent[key] ?? [])].sort((left, right) => Number(right.hasChildren) - Number(left.hasChildren))
     return items.map((item) => {
       const isExpanded = expanded.has(item.id)
       const isActive = activeFolder === item.id
       const childKey = cacheKey(item.id)
       return (
         <div className="storefront-tree-node" key={item.id}>
-          <div className={`storefront-tree-row ${isActive ? 'is-active' : ''}`} style={{ '--tree-depth': depth } as React.CSSProperties}>
+          <div className={`storefront-tree-row ${item.hasChildren ? 'is-group' : ''} ${isActive ? 'is-active' : ''}`} style={{ '--tree-depth': depth } as React.CSSProperties}>
             {item.hasChildren ? (
               <button type="button" className="storefront-tree-toggle" aria-label={`${isExpanded ? 'Recolher' : 'Expandir'} ${item.label}`} aria-expanded={isExpanded} onClick={() => toggleFolder(item)}>
                 <span aria-hidden="true">{isExpanded ? '▾' : '▸'}</span>
