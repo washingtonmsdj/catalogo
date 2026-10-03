@@ -93,7 +93,7 @@
 .storefront-hero::after { content: ""; position: absolute; inset: auto 0 0; z-index: 3; height: 1px; background: linear-gradient(90deg, transparent, var(--store-accent), transparent); opacity: .38; }
 .storefront-hero__backdrop { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: radial-gradient(circle at 74% 32%, rgba(26,217,166,.2), transparent 24%), linear-gradient(120deg, #071b19, #0a2422 56%, #061311); }
 .storefront-hero__backdrop::before { content: ""; position: absolute; inset: 0; z-index: 2; background-image: linear-gradient(rgba(73,198,165,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(73,198,165,.03) 1px, transparent 1px); background-size: 42px 42px; mask-image: linear-gradient(90deg, transparent 30%, #000 100%); }
-.storefront-hero__backdrop img { position: absolute; width: 62%; height: 120%; right: -1%; top: -10%; object-fit: contain; object-position: center; filter: saturate(1.1) contrast(1.04) drop-shadow(0 28px 48px rgba(0,0,0,.55)); -webkit-mask-image: linear-gradient(90deg, transparent 0, rgba(0,0,0,.72) 24%, #000 52%, #000 100%); mask-image: linear-gradient(90deg, transparent 0, rgba(0,0,0,.72) 24%, #000 52%, #000 100%); }
+.storefront-hero__backdrop img { position: absolute; width: 62%; height: 122%; right: -1%; top: -9%; object-fit: contain; object-position: 68% 46%; transform: scale(1.12); transform-origin: 72% 48%; filter: saturate(1.08) contrast(1.04) brightness(.92) drop-shadow(0 28px 48px rgba(0,0,0,.55)); -webkit-mask-image: radial-gradient(ellipse 80% 92% at 66% 50%, #000 42%, rgba(0,0,0,.96) 66%, rgba(0,0,0,.55) 82%, transparent 100%); mask-image: radial-gradient(ellipse 80% 92% at 66% 50%, #000 42%, rgba(0,0,0,.96) 66%, rgba(0,0,0,.55) 82%, transparent 100%); }
 .storefront-hero__copy { position: relative; z-index: 5; width: min(800px, 64%); padding: 27px 0 25px 42px; }
 .storefront-hero__eyebrow { display: inline-flex; align-items: center; gap: 7px; color: var(--store-accent); font: 800 9px/1 ui-sans-serif, system-ui; letter-spacing: 1.5px; text-transform: uppercase; }
 .storefront-hero__eyebrow .storefront-icon { width: 14px; height: 14px; }
@@ -143,8 +143,8 @@
 .storefront-model-card__shade { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 34%, rgba(2,10,9,.12) 48%, rgba(2,9,8,.94) 100%); }
 .storefront-model-card__fallback { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(67,240,187,.28); font: 900 60px/1 ui-sans-serif, system-ui; }
 .storefront-model-card__copy { position: absolute; z-index: 2; left: 10px; right: 10px; bottom: 9px; display: grid; gap: 3px; }
-.storefront-model-card__copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f3faf7; font: 760 10px/1 ui-sans-serif, system-ui; }
-.storefront-model-card__copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #61dcae; font: 650 8px/1 ui-sans-serif, system-ui; }
+.storefront-model-card__copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f3faf7; font: 780 11px/1.05 ui-sans-serif, system-ui; letter-spacing: -.1px; }
+.storefront-model-card__copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #61dcae; font: 670 8.5px/1 ui-sans-serif, system-ui; }
 .storefront-model-card__meta { display: flex; align-items: center; gap: 5px; min-width: 0; color: #879f98; font: 600 8px/1 ui-sans-serif, system-ui; font-variant-numeric: tabular-nums; }
 .storefront-model-card__meta b { max-width: 58%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #c4d7d1; font-weight: 700; letter-spacing: .02em; }
 .storefront-model-card__meta i { width: 1px; height: 9px; flex: 0 0 1px; background: #42635b; }
@@ -302,7 +302,7 @@
   place-items: center;
   overflow: hidden;
   border: 1px solid rgba(95, 211, 178, .2);
-  border-radius: 6px;
+  border-radius: 50%;
   background: linear-gradient(145deg, rgba(36,240,176,.11), rgba(8,28,25,.9));
   color: #62e9bb;
   font: 760 8px/1 ui-sans-serif, system-ui;
