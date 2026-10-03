@@ -2,6 +2,7 @@ export type CatalogCategory = {
   id: string
   label: string
   count: number
+  coverUrl?: string
 }
 
 export type CatalogFranchise = {
@@ -9,6 +10,7 @@ export type CatalogFranchise = {
   label: string
   count: number
   category: string
+  coverUrl?: string
 }
 
 export type CatalogFolder = {
