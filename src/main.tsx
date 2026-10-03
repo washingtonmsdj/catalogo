@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
+import { CatalogPublicationBanner } from './components/CatalogPublicationBanner'
 import { CollectionsDock } from './components/CollectionsDock'
 import { ConnectivityBanner } from './components/ConnectivityBanner'
 import { SharedCollectionsDock } from './components/SharedCollectionsDock'
@@ -26,6 +27,7 @@ import './comparison.css'
 import './collections.css'
 import './collections-organizer.css'
 import './collections-sharing.css'
+import './publication-status.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')
@@ -55,6 +57,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppErrorBoundary>
       <ConnectivityBanner />
+      <CatalogPublicationBanner />
       <App />
       <CollectionsDock />
       <SharedCollectionsDock />
