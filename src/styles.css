@@ -124,6 +124,28 @@ kbd { font: 700 10px/1 "Courier New", monospace; color: #a8adaf; background: #17
 .scale-note strong { display: block; margin: 5px 0 2px; color: var(--accent); font: 900 28px "Courier New", monospace; }
 .scale-note p { margin: 0; color: #8c9396; font-size: 11px; line-height: 1.4; }
 
+.franchise-tree {
+  margin: 4px 8px 10px;
+  border: 1px solid #2d3438;
+  background: linear-gradient(180deg, rgba(20,24,27,.96), rgba(11,14,16,.96));
+}
+.franchise-tree__head { padding: 12px 12px 10px; border-bottom: 1px solid #252b2f; }
+.franchise-tree__head span { display: block; color: #737b80; font: 700 8px/1.2 "Courier New", monospace; letter-spacing: 1px; }
+.franchise-tree__head strong { display: block; margin-top: 4px; color: #e3ded2; font: 900 12px/1.2 "Courier New", monospace; text-transform: uppercase; }
+.franchise-tree__back { width: 100%; border: 0; border-bottom: 1px solid #242a2e; background: #111518; color: #aab0b2; padding: 9px 12px; text-align: left; cursor: pointer; font: 700 9px "Courier New", monospace; text-transform: uppercase; }
+.franchise-tree__back:hover { color: var(--accent); background: #15191c; }
+.franchise-tree__trail { display: flex; align-items: center; gap: 5px; overflow-x: auto; padding: 8px 10px; border-bottom: 1px solid #242a2e; scrollbar-width: none; }
+.franchise-tree__trail span { color: #5e666b; font: 700 10px "Courier New", monospace; }
+.franchise-tree__trail button { flex: 0 0 auto; border: 0; background: transparent; color: #858d91; padding: 0; cursor: pointer; font: 700 8px "Courier New", monospace; text-transform: uppercase; }
+.franchise-tree__trail button:hover, .franchise-tree__trail button.is-current { color: var(--accent); }
+.franchise-tree__items { padding: 5px; max-height: 210px; overflow-y: auto; scrollbar-width: thin; }
+.franchise-tree__items > button { width: 100%; min-height: 38px; display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 5px; border: 0; border-bottom: 1px solid #20262a; background: transparent; color: #c0c5c4; padding: 0 8px; text-align: left; cursor: pointer; }
+.franchise-tree__items > button:last-child { border-bottom: 0; }
+.franchise-tree__items > button:hover { background: #171b1e; color: #f0ebdf; }
+.franchise-tree__branch { color: var(--accent); font-size: 10px; }
+.franchise-tree__items strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 800 10px "Courier New", monospace; text-transform: uppercase; }
+.franchise-tree__items small { color: #747c80; font: 700 9px "Courier New", monospace; }
+
 .selection-stage { position: relative; overflow: hidden; min-width: 0; background: #101315; }
 .selection-stage::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, rgba(0,0,0,.25), transparent 26%, transparent 73%, rgba(0,0,0,.2)), linear-gradient(180deg, transparent 64%, rgba(0,0,0,.42)); }
 .stage-visual { height: 100%; position: relative; overflow: hidden; background: radial-gradient(circle at 50% 45%, #22272a 0, #14181b 42%, #0e1113 72%); }
