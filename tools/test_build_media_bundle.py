@@ -4,10 +4,18 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from PIL import Image
 
-from build_media_bundle import build_bundle, franchise_index, load_taxonomy_config, model_display_name
+from build_media_bundle import (
+    build_bundle,
+    franchise_index,
+    load_taxonomy_config,
+    media_build_output_lock,
+    model_display_name,
+    save_media_build_state,
+)
 
 
 class MediaBundleTests(unittest.TestCase):
@@ -400,6 +408,50 @@ class MediaBundleTests(unittest.TestCase):
             original_key = gallery["images"][0]["variantKeys"]["original"]
             self.assertTrue((output / "r2" / original_key).is_file())
 
+    def test_media_build_output_lock_blocks_concurrent_bundle_writer(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            output = Path(tmp) / "bundle"
+            with media_build_output_lock(output):
+                with self.assertRaisesRegex(RuntimeError, "já está em execução"):
+                    build_bundle(
+                        Path(tmp) / "missing-source",
+                        Path(tmp) / "missing-manifest.jsonl",
+                        output,
+                        include_original=False,
+                    )
+                self.assertFalse((output / "media-build-state.json").exists())
+
+            with media_build_output_lock(output):
+                self.assertTrue((output / ".media-build.lock").is_file())
+
+    def test_media_build_state_retries_transient_windows_lock(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "media-build-state.json"
+            original_replace = Path.replace
+            attempts = {"count": 0}
+
+            def flaky_replace(source: Path, target: Path):
+                attempts["count"] += 1
+                if attempts["count"] < 3:
+                    raise PermissionError("arquivo temporariamente bloqueado")
+                return original_replace(source, target)
+
+            with patch.object(Path, "replace", flaky_replace), patch("build_media_bundle.time.sleep"):
+                save_media_build_state(path, {"version": 1, "models": {"mdl": {}}})
+
+            self.assertEqual(attempts["count"], 3)
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["version"], 1)
+            self.assertFalse(path.with_suffix(path.suffix + ".tmp").exists())
+
+    def test_media_build_state_fails_closed_when_lock_persists(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "media-build-state.json"
+            with patch.object(Path, "replace", side_effect=PermissionError("lock persistente")), patch("build_media_bundle.time.sleep"):
+                with self.assertRaises(PermissionError):
+                    save_media_build_state(path, {"version": 1, "models": {}})
+
+            self.assertFalse(path.exists())
+            self.assertTrue(path.with_suffix(path.suffix + ".tmp").exists())
 
     def test_media_build_resume_reuses_verified_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
