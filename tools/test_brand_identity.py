@@ -74,6 +74,17 @@ class BrandIdentityTests(unittest.TestCase):
                 offenders.append(relative)
         self.assertEqual(offenders, [], f"literal da marca fora do SSOT: {offenders}")
 
+    def test_user_facing_short_brand_is_derived_from_ssot(self) -> None:
+        home = (ROOT / "src" / "components" / "CatalogHome.tsx").read_text(encoding="utf-8")
+        collections = (ROOT / "src" / "components" / "CollectionsDock.tsx").read_text(encoding="utf-8")
+        brand_source = (ROOT / "src" / "config" / "brand.ts").read_text(encoding="utf-8")
+
+        self.assertNotIn(f"Acervo {self.brand['shortName']}", home)
+        self.assertIn("`Acervo ${BRAND_SHORT_NAME}`", home)
+        self.assertNotIn(f"{self.brand['shortName'].lower()}-colecoes-", collections.lower())
+        self.assertIn("BRAND_FILE_SLUG", collections)
+        self.assertIn("export const BRAND_FILE_SLUG", brand_source)
+
     def test_static_metadata_is_generated_from_brand_ssot(self) -> None:
         index = (ROOT / "index.html").read_text(encoding="utf-8")
         vite = (ROOT / "vite.config.ts").read_text(encoding="utf-8")

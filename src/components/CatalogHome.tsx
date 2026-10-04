@@ -249,7 +249,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             </div>
             <div className="storefront-hero__feature">
               <span>COLEÇÃO EM DESTAQUE</span>
-              <strong>{heroCampaignCategory?.label ?? 'Acervo Tonecos'}</strong>
+              <strong>{heroCampaignCategory?.label ?? `Acervo ${BRAND_SHORT_NAME}`}</strong>
               <p>{formatter.format(heroCampaignCategory?.count ?? catalogTotal)} modelos organizados para explorar.</p>
             </div>
           </section>
