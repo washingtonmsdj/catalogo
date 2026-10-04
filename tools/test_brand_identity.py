@@ -11,6 +11,8 @@ BRAND_PATH = ROOT / "config" / "brand.json"
 FORBIDDEN_MARKS = [
     bytes((115, 116, 108, 102, 111, 114, 103, 101)),
     bytes((115, 116, 108, 32, 102, 111, 114, 103, 101)),
+    bytes((115, 116, 108, 45, 102, 111, 114, 103, 101)),
+    bytes((115, 116, 108, 95, 102, 111, 114, 103, 101)),
 ]
 
 
@@ -44,6 +46,22 @@ class BrandIdentityTests(unittest.TestCase):
             if any(mark in data for mark in FORBIDDEN_MARKS):
                 offenders.append(relative)
         self.assertEqual(offenders, [], f"identidade concorrente encontrada em: {offenders}")
+
+    def test_competitor_name_is_absent_from_tracked_and_untracked_paths(self) -> None:
+        result = subprocess.run(
+            ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+        )
+        offenders: list[str] = []
+        for raw_name in result.stdout.split(b"\0"):
+            if not raw_name:
+                continue
+            normalized = raw_name.replace(b"\\", b"/").lower()
+            if any(mark in normalized for mark in FORBIDDEN_MARKS):
+                offenders.append(raw_name.decode("utf-8"))
+        self.assertEqual(offenders, [], f"identidade concorrente encontrada em caminho: {offenders}")
 
     def test_runtime_sources_do_not_hardcode_current_brand_name(self) -> None:
         needle = self.brand["name"].encode("utf-8").lower()
