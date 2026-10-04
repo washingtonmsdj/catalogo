@@ -48,6 +48,7 @@ class ImageRecord:
     public_model_key: str | None = None
     audit_code: str | None = None
     identification: str | None = None
+    audit_model_group: str | None = None
     duplicate_group: str | None = None
     canonical: bool = True
 
@@ -132,6 +133,7 @@ def load_audit_registry(root: Path, registry: Path) -> tuple[list[Path], dict[st
             metadata[canonical_rel] = {
                 "codigo": (row.get("codigo") or "").strip(),
                 "identificacao": (row.get("identificacao") or "").strip(),
+                "modelo_publico": (row.get("modelo_publico") or "").strip(),
             }
 
     if not paths:
@@ -237,6 +239,9 @@ def disambiguate_public_model_keys(records: list[ImageRecord]) -> None:
     for public_key, members in by_key.items():
         if len(members) < 2:
             continue
+        intentional_groups = {record.audit_model_group for record in members if record.audit_model_group}
+        if len(intentional_groups) == 1 and all(record.audit_model_group for record in members):
+            continue
         for record in members:
             discriminator = record.audit_code or (record.sha256[:16] if record.sha256 else None)
             if not discriminator:
@@ -277,7 +282,7 @@ def mark_duplicates(records: list[ImageRecord], visual_threshold: int) -> list[d
     # avoids merging unrelated characters that happen to have similar silhouettes.
     by_model: dict[str, list[ImageRecord]] = defaultdict(list)
     for record in valid:
-        if not record.duplicate_group:
+        if not record.duplicate_group and not record.audit_model_group:
             by_model[record.public_model_key or record.model_key].append(record)
 
     visual_counter = 0
@@ -432,9 +437,12 @@ def main() -> int:
             record = analyze(root, path)
         if args.audit_registry:
             meta = audit_metadata.get(rel, {})
-            record.public_model_key = f"{record.model_key} / {path.stem}"
+            audit_model_group = (meta.get("modelo_publico") or "").strip()
+            model_identity = audit_model_group or path.stem
+            record.public_model_key = f"{record.model_key} / {model_identity}"
             record.audit_code = meta.get("codigo") or None
             record.identification = meta.get("identificacao") or None
+            record.audit_model_group = audit_model_group or None
         expected_sha = expected_hashes.get(rel)
         if expected_sha and record.sha256 != expected_sha:
             raise RuntimeError(
