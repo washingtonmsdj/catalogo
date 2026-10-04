@@ -16,14 +16,12 @@ type CatalogHomeProps = {
   searchInputRef: RefObject<HTMLInputElement | null>
   favorites: string[]
   recentIds: string[]
-  compareIds: string[]
   quoteList: string[]
   onOpenExplorer: () => void
   onOpenRecent: () => void
   onOpenFavorites: () => void
-  onOpenCompare: () => void
   onOpenQuote: () => void
-  onOpenGallery: () => void
+  onOpenModel: (model: CatalogModel) => void
   onToggleFavorite: (id: string) => void
 }
 
@@ -99,7 +97,7 @@ function CategoryTile({ category, cover, active, onSelect }: {
   )
 }
 
-export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, compareIds, quoteList, onOpenExplorer, onOpenRecent, onOpenFavorites, onOpenCompare, onOpenQuote, onOpenGallery, onToggleFavorite }: CatalogHomeProps) {
+export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, quoteList, onOpenExplorer, onOpenRecent, onOpenFavorites, onOpenQuote, onOpenModel, onToggleFavorite }: CatalogHomeProps) {
   const [franchiseFilter, setFranchiseFilter] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [expandedFranchiseKey, setExpandedFranchiseKey] = useState<string | null>(null)
@@ -112,8 +110,8 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
   const visibleFranchises = useMemo(() => catalog.franchises.filter((item) => item.label.toLocaleLowerCase('pt-BR').includes(franchiseFilter.trim().toLocaleLowerCase('pt-BR'))), [catalog.franchises, franchiseFilter])
   const franchiseCards = catalog.franchises.slice(0, 4)
   const categoryLabels = useMemo(() => new Map(catalog.categories.map((item) => [item.id, item.label])), [catalog.categories])
-  const heroSelectedIndex = models.findIndex((model) => model.id === selected.id)
-  const heroDots = models.slice(0, 4)
+  const heroCampaignCategory = catalog.categories.find((item) => item.id === 'games') ?? catalog.categories.find((item) => item.id !== 'all')
+  const heroCampaignCover = heroCampaignCategory?.coverUrl
 
   useEffect(() => {
     if (catalog.franchise === 'all') return
@@ -122,14 +120,14 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
   }, [catalog.category, catalog.franchise, catalog.franchises])
 
   function selectModel(model: CatalogModel) {
-    catalog.setSelectedId(model.id)
-    document.querySelector('.storefront-hero')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+    onOpenModel(model)
   }
 
-  function selectAdjacentHero(offset: number) {
-    if (models.length < 2) return
-    const currentIndex = heroSelectedIndex >= 0 ? heroSelectedIndex : 0
-    selectModel(models[(currentIndex + offset + models.length) % models.length])
+  function exploreHeroCampaign() {
+    if (heroCampaignCategory) catalog.setCategory(heroCampaignCategory.id)
+    window.requestAnimationFrame(() => {
+      document.querySelector('#destaques')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+    })
   }
 
   function coverForCategory(category: CatalogCategory) {
@@ -225,27 +223,27 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
         <main id="catalogo" className="storefront-content" aria-busy={catalog.loading}>
           {catalog.error && <div className="storefront-alert" role="alert">{catalog.error}</div>}
 
-          <section className="storefront-hero">
+          <section className="storefront-hero" aria-label="Destaque editorial do catálogo">
             <div className="storefront-hero__backdrop">
-              {selected.coverUrl && <>
-                <img className="storefront-hero__backdrop-blur" src={selected.coverUrl} alt="" loading="eager" fetchPriority="high" decoding="async" />
-                <img className="storefront-hero__backdrop-subject" src={selected.coverUrl} alt="" loading="eager" fetchPriority="high" decoding="async" />
+              {heroCampaignCover && <>
+                <img className="storefront-hero__backdrop-blur" src={heroCampaignCover} alt="" loading="eager" fetchPriority="high" decoding="async" />
+                <img className="storefront-hero__backdrop-subject" src={heroCampaignCover} alt="" loading="eager" fetchPriority="high" decoding="async" />
               </>}
             </div>
-            {models.length > 1 && <button type="button" className="storefront-hero__nav storefront-hero__nav--next" aria-label="Próximo modelo em destaque" onClick={() => selectAdjacentHero(1)}><Icon name="chevron" /></button>}
             <div className="storefront-hero__copy">
-              <span className="storefront-hero__eyebrow"><Icon name="star" /> Coleção em destaque</span>
+              <span className="storefront-hero__eyebrow"><Icon name="star" /> Destaque editorial</span>
               <h1>Explore o catálogo com uma <em>experiência visual premium.</em></h1>
-              <p>Descubra modelos organizados por franquias, personagens e categorias, com busca rápida e navegação visual.</p>
+              <p>Descubra modelos organizados por franquias, personagens e categorias, com destaques editoriais que ajudam a navegar pelo acervo sem interromper sua exploração.</p>
               <div className="storefront-hero__actions">
-                <button type="button" className="storefront-button storefront-button--primary" disabled={selected.id === 'loading'} onClick={onOpenGallery}>Explorar modelo <Icon name="chevron" /></button>
-                <button type="button" className="storefront-button storefront-button--ghost" disabled={selected.id === 'loading'} onClick={() => onToggleFavorite(selected.id)}><Icon name="heart" /> {favorites.includes(selected.id) ? 'Salvo' : 'Favoritar'}</button>
+                <button type="button" className="storefront-button storefront-button--primary" onClick={exploreHeroCampaign}>Explorar coleção <Icon name="chevron" /></button>
+                <button type="button" className="storefront-button storefront-button--ghost" onClick={onOpenExplorer}><Icon name="grid" /> Ver franquias</button>
               </div>
             </div>
             <div className="storefront-hero__feature">
-              <span>{selected.franchise || 'Catálogo'}</span><strong>{selected.name}</strong><p>{selected.galleryCount ? `${imageCountLabel(selected.galleryCount)} disponíveis` : 'Modelo do catálogo Tonecos Studios'}</p>
+              <span>COLEÇÃO EM DESTAQUE</span>
+              <strong>{heroCampaignCategory?.label ?? 'Acervo Tonecos'}</strong>
+              <p>{formatter.format(heroCampaignCategory?.count ?? catalogTotal)} modelos organizados para explorar.</p>
             </div>
-            {heroDots.length > 1 && <div className="storefront-hero__dots" aria-label="Modelos em destaque">{heroDots.map((model) => <button type="button" key={model.id} aria-label={`Abrir ${model.name}`} aria-current={model.id === selected.id ? 'true' : undefined} onClick={() => selectModel(model)} />)}</div>}
           </section>
 
           <div className="storefront-filterbar" aria-label="Categorias do catálogo">
@@ -267,7 +265,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
           )}
           <section id="destaques" className="storefront-section">
             <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="star" /></span><div><h2>Em destaque</h2><p>Modelos do recorte atual para explorar.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todos <Icon name="chevron" /></button></div>
-            {featuredModels.length ? <div className="storefront-model-grid">{featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={model.id === selected.id} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div> : <div className="storefront-empty"><strong>Nenhum modelo neste recorte</strong><span>Remova filtros ou altere a busca para voltar ao acervo.</span><button type="button" onClick={catalog.resetDiscovery}>Limpar filtros</button></div>}
+            {featuredModels.length ? <div className="storefront-model-grid">{featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div> : <div className="storefront-empty"><strong>Nenhum modelo neste recorte</strong><span>Remova filtros ou altere a busca para voltar ao acervo.</span><button type="button" onClick={catalog.resetDiscovery}>Limpar filtros</button></div>}
           </section>
 
           <section className="storefront-section storefront-section--categories">
@@ -286,7 +284,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, com
 
             <section className="storefront-section storefront-section--compact">
               <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" disabled={!catalog.hasPreviousPage} onClick={catalog.goPreviousPage}>‹</button><button type="button" disabled={!catalog.hasNextPage} onClick={catalog.goNextPage}>›</button></div></div>
-              <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={model.id === selected.id} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div>
+              <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div>
             </section>
           </div>
 

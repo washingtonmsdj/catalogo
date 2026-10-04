@@ -2,6 +2,7 @@ import { FormEvent, Fragment, useEffect, useRef, useState } from 'react'
 import { CatalogHome } from './components/CatalogHome'
 import { FranchiseBrowser } from './components/FranchiseBrowser'
 import { ModelComparison } from './components/ModelComparison'
+import { ModelDetailDialog } from './components/ModelDetailDialog'
 import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
 import { submitQuoteRequest } from './services/quotes'
@@ -86,7 +87,8 @@ function loadKnownModels(): Record<string, KnownModel> {
 }
 
 export default function App() {
-  const catalog = useCatalogRuntime(initialSlugFromHash())
+  const initialModelSlug = useRef(initialSlugFromHash()).current
+  const catalog = useCatalogRuntime(initialModelSlug)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const previewPrefetchedUrls = useRef(new Set<string>())
   const [favorites, setFavorites] = useState<string[]>(() => loadStoredIds('tonecos:favorites'))
@@ -97,6 +99,7 @@ export default function App() {
   const [explorerOpen, setExplorerOpen] = useState(false)
   const [recentOpen, setRecentOpen] = useState(false)
   const [compareOpen, setCompareOpen] = useState(false)
+  const [modelDetailOpen, setModelDetailOpen] = useState(Boolean(initialModelSlug))
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [previewImage, setPreviewImage] = useState<CatalogImage | null>(null)
   const [previewPageTarget, setPreviewPageTarget] = useState<PreviewPageTarget>(null)
@@ -113,9 +116,7 @@ export default function App() {
   const gallery = useModelGallery(catalog.mode, catalog.selected, galleryOpen)
   const selected = catalog.selected
   const visibleModels = catalog.models
-  const selectedIndex = visibleModels.findIndex((model) => model.id === selected.id)
-  const selectedInVisiblePage = selectedIndex >= 0
-  const anyModalOpen = explorerOpen || recentOpen || compareOpen || galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
+  const anyModalOpen = explorerOpen || recentOpen || compareOpen || modelDetailOpen || galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
   const expandedImageUrl = previewImage?.detailUrl ?? previewImage?.url
   const previewIndex = previewImage ? gallery.items.findIndex((image) => image.id === previewImage.id) : -1
   const canPreviewPrevious = previewIndex > 0 || (previewIndex >= 0 && gallery.hasPreviousPage)
@@ -144,14 +145,20 @@ export default function App() {
   }, [visibleModels, selected])
 
   useEffect(() => {
-    if (selected.id === 'loading') return
+    if (!modelDetailOpen || selected.id === 'loading') return
     setRecentIds((current) => [selected.id, ...current.filter((id) => id !== selected.id)].slice(0, MAX_RECENT_MODELS))
-  }, [selected.id])
+  }, [modelDetailOpen, selected.id])
 
   useEffect(() => {
     setPreviewImage(null); setPreviewPageTarget(null)
-    document.title = selected.id === 'loading' ? 'STLForge Catálogo' : `${selected.name} — STLForge Catálogo`
-  }, [selected.id, selected.name])
+    document.title = modelDetailOpen && selected.id !== 'loading' ? `${selected.name} — STLForge Catálogo` : 'STLForge Catálogo'
+  }, [modelDetailOpen, selected.id, selected.name])
+
+  useEffect(() => {
+    const syncModelRoute = () => setModelDetailOpen(window.location.hash.startsWith('#modelo='))
+    window.addEventListener('hashchange', syncModelRoute)
+    return () => window.removeEventListener('hashchange', syncModelRoute)
+  }, [])
 
   useEffect(() => {
     if (!previewPageTarget || gallery.loading || !gallery.items.length) return
@@ -174,7 +181,7 @@ export default function App() {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (previewImage) closePreview(); else if (quoteOpen) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (compareOpen) setCompareOpen(false); else if (recentOpen) setRecentOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false)
+        if (previewImage) closePreview(); else if (quoteOpen) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (compareOpen) setCompareOpen(false); else if (recentOpen) setRecentOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false); else if (modelDetailOpen) closeModelDetail()
         return
       }
       if (previewImage && event.key === 'ArrowRight') { event.preventDefault(); navigatePreview(1); return }
@@ -188,12 +195,7 @@ export default function App() {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !anyModalOpen) { event.preventDefault(); searchInputRef.current?.focus(); return }
       if (event.key === '/' && !isTyping && !anyModalOpen) { event.preventDefault(); searchInputRef.current?.focus(); return }
       if (isTyping || anyModalOpen) return
-      if (event.key === 'ArrowRight') navigate(1); if (event.key === 'ArrowLeft') navigate(-1)
-      if (event.key.toLowerCase() === 'f' && selected.id !== 'loading') toggleFavorite(selected.id)
-      if (event.key.toLowerCase() === 'c' && selected.id !== 'loading') toggleCompare(selected.id)
-      if (event.key.toLowerCase() === 'a' && selected.id !== 'loading') setGalleryOpen(true)
       if (event.key.toLowerCase() === 'e') setExplorerOpen(true)
-      if (event.key === 'Enter' && selected.id !== 'loading') window.location.hash = `modelo=${encodeURIComponent(selected.slug)}`
     }
     window.addEventListener('keydown', handleKey); return () => window.removeEventListener('keydown', handleKey)
   })
@@ -213,7 +215,26 @@ export default function App() {
       return [...current, id]
     })
   }
-  function openKnownModel(id: string, close: () => void) { const slug = knownModels[id]?.slug; if (!slug) return; close(); window.location.hash = `modelo=${encodeURIComponent(slug)}` }
+  function openModel(model: CatalogModel) {
+    if (model.id === 'loading') return
+    catalog.setSelectedId(model.id)
+    setModelDetailOpen(true)
+    const nextHash = `#modelo=${encodeURIComponent(model.slug)}`
+    if (window.location.hash !== nextHash) window.location.hash = nextHash
+  }
+  function closeModelDetail() {
+    setModelDetailOpen(false)
+    if (window.location.hash.startsWith('#modelo=')) {
+      window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+    }
+  }
+  function openKnownModel(id: string, close: () => void) {
+    const slug = knownModels[id]?.slug
+    if (!slug) return
+    close()
+    setModelDetailOpen(true)
+    window.location.hash = `modelo=${encodeURIComponent(slug)}`
+  }
   function addFavoritesToQuote() { setQuoteList((current) => { const next = [...current]; for (const id of favorites) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setFavoritesOpen(false); setQuoteOpen(true) }
   function addComparisonToQuote(ids: string[]) { setQuoteList((current) => { const next = [...current]; for (const id of ids) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setCompareOpen(false); setQuoteOpen(true) }
   function chooseExplorerCategory(category: string) { catalog.setSearch(''); catalog.setCategory(category) }
@@ -227,15 +248,6 @@ export default function App() {
     if (offset > 0 && gallery.hasNextPage) { setPreviewPageTarget('first'); gallery.nextPage(); return }
     if (offset < 0 && gallery.hasPreviousPage) { setPreviewPageTarget('last'); gallery.previousPage() }
   }
-  function navigate(offset: number) {
-    if (!visibleModels.length) return
-    if (!selectedInVisiblePage) { catalog.setSelectedId(visibleModels[offset > 0 ? 0 : visibleModels.length - 1].id); return }
-    if (offset > 0 && selectedIndex >= visibleModels.length - 1 && catalog.hasNextPage) { catalog.goNextPage(); return }
-    if (offset < 0 && selectedIndex <= 0 && catalog.hasPreviousPage) { catalog.goPreviousPage(); return }
-    catalog.setSelectedId(visibleModels[(selectedIndex + offset + visibleModels.length) % visibleModels.length].id)
-  }
-
-
   async function submitQuote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); const data = new FormData(event.currentTarget); const turnstileToken = String(data.get('turnstileToken') ?? '').trim()
     if (catalog.mode === 'live' && !isTurnstileConfigured()) { setQuoteError('A proteção do formulário ainda não foi configurada no ambiente de produção.'); return }
@@ -261,15 +273,26 @@ export default function App() {
         searchInputRef={searchInputRef}
         favorites={favorites}
         recentIds={recentIds}
-        compareIds={compareIds}
         quoteList={quoteList}
         onOpenExplorer={() => setExplorerOpen(true)}
         onOpenRecent={() => setRecentOpen(true)}
         onOpenFavorites={() => setFavoritesOpen(true)}
-        onOpenCompare={() => setCompareOpen(true)}
         onOpenQuote={() => setQuoteOpen(true)}
-        onOpenGallery={() => setGalleryOpen(true)}
+        onOpenModel={openModel}
         onToggleFavorite={toggleFavorite}
+      />
+      <ModelDetailDialog
+        open={modelDetailOpen}
+        model={selected}
+        categoryLabel={catalog.categories.find((item) => item.id === selected.category)?.label ?? selected.category}
+        favorite={favorites.includes(selected.id)}
+        compared={compareIds.includes(selected.id)}
+        quoted={quoteList.includes(selected.id)}
+        onClose={closeModelDetail}
+        onOpenGallery={() => setGalleryOpen(true)}
+        onToggleFavorite={() => toggleFavorite(selected.id)}
+        onToggleCompare={() => toggleCompare(selected.id)}
+        onToggleQuote={() => safeToggleQuote(selected.id)}
       />
       <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} />
 
