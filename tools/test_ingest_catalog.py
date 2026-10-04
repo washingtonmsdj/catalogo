@@ -46,8 +46,8 @@ class CatalogIngestTests(unittest.TestCase):
             digest = hashlib.sha256(image_path.read_bytes()).hexdigest()
             registry = root / "audit.csv"
             registry.write_text(
-                "codigo,sha256,caminho,status\n"
-                f"AUD-1,{digest},OK - Games [1]\\OK - Saga [1]\\hero.png,OK_VISUAL|RV1\n",
+                "codigo,sha256,caminho,status,modelo_publico\n"
+                f"AUD-1,{digest},OK - Games [1]\\OK - Saga [1]\\hero.png,OK_VISUAL|RV1,hero-modelo-01\n",
                 encoding="utf-8-sig",
             )
 
@@ -56,6 +56,7 @@ class CatalogIngestTests(unittest.TestCase):
             self.assertEqual(paths, [image_path])
             self.assertEqual(hashes[str(image_path.relative_to(root))], digest)
             self.assertEqual(metadata[str(image_path.relative_to(root))]["codigo"], "AUD-1")
+            self.assertEqual(metadata[str(image_path.relative_to(root))]["modelo_publico"], "hero-modelo-01")
 
     def test_audit_registry_rejects_operational_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -135,6 +136,47 @@ class CatalogIngestTests(unittest.TestCase):
             self.assertEqual(len({record.public_model_key for record in records}), 2)
             self.assertTrue(records[0].public_model_key.endswith("/ AUD-1"))
             self.assertTrue(records[1].public_model_key.endswith("/ AUD-2"))
+
+    def test_intentional_public_model_group_keeps_one_shared_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "OK - Games [2]" / "OK - Saga [2]" / "OK - Heroi [2]"
+            target.mkdir(parents=True)
+            first = target / "frente.jpg"
+            second = target / "costas.jpg"
+            Image.new("RGB", (640, 960), "#223344").save(first)
+            Image.new("RGB", (640, 960), "#334455").save(second)
+            records = [analyze(root, first), analyze(root, second)]
+            for index, record in enumerate(records, 1):
+                record.public_model_key = f"{record.model_key} / heroi-modelo-01"
+                record.audit_code = f"AUD-{index}"
+                record.audit_model_group = "heroi-modelo-01"
+
+            disambiguate_public_model_keys(records)
+
+            self.assertEqual({record.public_model_key for record in records}, {f"{records[0].model_key} / heroi-modelo-01"})
+
+    def test_intentional_gallery_is_not_collapsed_by_visual_similarity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "OK - Games [2]" / "OK - Saga [2]" / "OK - Heroi [2]"
+            target.mkdir(parents=True)
+            first = target / "frente.jpg"
+            second = target / "angulo.jpg"
+            for path, size in ((first, (800, 1000)), (second, (1000, 1250))):
+                image = Image.new("RGB", size, "white")
+                draw = ImageDraw.Draw(image)
+                draw.rectangle((size[0] // 4, size[1] // 5, size[0] * 3 // 4, size[1] * 4 // 5), fill="#34393e")
+                image.save(path)
+            records = [analyze(root, first), analyze(root, second)]
+            for record in records:
+                record.public_model_key = f"{record.model_key} / heroi-modelo-01"
+                record.audit_model_group = "heroi-modelo-01"
+
+            groups = mark_duplicates(records, visual_threshold=6)
+
+            self.assertEqual(groups, [])
+            self.assertTrue(all(record.canonical for record in records))
 
     def test_exact_duplicates_are_grouped_without_deleting_source(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
