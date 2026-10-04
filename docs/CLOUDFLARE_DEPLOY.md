@@ -68,7 +68,7 @@ Na rotação da chave Turnstile, execute manualmente o workflow com `force_turns
 O bootstrap inicial foi executado em 2026-09-30/2026-10-01 com recursos próprios e isolados do OrdaX Control Plane:
 
 - Worker `tonecos-catalogo-api` publicado em `workers.dev`;
-- D1 `tonecos-catalogo` com as migrações `0001`–`0008` aplicadas e reconciliadas na tabela `d1_migrations`;
+- D1 `tonecos-catalogo` com as migrações `0001`–`0010` aplicadas e reconciliadas na tabela `d1_migrations`;
 - R2 `tonecos-catalogo-media` criado com endpoint público `r2.dev` para as variantes web;
 - widget Turnstile Managed próprio do catálogo, autorizado para `washingtonmsdj.github.io`.
 
@@ -85,6 +85,22 @@ O workflow do GitHub Pages injeta durante o build:
 Assim que API/mídia estiverem configuradas, o mesmo frontend muda de DEMO para LIVE sem alteração de código. A site key do Turnstile é pública por definição; o secret nunca é exposto ao frontend.
 
 Após cada publicação, o workflow do Pages executa um smoke test HTTP no endereço publicado, confirma a presença da identidade Tonecos Studios no HTML e valida o `site.webmanifest`. O workflow só termina com sucesso se a versão publicada estiver realmente acessível.
+
+## Verificação pública
+
+O verificador oficial possui dois níveis. O modo padrão é rápido e valida health, pelo menos um modelo publicado e uma capa real servida pela origem pública de mídia:
+
+```powershell
+python tools/verify_public_catalog.py --api-base https://<worker> --media-base https://<origem-publica-r2>
+```
+
+Para auditorias completas após publicação, use `--exhaustive`:
+
+```powershell
+python tools/verify_public_catalog.py --api-base https://<worker> --media-base https://<origem-publica-r2> --exhaustive
+```
+
+O modo exaustivo percorre todas as páginas do catálogo e falha se encontrar total divergente, paginação cíclica, ID/slug/código duplicado, modelo sem capa, modelo sem imagem, categoria desconhecida ou contagem por categoria incompatível com `/api/categories`. Ele não baixa todas as imagens; o smoke inicial continua provando que a origem pública de mídia serve uma capa real.
 
 ## Turnstile
 

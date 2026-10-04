@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-"""Verify that the public catalog exposes at least one real model and image.
+"""Verify the public catalog and its media contract.
 
-This is intentionally read-only. It verifies API health, requires a published
-catalog row, and then proves that the model's cover object is actually served
-by the configured public media origin.
+The default mode is intentionally fast and read-only: it verifies API health,
+requires a published catalog row, and proves that the model's cover object is
+served by the configured public media origin.
+
+The optional exhaustive mode walks every public catalog page and validates
+identity uniqueness, required media metadata, image counts, pagination safety,
+and category totals without downloading every image object.
 """
 from __future__ import annotations
 
@@ -117,6 +121,173 @@ def verify_public_catalog(
     }
 
 
+def request_json(opener: Callable, url: str, label: str) -> dict[str, Any]:
+    request = urllib.request.Request(
+        url,
+        headers={"Accept": "application/json", "User-Agent": "tonecos-catalog-audit/1"},
+    )
+    with open_request(opener, request, label) as response:
+        return decode_json_response(response, label)
+
+
+def duplicate_values(values: list[str]) -> list[str]:
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return sorted(value for value, count in counts.items() if count > 1)
+
+
+def verify_public_catalog_exhaustive(
+    api_base: str,
+    opener: Callable = urllib.request.urlopen,
+    *,
+    page_limit: int = 100,
+    max_pages: int = 1000,
+) -> dict[str, Any]:
+    """Audit every published catalog row without downloading every media object."""
+    api_base = normalize_base(api_base, "API base")
+    if page_limit < 1:
+        raise CatalogSmokeError("page_limit deve ser positivo")
+    if max_pages < 1:
+        raise CatalogSmokeError("max_pages deve ser positivo")
+
+    category_payload = request_json(opener, f"{api_base}/api/categories", "categorias")
+    categories = category_payload.get("items")
+    if not isinstance(categories, list):
+        raise CatalogSmokeError("categorias retornou items inválido")
+
+    expected_total: int | None = None
+    expected_by_category: dict[str, int] = {}
+    for category in categories:
+        if not isinstance(category, dict):
+            raise CatalogSmokeError("categorias contém item inválido")
+        category_id = str(category.get("id") or "").strip()
+        if not category_id:
+            raise CatalogSmokeError("categoria sem id")
+        try:
+            count = int(category.get("count"))
+        except (TypeError, ValueError) as exc:
+            raise CatalogSmokeError(f"categoria {category_id!r} possui count inválido") from exc
+        if category_id == "all":
+            expected_total = count
+        else:
+            expected_by_category[category_id] = count
+    if expected_total is None:
+        raise CatalogSmokeError("categorias não informa a contagem total 'all'")
+
+    all_items: list[dict[str, Any]] = []
+    cursor: str | None = None
+    seen_cursors: set[str] = set()
+    pages = 0
+
+    while True:
+        query: dict[str, str | int] = {"limit": page_limit}
+        if cursor:
+            query["cursor"] = cursor
+        page_url = f"{api_base}/api/catalog?{urllib.parse.urlencode(query)}"
+        page = request_json(opener, page_url, f"catálogo página {pages + 1}")
+        items = page.get("items")
+        if not isinstance(items, list):
+            raise CatalogSmokeError(f"catálogo página {pages + 1} retornou items inválido")
+        for item in items:
+            if not isinstance(item, dict):
+                raise CatalogSmokeError(f"catálogo página {pages + 1} contém item inválido")
+            all_items.append(item)
+
+        pages += 1
+        if pages > max_pages:
+            raise CatalogSmokeError(f"catálogo excedeu o limite de {max_pages} páginas")
+
+        raw_cursor = page.get("nextCursor")
+        if raw_cursor in (None, ""):
+            break
+        next_cursor = str(raw_cursor)
+        if next_cursor in seen_cursors:
+            raise CatalogSmokeError("paginação do catálogo entrou em ciclo")
+        seen_cursors.add(next_cursor)
+        cursor = next_cursor
+
+    ids = [str(item.get("id") or "").strip() for item in all_items]
+    slugs = [str(item.get("slug") or "").strip() for item in all_items]
+    codes = [str(item.get("code") or "").strip() for item in all_items]
+    missing_ids = sum(not value for value in ids)
+    missing_slugs = sum(not value for value in slugs)
+    missing_codes = sum(not value for value in codes)
+    duplicate_ids = duplicate_values([value for value in ids if value])
+    duplicate_slugs = duplicate_values([value for value in slugs if value])
+    duplicate_codes = duplicate_values([value for value in codes if value])
+    missing_covers = sum(not str(item.get("cover_storage_key") or "").strip() for item in all_items)
+
+    zero_images = 0
+    actual_by_category: dict[str, int] = {}
+    for item in all_items:
+        try:
+            image_count = int(item.get("image_count") or 0)
+        except (TypeError, ValueError):
+            image_count = 0
+        if image_count <= 0:
+            zero_images += 1
+        category_id = str(item.get("category_slug") or "").strip()
+        actual_by_category[category_id] = actual_by_category.get(category_id, 0) + 1
+
+    category_mismatches = [
+        {
+            "category": category_id,
+            "expected": expected_count,
+            "actual": actual_by_category.get(category_id, 0),
+        }
+        for category_id, expected_count in sorted(expected_by_category.items())
+        if actual_by_category.get(category_id, 0) != expected_count
+    ]
+    unknown_categories = sorted(
+        category_id
+        for category_id in actual_by_category
+        if category_id and category_id not in expected_by_category
+    )
+
+    problems: list[str] = []
+    if len(all_items) != expected_total:
+        problems.append(f"total publicado {len(all_items)} != esperado {expected_total}")
+    if missing_ids:
+        problems.append(f"{missing_ids} modelos sem id")
+    if missing_slugs:
+        problems.append(f"{missing_slugs} modelos sem slug")
+    if missing_codes:
+        problems.append(f"{missing_codes} modelos sem code")
+    if duplicate_ids:
+        problems.append(f"{len(duplicate_ids)} ids duplicados")
+    if duplicate_slugs:
+        problems.append(f"{len(duplicate_slugs)} slugs duplicados")
+    if duplicate_codes:
+        problems.append(f"{len(duplicate_codes)} codes duplicados")
+    if missing_covers:
+        problems.append(f"{missing_covers} modelos sem cover_storage_key")
+    if zero_images:
+        problems.append(f"{zero_images} modelos sem imagens")
+    if category_mismatches:
+        problems.append(f"{len(category_mismatches)} contagens de categoria divergentes")
+    if unknown_categories:
+        problems.append(f"{len(unknown_categories)} categorias desconhecidas no catálogo")
+
+    if problems:
+        raise CatalogSmokeError("auditoria exaustiva falhou: " + "; ".join(problems))
+
+    return {
+        "ok": True,
+        "exhaustive": True,
+        "pages": pages,
+        "totalItems": len(all_items),
+        "expectedTotal": expected_total,
+        "uniqueIds": len(set(ids)),
+        "uniqueSlugs": len(set(slugs)),
+        "uniqueCodes": len(set(codes)),
+        "missingCoverCount": missing_covers,
+        "zeroImageCount": zero_images,
+        "categoryCount": len(expected_by_category),
+        "categoryMismatchCount": len(category_mismatches),
+    }
+
+
 def configured_value(cli_value: str | None, *env_names: str) -> str:
     if cli_value:
         return cli_value
@@ -128,9 +299,14 @@ def configured_value(cli_value: str | None, *env_names: str) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Valida API + primeira imagem do catálogo público.")
+    parser = argparse.ArgumentParser(description="Valida o catálogo público e sua mídia.")
     parser.add_argument("--api-base", help="origem pública da API")
     parser.add_argument("--media-base", help="origem pública/CDN da mídia")
+    parser.add_argument(
+        "--exhaustive",
+        action="store_true",
+        help="percorre todos os modelos e valida unicidade, capas, imagens e contagens por categoria",
+    )
     args = parser.parse_args()
 
     api_base = configured_value(args.api_base, "CATALOG_API_URL", "VITE_API_BASE_URL")
@@ -141,6 +317,8 @@ def main() -> int:
 
     try:
         summary = verify_public_catalog(api_base, media_base)
+        if args.exhaustive:
+            summary["exhaustiveAudit"] = verify_public_catalog_exhaustive(api_base)
     except CatalogSmokeError as exc:
         print(f"ERRO: {exc}", file=sys.stderr)
         return 2
