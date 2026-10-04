@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { BRAND_FILE_SLUG } from '../config/brand'
 import {
   COLLECTION_STORAGE_KEY,
   MAX_COLLECTION_MODELS,
@@ -207,7 +208,7 @@ export function CollectionsDock() {
     const anchor = document.createElement('a')
     const date = new Date().toISOString().slice(0, 10)
     anchor.href = url
-    anchor.download = `tonecos-colecoes-${date}.json`
+    anchor.download = `${BRAND_FILE_SLUG}-colecoes-${date}.json`
     document.body.appendChild(anchor)
     anchor.click()
     anchor.remove()
