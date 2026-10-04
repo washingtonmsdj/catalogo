@@ -14,31 +14,36 @@ class CatalogIngestTests(unittest.TestCase):
         self.assertEqual(clean_folder("OK - Games [539]"), "Games")
         self.assertEqual(clean_folder("OK - Resident Evil [32]"), "Resident Evil")
 
-    def test_discovery_only_selects_audited_top_level_categories(self) -> None:
+    def test_discovery_only_selects_canonical_top_level_categories(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            active = root / "OK - Games [1]"
+            games = root / "OK - Games [1]"
+            marvel_dc = root / "Marvel & DC [1]"
             stats = root / "00 - ESTATISTICAS - CATALOGO [1]"
             incoming = root / "Novos"
             consolidated = root / "99 - LOTES CONSOLIDADOS"
-            for folder in (active, stats, incoming, consolidated):
+            unknown_ok = root / "OK - Experimental [1]"
+            for folder in (games, marvel_dc, stats, incoming, consolidated, unknown_ok):
                 folder.mkdir(parents=True)
                 Image.new("RGB", (32, 32), "white").save(folder / "sample.png")
 
-            self.assertEqual(discover_catalog_roots(root), [active])
-            self.assertEqual(list(iter_images(root)), [active / "sample.png"])
+            self.assertEqual(discover_catalog_roots(root), [marvel_dc, games])
+            self.assertEqual(
+                list(iter_images(root)),
+                [marvel_dc / "sample.png", games / "sample.png"],
+            )
 
     def test_discovery_fails_closed_without_audited_categories(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             (root / "Novos").mkdir()
-            with self.assertRaisesRegex(RuntimeError, "nenhuma categoria ativa"):
+            with self.assertRaisesRegex(RuntimeError, "nenhuma categoria pública canônica"):
                 list(iter_images(root))
 
     def test_audit_registry_is_explicit_and_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            active = root / "OK - Games [1]" / "OK - Saga [1]"
+            active = root / "Animes & Desenhos [1]" / "OK - Saga [1]"
             active.mkdir(parents=True)
             image_path = active / "hero.png"
             Image.new("RGB", (64, 64), "white").save(image_path)
@@ -47,7 +52,7 @@ class CatalogIngestTests(unittest.TestCase):
             registry = root / "audit.csv"
             registry.write_text(
                 "codigo,sha256,caminho,status,modelo_publico\n"
-                f"AUD-1,{digest},OK - Games [1]\\OK - Saga [1]\\hero.png,OK_VISUAL|RV1,hero-modelo-01\n",
+                f"AUD-1,{digest},Animes & Desenhos [1]\\OK - Saga [1]\\hero.png,OK_VISUAL|RV1,hero-modelo-01\n",
                 encoding="utf-8-sig",
             )
 
