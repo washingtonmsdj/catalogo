@@ -87,7 +87,9 @@ export function CollectionsDock() {
   const [collectionSort, setCollectionSort] = useState<CollectionSort>('added')
   const [message, setMessage] = useState('')
 
-  useEffect(() => saveCollections(collections), [collections])
+  useEffect(() => {
+    saveCollections(collections)
+  }, [collections])
 
   useEffect(() => {
     const syncCollections = (event: StorageEvent) => {

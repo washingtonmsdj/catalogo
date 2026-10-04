@@ -74,6 +74,8 @@ Isso permite compartilhar um recorte, modelo ou coleção sem criar rotas estát
 
 Favoritos, coleções pessoais, lista de comparação, lista de orçamento ainda não enviada e até 12 modelos vistos recentemente ficam em `localStorage`. Esses dados são locais ao navegador e não exigem login. Dados locais inválidos ou corrompidos devem ser ignorados com segurança, nunca impedir a abertura do catálogo.
 
+O cache auxiliar `tonecos:known-models` **não é um índice local do acervo**. Ele preserva obrigatoriamente os metadados mínimos dos modelos referenciados por coleções, Favoritos, Comparação, Orçamento e Recentes, mas mantém no máximo 500 modelos transitórios apenas navegados. Assim, percorrer milhares de páginas não faz o navegador acumular metadados de todo o catálogo. As escritas em `localStorage` são best-effort: quota esgotada ou armazenamento indisponível não pode derrubar a aplicação.
+
 ### Estados independentes do cliente
 
 - **Favoritos**: seleção rápida de modelos para reencontrar depois.
