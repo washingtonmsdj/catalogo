@@ -1,5 +1,6 @@
 import { FormEvent, Fragment, useEffect, useRef, useState } from 'react'
 import { CatalogHome } from './components/CatalogHome'
+import { CatalogUpdatesDialog } from './components/CatalogUpdatesDialog'
 import { FranchiseBrowser } from './components/FranchiseBrowser'
 import { ModelComparison } from './components/ModelComparison'
 import { ModelDetailDialog } from './components/ModelDetailDialog'
@@ -97,7 +98,7 @@ export default function App() {
   const [recentIds, setRecentIds] = useState<string[]>(() => loadStoredIds('tonecos:recent-models', MAX_RECENT_MODELS))
   const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
   const [explorerOpen, setExplorerOpen] = useState(false)
-  const [recentOpen, setRecentOpen] = useState(false)
+  const [updatesOpen, setUpdatesOpen] = useState(false)
   const [compareOpen, setCompareOpen] = useState(false)
   const [modelDetailOpen, setModelDetailOpen] = useState(Boolean(initialModelSlug))
   const [galleryOpen, setGalleryOpen] = useState(false)
@@ -116,7 +117,7 @@ export default function App() {
   const gallery = useModelGallery(catalog.mode, catalog.selected, galleryOpen)
   const selected = catalog.selected
   const visibleModels = catalog.models
-  const anyModalOpen = explorerOpen || recentOpen || compareOpen || modelDetailOpen || galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
+  const anyModalOpen = explorerOpen || updatesOpen || compareOpen || modelDetailOpen || galleryOpen || Boolean(previewImage) || favoritesOpen || quoteOpen
   const expandedImageUrl = previewImage?.detailUrl ?? previewImage?.url
   const previewIndex = previewImage ? gallery.items.findIndex((image) => image.id === previewImage.id) : -1
   const canPreviewPrevious = previewIndex > 0 || (previewIndex >= 0 && gallery.hasPreviousPage)
@@ -181,7 +182,7 @@ export default function App() {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (previewImage) closePreview(); else if (quoteOpen) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (compareOpen) setCompareOpen(false); else if (recentOpen) setRecentOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false); else if (modelDetailOpen) closeModelDetail()
+        if (previewImage) closePreview(); else if (quoteOpen) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (compareOpen) setCompareOpen(false); else if (updatesOpen) setUpdatesOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false); else if (modelDetailOpen) closeModelDetail()
         return
       }
       if (previewImage && event.key === 'ArrowRight') { event.preventDefault(); navigatePreview(1); return }
@@ -215,7 +216,7 @@ export default function App() {
       return [...current, id]
     })
   }
-  function openModel(model: CatalogModel) {
+  function openModel(model: Pick<CatalogModel, 'id' | 'slug'>) {
     if (model.id === 'loading') return
     catalog.setSelectedId(model.id)
     setModelDetailOpen(true)
@@ -272,10 +273,9 @@ export default function App() {
         catalog={catalog}
         searchInputRef={searchInputRef}
         favorites={favorites}
-        recentIds={recentIds}
         quoteList={quoteList}
         onOpenExplorer={() => setExplorerOpen(true)}
-        onOpenRecent={() => setRecentOpen(true)}
+        onOpenUpdates={() => setUpdatesOpen(true)}
         onOpenFavorites={() => setFavoritesOpen(true)}
         onOpenQuote={() => setQuoteOpen(true)}
         onOpenModel={openModel}
@@ -298,7 +298,17 @@ export default function App() {
 
       <ModelComparison open={compareOpen} mode={catalog.mode} ids={compareIds} knownModels={knownModels} onClose={() => setCompareOpen(false)} onRemove={(id) => setCompareIds((current) => current.filter((item) => item !== id))} onClear={() => setCompareIds([])} onOpenModel={(id) => openKnownModel(id, () => setCompareOpen(false))} onAddToQuote={addComparisonToQuote} />
 
-      {recentOpen && <div className="modal-backdrop" onMouseDown={() => setRecentOpen(false)}><section className="quote-modal recent-modal" role="dialog" aria-modal="true" aria-labelledby="recent-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>HISTÓRICO LOCAL</span><h2 id="recent-title">Vistos recentemente</h2><p>{recentIds.length ? `${recentIds.length} modelos recentes salvos somente neste navegador.` : 'Nenhum modelo visitado ainda.'}</p></div><button type="button" aria-label="Fechar recentes" onClick={() => setRecentOpen(false)}>×</button></div>{recentIds.length ? <><div className="recent-list">{recentIds.map((id, index) => <button type="button" key={id} disabled={!knownModels[id]?.slug} onClick={() => openKnownModel(id, () => setRecentOpen(false))}><span>{String(index + 1).padStart(2, '0')}</span><strong>{knownModels[id]?.name ?? id}</strong><small>abrir modelo ↗</small></button>)}</div><div className="recent-actions"><button className="share-action" type="button" onClick={() => setRecentIds([])}>Limpar histórico</button></div></> : <div className="success-state"><strong>SEM HISTÓRICO</strong><p>Os últimos modelos vistos aparecerão aqui automaticamente, sem necessidade de login.</p><button type="button" onClick={() => setRecentOpen(false)}>Explorar catálogo</button></div>}</section></div>}
+      <CatalogUpdatesDialog
+        open={updatesOpen}
+        mode={catalog.mode}
+        viewedIds={recentIds}
+        knownModels={knownModels}
+        onClose={() => setUpdatesOpen(false)}
+        onOpenRecentModel={(model) => { setUpdatesOpen(false); openModel(model) }}
+        onOpenViewedModel={(id) => openKnownModel(id, () => setUpdatesOpen(false))}
+        onClearViewed={() => setRecentIds([])}
+      />
+
 
       {galleryOpen && <div className="modal-backdrop" onMouseDown={() => setGalleryOpen(false)}><section className="gallery-modal" role="dialog" aria-modal="true" aria-labelledby="gallery-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>GALERIA DO PERSONAGEM</span><h2 id="gallery-title">{selected.name}</h2><p>{gallery.total ? `${formatter.format(gallery.pageStart)}–${formatter.format(gallery.pageEnd)} de ${formatter.format(gallery.total)} imagens` : `${selected.galleryCount} imagens`} · página {gallery.pageIndex + 1} de {gallery.totalPages}</p></div><button type="button" aria-label="Fechar galeria" onClick={() => setGalleryOpen(false)}>×</button></div>{gallery.error && <p className="runtime-alert" role="alert">{gallery.error}</p>}<div className="gallery-grid" aria-busy={gallery.loading}>{gallery.items.map((image, localIndex) => { const canPreview = Boolean(image.detailUrl ?? image.url); return <button type="button" key={image.id} disabled={!canPreview} aria-label={canPreview ? `Ampliar imagem ${gallery.pageIndex * GALLERY_PAGE_SIZE + localIndex + 1} de ${selected.name}` : undefined} className={image.role === 'cover' ? 'is-cover' : ''} onPointerEnter={() => prefetchPreview(image)} onFocus={() => prefetchPreview(image)} onClick={() => canPreview && setPreviewImage(image)}><GalleryArt image={image} model={selected} angle={((localIndex % 5) - 2) * 3} /><span>{image.role === 'cover' ? 'CAPA · MELHOR QUALIDADE' : `VISTA ${String(gallery.pageIndex * GALLERY_PAGE_SIZE + localIndex + 1).padStart(2, '0')}`}</span></button> })}{gallery.loading && <div className="gallery-loading">Carregando imagens...</div>}{!gallery.loading && !gallery.items.length && <div className="gallery-loading">Nenhuma imagem disponível nesta página.</div>}</div><div className="gallery-collection-progress"><div><strong>{gallery.total ? `${formatter.format(gallery.pageStart)}–${formatter.format(gallery.pageEnd)}` : '0'}</strong><span>de {formatter.format(gallery.total || selected.galleryCount)} imagens</span></div><div className="gallery-collection-progress__track" aria-hidden="true"><i style={{ width: `${galleryProgress}%` }} /></div><small>PgUp/PgDn navegar · Home/End início/fim</small></div><div className="gallery-footer gallery-footer--paged"><span>Miniaturas otimizadas na grade · alta resolução carregada somente ao ampliar.</span><div className="gallery-pager"><button type="button" aria-label="Primeira página da galeria" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={() => gallery.goToPage(0)}>« início</button><button type="button" aria-label="Página anterior" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={gallery.previousPage}>‹</button><div className="gallery-page-rail" aria-label="Páginas da galeria">{galleryTokens.map((token) => typeof token === 'number' ? <button type="button" key={token} aria-current={token === gallery.pageIndex ? 'page' : undefined} className={token === gallery.pageIndex ? 'is-current' : ''} disabled={gallery.loading} onClick={() => gallery.goToPage(token)}>{token + 1}</button> : <span key={token} aria-hidden="true">…</span>)}</div><button type="button" aria-label="Próxima página" disabled={!gallery.hasNextPage || gallery.loading} onClick={gallery.nextPage}>›</button><button type="button" aria-label="Última página da galeria" disabled={!gallery.hasNextPage || gallery.loading} onClick={() => gallery.goToPage(gallery.totalPages - 1)}>fim »</button></div></div></section></div>}
 

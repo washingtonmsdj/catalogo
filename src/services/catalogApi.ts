@@ -150,6 +150,23 @@ function liveSearchTerm(value?: string) {
   return trimmed
 }
 
+function toCatalogModelCard(row: ApiCatalogRow): CatalogModelCard {
+  return {
+    id: row.id,
+    slug: row.slug,
+    code: row.code,
+    name: row.name,
+    franchise: row.franchise,
+    franchiseSlug: row.franchise_slug,
+    category: row.category_slug,
+    collection: row.collection ?? '',
+    folderPath: row.folder_path ?? '',
+    galleryCount: row.image_count,
+    accent: '#c98a3d',
+    coverUrl: mediaObjectUrl(row.cover_storage_key),
+  }
+}
+
 export async function listCatalogModels(query: CatalogListQuery = {}): Promise<CursorPage<CatalogModelCard>> {
   const result = await requestJson<{ items: ApiCatalogRow[]; nextCursor: string | null }>(endpoint('/api/catalog', {
     category: query.category && query.category !== 'all' ? query.category : undefined,
@@ -161,23 +178,17 @@ export async function listCatalogModels(query: CatalogListQuery = {}): Promise<C
   }))
 
   return {
-    items: result.items.map((row) => ({
-      id: row.id,
-      slug: row.slug,
-      code: row.code,
-      name: row.name,
-      franchise: row.franchise,
-      franchiseSlug: row.franchise_slug,
-      category: row.category_slug,
-      collection: row.collection ?? '',
-      folderPath: row.folder_path ?? '',
-      galleryCount: row.image_count,
-      accent: '#c98a3d',
-      coverUrl: mediaObjectUrl(row.cover_storage_key),
-    })),
+    items: result.items.map(toCatalogModelCard),
     nextCursor: result.nextCursor,
     totalApprox: 0,
   }
+}
+
+export async function listRecentCatalogModels(limit = 12): Promise<CatalogModelCard[]> {
+  const result = await requestJson<{ items: ApiCatalogRow[] }>(endpoint('/api/recent', {
+    limit: Math.max(1, Math.min(24, Math.trunc(limit))),
+  }))
+  return result.items.map(toCatalogModelCard)
 }
 
 export async function getCatalogModel(slug: string): Promise<CatalogModel | null> {
@@ -193,7 +204,7 @@ export async function getCatalogModel(slug: string): Promise<CatalogModel | null
       category: row.category_slug,
       collection: row.collection ?? '',
       folderPath: row.folder_path ?? '',
-      material: row.material ?? 'Sob consulta',
+      material: row.material ?? '',
       heightCm: row.height_cm ?? 0,
       galleryCount: row.image_count,
       description: row.description ?? '',

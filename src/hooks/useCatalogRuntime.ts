@@ -47,7 +47,7 @@ const emptyModel: CatalogModel = {
 function cardToModel(card: CatalogModelCard): CatalogModel {
   return {
     ...card,
-    material: 'Sob consulta',
+    material: '',
     heightCm: 0,
     description: '',
     tags: [],
