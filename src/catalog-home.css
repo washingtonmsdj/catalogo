@@ -305,7 +305,7 @@
   .storefront-shell.is-sidebar-collapsed .storefront-sidebar__nav b { display: none; }
 }
 
-/* Reference-layout fidelity: geometric STLForge mark and denser desktop shell. */
+/* Reference-layout fidelity: geometric catalog mark and denser desktop shell. */
 .storefront-brand__mark { position: relative; overflow: hidden; border-radius: 10px; background: linear-gradient(145deg, rgba(36,240,176,.32), rgba(36,240,176,.04)); }
 .storefront-brand__mark::before { content: ""; position: absolute; width: 19px; height: 19px; border: 3px solid #35f3b8; transform: rotate(30deg); border-radius: 3px; box-shadow: 0 0 14px rgba(36,240,176,.28); }
 .storefront-brand__mark i, .storefront-brand__mark b { position: absolute; display: block; width: 11px; height: 3px; border-radius: 2px; background: #a8ffe1; transform-origin: left center; }

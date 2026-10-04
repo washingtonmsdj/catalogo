@@ -1,4 +1,4 @@
-# Catálogo Tonecos Studios
+# Catálogo
 
 Catálogo web escalável para 100 mil+ modelos/personagens, com navegação inspirada em seletores de personagens de fliperama e interface limpa/industrial.
 
@@ -6,6 +6,7 @@ Catálogo web escalável para 100 mil+ modelos/personagens, com navegação insp
 
 ## Arquitetura
 
+- Identidade comercial: `config/brand.json` é o SSOT; veja `docs/BRANDING.md`.
 - React + TypeScript + Vite no frontend.
 - GitHub Pages como preview público contínuo.
 - Cloudflare Worker para API, busca e formulários.

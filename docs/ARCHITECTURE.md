@@ -1,4 +1,4 @@
-# Arquitetura do Catálogo Tonecos Studios
+# Arquitetura do Catálogo
 
 ## Escala alvo
 

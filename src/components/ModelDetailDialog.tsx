@@ -1,3 +1,4 @@
+import { BRAND_NAME } from '../config/brand'
 import type { CatalogModel, ModelRouteStatus } from '../types/catalog'
 
 type ModelDetailDialogProps = {
@@ -114,7 +115,7 @@ export function ModelDetailDialog({
           <span className="model-detail-media__shade" />
           <div className="model-detail-media__meta">
             <span>{categoryLabel || 'Catálogo'}</span>
-            <strong>{model.franchise || 'Tonecos Studios'}</strong>
+            <strong>{model.franchise || BRAND_NAME}</strong>
           </div>
         </div>
 
@@ -132,7 +133,7 @@ export function ModelDetailDialog({
           </div>
 
           <p className="model-detail-description">
-            {model.description || 'Modelo disponível no catálogo Tonecos Studios. Consulte a galeria para ver as imagens cadastradas e adicione à sua lista para solicitar informações.'}
+            {model.description || `Modelo disponível no catálogo ${BRAND_NAME}. Consulte a galeria para ver as imagens cadastradas e adicione à sua lista para solicitar informações.`}
           </p>
 
           <div className="model-detail-actions">

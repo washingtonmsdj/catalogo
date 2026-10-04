@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { BRAND_NAME_UPPER, CATALOG_NAME } from '../config/brand'
 import { models as demoModels } from '../data/mockCatalog'
 import { getCatalogModel } from '../services/catalogApi'
 import type { CatalogModel } from '../types/catalog'
@@ -26,7 +27,7 @@ function valueOrFallback(value: string | number | null | undefined, fallback = '
 }
 
 function comparisonSummary(ids: string[], modelById: Map<string, CatalogModel>, knownModels: Record<string, ComparisonKnownModel>) {
-  const lines = ['TONECOS STUDIOS — COMPARAÇÃO DE MODELOS', '']
+  const lines = [`${BRAND_NAME_UPPER} — COMPARAÇÃO DE MODELOS`, '']
   ids.forEach((id, index) => {
     const model = modelById.get(id)
     const known = knownModels[id]
@@ -39,7 +40,7 @@ function comparisonSummary(ids: string[], modelById: Map<string, CatalogModel>, 
     lines.push(`Código: ${valueOrFallback(model?.code, '—')}`)
     lines.push('')
   })
-  lines.push('Catálogo Tonecos Studios')
+  lines.push(CATALOG_NAME)
   return lines.join('\n')
 }
 

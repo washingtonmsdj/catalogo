@@ -5,6 +5,7 @@ import { FranchiseBrowser } from './components/FranchiseBrowser'
 import { ModelComparison } from './components/ModelComparison'
 import { ModelDetailDialog } from './components/ModelDetailDialog'
 import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
+import { catalogDocumentTitle } from './config/brand'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
 import { submitQuoteRequest } from './services/quotes'
 import type { CatalogImage, CatalogModel } from './types/catalog'
@@ -153,16 +154,16 @@ export default function App() {
   useEffect(() => {
     setPreviewImage(null); setPreviewPageTarget(null)
     if (!modelDetailOpen) {
-      document.title = 'STLForge Catálogo'
+      document.title = catalogDocumentTitle()
       return
     }
     if (catalog.routeStatus === 'not_found') {
-      document.title = 'Modelo não encontrado — STLForge Catálogo'
+      document.title = catalogDocumentTitle('Modelo não encontrado')
       return
     }
     document.title = catalog.routeStatus === 'ready' && selected.id !== 'loading'
-      ? `${selected.name} — STLForge Catálogo`
-      : 'Abrindo modelo — STLForge Catálogo'
+      ? catalogDocumentTitle(selected.name)
+      : catalogDocumentTitle('Abrindo modelo')
   }, [catalog.routeStatus, modelDetailOpen, selected.id, selected.name])
 
   useEffect(() => {
