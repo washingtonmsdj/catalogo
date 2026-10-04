@@ -435,6 +435,21 @@ async function listCatalog(request: Request, env: Env) {
   }, {}, 'public, max-age=30, s-maxage=120')
 }
 
+async function listRecentCatalog(request: Request, env: Env) {
+  const url = new URL(request.url)
+  const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '12', 10) || 12, 1, 24)
+  const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,m.image_count,m.cover_storage_key,
+    f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
+    FROM models m
+    JOIN franchises f ON f.id=m.franchise_id
+    JOIN categories c ON c.id=f.category_id
+    LEFT JOIN catalog_folders cf ON cf.id=m.folder_id
+    WHERE m.published=1
+    ORDER BY m.created_at DESC,m.id DESC
+    LIMIT ?`).bind(limit).all<CatalogRow>()
+  return json(request, env, { items: result.results }, {}, 'public, max-age=30, s-maxage=120')
+}
+
 async function getModel(request: Request, slug: string, env: Env) {
   const model = await env.DB.prepare(`SELECT m.*,cf.path AS folder_path,f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m JOIN franchises f ON f.id=m.franchise_id JOIN categories c ON c.id=f.category_id
@@ -573,6 +588,7 @@ export default {
     if (request.method === 'GET' && url.pathname === '/api/franchises') return listFranchises(request, env)
     if (request.method === 'GET' && url.pathname === '/api/folders') return listFolders(request, env)
     if (request.method === 'GET' && url.pathname === '/api/catalog') return listCatalog(request, env)
+    if (request.method === 'GET' && url.pathname === '/api/recent') return listRecentCatalog(request, env)
     const imageMatch = url.pathname.match(/^\/api\/models\/([^/]+)\/images$/)
     if (request.method === 'GET' && imageMatch) return listImages(request, decodeURIComponent(imageMatch[1]), env)
     const modelMatch = url.pathname.match(/^\/api\/models\/([^/]+)$/)

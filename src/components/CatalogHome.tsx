@@ -15,10 +15,9 @@ type CatalogHomeProps = {
   catalog: CatalogRuntime
   searchInputRef: RefObject<HTMLInputElement | null>
   favorites: string[]
-  recentIds: string[]
   quoteList: string[]
   onOpenExplorer: () => void
-  onOpenRecent: () => void
+  onOpenUpdates: () => void
   onOpenFavorites: () => void
   onOpenQuote: () => void
   onOpenModel: (model: CatalogModel) => void
@@ -97,7 +96,7 @@ function CategoryTile({ category, cover, active, onSelect }: {
   )
 }
 
-export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, quoteList, onOpenExplorer, onOpenRecent, onOpenFavorites, onOpenQuote, onOpenModel, onToggleFavorite }: CatalogHomeProps) {
+export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onOpenExplorer, onOpenUpdates, onOpenFavorites, onOpenQuote, onOpenModel, onToggleFavorite }: CatalogHomeProps) {
   const [franchiseFilter, setFranchiseFilter] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [expandedFranchiseKey, setExpandedFranchiseKey] = useState<string | null>(null)
@@ -170,7 +169,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, quo
         <nav className="storefront-sidebar__nav" aria-label="Navegação do catálogo">
           <a href="#catalogo" className="is-active"><Icon name="home" /><span>Catálogo</span></a>
           <a href="#destaques"><Icon name="star" /><span>Em destaque</span></a>
-          <button type="button" onClick={onOpenRecent}><Icon name="clock" /><span>Recém adicionados</span><b>{recentIds.length}</b></button>
+          <button type="button" onClick={onOpenUpdates}><Icon name="clock" /><span>Recém adicionados</span></button>
           <a href="#colecoes"><Icon name="layers" /><span>Coleções</span><b>{catalog.franchises.length}</b></a>
           <button type="button" onClick={onOpenFavorites}><Icon name="heart" /><span>Favoritos</span><b>{favorites.length}</b></button>
         </nav>
@@ -216,7 +215,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, recentIds, quo
 
       <div className="storefront-main">
         <header className="storefront-topbar">
-          <nav aria-label="Navegação principal"><a href="#catalogo" className="is-active">Explorar</a><a href="#colecoes">Coleções</a><button type="button" onClick={onOpenRecent}>Novos</button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
+          <nav aria-label="Navegação principal"><a href="#catalogo" className="is-active">Explorar</a><a href="#colecoes">Coleções</a><button type="button" onClick={onOpenUpdates}>Novos</button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
           <label className={`storefront-search ${catalog.searchPending ? 'is-pending' : ''}`}><Icon name="search" /><input ref={searchInputRef} value={catalog.search} onChange={(event) => catalog.setSearch(event.target.value)} placeholder="Buscar modelos, personagens, franquias..." aria-label="Buscar no catálogo" /><kbd>Ctrl</kbd><kbd>K</kbd></label>
           <div className="storefront-topbar__status"><span className={catalog.mode === 'live' ? 'is-live' : ''} /><strong>{catalog.mode === 'live' ? 'Catálogo online' : 'Prévia local'}</strong></div>
         </header>

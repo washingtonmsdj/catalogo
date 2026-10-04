@@ -76,6 +76,16 @@ Quando `folder` é informado, `category` e `franchise` também são obrigatório
 
 A busca pública usa o índice FTS e exige pelo menos 3 caracteres no modo LIVE. O frontend não dispara consultas de busca para termos menores.
 
+## Recém adicionados
+
+`GET /api/recent?limit=12`
+
+Retorna os modelos publicados mais recentemente adicionados ao D1, ordenados por `models.created_at DESC` e com desempate estável por `id DESC`. O publisher preserva `created_at` nos updates e altera somente `updated_at`, portanto editar metadados ou republicar mídia de um modelo antigo não o transforma artificialmente em novidade.
+
+`limit` é limitado pelo servidor entre 1 e 24 itens. A rota entrega o mesmo contrato leve de card da listagem principal e possui índice dedicado em `(published, created_at DESC, id DESC)`, evitando varredura integral do acervo quando o catálogo crescer.
+
+Na interface, “Recém adicionados” é conteúdo global vindo do D1. “Vistos recentemente” continua sendo histórico local e privado do navegador; os dois conceitos são exibidos separadamente no painel de atualizações.
+
 ## Detalhe do personagem
 
 `GET /api/models/:slug`
