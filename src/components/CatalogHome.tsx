@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode, type RefObject } from 'react'
-import { BRAND_NAME, CATALOG_LABEL } from '../config/brand'
+import { BRAND_NAME, BRAND_SHORT_NAME, CATALOG_LABEL } from '../config/brand'
 import { useCatalogRuntime } from '../hooks/useCatalogRuntime'
 import { CatalogSidebarTree } from './CatalogSidebarTree'
 import type { CatalogCategory, CatalogFranchise, CatalogModel } from '../types/catalog'
@@ -169,7 +169,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
     <div className={`storefront-shell ${sidebarCollapsed ? 'is-sidebar-collapsed' : ''}`}>
       <aside className="storefront-sidebar">
         <div className="storefront-brand">
-          <span className="storefront-brand__mark" aria-hidden="true"><i /><b /></span>
+          <span className="storefront-brand__mark" aria-hidden="true">{BRAND_SHORT_NAME.slice(0, 1).toLocaleUpperCase('pt-BR')}</span>
           <span><strong>{BRAND_NAME}</strong><small>{CATALOG_LABEL}</small></span>
           <button type="button" className="storefront-sidebar__collapse" aria-label={sidebarCollapsed ? 'Expandir menu' : 'Recolher menu'} aria-pressed={sidebarCollapsed} onClick={() => setSidebarCollapsed((current) => !current)}>{sidebarCollapsed ? '››' : '‹‹'}</button>
         </div>

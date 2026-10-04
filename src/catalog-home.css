@@ -305,12 +305,27 @@
   .storefront-shell.is-sidebar-collapsed .storefront-sidebar__nav b { display: none; }
 }
 
-/* Reference-layout fidelity: geometric catalog mark and denser desktop shell. */
-.storefront-brand__mark { position: relative; overflow: hidden; border-radius: 10px; background: linear-gradient(145deg, rgba(36,240,176,.32), rgba(36,240,176,.04)); }
-.storefront-brand__mark::before { content: ""; position: absolute; width: 19px; height: 19px; border: 3px solid #35f3b8; transform: rotate(30deg); border-radius: 3px; box-shadow: 0 0 14px rgba(36,240,176,.28); }
-.storefront-brand__mark i, .storefront-brand__mark b { position: absolute; display: block; width: 11px; height: 3px; border-radius: 2px; background: #a8ffe1; transform-origin: left center; }
-.storefront-brand__mark i { transform: translate(-1px, -7px) rotate(30deg); }
-.storefront-brand__mark b { transform: translate(-1px, 7px) rotate(-30deg); }
+/* Brand monogram derives from the configured short name; no external brand geometry. */
+.storefront-brand__mark {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(36,240,176,.32), rgba(36,240,176,.04));
+  font-size: 18px;
+  letter-spacing: -.8px;
+}
+.storefront-brand__mark::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 7px;
+  width: 15px;
+  height: 2px;
+  border-radius: 999px;
+  background: #a8ffe1;
+  box-shadow: 0 0 10px rgba(36,240,176,.32);
+  transform: translateX(-50%);
+}
 .storefront-sidebar__nav a[href="#colecoes"] .storefront-icon { color: #8bd8c1; }
 #colecoes { scroll-margin-top: 78px; }
 @media (min-width: 1500px) {

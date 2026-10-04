@@ -9,8 +9,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BRAND_PATH = ROOT / "config" / "brand.json"
 FORBIDDEN_MARKS = [
-    ("stl" + "forge").encode("utf-8"),
-    ("stl" + " forge").encode("utf-8"),
+    bytes((115, 116, 108, 102, 111, 114, 103, 101)),
+    bytes((115, 116, 108, 32, 102, 111, 114, 103, 101)),
 ]
 
 
@@ -84,8 +84,10 @@ class BrandIdentityTests(unittest.TestCase):
         self.assertNotIn(self.brand["name"], index)
         self.assertIn("import brand from './config/brand.json'", vite)
         self.assertIn("fileName: 'site.webmanifest'", vite)
+        self.assertIn("fileName: 'favicon.svg'", vite)
         self.assertIn("config/brand.json", workflow)
         self.assertFalse((ROOT / "public" / "site.webmanifest").exists())
+        self.assertFalse((ROOT / "public" / "favicon.svg").exists())
 
 
 if __name__ == "__main__":

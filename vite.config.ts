@@ -6,6 +6,14 @@ const DEFAULT_PUBLIC_SITE_URL = 'https://washingtonmsdj.github.io/catalogo/'
 
 const catalogName = `${brand.catalogLabel} ${brand.name}`
 const catalogPageTitle = `${brand.catalogLabel} — ${brand.name}`
+const brandInitial = Array.from(brand.shortName.trim())[0]?.toLocaleUpperCase('pt-BR') ?? '?'
+const faviconSource = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="12" fill="#071817"/>
+  <rect x="7" y="7" width="50" height="50" rx="10" fill="none" stroke="#24f0b0" stroke-opacity=".45" stroke-width="2"/>
+  <text x="32" y="40" text-anchor="middle" fill="#74ffd1" font-family="Arial,sans-serif" font-size="30" font-weight="800">${brandInitial}</text>
+  <path d="M22 48h20" stroke="#a8ffe1" stroke-width="2.5" stroke-linecap="round"/>
+</svg>
+`
 const manifestSource = `${JSON.stringify({
   name: catalogName,
   short_name: brand.shortName,
@@ -53,12 +61,22 @@ export default defineConfig(({ mode }) => {
             response.setHeader('Content-Type', 'application/manifest+json; charset=utf-8')
             response.end(manifestSource)
           })
+          server.middlewares.use('/favicon.svg', (_request, response) => {
+            response.statusCode = 200
+            response.setHeader('Content-Type', 'image/svg+xml; charset=utf-8')
+            response.end(faviconSource)
+          })
         },
         generateBundle() {
           this.emitFile({
             type: 'asset',
             fileName: 'site.webmanifest',
             source: manifestSource,
+          })
+          this.emitFile({
+            type: 'asset',
+            fileName: 'favicon.svg',
+            source: faviconSource,
           })
         },
       },
