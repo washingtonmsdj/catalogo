@@ -85,6 +85,17 @@ class BrandIdentityTests(unittest.TestCase):
         self.assertIn("BRAND_FILE_SLUG", collections)
         self.assertIn("export const BRAND_FILE_SLUG", brand_source)
 
+    def test_generated_build_is_validated_before_publish(self) -> None:
+        package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+        workflow = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+        checker = (ROOT / "tools" / "check_generated_brand.mjs").read_bytes().lower()
+
+        self.assertIn("brand:dist", package["scripts"])
+        self.assertIn("npm run brand:dist", package["scripts"]["check"])
+        self.assertIn("Validate generated brand artifacts", workflow)
+        self.assertIn("npm run brand:dist", workflow)
+        self.assertFalse(any(mark in checker for mark in FORBIDDEN_MARKS))
+
     def test_static_metadata_is_generated_from_brand_ssot(self) -> None:
         index = (ROOT / "index.html").read_text(encoding="utf-8")
         vite = (ROOT / "vite.config.ts").read_text(encoding="utf-8")
