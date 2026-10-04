@@ -8,6 +8,8 @@ const BRAND = JSON.parse(fs.readFileSync(path.join(ROOT, 'config', 'brand.json')
 const forbiddenMarks = [
   Buffer.from([115, 116, 108, 102, 111, 114, 103, 101]).toString('utf8'),
   Buffer.from([115, 116, 108, 32, 102, 111, 114, 103, 101]).toString('utf8'),
+  Buffer.from([115, 116, 108, 45, 102, 111, 114, 103, 101]).toString('utf8'),
+  Buffer.from([115, 116, 108, 95, 102, 111, 114, 103, 101]).toString('utf8'),
 ]
 const unresolvedBrandTokens = [
   '__BRAND_NAME__',
@@ -39,10 +41,12 @@ const offenders = []
 const unresolved = []
 
 for (const file of files) {
+  const relative = path.relative(ROOT, file)
+  const normalizedPath = relative.replaceAll('\\', '/').toLocaleLowerCase('en-US')
   const body = fs.readFileSync(file).toString('utf8')
   const normalized = body.toLocaleLowerCase('en-US')
-  if (forbiddenMarks.some((mark) => normalized.includes(mark))) {
-    offenders.push(path.relative(ROOT, file))
+  if (forbiddenMarks.some((mark) => normalized.includes(mark) || normalizedPath.includes(mark))) {
+    offenders.push(relative)
   }
   if (unresolvedBrandTokens.some((token) => body.includes(token))) {
     unresolved.push(path.relative(ROOT, file))

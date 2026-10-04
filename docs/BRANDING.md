@@ -24,7 +24,7 @@ Depois execute o gate completo:
 npm run check
 ```
 
-O primeiro comando bloqueia identidade concorrente e hardcode do nome comercial fora do SSOT. O segundo também compila o frontend, valida os artefatos gerados, o orçamento de bundle e o Worker.
+O primeiro comando bloqueia identidade concorrente tanto no conteúdo quanto em nomes/caminhos de arquivos, além de impedir hardcode do nome comercial fora do SSOT. O segundo também compila o frontend, valida os artefatos gerados, o orçamento de bundle e o Worker.
 
 Identificadores técnicos persistentes não fazem parte da identidade visual e **não devem ser renomeados junto com a marca** sem uma migração planejada. Isso inclui, por exemplo:
 
