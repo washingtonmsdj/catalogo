@@ -9,46 +9,66 @@ const FOCUSABLE_SELECTOR = [
 
 function visibleDialogs() {
   return Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"][aria-modal="true"]'))
-    .filter((dialog) => dialog.getClientRects().length > 0)
+    .filter((dialog) => dialog.isConnected && dialog.getClientRects().length > 0)
 }
 
 function focusableElements(dialog: HTMLElement) {
   return Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR))
-    .filter((element) => element.getClientRects().length > 0 && element.getAttribute('aria-hidden') !== 'true')
+    .filter((element) => (
+      element.isConnected
+      && element.getClientRects().length > 0
+      && element.getAttribute('aria-hidden') !== 'true'
+      && !element.closest('[inert]')
+    ))
 }
 
 export function installDialogAccessibility() {
   let activeDialog: HTMLElement | null = null
-  let returnFocus: HTMLElement | null = null
+  const returnFocus = new WeakMap<HTMLElement, HTMLElement>()
   let focusFrame = 0
 
+  const focusInside = (dialog: HTMLElement, preferred?: HTMLElement | null) => {
+    window.cancelAnimationFrame(focusFrame)
+    focusFrame = window.requestAnimationFrame(() => {
+      const current = visibleDialogs().at(-1)
+      if (!current || current !== dialog) return
+      const items = focusableElements(dialog)
+      if (preferred?.isConnected && dialog.contains(preferred) && items.includes(preferred)) {
+        preferred.focus({ preventScroll: true })
+        return
+      }
+      if (dialog.contains(document.activeElement)) return
+      const first = items[0]
+      ;(first ?? dialog).focus({ preventScroll: true })
+    })
+  }
+
   const syncDialog = () => {
-    const dialogs = visibleDialogs()
-    const nextDialog = dialogs.at(-1) ?? null
+    const nextDialog = visibleDialogs().at(-1) ?? null
     if (nextDialog === activeDialog) return
 
-    if (!activeDialog && nextDialog && document.activeElement instanceof HTMLElement) {
-      returnFocus = document.activeElement
-    }
-
+    const previousDialog = activeDialog
     activeDialog = nextDialog
-    window.cancelAnimationFrame(focusFrame)
 
-    if (activeDialog) {
-      if (!activeDialog.hasAttribute('tabindex')) activeDialog.tabIndex = -1
-      focusFrame = window.requestAnimationFrame(() => {
-        const current = visibleDialogs().at(-1)
-        if (!current || current !== activeDialog) return
-        const first = focusableElements(current)[0]
-        ;(first ?? current).focus({ preventScroll: true })
-      })
+    if (nextDialog) {
+      if (!nextDialog.hasAttribute('tabindex')) nextDialog.tabIndex = -1
+      if (!returnFocus.has(nextDialog) && document.activeElement instanceof HTMLElement) {
+        returnFocus.set(nextDialog, document.activeElement)
+      }
+
+      const nestedReturn = previousDialog ? returnFocus.get(previousDialog) : null
+      focusInside(
+        nextDialog,
+        nestedReturn?.isConnected && nextDialog.contains(nestedReturn) ? nestedReturn : null,
+      )
       return
     }
 
-    if (returnFocus?.isConnected) {
-      focusFrame = window.requestAnimationFrame(() => returnFocus?.focus({ preventScroll: true }))
+    window.cancelAnimationFrame(focusFrame)
+    const origin = previousDialog ? returnFocus.get(previousDialog) : null
+    if (origin?.isConnected) {
+      focusFrame = window.requestAnimationFrame(() => origin.focus({ preventScroll: true }))
     }
-    returnFocus = null
   }
 
   const observer = new MutationObserver(syncDialog)
@@ -80,6 +100,17 @@ export function installDialogAccessibility() {
       event.preventDefault()
       first.focus({ preventScroll: true })
     }
+  }, true)
+
+  document.addEventListener('focusin', (event) => {
+    const dialog = visibleDialogs().at(-1)
+    if (!dialog) return
+
+    const target = event.target
+    if (target instanceof Node && dialog.contains(target)) return
+
+    const first = focusableElements(dialog)[0]
+    ;(first ?? dialog).focus({ preventScroll: true })
   }, true)
 
   syncDialog()
