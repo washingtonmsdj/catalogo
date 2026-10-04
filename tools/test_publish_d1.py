@@ -78,6 +78,60 @@ class PublishD1Tests(unittest.TestCase):
         self.assertEqual(db.execute('SELECT model_count FROM franchises').fetchone()[0], 2)
         self.assertEqual(db.execute('SELECT model_count FROM categories').fetchone()[0], 2)
 
+    def test_republish_preserves_created_at_for_recent_feed_semantics(self) -> None:
+        db = sqlite3.connect(':memory:')
+        migrations = Path(__file__).resolve().parents[1] / 'migrations'
+        for name in ('0001_catalog.sql', '0002_keyset_pagination.sql', '0003_catalog_counts.sql', '0009_catalog_folders.sql'):
+            db.executescript((migrations / name).read_text(encoding='utf-8'))
+
+        row = model('mdl-1', 'android-18', 'TS-1', variant='Androide 18')
+        for statement in build_statements([row]):
+            db.execute(statement['sql'], statement['params'])
+        db.execute("UPDATE models SET created_at='2026-01-01 10:00:00' WHERE id='mdl-1'")
+
+        updated = model('mdl-1', 'android-18', 'TS-1', variant='Androide 18 revisada')
+        for statement in build_statements([updated]):
+            db.execute(statement['sql'], statement['params'])
+
+        created_at, name = db.execute("SELECT created_at,name FROM models WHERE id='mdl-1'").fetchone()
+        self.assertEqual(created_at, '2026-01-01 10:00:00')
+        self.assertEqual(name, 'Androide 18 revisada')
+
+    def test_recent_models_index_orders_only_published_models_deterministically(self) -> None:
+        db = sqlite3.connect(':memory:')
+        migrations = Path(__file__).resolve().parents[1] / 'migrations'
+        for name in ('0001_catalog.sql', '0002_keyset_pagination.sql', '0003_catalog_counts.sql', '0009_catalog_folders.sql', '0010_recent_models_index.sql'):
+            db.executescript((migrations / name).read_text(encoding='utf-8'))
+
+        rows = [
+            model('mdl-1', 'android-18-a', 'TS-1', variant='A'),
+            model('mdl-2', 'android-18-b', 'TS-2', variant='B'),
+            model('mdl-3', 'android-18-c', 'TS-3', variant='C'),
+        ]
+        for statement in build_statements(rows):
+            db.execute(statement['sql'], statement['params'])
+
+        db.execute("UPDATE models SET created_at='2026-01-01 10:00:00' WHERE id='mdl-1'")
+        db.execute("UPDATE models SET created_at='2026-01-02 10:00:00' WHERE id IN ('mdl-2','mdl-3')")
+        db.execute("UPDATE models SET published=0 WHERE id='mdl-3'")
+
+        ids = [
+            row[0]
+            for row in db.execute(
+                'SELECT id FROM models WHERE published=1 ORDER BY created_at DESC,id DESC LIMIT 24'
+            ).fetchall()
+        ]
+        self.assertEqual(ids, ['mdl-2', 'mdl-1'])
+
+        plan = ' '.join(
+            str(part)
+            for row in db.execute(
+                'EXPLAIN QUERY PLAN SELECT id FROM models WHERE published=1 ORDER BY created_at DESC,id DESC LIMIT 24'
+            ).fetchall()
+            for part in row
+        )
+        self.assertIn('idx_models_published_created', plan)
+
     def test_load_rejects_model_without_publishable_image(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "models.jsonl"
