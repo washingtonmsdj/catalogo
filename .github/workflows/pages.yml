@@ -53,6 +53,8 @@ jobs:
           VITE_MEDIA_BASE_URL: ${{ vars.VITE_MEDIA_BASE_URL }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
           VITE_PUBLIC_SITE_URL: ${{ vars.VITE_PUBLIC_SITE_URL }}
+      - name: Validate generated brand artifacts
+        run: npm run brand:dist
       - name: Configure Pages
         uses: actions/configure-pages@v6
         with:
