@@ -383,3 +383,28 @@
   .collections-quickadd { align-items: stretch; flex-direction: column; }
   .collections-quickadd .primary-action { width: 100%; }
 }
+
+@media (max-width: 620px) {
+  .collections-dock-trigger {
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    width: 46px;
+    min-height: 46px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+  }
+  .collections-dock-trigger > span { font-size: 18px; }
+  .collections-dock-trigger strong { display: none; }
+  .collections-dock-trigger b {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #061815;
+    box-shadow: 0 4px 12px rgba(0,0,0,.34);
+  }
+}

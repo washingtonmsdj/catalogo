@@ -414,3 +414,24 @@
   outline: 2px solid var(--store-accent);
   outline-offset: 2px;
 }
+
+@media (max-width: 620px) {
+  .storefront-content { padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+  .storefront-model-grid,
+  .storefront-category-grid,
+  .storefront-franchise-cards,
+  .storefront-mini-grid {
+    scrollbar-width: none;
+    overscroll-behavior-inline: contain;
+  }
+  .storefront-model-grid::-webkit-scrollbar,
+  .storefront-category-grid::-webkit-scrollbar,
+  .storefront-franchise-cards::-webkit-scrollbar,
+  .storefront-mini-grid::-webkit-scrollbar { display: none; }
+  .storefront-category-grid,
+  .storefront-franchise-cards,
+  .storefront-mini-grid { scroll-snap-type: x proximity; }
+  .storefront-category-tile,
+  .storefront-franchise-cards > button,
+  .storefront-mini-grid .storefront-model-card { scroll-snap-align: start; }
+}

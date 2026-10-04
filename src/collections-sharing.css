@@ -267,3 +267,12 @@
   .collections-share-items button { grid-template-columns: 30px minmax(0, 1fr); }
   .collections-share-items em { display: none; }
 }
+
+@media (max-width: 620px) {
+  .collections-share-trigger {
+    right: 66px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    width: 46px;
+    height: 46px;
+  }
+}
