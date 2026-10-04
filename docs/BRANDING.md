@@ -10,7 +10,21 @@ A interface React consome essa definição por `src/config/brand.ts`. O Vite usa
 
 ## Troca futura de marca
 
-Uma futura mudança comercial deve começar por `config/brand.json`. Depois, execute os testes e o build; eles validam que HTML, manifesto e componentes continuam coerentes.
+Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.
+
+Valide primeiro a fonte da identidade:
+
+```powershell
+npm run brand:source
+```
+
+Depois execute o gate completo:
+
+```powershell
+npm run check
+```
+
+O primeiro comando bloqueia identidade concorrente e hardcode do nome comercial fora do SSOT. O segundo também compila o frontend, valida os artefatos gerados, o orçamento de bundle e o Worker.
 
 Identificadores técnicos persistentes não fazem parte da identidade visual e **não devem ser renomeados junto com a marca** sem uma migração planejada. Isso inclui, por exemplo:
 

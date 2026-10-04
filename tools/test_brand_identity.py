@@ -85,6 +85,15 @@ class BrandIdentityTests(unittest.TestCase):
         self.assertIn("BRAND_FILE_SLUG", collections)
         self.assertIn("export const BRAND_FILE_SLUG", brand_source)
 
+    def test_local_check_includes_source_brand_gate(self) -> None:
+        package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
+
+        self.assertEqual(
+            package["scripts"].get("brand:source"),
+            "python -m unittest -q tools.test_brand_identity",
+        )
+        self.assertIn("npm run brand:source", package["scripts"]["check"])
+
     def test_generated_build_is_validated_before_publish(self) -> None:
         package = json.loads((ROOT / "package.json").read_text(encoding="utf-8"))
         workflow = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
