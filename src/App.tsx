@@ -146,14 +146,24 @@ export default function App() {
   }, [visibleModels, selected])
 
   useEffect(() => {
-    if (!modelDetailOpen || selected.id === 'loading') return
+    if (!modelDetailOpen || catalog.routeStatus !== 'ready' || selected.id === 'loading') return
     setRecentIds((current) => [selected.id, ...current.filter((id) => id !== selected.id)].slice(0, MAX_RECENT_MODELS))
-  }, [modelDetailOpen, selected.id])
+  }, [catalog.routeStatus, modelDetailOpen, selected.id])
 
   useEffect(() => {
     setPreviewImage(null); setPreviewPageTarget(null)
-    document.title = modelDetailOpen && selected.id !== 'loading' ? `${selected.name} — STLForge Catálogo` : 'STLForge Catálogo'
-  }, [modelDetailOpen, selected.id, selected.name])
+    if (!modelDetailOpen) {
+      document.title = 'STLForge Catálogo'
+      return
+    }
+    if (catalog.routeStatus === 'not_found') {
+      document.title = 'Modelo não encontrado — STLForge Catálogo'
+      return
+    }
+    document.title = catalog.routeStatus === 'ready' && selected.id !== 'loading'
+      ? `${selected.name} — STLForge Catálogo`
+      : 'Abrindo modelo — STLForge Catálogo'
+  }, [catalog.routeStatus, modelDetailOpen, selected.id, selected.name])
 
   useEffect(() => {
     const syncModelRoute = () => setModelDetailOpen(window.location.hash.startsWith('#modelo='))
@@ -227,6 +237,7 @@ export default function App() {
     setModelDetailOpen(false)
     if (window.location.hash.startsWith('#modelo=')) {
       window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`)
+      window.dispatchEvent(new Event('hashchange'))
     }
   }
   function openKnownModel(id: string, close: () => void) {
@@ -283,6 +294,7 @@ export default function App() {
       />
       <ModelDetailDialog
         open={modelDetailOpen}
+        routeStatus={catalog.routeStatus}
         model={selected}
         categoryLabel={catalog.categories.find((item) => item.id === selected.category)?.label ?? selected.category}
         favorite={favorites.includes(selected.id)}
