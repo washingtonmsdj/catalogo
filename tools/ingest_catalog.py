@@ -25,6 +25,15 @@ from PIL import Image, ImageFilter, ImageOps, ImageStat, UnidentifiedImageError
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff", ".avif", ".jfif"}
 COUNT_SUFFIX = re.compile(r"\s*\[\d+\]\s*$")
 OK_PREFIX = re.compile(r"^OK\s*-\s*", re.IGNORECASE)
+PUBLIC_TOP_LEVEL_CATEGORIES = (
+    "Pessoas",
+    "Animes & Desenhos",
+    "Filmes & Séries",
+    "Marvel & DC",
+    "Games",
+    "Tokusatsu & Cultura Japonesa",
+)
+PUBLIC_TOP_LEVEL_KEYS = frozenset(name.casefold() for name in PUBLIC_TOP_LEVEL_CATEGORIES)
 CHECKPOINT_INTERVAL = 25
 
 
@@ -57,25 +66,31 @@ def clean_folder(value: str) -> str:
     return COUNT_SUFFIX.sub("", OK_PREFIX.sub("", value)).strip()
 
 
+def is_public_top_level_category(value: str) -> bool:
+    return clean_folder(value).casefold() in PUBLIC_TOP_LEVEL_KEYS
+
+
 def discover_catalog_roots(root: Path) -> list[Path]:
     """Return only audited top-level catalog categories.
 
     Operational folders such as statistics, incoming batches and consolidated
     audit material live beside the public catalog. Production ingestion is
-    explicit: only top-level directories marked with the audited `OK - `
-    prefix are eligible.
+    explicit and fail-closed: only the six canonical public categories are
+    eligible. The optional `OK - ` audit prefix and numeric count suffix do not
+    change category identity.
     """
     roots = sorted(
         (
             path
             for path in root.iterdir()
-            if path.is_dir() and OK_PREFIX.match(path.name)
+            if path.is_dir() and is_public_top_level_category(path.name)
         ),
         key=lambda path: path.name.casefold(),
     )
     if not roots:
+        allowed = ", ".join(PUBLIC_TOP_LEVEL_CATEGORIES)
         raise RuntimeError(
-            f"nenhuma categoria ativa 'OK - ' encontrada em: {root}"
+            f"nenhuma categoria pública canônica encontrada em: {root}; permitidas: {allowed}"
         )
     return roots
 
@@ -114,7 +129,7 @@ def load_audit_registry(root: Path, registry: Path) -> tuple[list[Path], dict[st
                 raise RuntimeError(f"caminho vazio no registro de auditoria, linha {line_no}")
             normalized = rel.replace("\\", "/")
             first = normalized.split("/", 1)[0]
-            if not OK_PREFIX.match(first):
+            if not is_public_top_level_category(first):
                 raise RuntimeError(
                     f"caminho fora de categoria auditada na linha {line_no}: {rel}"
                 )
