@@ -32,6 +32,18 @@ class PagesWorkflowConfigTests(unittest.TestCase):
         self.assertIn("Missing required Repository Variables", self.workflow)
         self.assertIn("exit 1", self.workflow)
 
+    def test_published_brand_assets_are_validated_from_ssot(self):
+        required = [
+            "config/brand.json",
+            'SHORT_NAME="$(node -e',
+            'BRAND_INITIAL="$(node -e',
+            "data.short_name !== expectedShort",
+            'FAVICON_URL="${PAGE_URL%/}/favicon.svg"',
+            'grep -Fq ">$BRAND_INITIAL</text>"',
+        ]
+        for entry in required:
+            self.assertIn(entry, self.workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
