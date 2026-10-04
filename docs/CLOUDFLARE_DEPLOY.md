@@ -43,7 +43,7 @@ O arquivo `wrangler.jsonc` mantém um placeholder de D1. O UUID real nunca preci
 
 Ao alterar `worker/`, `migrations/` ou configuração Cloudflare na `main`, o workflow `Deploy Cloudflare API` executa primeiro um **preflight sempre visível**.
 
-O preflight verifica `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_API_TOKEN` e `TURNSTILE_SECRET_KEY`. Se qualquer item estiver ausente, o workflow termina de forma controlada com um aviso, registra no resumo exatamente o que falta e pula o job de produção. O build/CI continua representando corretamente a qualidade do código, enquanto o resumo deixa explícito que a publicação ficou pendente — sem confundir “deploy não configurado” com “deploy executado com sucesso”.
+O preflight verifica `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID`, `CLOUDFLARE_API_TOKEN` e `TURNSTILE_SECRET_KEY`. Se qualquer item estiver ausente, o workflow registra no resumo exatamente o que falta e **falha fechado**. Em `main`, um deploy pulado por falta de credencial não pode aparecer como sucesso: CI continua medindo a qualidade do código em seu workflow próprio, enquanto o workflow de produção só fica verde quando a publicação realmente pode ser executada.
 
 Quando o bootstrap está disponível, o job de produção:
 

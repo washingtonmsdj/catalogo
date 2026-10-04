@@ -50,16 +50,16 @@ jobs:
 
           if [ "${#missing[@]}" -gt 0 ]; then
             echo 'ready=false' >> "$GITHUB_OUTPUT"
-            echo "::warning::Deploy Cloudflare não executado: faltam credenciais/configurações: ${missing[*]}"
+            echo "::error::Deploy Cloudflare bloqueado: faltam credenciais/configurações: ${missing[*]}"
             {
-              echo '## Cloudflare API — bootstrap pendente'
+              echo '## Cloudflare API — deploy bloqueado'
               echo
-              echo 'O código foi validado pelo CI, mas o deploy de produção está pendente até configurar:'
+              echo 'A publicação de produção não pode ser considerada concluída enquanto faltar:'
               for item in "${missing[@]}"; do echo "- \`$item\`"; done
               echo
-              echo 'Consulte `docs/CLOUDFLARE_DEPLOY.md`. Secrets continuam fora do Git; ausência de credencial não invalida o build.'
+              echo 'Consulte `docs/CLOUDFLARE_DEPLOY.md`. Em push para `main`, credencial ausente é falha de deploy e o workflow termina com erro.'
             } >> "$GITHUB_STEP_SUMMARY"
-            exit 0
+            exit 1
           fi
 
           echo 'ready=true' >> "$GITHUB_OUTPUT"
