@@ -14,12 +14,16 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import sys
+import time
 import unicodedata
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from contextlib import contextmanager
+from functools import wraps
 from pathlib import Path
 
 from PIL import Image, ImageOps
@@ -48,6 +52,8 @@ MEDIA_BUILD_STATE_VERSION = 1
 MEDIA_RENDERER_VERSION = 1
 MEDIA_METADATA_VERSION = 2
 MEDIA_CHECKPOINT_INTERVAL = 10
+MEDIA_STATE_REPLACE_ATTEMPTS = 10
+MEDIA_STATE_REPLACE_DELAY_SECONDS = 0.1
 
 
 def humanize_stem(value: str) -> str:
@@ -416,7 +422,14 @@ def save_media_build_state(path: Path, state: dict) -> None:
         json.dumps(state, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
-    temporary.replace(path)
+    for attempt in range(MEDIA_STATE_REPLACE_ATTEMPTS):
+        try:
+            temporary.replace(path)
+            return
+        except PermissionError:
+            if attempt + 1 >= MEDIA_STATE_REPLACE_ATTEMPTS:
+                raise
+            time.sleep(MEDIA_STATE_REPLACE_DELAY_SECONDS * (attempt + 1))
 
 
 def cached_model_outputs_valid(entry: dict, r2_root: Path, include_original: bool) -> bool:
@@ -452,6 +465,71 @@ def cached_model_outputs_valid(entry: dict, r2_root: Path, include_original: boo
                 return False
     return True
 
+
+@contextmanager
+def media_build_output_lock(output: Path):
+    """Hold an OS-backed exclusive lock for one media bundle output directory.
+
+    The lock file intentionally remains on disk; ownership is represented by the
+    operating-system lock, so a crashed process cannot leave a stale logical
+    lock that blocks future runs.
+    """
+    output.mkdir(parents=True, exist_ok=True)
+    lock_path = output / ".media-build.lock"
+    handle = lock_path.open("a+b")
+    locked = False
+    try:
+        handle.seek(0, os.SEEK_END)
+        if handle.tell() == 0:
+            handle.write(b"0")
+            handle.flush()
+        handle.seek(0)
+
+        if os.name == "nt":
+            import msvcrt
+
+            try:
+                msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+            except OSError as exc:
+                raise RuntimeError(f"bundle de mídia já está em execução para: {output}") from exc
+        else:
+            import fcntl
+
+            try:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError as exc:
+                raise RuntimeError(f"bundle de mídia já está em execução para: {output}") from exc
+        locked = True
+        yield
+    finally:
+        if locked:
+            handle.seek(0)
+            if os.name == "nt":
+                import msvcrt
+
+                msvcrt.locking(handle.fileno(), msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        handle.close()
+
+
+def locked_media_build(func):
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        output = kwargs.get("output")
+        if output is None:
+            if len(args) < 3:
+                raise TypeError("output é obrigatório")
+            output = args[2]
+        with media_build_output_lock(Path(output)):
+            return func(*args, **kwargs)
+
+    return wrapped
+
+
+@locked_media_build
 def build_bundle(
     source_root: Path,
     manifest_path: Path,
