@@ -111,6 +111,13 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const categoryLabels = useMemo(() => new Map(catalog.categories.map((item) => [item.id, item.label])), [catalog.categories])
   const heroCampaignCategory = catalog.categories.find((item) => item.id === 'games') ?? catalog.categories.find((item) => item.id !== 'all')
   const heroCampaignCover = heroCampaignCategory?.coverUrl
+  const runtimeStatus = catalog.mode === 'demo'
+    ? { label: 'Prévia local', tone: 'demo' }
+    : catalog.apiHealthy
+      ? { label: 'Catálogo online', tone: 'live' }
+      : catalog.loading
+        ? { label: 'Conectando...', tone: 'pending' }
+        : { label: 'Catálogo indisponível', tone: 'error' }
 
   useEffect(() => {
     if (catalog.franchise === 'all') return
@@ -217,7 +224,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
         <header className="storefront-topbar">
           <nav aria-label="Navegação principal"><a href="#catalogo" className="is-active">Explorar</a><a href="#colecoes">Coleções</a><button type="button" onClick={onOpenUpdates}>Novos</button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
           <label className={`storefront-search ${catalog.searchPending ? 'is-pending' : ''}`}><Icon name="search" /><input ref={searchInputRef} value={catalog.search} onChange={(event) => catalog.setSearch(event.target.value)} placeholder="Buscar modelos, personagens, franquias..." aria-label="Buscar no catálogo" /><kbd>Ctrl</kbd><kbd>K</kbd></label>
-          <div className="storefront-topbar__status"><span className={catalog.mode === 'live' ? 'is-live' : ''} /><strong>{catalog.mode === 'live' ? 'Catálogo online' : 'Prévia local'}</strong></div>
+          <div className="storefront-topbar__status" role="status" aria-live="polite"><span className={`is-${runtimeStatus.tone}`} /><strong>{runtimeStatus.label}</strong></div>
         </header>
         <main id="catalogo" className="storefront-content" aria-busy={catalog.loading}>
           {catalog.error && <div className="storefront-alert" role="alert">{catalog.error}</div>}
@@ -288,7 +295,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             </section>
           </div>
 
-          <footer className="storefront-footer"><span><b className={catalog.mode === 'live' ? 'is-live' : ''} />{catalog.mode === 'live' ? 'Catálogo online' : 'Prévia local'}</span><strong>{formatter.format(catalogTotal)} modelos organizados</strong><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b> <Icon name="chevron" /></button></footer>
+          <footer className="storefront-footer"><span role="status" aria-live="polite"><b className={`is-${runtimeStatus.tone}`} />{runtimeStatus.label}</span><strong>{formatter.format(catalogTotal)} modelos organizados</strong><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b> <Icon name="chevron" /></button></footer>
         </main>
       </div>
     </div>

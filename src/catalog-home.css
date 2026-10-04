@@ -94,6 +94,7 @@
 .storefront-topbar__status { justify-self: end; display: flex; align-items: center; gap: 8px; color: #89a49d; white-space: nowrap; }
 .storefront-topbar__status span { width: 8px; height: 8px; border-radius: 50%; background: #d8a648; box-shadow: 0 0 0 4px rgba(216,166,72,.07); }
 .storefront-topbar__status span.is-live { background: var(--store-accent); box-shadow: 0 0 0 4px rgba(36,240,176,.07), 0 0 12px rgba(36,240,176,.45); }
+.storefront-topbar__status span.is-error { background: #ef6f6c; box-shadow: 0 0 0 4px rgba(239,111,108,.08), 0 0 12px rgba(239,111,108,.28); }
 .storefront-topbar__status strong { font: 650 9px/1 ui-sans-serif, system-ui; }
 .storefront-content { width: min(1600px, calc(100% - 28px)); margin: 0 auto; padding: 8px 0 18px; }
 .storefront-alert { margin-bottom: 10px; padding: 10px 13px; border: 1px solid rgba(255,114,114,.3); border-radius: 9px; background: rgba(91,18,18,.28); color: #ffc9c9; font-size: 10px; }
@@ -201,6 +202,7 @@
 .storefront-footer > span { display: inline-flex; align-items: center; gap: 6px; }
 .storefront-footer > span b { width: 7px; height: 7px; border-radius: 50%; background: #d3a246; }
 .storefront-footer > span b.is-live { background: var(--store-accent); box-shadow: 0 0 10px rgba(36,240,176,.45); }
+.storefront-footer > span b.is-error { background: #ef6f6c; box-shadow: 0 0 10px rgba(239,111,108,.28); }
 .storefront-footer > strong { font-weight: 650; }
 .storefront-footer > button { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: var(--store-accent); font: 700 9px/1 ui-sans-serif, system-ui; cursor: pointer; }
 .storefront-footer > button .storefront-icon { width: 12px; height: 12px; }
