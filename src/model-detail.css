@@ -1,0 +1,283 @@
+.model-detail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px;
+  background: rgba(2, 8, 8, .68);
+  backdrop-filter: blur(10px);
+}
+
+.model-detail-sheet {
+  width: min(540px, 100%);
+  height: min(860px, calc(100dvh - 32px));
+  display: grid;
+  grid-template-rows: auto minmax(280px, 44%) minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid rgba(83, 210, 174, .22);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #0b1817, #07100f);
+  box-shadow: -24px 0 80px rgba(0, 0, 0, .42), inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.model-detail-head {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 18px;
+  border-bottom: 1px solid rgba(93, 176, 154, .14);
+  background: rgba(6, 17, 16, .9);
+}
+
+.model-detail-head > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.model-detail-head span {
+  color: #62f4bf;
+  font: 800 9px/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 1.3px;
+}
+
+.model-detail-head strong {
+  padding: 5px 8px;
+  border: 1px solid rgba(104, 183, 162, .16);
+  border-radius: 999px;
+  color: #819f97;
+  background: rgba(255,255,255,.025);
+  font: 700 9px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+.model-detail-head > button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(112, 182, 164, .16);
+  border-radius: 10px;
+  background: rgba(255,255,255,.025);
+  color: #a9c1ba;
+  font-size: 24px;
+  cursor: pointer;
+}
+
+.model-detail-head > button:hover {
+  border-color: rgba(49, 239, 173, .42);
+  color: #6affc7;
+}
+
+.model-detail-media {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 74% 32%, rgba(49, 239, 173, .14), transparent 28%),
+    linear-gradient(145deg, #0b201d, #071110);
+}
+
+.model-detail-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  padding: 18px 24px 30px;
+  filter: drop-shadow(0 30px 45px rgba(0,0,0,.55));
+}
+
+.model-detail-media__fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: rgba(83, 234, 183, .42);
+  font: 900 120px/1 ui-sans-serif, system-ui, sans-serif;
+}
+
+.model-detail-media__shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 55%, rgba(3, 10, 9, .9) 100%);
+}
+
+.model-detail-media__meta {
+  position: absolute;
+  z-index: 2;
+  left: 18px;
+  right: 18px;
+  bottom: 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.model-detail-media__meta span {
+  padding: 6px 8px;
+  border: 1px solid rgba(90, 223, 183, .18);
+  border-radius: 999px;
+  background: rgba(5, 18, 16, .72);
+  color: #71f5c4;
+  font: 750 9px/1 ui-sans-serif, system-ui, sans-serif;
+}
+
+.model-detail-media__meta strong {
+  max-width: 54%;
+  color: #dce9e5;
+  font: 700 10px/1.2 ui-sans-serif, system-ui, sans-serif;
+  text-align: right;
+}
+
+.model-detail-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: 22px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(76, 216, 175, .25) transparent;
+}
+
+.model-detail-title > span {
+  color: #59eeb7;
+  font: 760 10px/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: .4px;
+}
+
+.model-detail-title h2 {
+  margin: 8px 0 7px;
+  color: #f5fbf8;
+  font: 850 clamp(30px, 4vw, 46px)/.97 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -1.7px;
+  text-wrap: balance;
+}
+
+.model-detail-title p {
+  margin: 0;
+  color: #708e86;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.model-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 20px 0;
+}
+
+.model-detail-stats > div {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid rgba(101, 175, 157, .13);
+  border-radius: 10px;
+  background: rgba(255,255,255,.018);
+}
+
+.model-detail-stats strong,
+.model-detail-stats span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.model-detail-stats strong {
+  color: #dceae5;
+  font: 760 11px/1.2 ui-sans-serif, system-ui, sans-serif;
+  white-space: nowrap;
+}
+
+.model-detail-stats span {
+  margin-top: 5px;
+  color: #68867e;
+  font: 650 8px/1 ui-sans-serif, system-ui, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+}
+
+.model-detail-description {
+  margin: 0;
+  color: #91aaa3;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.model-detail-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 22px;
+}
+
+.model-detail-actions button {
+  min-height: 42px;
+  border: 1px solid rgba(103, 180, 161, .18);
+  border-radius: 9px;
+  background: rgba(6, 18, 17, .72);
+  color: #b9cdc7;
+  font: 730 10px/1 ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.model-detail-actions button:hover,
+.model-detail-actions button.is-active {
+  border-color: rgba(49, 239, 173, .43);
+  background: rgba(49, 239, 173, .07);
+  color: #62f3bc;
+}
+
+.model-detail-actions .model-detail-primary {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: 16px;
+  border-color: #76ffd1;
+  background: linear-gradient(135deg, #38efb0, #26dca0);
+  color: #04120e;
+}
+
+.model-detail-actions .model-detail-primary:hover {
+  color: #04120e;
+  filter: brightness(1.06);
+}
+
+@media (max-width: 700px) {
+  .model-detail-backdrop {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .model-detail-sheet {
+    width: 100%;
+    height: 100dvh;
+    border-width: 0;
+    border-radius: 0;
+    grid-template-rows: auto minmax(260px, 42vh) minmax(0, 1fr);
+  }
+
+  .model-detail-body {
+    padding: 18px;
+  }
+
+  .model-detail-title h2 {
+    font-size: clamp(30px, 9vw, 42px);
+  }
+}
+
+@media (max-width: 420px) {
+  .model-detail-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .model-detail-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .model-detail-actions .model-detail-primary {
+    grid-column: auto;
+  }
+}

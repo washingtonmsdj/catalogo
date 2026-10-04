@@ -30,6 +30,7 @@ import './collections-sharing.css'
 import './publication-status.css'
 import './catalog-shell.css'
 import './catalog-home.css'
+import './model-detail.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest('.model-art, .gallery-real-image, .image-lightbox__stage')
