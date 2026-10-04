@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
+import { BRAND_NAME_UPPER, BRAND_SHORT_NAME } from '../config/brand'
 
 type Props = { children: ReactNode }
 type State = { failed: boolean }
@@ -11,7 +12,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error('Tonecos catalog runtime error', error, info)
+    console.error(`${BRAND_SHORT_NAME} catalog runtime error`, error, info)
   }
 
   render() {
@@ -20,7 +21,7 @@ export class AppErrorBoundary extends Component<Props, State> {
     return (
       <main className="fatal-state" role="alert">
         <div className="fatal-state__mark" aria-hidden="true">T</div>
-        <span className="fatal-state__eyebrow">TONECOS STUDIOS</span>
+        <span className="fatal-state__eyebrow">{BRAND_NAME_UPPER}</span>
         <h1>Não foi possível abrir o catálogo</h1>
         <p>Seus favoritos e sua lista continuam salvos neste navegador.</p>
         <button type="button" onClick={() => window.location.reload()}>Tentar novamente</button>

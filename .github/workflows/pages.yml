@@ -73,9 +73,11 @@ jobs:
           set -euo pipefail
           EXPECTED_PUBLIC_URL="$PUBLIC_SITE_URL"
           case "$EXPECTED_PUBLIC_URL" in */) ;; *) EXPECTED_PUBLIC_URL="$EXPECTED_PUBLIC_URL/" ;; esac
+          BRAND_NAME="$(node -e "const fs=require('node:fs'); const brand=JSON.parse(fs.readFileSync('config/brand.json','utf8')); process.stdout.write(brand.name);")"
+          CATALOG_NAME="$(node -e "const fs=require('node:fs'); const brand=JSON.parse(fs.readFileSync('config/brand.json','utf8')); process.stdout.write(brand.catalogLabel + ' ' + brand.name);")"
           HTML="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors "$PAGE_URL")"
-          printf '%s' "$HTML" | grep -q 'Tonecos Studios'
+          printf '%s' "$HTML" | grep -Fq "$BRAND_NAME"
           printf '%s' "$HTML" | grep -Fq "rel=\"canonical\" href=\"$EXPECTED_PUBLIC_URL\""
           MANIFEST_URL="${PAGE_URL%/}/site.webmanifest"
           curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors "$MANIFEST_URL" \
-            | node -e "let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (data.name !== 'Catálogo Tonecos Studios') process.exit(1); console.log('Preview ready:', data.name); });"
+            | node -e "const expected=process.argv[1]; let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (data.name !== expected) process.exit(1); console.log('Preview ready:', data.name); });" "$CATALOG_NAME"
