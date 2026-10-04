@@ -86,7 +86,12 @@ export function loadCollections(): UserCollection[] {
 }
 
 export function saveCollections(collections: UserCollection[]) {
-  localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(collectionEnvelope(collections)))
+  try {
+    localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(collectionEnvelope(collections)))
+    return true
+  } catch {
+    return false
+  }
 }
 
 export function createCollection(name: string, initialModelId?: string): UserCollection {

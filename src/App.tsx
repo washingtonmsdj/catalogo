@@ -7,6 +7,13 @@ import { ModelDetailDialog } from './components/ModelDetailDialog'
 import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
 import { catalogDocumentTitle } from './config/brand'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
+import {
+  compactKnownModelCache,
+  readKnownModelCache,
+  readProtectedKnownModelIds,
+  writeKnownModelCache,
+  type KnownModelSummary,
+} from './services/knownModelCache'
 import { submitQuoteRequest } from './services/quotes'
 import type { CatalogImage, CatalogModel } from './types/catalog'
 
@@ -15,11 +22,6 @@ const MAX_QUOTE_ITEMS = 50
 const MAX_COMPARE_MODELS = 4
 const GALLERY_PAGE_SIZE = 12
 const MAX_RECENT_MODELS = 12
-
-type KnownModel = {
-  name: string
-  slug: string
-}
 
 type PreviewPageTarget = 'first' | 'last' | null
 type GalleryPageToken = number | 'gap-left' | 'gap-right'
@@ -56,6 +58,18 @@ function loadStoredIds(key: string, maxItems = 100) {
   }
 }
 
+function compactKnownModels(models: Record<string, KnownModelSummary>) {
+  return compactKnownModelCache(models, readProtectedKnownModelIds())
+}
+
+function persistLocalValue(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value))
+  } catch {
+    // The catalog must keep working even when storage is disabled or quota is exhausted.
+  }
+}
+
 function ModelArt({ model, compact = false, angle = 0 }: { model: CatalogModel; compact?: boolean; angle?: number }) {
   return (
     <div className={`model-art ${compact ? 'model-art--compact' : ''}`} style={{ '--accent': model.accent } as React.CSSProperties}>
@@ -81,11 +95,8 @@ function GalleryArt({ image, model, angle = 0 }: { image: CatalogImage; model: C
   return <ModelArt model={model} compact angle={angle} />
 }
 
-function loadKnownModels(): Record<string, KnownModel> {
-  try {
-    const stored = JSON.parse(localStorage.getItem('tonecos:known-models') ?? '{}') as Record<string, string | KnownModel>
-    return Object.fromEntries(Object.entries(stored).map(([id, value]) => [id, typeof value === 'string' ? { name: value, slug: '' } : value]))
-  } catch { return {} }
+function loadKnownModels(): Record<string, KnownModelSummary> {
+  return compactKnownModels(readKnownModelCache())
 }
 
 export default function App() {
@@ -97,7 +108,7 @@ export default function App() {
   const [quoteList, setQuoteList] = useState<string[]>(() => loadStoredIds('tonecos:quote', MAX_QUOTE_ITEMS))
   const [compareIds, setCompareIds] = useState<string[]>(() => loadStoredIds('tonecos:compare', MAX_COMPARE_MODELS))
   const [recentIds, setRecentIds] = useState<string[]>(() => loadStoredIds('tonecos:recent-models', MAX_RECENT_MODELS))
-  const [knownModels, setKnownModels] = useState<Record<string, KnownModel>>(loadKnownModels)
+  const [knownModels, setKnownModels] = useState<Record<string, KnownModelSummary>>(loadKnownModels)
   const [explorerOpen, setExplorerOpen] = useState(false)
   const [updatesOpen, setUpdatesOpen] = useState(false)
   const [compareOpen, setCompareOpen] = useState(false)
@@ -127,24 +138,29 @@ export default function App() {
   const galleryTokens = galleryPageTokens(gallery.pageIndex, gallery.totalPages)
   const galleryProgress = gallery.total > 0 ? Math.min(100, (gallery.pageEnd / gallery.total) * 100) : 0
 
-  useEffect(() => localStorage.setItem('tonecos:favorites', JSON.stringify(favorites)), [favorites])
-  useEffect(() => localStorage.setItem('tonecos:quote', JSON.stringify(quoteList)), [quoteList])
-  useEffect(() => localStorage.setItem('tonecos:compare', JSON.stringify(compareIds)), [compareIds])
-  useEffect(() => localStorage.setItem('tonecos:recent-models', JSON.stringify(recentIds)), [recentIds])
-  useEffect(() => localStorage.setItem('tonecos:known-models', JSON.stringify(knownModels)), [knownModels])
+  useEffect(() => persistLocalValue('tonecos:favorites', favorites), [favorites])
+  useEffect(() => persistLocalValue('tonecos:quote', quoteList), [quoteList])
+  useEffect(() => persistLocalValue('tonecos:compare', compareIds), [compareIds])
+  useEffect(() => persistLocalValue('tonecos:recent-models', recentIds), [recentIds])
+  useEffect(() => { writeKnownModelCache(knownModels) }, [knownModels])
 
   useEffect(() => {
     const seen = [...visibleModels, selected].filter((model) => model.id !== 'loading')
-    if (!seen.length) return
     setKnownModels((current) => {
-      const next = { ...current }; let changed = false
+      const next = { ...current }
+      let changed = false
       for (const model of seen) {
         const known = next[model.id]
-        if (!known || known.name !== model.name || known.slug !== model.slug) { next[model.id] = { name: model.name, slug: model.slug }; changed = true }
+        if (!known || known.name !== model.name || known.slug !== model.slug) {
+          next[model.id] = { name: model.name, slug: model.slug }
+          changed = true
+        }
       }
-      return changed ? next : current
+      const compacted = compactKnownModels(next)
+      if (Object.keys(compacted).length !== Object.keys(next).length) changed = true
+      return changed ? compacted : current
     })
-  }, [visibleModels, selected])
+  }, [visibleModels, selected, favorites, quoteList, compareIds, recentIds])
 
   useEffect(() => {
     if (!modelDetailOpen || catalog.routeStatus !== 'ready' || selected.id === 'loading') return
