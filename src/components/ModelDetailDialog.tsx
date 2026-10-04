@@ -1,7 +1,8 @@
-import type { CatalogModel } from '../types/catalog'
+import type { CatalogModel, ModelRouteStatus } from '../types/catalog'
 
 type ModelDetailDialogProps = {
   open: boolean
+  routeStatus: ModelRouteStatus
   model: CatalogModel
   categoryLabel: string
   favorite: boolean
@@ -20,6 +21,7 @@ function readablePath(model: CatalogModel) {
 
 export function ModelDetailDialog({
   open,
+  routeStatus,
   model,
   categoryLabel,
   favorite,
@@ -31,7 +33,53 @@ export function ModelDetailDialog({
   onToggleCompare,
   onToggleQuote,
 }: ModelDetailDialogProps) {
-  if (!open || model.id === 'loading') return null
+  if (!open) return null
+
+  if (routeStatus !== 'ready' || model.id === 'loading') {
+    const state = routeStatus === 'not_found'
+      ? {
+          eyebrow: 'LINK NÃO ENCONTRADO',
+          title: 'Modelo não encontrado',
+          description: 'Este endereço não corresponde a um modelo publicado. O catálogo foi preservado e nenhum outro item foi aberto no lugar dele.',
+        }
+      : routeStatus === 'error'
+        ? {
+            eyebrow: 'FALHA AO ABRIR',
+            title: 'Não foi possível carregar o modelo',
+            description: 'A API não conseguiu confirmar este modelo agora. Feche o detalhe e tente novamente sem perder o ponto atual do catálogo.',
+          }
+        : {
+            eyebrow: 'ABRINDO MODELO',
+            title: 'Carregando detalhe',
+            description: 'Validando o link e buscando os dados publicados do modelo.',
+          }
+
+    return (
+      <div className="model-detail-backdrop" onMouseDown={onClose}>
+        <section
+          className="model-detail-sheet model-detail-sheet--route-state"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="model-detail-route-title"
+          onMouseDown={(event) => event.stopPropagation()}
+        >
+          <header className="model-detail-head">
+            <div>
+              <span>DETALHE DO MODELO</span>
+              <strong>LINK DIRETO</strong>
+            </div>
+            <button type="button" aria-label="Fechar detalhe do modelo" onClick={onClose}>×</button>
+          </header>
+          <div className="model-detail-route-state" aria-live="polite">
+            <span>{state.eyebrow}</span>
+            <h2 id="model-detail-route-title">{state.title}</h2>
+            <p>{state.description}</p>
+            {routeStatus !== 'loading' && <button type="button" onClick={onClose}>Voltar ao catálogo</button>}
+          </div>
+        </section>
+      </div>
+    )
+  }
 
   const path = readablePath(model)
   const supportingStat = model.heightCm > 0

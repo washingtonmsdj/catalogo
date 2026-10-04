@@ -1,3 +1,5 @@
+export type ModelRouteStatus = 'idle' | 'loading' | 'ready' | 'not_found' | 'error'
+
 export type CatalogCategory = {
   id: string
   label: string

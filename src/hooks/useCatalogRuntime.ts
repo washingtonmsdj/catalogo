@@ -13,7 +13,7 @@ import {
 } from '../services/catalogApi'
 import { readDiscoveryScope, replaceDiscoveryScope } from '../services/catalogNavigation'
 import type { CatalogModelCard } from '../services/catalogRepository'
-import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
+import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel, ModelRouteStatus } from '../types/catalog'
 
 const MODEL_PAGE_SIZE = 24
 const GALLERY_PAGE_SIZE = 12
@@ -76,6 +76,7 @@ export function useCatalogRuntime(initialSlug = '') {
   const mode = getCatalogRuntimeMode()
   const [initialScope] = useState(() => readDiscoveryScope())
   const [routeSlug, setRouteSlug] = useState(initialSlug)
+  const [routeStatus, setRouteStatus] = useState<ModelRouteStatus>(initialSlug ? 'loading' : 'idle')
   const [category, setCategoryState] = useState(initialScope.category)
   const [franchise, setFranchiseState] = useState(initialScope.franchise)
   const [folder, setFolderState] = useState(initialScope.folder)
@@ -87,6 +88,7 @@ export function useCatalogRuntime(initialSlug = '') {
   })
   const [selectedId, setSelectedId] = useState(() => demoModels.find((model) => model.slug === initialSlug)?.id ?? demoModels[0].id)
   const selectedIdRef = useRef(selectedId)
+  const routeSlugRef = useRef(routeSlug)
   const prefetchedCoverUrls = useRef(new Set<string>())
   const [liveCategories, setLiveCategories] = useState<CatalogCategory[]>([])
   const [liveFranchises, setLiveFranchises] = useState<CatalogFranchise[]>([])
@@ -108,7 +110,16 @@ export function useCatalogRuntime(initialSlug = '') {
   }, [selectedId])
 
   useEffect(() => {
-    const syncRoute = () => setRouteSlug(slugFromHash())
+    routeSlugRef.current = routeSlug
+  }, [routeSlug])
+
+  useEffect(() => {
+    const syncRoute = () => {
+      const nextSlug = slugFromHash()
+      routeSlugRef.current = nextSlug
+      setRouteStatus(nextSlug ? 'loading' : 'idle')
+      setRouteSlug(nextSlug)
+    }
     window.addEventListener('hashchange', syncRoute)
     return () => window.removeEventListener('hashchange', syncRoute)
   }, [])
@@ -233,10 +244,10 @@ export function useCatalogRuntime(initialSlug = '') {
         setLiveModels(items)
         setNextCursor(page.nextCursor)
         if (!items.length) {
-          setSelectedDetail(null)
+          if (!routeSlugRef.current) setSelectedDetail(null)
           return
         }
-        if (!items.some((model) => model.id === selectedIdRef.current)) {
+        if (!items.some((model) => model.id === selectedIdRef.current) && !routeSlugRef.current) {
           setSelectedDetail(null)
           setSelectedId(items[0].id)
         }
@@ -245,7 +256,7 @@ export function useCatalogRuntime(initialSlug = '') {
         if (!cancelled) {
           setLiveModels([])
           setNextCursor(null)
-          setSelectedDetail(null)
+          if (!routeSlugRef.current) setSelectedDetail(null)
           setError(caught instanceof Error && caught.message === 'folder_not_found'
             ? 'A pasta deste recorte não existe mais nesta franquia. Remova o filtro de pasta para continuar.'
             : 'Não foi possível carregar esta página do catálogo.')
@@ -256,19 +267,39 @@ export function useCatalogRuntime(initialSlug = '') {
   }, [mode, category, franchise, folder, debouncedSearch, currentCursor])
 
   useEffect(() => {
-    if (!routeSlug) return
+    if (!routeSlug) {
+      setRouteStatus('idle')
+      return
+    }
+
     if (mode === 'demo') {
       const model = demoModels.find((item) => item.slug === routeSlug)
-      if (model) setSelectedId(model.id)
+      if (!model) {
+        setRouteStatus('not_found')
+        return
+      }
+      setSelectedId(model.id)
+      setRouteStatus('ready')
       return
     }
 
     let cancelled = false
-    getCatalogModel(routeSlug).then((model) => {
-      if (cancelled || !model) return
-      setSelectedDetail(model)
-      setSelectedId(model.id)
-    }).catch(() => undefined)
+    setRouteStatus('loading')
+    setSelectedDetail(null)
+    getCatalogModel(routeSlug)
+      .then((model) => {
+        if (cancelled) return
+        if (!model) {
+          setRouteStatus('not_found')
+          return
+        }
+        setSelectedDetail(model)
+        setSelectedId(model.id)
+        setRouteStatus('ready')
+      })
+      .catch(() => {
+        if (!cancelled) setRouteStatus('error')
+      })
     return () => { cancelled = true }
   }, [mode, routeSlug])
 
@@ -403,6 +434,7 @@ export function useCatalogRuntime(initialSlug = '') {
     models,
     selected,
     selectedId,
+    routeStatus,
     setSelectedId,
     pageIndex,
     totalCount,
