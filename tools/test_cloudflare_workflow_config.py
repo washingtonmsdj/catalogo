@@ -12,13 +12,15 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         cls.workflow = (ROOT / ".github" / "workflows" / "cloudflare.yml").read_text(encoding="utf-8")
         cls.wrangler = json.loads((ROOT / "wrangler.jsonc").read_text(encoding="utf-8"))
 
-    def test_preflight_gates_missing_deployment_secrets_without_failing_build(self):
+    def test_preflight_fails_closed_when_deployment_credentials_are_missing(self):
         self.assertIn("API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}", self.workflow)
         self.assertIn("TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}", self.workflow)
         self.assertIn("missing+=(CLOUDFLARE_API_TOKEN)", self.workflow)
         self.assertIn("missing+=(TURNSTILE_SECRET_KEY)", self.workflow)
         self.assertIn("echo 'ready=false'", self.workflow)
-        self.assertIn("deploy de produção está pendente", self.workflow)
+        self.assertIn("::error::Deploy Cloudflare bloqueado", self.workflow)
+        self.assertIn("credencial ausente é falha de deploy", self.workflow)
+        self.assertIn("exit 1", self.workflow)
 
     def test_deploy_still_requires_secrets_when_preflight_is_ready(self):
         self.assertIn("CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}", self.workflow)
