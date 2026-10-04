@@ -102,6 +102,7 @@
 .storefront-hero::after { content: ""; position: absolute; inset: auto 0 0; z-index: 3; height: 1px; background: linear-gradient(90deg, transparent, var(--store-accent), transparent); opacity: .38; }
 .storefront-hero__backdrop { position: absolute; inset: 0; z-index: 1; overflow: hidden; background: radial-gradient(circle at 74% 32%, rgba(26,217,166,.2), transparent 24%), linear-gradient(120deg, #071b19, #0a2422 56%, #061311); }
 .storefront-hero__backdrop::before { content: ""; position: absolute; inset: 0; z-index: 2; background-image: linear-gradient(rgba(73,198,165,.04) 1px, transparent 1px), linear-gradient(90deg, rgba(73,198,165,.03) 1px, transparent 1px); background-size: 42px 42px; mask-image: linear-gradient(90deg, transparent 30%, #000 100%); }
+.storefront-hero__mobile-media { display: none; }
 .storefront-hero__backdrop img { position: absolute; pointer-events: none; }
 .storefront-hero__backdrop-blur { inset: -18%; width: 136%; height: 136%; object-fit: cover; object-position: center 32%; opacity: .76; filter: blur(30px) saturate(.92) brightness(.46) contrast(1.02); transform: scale(1.04); }
 .storefront-hero__backdrop-subject { width: 62%; height: 122%; right: -1%; top: -9%; object-fit: contain; object-position: 68% 46%; transform: scale(1.12); transform-origin: 72% 48%; filter: saturate(1.08) contrast(1.04) brightness(.92) drop-shadow(0 28px 48px rgba(0,0,0,.55)); -webkit-mask-image: radial-gradient(ellipse 80% 92% at 66% 50%, #000 42%, rgba(0,0,0,.96) 66%, rgba(0,0,0,.55) 82%, transparent 100%); mask-image: radial-gradient(ellipse 80% 92% at 66% 50%, #000 42%, rgba(0,0,0,.96) 66%, rgba(0,0,0,.55) 82%, transparent 100%); }
@@ -251,8 +252,21 @@
   .storefront-sidebar__nav a:nth-child(n+5), .storefront-sidebar__nav button:nth-child(n+5) { display: none; }
   .storefront-search kbd { display: none; }
   .storefront-hero { min-height: 470px; }
-  .storefront-hero::before { background: linear-gradient(180deg, rgba(3,15,14,.1) 0%, rgba(3,15,14,.46) 42%, rgba(3,15,14,.97) 70%); }
-  .storefront-hero__backdrop-subject { width: 110%; height: 75%; top: -4%; right: -10%; object-position: center top; -webkit-mask-image: linear-gradient(180deg, #000 65%, transparent 100%); mask-image: linear-gradient(180deg, #000 65%, transparent 100%); }
+  .storefront-hero::before { background: linear-gradient(180deg, rgba(3,15,14,.08) 0%, rgba(3,15,14,.3) 38%, rgba(3,15,14,.96) 68%); }
+  .storefront-hero__backdrop-blur, .storefront-hero__backdrop-subject { display: none; }
+  .storefront-hero__mobile-media {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 1;
+    display: block;
+    height: 61%;
+    background-repeat: no-repeat;
+    background-position: 72% 14%;
+    background-size: auto 112%;
+    filter: saturate(1.05) contrast(1.04) brightness(.88);
+    -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 70%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0%, #000 70%, transparent 100%);
+  }
   .storefront-hero__copy { position: absolute; left: 18px; right: 18px; bottom: 18px; width: auto; padding: 0; }
   .storefront-hero h1 { max-width: 14ch; font-size: clamp(30px, 9vw, 40px); }
   .storefront-hero__feature { display: none; }

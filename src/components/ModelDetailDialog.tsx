@@ -34,6 +34,13 @@ export function ModelDetailDialog({
   if (!open || model.id === 'loading') return null
 
   const path = readablePath(model)
+  const supportingStat = model.heightCm > 0
+    ? { value: `${model.heightCm} cm`, label: 'altura' }
+    : model.material.trim()
+      ? { value: model.material, label: 'material' }
+      : model.collection.trim()
+        ? { value: model.collection, label: 'coleção' }
+        : { value: model.franchise || 'Catálogo', label: 'franquia' }
 
   return (
     <div className="model-detail-backdrop" onMouseDown={onClose}>
@@ -72,8 +79,8 @@ export function ModelDetailDialog({
 
           <div className="model-detail-stats" aria-label="Informações do modelo">
             <div><strong>{model.galleryCount || 1}</strong><span>{model.galleryCount === 1 ? 'imagem' : 'imagens'}</span></div>
-            <div><strong>{model.material || 'Sob consulta'}</strong><span>material</span></div>
-            <div><strong>{model.heightCm > 0 ? `${model.heightCm} cm` : 'Sob consulta'}</strong><span>altura</span></div>
+            <div><strong>{categoryLabel || 'Catálogo'}</strong><span>categoria</span></div>
+            <div><strong>{supportingStat.value}</strong><span>{supportingStat.label}</span></div>
           </div>
 
           <p className="model-detail-description">
