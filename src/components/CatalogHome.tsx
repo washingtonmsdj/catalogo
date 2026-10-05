@@ -53,7 +53,7 @@ function ModelCard({ model, favorite, active, priority = false, categoryLabel, o
 }) {
   return (
     <article className={`storefront-model-card ${active ? 'is-active' : ''}`}>
-      <button type="button" className="storefront-model-card__main" onClick={onSelect}>
+      <button type="button" className="storefront-model-card__main" onClick={onSelect} aria-current={active ? 'true' : undefined}>
         <div className="storefront-model-card__media">
           {model.coverUrl ? <img src={model.coverUrl} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" /> : <span className="storefront-model-card__fallback">{model.name.slice(0, 1)}</span>}
           <span className="storefront-model-card__shade" />
@@ -273,7 +273,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
           )}
           <section id="destaques" className="storefront-section">
             <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="star" /></span><div><h2>Em destaque</h2><p>Modelos do recorte atual para explorar.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todos <Icon name="chevron" /></button></div>
-            {featuredModels.length ? <div className="storefront-model-grid">{featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div> : <div className="storefront-empty"><strong>Nenhum modelo neste recorte</strong><span>Remova filtros ou altere a busca para voltar ao acervo.</span><button type="button" onClick={catalog.resetDiscovery}>Limpar filtros</button></div>}
+            {featuredModels.length ? <div className="storefront-model-grid">{featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div> : <div className="storefront-empty"><strong>Nenhum modelo neste recorte</strong><span>Remova filtros ou altere a busca para voltar ao acervo.</span><button type="button" onClick={catalog.resetDiscovery}>Limpar filtros</button></div>}
           </section>
 
           <section className="storefront-section storefront-section--categories">
@@ -292,7 +292,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
 
             <section className="storefront-section storefront-section--compact">
               <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" disabled={!catalog.hasPreviousPage} onClick={catalog.goPreviousPage}>‹</button><button type="button" disabled={!catalog.hasNextPage} onClick={catalog.goNextPage}>›</button></div></div>
-              <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div>
+              <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div>
             </section>
           </div>
 
