@@ -149,6 +149,11 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
     })
   }
 
+  function showPreviousHeroCampaign() {
+    if (heroCampaigns.length < 2) return
+    setHeroCampaignIndex((current) => (current - 1 + heroCampaigns.length) % heroCampaigns.length)
+  }
+
   function showNextHeroCampaign() {
     if (heroCampaigns.length < 2) return
     setHeroCampaignIndex((current) => (current + 1) % heroCampaigns.length)
@@ -255,7 +260,10 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
                 <img className="storefront-hero__backdrop-subject" src={heroCampaignCover} alt="" loading="eager" fetchPriority="high" decoding="async" />
               </>}
             </div>
-            {heroCampaigns.length > 1 && <button type="button" className="storefront-hero__nav" onClick={showNextHeroCampaign} aria-label="Próxima coleção em destaque"><Icon name="chevron" /></button>}
+            {heroCampaigns.length > 1 && <>
+              <button type="button" className="storefront-hero__nav storefront-hero__nav--previous" onClick={showPreviousHeroCampaign} aria-label="Coleção anterior em destaque"><Icon name="chevron" /></button>
+              <button type="button" className="storefront-hero__nav storefront-hero__nav--next" onClick={showNextHeroCampaign} aria-label="Próxima coleção em destaque"><Icon name="chevron" /></button>
+            </>}
             <div className="storefront-hero__copy">
               <span className="storefront-hero__eyebrow"><Icon name="star" /> Destaque editorial</span>
               <h1>Explore o catálogo com uma <em>experiência visual premium.</em></h1>
