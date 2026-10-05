@@ -101,6 +101,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const [franchiseFilter, setFranchiseFilter] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [expandedFranchiseKey, setExpandedFranchiseKey] = useState<string | null>(null)
+  const [heroCampaignIndex, setHeroCampaignIndex] = useState(0)
   const selected = catalog.selected
   const models = catalog.models
   const catalogTotal = catalog.categories.find((item) => item.id === 'all')?.count ?? catalog.totalCount
@@ -110,8 +111,14 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const visibleFranchises = useMemo(() => catalog.franchises.filter((item) => item.label.toLocaleLowerCase('pt-BR').includes(franchiseFilter.trim().toLocaleLowerCase('pt-BR'))), [catalog.franchises, franchiseFilter])
   const franchiseCards = catalog.franchises.slice(0, 4)
   const categoryLabels = useMemo(() => new Map(catalog.categories.map((item) => [item.id, item.label])), [catalog.categories])
-  const heroCampaignCategory = catalog.categories.find((item) => item.id === 'games') ?? catalog.categories.find((item) => item.id !== 'all')
-  const heroCampaignCover = heroCampaignCategory?.coverUrl
+  const heroCampaigns = useMemo(() => {
+    const candidates = catalog.categories.filter((item) => item.id !== 'all' && item.count > 0)
+    const preferred = candidates.find((item) => item.id === 'games')
+    return (preferred ? [preferred, ...candidates.filter((item) => item.id !== preferred.id)] : candidates).slice(0, 5)
+  }, [catalog.categories])
+  const normalizedHeroCampaignIndex = heroCampaigns.length ? heroCampaignIndex % heroCampaigns.length : 0
+  const heroCampaignCategory = heroCampaigns[normalizedHeroCampaignIndex]
+  const heroCampaignCover = heroCampaignCategory ? coverForCategory(heroCampaignCategory) : undefined
   const runtimeStatus = catalog.mode === 'demo'
     ? { label: 'Prévia local', tone: 'demo' }
     : catalog.apiHealthy
@@ -126,6 +133,11 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
     if (current) setExpandedFranchiseKey(`${current.category}:${current.id}`)
   }, [catalog.category, catalog.franchise, catalog.franchises])
 
+  useEffect(() => {
+    if (!heroCampaigns.length && heroCampaignIndex !== 0) setHeroCampaignIndex(0)
+    else if (heroCampaignIndex >= heroCampaigns.length) setHeroCampaignIndex(0)
+  }, [heroCampaignIndex, heroCampaigns.length])
+
   function selectModel(model: CatalogModel) {
     onOpenModel(model)
   }
@@ -135,6 +147,11 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
     window.requestAnimationFrame(() => {
       document.querySelector('#destaques')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
     })
+  }
+
+  function showNextHeroCampaign() {
+    if (heroCampaigns.length < 2) return
+    setHeroCampaignIndex((current) => (current + 1) % heroCampaigns.length)
   }
 
   function coverForCategory(category: CatalogCategory) {
@@ -238,6 +255,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
                 <img className="storefront-hero__backdrop-subject" src={heroCampaignCover} alt="" loading="eager" fetchPriority="high" decoding="async" />
               </>}
             </div>
+            {heroCampaigns.length > 1 && <button type="button" className="storefront-hero__nav" onClick={showNextHeroCampaign} aria-label="Próxima coleção em destaque"><Icon name="chevron" /></button>}
             <div className="storefront-hero__copy">
               <span className="storefront-hero__eyebrow"><Icon name="star" /> Destaque editorial</span>
               <h1>Explore o catálogo com uma <em>experiência visual premium.</em></h1>
@@ -252,6 +270,11 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               <strong>{heroCampaignCategory?.label ?? `Acervo ${BRAND_SHORT_NAME}`}</strong>
               <p>{formatter.format(heroCampaignCategory?.count ?? catalogTotal)} modelos organizados para explorar.</p>
             </div>
+            {heroCampaigns.length > 1 && (
+              <div className="storefront-hero__dots" aria-label="Coleções em destaque">
+                {heroCampaigns.map((item, index) => <button type="button" key={item.id} onClick={() => setHeroCampaignIndex(index)} aria-current={index === normalizedHeroCampaignIndex ? 'true' : undefined} aria-label={`Mostrar ${item.label}`} />)}
+              </div>
+            )}
           </section>
 
           <div className="storefront-filterbar" aria-label="Categorias do catálogo">
