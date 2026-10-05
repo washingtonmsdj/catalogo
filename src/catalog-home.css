@@ -386,7 +386,15 @@
   backdrop-filter: blur(10px);
   cursor: pointer;
 }
+.storefront-hero__nav--previous { left: 12px; right: auto; }
+.storefront-hero__nav--previous .storefront-icon { transform: rotate(180deg); }
+.storefront-hero__nav--next { right: 12px; }
 .storefront-hero__nav:hover { border-color: rgba(36,240,176,.7); color: var(--store-accent); background: rgba(5, 28, 24, .84); }
+.storefront-hero__nav:focus-visible,
+.storefront-hero__dots button:focus-visible {
+  outline: 2px solid var(--store-accent);
+  outline-offset: 3px;
+}
 .storefront-hero__nav .storefront-icon { width: 15px; height: 15px; }
 .storefront-hero__dots {
   position: absolute;
@@ -412,7 +420,8 @@
 .storefront-hero__dots button[aria-current="true"] { width: 17px; border-radius: 999px; background: var(--store-accent); box-shadow: 0 0 10px rgba(36,240,176,.5); }
 .storefront-hero__backdrop-subject { will-change: transform; }
 @media (max-width: 900px) {
-  .storefront-hero__nav { right: 10px; }
+  .storefront-hero__nav--previous { left: 10px; }
+  .storefront-hero__nav--next { right: 10px; }
   .storefront-hero__dots { left: 50%; }
 }
 @media (max-width: 620px) {
