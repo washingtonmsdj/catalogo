@@ -129,7 +129,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const secondaryModels = models.slice(6, 10).length ? models.slice(6, 10) : models.slice(0, 4)
   const publicCategories = catalog.categories.filter((item) => item.id !== 'all')
   const categoryTiles = publicCategories.slice(0, 6)
-  const scopedModelCount = catalog.totalCount
+  const hasScopeFilters = catalog.category !== 'all' || catalog.franchise !== 'all' || Boolean(catalog.folder)
+  const hasAppliedSearch = Boolean(catalog.search.trim()) && !catalog.searchPending
+  const showActiveFilterStrip = hasScopeFilters || hasAppliedSearch
   const visibleFranchises = useMemo(() => catalog.franchises.filter((item) => item.label.toLocaleLowerCase('pt-BR').includes(franchiseFilter.trim().toLocaleLowerCase('pt-BR'))), [catalog.franchises, franchiseFilter])
   const franchiseCards = catalog.franchises.slice(0, 4)
   const categoryLabels = useMemo(() => new Map(catalog.categories.map((item) => [item.id, item.label])), [catalog.categories])
@@ -345,8 +347,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               <div className="storefront-hero__metrics" aria-label="Resumo do acervo">
                 <span><strong>{formatter.format(catalogTotal)}</strong><small>modelos</small></span>
                 <span><strong>{formatter.format(publicCategories.length)}</strong><small>categorias</small></span>
-                <span><strong>{formatter.format(catalog.franchises.length)}</strong><small>franquias no recorte</small></span>
-                {catalog.hasActiveFilters && <span><strong>{formatter.format(scopedModelCount)}</strong><small>resultados</small></span>}
+                <span><strong>{catalog.loading ? '—' : formatter.format(models.length)}</strong><small>nesta página</small></span>
               </div>
               <div className="storefront-hero__actions">
                 <button type="button" className="storefront-button storefront-button--primary" onClick={exploreHeroCampaign}>Explorar coleção <Icon name="chevron" /></button>
@@ -372,16 +373,25 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             <button type="button" className="storefront-filterbar__filters" onClick={onOpenExplorer}><Icon name="sliders" /> Filtros <Icon name="chevron" /></button>
           </div>
 
-          {catalog.hasActiveFilters && (
+          {catalog.searchPending && (
+            <div className="storefront-search-hint" role="status">
+              <Icon name="search" />
+              <span>Digite pelo menos {catalog.searchMinLength} caracteres para aplicar a busca.</span>
+              <button type="button" onClick={() => catalog.setSearch('')}>Limpar</button>
+            </div>
+          )}
+
+          {showActiveFilterStrip && (
             <div className="storefront-active-filters">
               <span>Recorte atual</span>
               {catalog.category !== 'all' && <button type="button" onClick={() => catalog.setCategory('all')}>{catalog.categories.find((item) => item.id === catalog.category)?.label ?? catalog.category} ×</button>}
               {catalog.franchise !== 'all' && <button type="button" onClick={() => catalog.setFranchise('all')}>{catalog.franchises.find((item) => item.id === catalog.franchise)?.label ?? selected.franchise} ×</button>}
               {catalog.folder && <button type="button" onClick={() => catalog.setFolder('')}>{catalog.folderLabel || catalog.folder.split('/').at(-1)} ×</button>}
-              {catalog.search.trim() && <button type="button" onClick={() => catalog.setSearch('')}>“{catalog.search.trim()}” ×</button>}
+              {hasAppliedSearch && <button type="button" onClick={() => catalog.setSearch('')}>“{catalog.search.trim()}” ×</button>}
               <button type="button" className="storefront-active-filters__clear" onClick={catalog.resetDiscovery}>Limpar tudo</button>
             </div>
           )}
+          {catalog.loading && <div className="storefront-loading-line" role="status"><span />Atualizando catálogo…</div>}
           <section id="destaques" className={`storefront-section ${resultsMode ? 'storefront-section--results' : ''}`}>
             <div className="storefront-section__head">
               <div>
