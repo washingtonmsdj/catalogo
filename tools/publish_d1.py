@@ -16,15 +16,11 @@ from typing import Any
 
 from publish_r2 import discover as discover_r2
 from publish_r2 import load_state as load_r2_state
-from catalog_scope import PUBLIC_TOP_LEVEL_KEYS
+from catalog_scope import PUBLIC_TOP_LEVEL_CATEGORIES, PUBLIC_TOP_LEVEL_KEYS
 
 CATEGORY_ORDER = {
-    "Animes & Desenhos": 10,
-    "Games": 20,
-    "Filmes & Séries": 30,
-    "Marvel & DC": 40,
-    "Tokusatsu & Cultura Japonesa": 50,
-    "Pessoas": 60,
+    name: (index + 1) * 10
+    for index, name in enumerate(PUBLIC_TOP_LEVEL_CATEGORIES)
 }
 REQUIRED = {
     "id", "slug", "code", "displayName", "categoryName", "categorySlug",
