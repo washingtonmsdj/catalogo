@@ -112,6 +112,78 @@ def safe_storage_key(value: Any, expected_prefix: str, model_id: str) -> str:
     return key
 
 
+def validate_gallery_manifest_contract(
+    manifest: dict[str, Any],
+    row: dict[str, Any],
+    manifest_key: str,
+) -> list[str]:
+    model_id = str(row["id"])
+    if str(manifest.get("modelId") or "") != model_id:
+        raise RuntimeError(f"manifesto pertence a outro modelo: {manifest_key}")
+    try:
+        version = int(manifest.get("version"))
+        expected_version = int(row["galleryVersion"])
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError(f"versão de galeria inválida no manifesto: {manifest_key}") from exc
+    if version != expected_version:
+        raise RuntimeError(
+            f"versão de galeria divergente no manifesto {manifest_key}: "
+            f"{version} != {expected_version}"
+        )
+
+    images = manifest.get("images")
+    if not isinstance(images, list) or len(images) != int(row["imageCount"]):
+        raise RuntimeError(f"quantidade de imagens divergente no manifesto: {manifest_key}")
+    if not images:
+        raise RuntimeError(f"manifesto sem imagens: {manifest_key}")
+
+    image_ids: set[str] = set()
+    cover_count = 0
+    required_keys: list[str] = []
+    first_card_key = ""
+    for index, image in enumerate(images):
+        if not isinstance(image, dict):
+            raise RuntimeError(f"imagem inválida no manifesto: {manifest_key}")
+        image_id = str(image.get("id") or "").strip()
+        role = str(image.get("role") or "").strip()
+        source_sha = str(image.get("sourceSha256") or "").strip().lower()
+        if not image_id or image_id in image_ids:
+            raise RuntimeError(f"id de imagem vazio/duplicado no manifesto: {manifest_key}")
+        image_ids.add(image_id)
+        if role not in {"cover", "gallery"}:
+            raise RuntimeError(f"role de imagem inválido no manifesto: {manifest_key}")
+        if role == "cover":
+            cover_count += 1
+        if index == 0 and role != "cover":
+            raise RuntimeError(f"primeira imagem não é capa no manifesto: {manifest_key}")
+        if not re.fullmatch(r"[0-9a-f]{64}", source_sha):
+            raise RuntimeError(f"sourceSha256 inválido no manifesto: {manifest_key}")
+
+        variants = image.get("variantKeys")
+        if not isinstance(variants, dict):
+            raise RuntimeError(f"variantKeys inválido no manifesto: {manifest_key}")
+        for variant_name in ("thumb", "card", "detail"):
+            required_keys.append(
+                safe_storage_key(variants.get(variant_name), "media/", model_id)
+            )
+        if variants.get("original") not in (None, ""):
+            required_keys.append(
+                safe_storage_key(variants.get("original"), "media/", model_id)
+            )
+        if index == 0:
+            first_card_key = str(variants.get("card") or "").strip()
+
+    if cover_count != 1:
+        raise RuntimeError(f"manifesto deve possuir exatamente uma capa: {manifest_key}")
+    expected_cover = str(row.get("coverStorageKey") or "").strip()
+    if first_card_key != expected_cover:
+        raise RuntimeError(
+            f"coverStorageKey diverge da capa do manifesto {manifest_key}: "
+            f"{expected_cover!r} != {first_card_key!r}"
+        )
+    return required_keys
+
+
 def validate_r2_ready(models_path: Path, rows: list[dict[str, Any]], state_path: Path) -> dict[str, Any]:
     models_path = models_path.resolve()
     r2_root = models_path.parent / "r2"
@@ -139,17 +211,8 @@ def validate_r2_ready(models_path: Path, rows: list[dict[str, Any]], state_path:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             raise RuntimeError(f"manifesto de galeria inválido: {manifest_key}: {exc}") from exc
-        if str(manifest.get("modelId") or "") != model_id:
-            raise RuntimeError(f"manifesto pertence a outro modelo: {manifest_key}")
-        images = manifest.get("images")
-        if not isinstance(images, list) or len(images) != int(row["imageCount"]):
-            raise RuntimeError(f"quantidade de imagens divergente no manifesto: {manifest_key}")
-        for image in images:
-            if not isinstance(image, dict) or not isinstance(image.get("variantKeys"), dict):
-                raise RuntimeError(f"variantKeys inválido no manifesto: {manifest_key}")
-            variants = image["variantKeys"]
-            for variant_name in ("thumb", "card", "detail"):
-                required_keys.add(safe_storage_key(variants.get(variant_name), "media/", model_id))
+        for key in validate_gallery_manifest_contract(manifest, row, manifest_key):
+            required_keys.add(key)
 
     missing_from_bundle = sorted(required_keys.difference(by_key))
     if missing_from_bundle:
