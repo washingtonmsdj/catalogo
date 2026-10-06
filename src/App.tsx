@@ -225,7 +225,7 @@ export default function App() {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !anyModalOpen) { event.preventDefault(); searchInputRef.current?.focus(); return }
       if (event.key === '/' && !isTyping && !anyModalOpen) { event.preventDefault(); searchInputRef.current?.focus(); return }
       if (isTyping || anyModalOpen) return
-      if (event.key.toLowerCase() === 'e') setExplorerOpen(true)
+      if (event.key.toLowerCase() === 'e') openExplorer()
     }
     window.addEventListener('keydown', handleKey); return () => window.removeEventListener('keydown', handleKey)
   })
