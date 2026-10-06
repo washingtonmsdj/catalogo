@@ -262,6 +262,45 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(gallery["images"][0]["role"], "cover")
             self.assertEqual({image["sourceSha256"] for image in gallery["images"]}, {"4" * 64, "5" * 64, "6" * 64})
 
+    def test_two_grouped_products_for_same_character_remain_distinct_models(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "OK - Animes & Desenhos [4]" / "OK - Animes [4]" / "OK - Dragon Ball [4]" / "OK - Goku [4]"
+            model_dir.mkdir(parents=True)
+            hierarchy = "Animes & Desenhos / Animes / Dragon Ball / Goku"
+            rows = []
+            for product_index, product in enumerate(("goku-modelo-a", "goku-modelo-b"), 1):
+                for view_index, view in enumerate(("frente", "costas"), 1):
+                    path = model_dir / f"{product}-{view}.webp"
+                    Image.new("RGB", (800 + view_index * 20, 1200 + view_index * 30), f"#{product_index + 2}{view_index + 2}5566").save(path, "WEBP")
+                    rows.append({
+                        "path": str(path.relative_to(source)),
+                        "size": path.stat().st_size,
+                        "status": "OK",
+                        "canonical": True,
+                        "sha256": f"{product_index}{view_index}" * 32,
+                        "width": 800 + view_index * 20,
+                        "height": 1200 + view_index * 30,
+                        "quality_score": 80.0 + view_index,
+                        "model_key": hierarchy,
+                        "public_model_key": f"{hierarchy} / {product}",
+                        "audit_model_group": product,
+                    })
+
+            manifest = root / "manifest.jsonl"
+            manifest.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            output = root / "bundle"
+            summary = build_bundle(source, manifest, output, include_original=False)
+            models = [json.loads(line) for line in (output / "models.jsonl").read_text(encoding="utf-8").splitlines()]
+
+            self.assertEqual(summary["models"], 2)
+            self.assertEqual({model["imageCount"] for model in models}, {2})
+            self.assertEqual({model["displayName"] for model in models}, {"Goku"})
+            self.assertEqual(len({model["id"] for model in models}), 2)
+            self.assertEqual(len({model["slug"] for model in models}), 2)
+            self.assertTrue(all(model["slug"].startswith("dragon-ball-goku-") for model in models))
+
     def test_grouped_gallery_slug_does_not_change_when_cover_quality_changes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
