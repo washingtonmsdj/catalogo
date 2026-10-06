@@ -382,9 +382,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             )}
           </section>
 
-          <div className="storefront-filterbar" aria-label="Categorias do catálogo">
+          <div className="storefront-filterbar" role="group" aria-label="Categorias do catálogo">
             <div className="storefront-filterbar__rail">
-              {catalog.categories.slice(0, 12).map((item) => <button type="button" key={item.id} className={catalog.category === item.id ? 'is-active' : ''} onClick={() => selectCategory(item.id)}>{item.label}</button>)}
+              {catalog.categories.slice(0, 12).map((item) => <button type="button" key={item.id} className={catalog.category === item.id ? 'is-active' : ''} aria-pressed={catalog.category === item.id} onClick={() => selectCategory(item.id)}>{item.label}</button>)}
             </div>
             <button type="button" className="storefront-filterbar__filters" onClick={onOpenExplorer}><Icon name="sliders" /> Filtros <Icon name="chevron" /></button>
           </div>
@@ -398,12 +398,12 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
           )}
 
           {showActiveFilterStrip && (
-            <div className="storefront-active-filters">
+            <div className="storefront-active-filters" role="group" aria-label="Filtros ativos">
               <span>Recorte atual</span>
-              {catalog.category !== 'all' && <button type="button" onClick={() => catalog.setCategory('all')}>{catalog.categories.find((item) => item.id === catalog.category)?.label ?? catalog.category} ×</button>}
-              {catalog.franchise !== 'all' && <button type="button" onClick={() => catalog.setFranchise('all')}>{catalog.franchises.find((item) => item.id === catalog.franchise)?.label ?? selected.franchise} ×</button>}
-              {catalog.folder && <button type="button" onClick={() => catalog.setFolder('')}>{catalog.folderLabel || catalog.folder.split('/').at(-1)} ×</button>}
-              {hasAppliedSearch && <button type="button" onClick={() => catalog.setSearch('')}>“{catalog.search.trim()}” ×</button>}
+              {catalog.category !== 'all' && <button type="button" aria-label="Remover filtro de categoria" onClick={() => catalog.setCategory('all')}>{catalog.categories.find((item) => item.id === catalog.category)?.label ?? catalog.category} ×</button>}
+              {catalog.franchise !== 'all' && <button type="button" aria-label="Remover filtro de franquia" onClick={() => catalog.setFranchise('all')}>{catalog.franchises.find((item) => item.id === catalog.franchise)?.label ?? selected.franchise} ×</button>}
+              {catalog.folder && <button type="button" aria-label="Remover filtro de pasta" onClick={() => catalog.setFolder('')}>{catalog.folderLabel || catalog.folder.split('/').at(-1)} ×</button>}
+              {hasAppliedSearch && <button type="button" aria-label="Remover filtro de busca" onClick={() => catalog.setSearch('')}>“{catalog.search.trim()}” ×</button>}
               <button type="button" className="storefront-active-filters__clear" onClick={catalog.resetDiscovery}>Limpar tudo</button>
             </div>
           )}
