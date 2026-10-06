@@ -401,7 +401,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
 
       <div className="storefront-main">
         <header className="storefront-topbar">
-          <nav aria-label="Navegação principal"><a href="#catalogo" className="is-active">Explorar</a><a href="#colecoes">Coleções</a><button type="button" onClick={onOpenUpdates}>Novos</button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
+          <nav aria-label="Navegação principal"><a href="#catalogo" className="is-active">Explorar</a><a href="#colecoes">Coleções</a><button type="button" onClick={onOpenUpdates}>Novos</button><button type="button" className="storefront-topbar__favorites" onClick={onOpenFavorites}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
           <div className={`storefront-search ${catalog.searchPending ? 'is-pending' : ''}`} role="search">
             <Icon name="search" />
             <input
