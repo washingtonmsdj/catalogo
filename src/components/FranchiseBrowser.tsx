@@ -45,8 +45,6 @@ export function FranchiseBrowser({
   onSelectFranchise,
 }: Props) {
   const searchRef = useRef<HTMLInputElement>(null)
-  const dialogRef = useRef<HTMLElement>(null)
-  const returnFocusRef = useRef<HTMLElement | null>(null)
   const [category, setCategory] = useState(activeCategory)
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<CatalogFranchise[]>([])
@@ -62,59 +60,6 @@ export function FranchiseBrowser({
     const frame = window.requestAnimationFrame(() => searchRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
   }, [open, activeCategory])
-
-  useEffect(() => {
-    if (!open) return
-
-    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
-    returnFocusRef.current = previousFocus
-
-    return () => {
-      const target = returnFocusRef.current
-      returnFocusRef.current = null
-      if (target?.isConnected) window.requestAnimationFrame(() => target.focus())
-    }
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onClose()
-        return
-      }
-      if (event.key !== 'Tab') return
-
-      const dialog = dialogRef.current
-      if (!dialog) return
-      const focusable = [...dialog.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
-      )].filter((element) => element.getAttribute('aria-hidden') !== 'true')
-
-      if (focusable.length === 0) {
-        event.preventDefault()
-        dialog.focus()
-        return
-      }
-
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      const active = document.activeElement
-
-      if (event.shiftKey && (active === first || !dialog.contains(active))) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [open, onClose])
 
   const demoItems = useMemo(() => demoFranchises(category, query), [category, query])
   const queryLength = Array.from(query.trim()).length
@@ -179,7 +124,7 @@ export function FranchiseBrowser({
 
   return (
     <div className="modal-backdrop explorer-backdrop" onMouseDown={onClose}>
-      <section ref={dialogRef} tabIndex={-1} className="explorer-modal" role="dialog" aria-modal="true" aria-labelledby="explorer-title" onMouseDown={(event) => event.stopPropagation()}>
+      <section className="explorer-modal" role="dialog" aria-modal="true" aria-labelledby="explorer-title" onMouseDown={(event) => event.stopPropagation()}>
         <div className="modal-head explorer-head">
           <div>
             <span>NAVEGADOR DO ACERVO</span>
