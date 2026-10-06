@@ -86,7 +86,7 @@ class GalleryPromotionManifestTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "não aceita replace_sha256"):
             build_promotion_rows(resolution)
 
-    def test_duplicate_image_authorization_fails_closed(self):
+    def test_duplicate_image_authorization_fails_closed_inside_same_target_model(self):
         promotion = {
             "model": "modelo-01",
             "sourceModel": "produto-01",
@@ -96,8 +96,37 @@ class GalleryPromotionManifestTests(unittest.TestCase):
         }
         resolution = {"version": 1, "ready": True, "promotions": [promotion, dict(promotion)]}
 
-        with self.assertRaisesRegex(RuntimeError, "múltiplas promoções"):
+        with self.assertRaisesRegex(RuntimeError, "mesmo modelo"):
             build_promotion_rows(resolution)
+
+    def test_same_source_image_can_be_authorized_for_two_distinct_models(self):
+        shared = incoming("fonte/diorama.png", "a" * 64)
+        resolution = {
+            "version": 1,
+            "ready": True,
+            "promotions": [
+                {
+                    "model": "modelo-01",
+                    "sourceModel": "produto-01",
+                    "incoming": shared,
+                    "mode": "add_view",
+                    "replaceSha256": None,
+                },
+                {
+                    "model": "modelo-02",
+                    "sourceModel": "produto-02",
+                    "incoming": shared,
+                    "mode": "add_view",
+                    "replaceSha256": None,
+                },
+            ],
+        }
+
+        rows, summary = build_promotion_rows(resolution)
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(summary["promotions"], 2)
+        self.assertEqual(len({row["authorization_id"] for row in rows}), 2)
 
     def test_csv_has_stable_columns_and_utf8_bom(self):
         resolution = {
