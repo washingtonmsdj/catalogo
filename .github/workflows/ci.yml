@@ -26,6 +26,8 @@ jobs:
         run: npm run test:known-cache
       - name: Test gallery runtime validation
         run: npm run test:gallery-runtime
+      - name: Test Worker gallery smoke contract
+        run: npm run test:worker-gallery-contract
       - name: Check dialog architecture
         run: npm run dialog:a11y
       - name: Build frontend
