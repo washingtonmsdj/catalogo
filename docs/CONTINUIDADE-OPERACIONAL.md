@@ -9,7 +9,7 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Base funcional do pipeline validada no CI: `47b46ba7034acb6331b3736e212b3bf52b4b3c31`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
+- Base funcional do pipeline validada no CI: `2f5da435713d1be72a01526fd4914bf41977f368`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
@@ -98,7 +98,7 @@ Checkpoint técnico confirmado da auditoria SHA:
 
 O auditor SHA local antigo considerou como “catálogo público” uma raiz de referências/legado que não pertence às seis categorias públicas. Isso gerou **111 grupos falsos/ambíguos de duplicatas internas** no portão local.
 
-A fronteira pública agora possui SSOT versionado em `config/public-catalog-roots.json`, consumido por `tools/ingest_catalog.py`. A automação local deve consumir esse mesmo JSON, sem manter uma lista paralela. As seis categorias públicas são:
+A fronteira pública agora possui SSOT versionado em `config/public-catalog-roots.json`, carregado pelo módulo compartilhado `tools/catalog_scope.py`. `tools/ingest_catalog.py` usa esse contrato na entrada e `tools/publish_d1.py` valida novamente antes do D1. A automação local deve consumir o mesmo JSON, sem manter uma lista paralela. As seis categorias públicas são:
 
 1. Pessoas
 2. Animes & Desenhos
@@ -241,7 +241,9 @@ Executar nesta ordem, sem pular etapas:
 ## Arquivos técnicos relevantes do repositório
 
 - `config/public-catalog-roots.json` — SSOT versionado das categorias públicas;
-- `tools/ingest_catalog.py` — consumidor do SSOT, hashes, qualidade e manifesto;
+- `tools/catalog_scope.py` — carregamento/validação compartilhada do SSOT;
+- `tools/ingest_catalog.py` — aplica o SSOT na ingestão, além de hashes, qualidade e manifesto;
+- `tools/publish_d1.py` — revalida o SSOT antes de publicar/upsert no D1;
 - `tools/plan_gallery_merge.py` — plano não destrutivo para mesclar galerias;
 - `tools/build_media_bundle.py` — galeria, variantes e identidade estável;
 - `tools/publish_r2.py` — upload incremental de mídia;
