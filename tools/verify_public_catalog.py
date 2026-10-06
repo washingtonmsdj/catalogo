@@ -137,12 +137,141 @@ def duplicate_values(values: list[str]) -> list[str]:
     return sorted(value for value, count in counts.items() if count > 1)
 
 
+def verify_public_model_gallery(
+    api_base: str,
+    model: dict[str, Any],
+    opener: Callable = urllib.request.urlopen,
+    *,
+    page_limit: int = 60,
+    max_pages: int = 1000,
+) -> dict[str, Any]:
+    slug = str(model.get("slug") or "").strip()
+    if not slug:
+        raise CatalogSmokeError("modelo sem slug para auditoria de galeria")
+    try:
+        expected_total = int(model.get("image_count"))
+        expected_version = int(model.get("gallery_version"))
+    except (TypeError, ValueError) as exc:
+        raise CatalogSmokeError(f"modelo {slug!r} sem image_count/gallery_version válidos") from exc
+    if expected_total < 1 or expected_version < 1:
+        raise CatalogSmokeError(f"modelo {slug!r} possui contrato de galeria inválido")
+    if page_limit < 1 or page_limit > 60:
+        raise CatalogSmokeError("gallery page_limit deve ficar entre 1 e 60")
+
+    cursor: str | None = None
+    seen_cursors: set[str] = set()
+    images: list[dict[str, Any]] = []
+    pages = 0
+    while True:
+        query: dict[str, str | int] = {"limit": page_limit, "v": expected_version}
+        if cursor:
+            query["cursor"] = cursor
+        url = f"{api_base}/api/models/{urllib.parse.quote(slug, safe='')}/images?{urllib.parse.urlencode(query)}"
+        payload = request_json(opener, url, f"galeria {slug!r} página {pages + 1}")
+        page_items = payload.get("items")
+        if not isinstance(page_items, list):
+            raise CatalogSmokeError(f"galeria {slug!r} retornou items inválido")
+        try:
+            total = int(payload.get("total"))
+            version = int(payload.get("version"))
+        except (TypeError, ValueError) as exc:
+            raise CatalogSmokeError(f"galeria {slug!r} retornou total/version inválidos") from exc
+        if total != expected_total:
+            raise CatalogSmokeError(
+                f"galeria {slug!r} total {total} != image_count {expected_total}"
+            )
+        if version != expected_version:
+            raise CatalogSmokeError(
+                f"galeria {slug!r} versão {version} != gallery_version {expected_version}"
+            )
+        for item in page_items:
+            if not isinstance(item, dict):
+                raise CatalogSmokeError(f"galeria {slug!r} contém imagem inválida")
+            image_id = str(item.get("id") or "").strip()
+            role = str(item.get("role") or "").strip()
+            if not image_id or role not in {"cover", "gallery"}:
+                raise CatalogSmokeError(f"galeria {slug!r} contém id/role inválido")
+            images.append(item)
+
+        pages += 1
+        if pages > max_pages:
+            raise CatalogSmokeError(f"galeria {slug!r} excedeu {max_pages} páginas")
+        raw_cursor = payload.get("nextCursor")
+        if raw_cursor in (None, ""):
+            break
+        next_cursor = str(raw_cursor)
+        if next_cursor in seen_cursors:
+            raise CatalogSmokeError(f"paginação da galeria {slug!r} entrou em ciclo")
+        seen_cursors.add(next_cursor)
+        cursor = next_cursor
+
+    if len(images) != expected_total:
+        raise CatalogSmokeError(
+            f"galeria {slug!r} entregou {len(images)} imagens != esperado {expected_total}"
+        )
+    ids = [str(item["id"]) for item in images]
+    duplicates = duplicate_values(ids)
+    if duplicates:
+        raise CatalogSmokeError(f"galeria {slug!r} possui {len(duplicates)} IDs de imagem duplicados")
+    covers = [item for item in images if item.get("role") == "cover"]
+    if len(covers) != 1 or images[0].get("role") != "cover":
+        raise CatalogSmokeError(f"galeria {slug!r} não possui uma única capa na primeira posição")
+
+    return {
+        "slug": slug,
+        "pages": pages,
+        "images": len(images),
+        "version": expected_version,
+    }
+
+
+def verify_public_galleries(
+    api_base: str,
+    models: list[dict[str, Any]],
+    opener: Callable = urllib.request.urlopen,
+    *,
+    sample_limit: int = 0,
+    verify_all: bool = False,
+    page_limit: int = 60,
+) -> dict[str, Any]:
+    if sample_limit < 0:
+        raise CatalogSmokeError("gallery sample_limit não pode ser negativo")
+    candidates = []
+    for model in models:
+        try:
+            count = int(model.get("image_count") or 0)
+        except (TypeError, ValueError):
+            count = 0
+        if count > 1:
+            candidates.append(model)
+    candidates.sort(
+        key=lambda item: (
+            -int(item.get("image_count") or 0),
+            str(item.get("slug") or "").casefold(),
+        )
+    )
+    selected = candidates if verify_all else candidates[:sample_limit]
+    results = [
+        verify_public_model_gallery(api_base, model, opener, page_limit=page_limit)
+        for model in selected
+    ]
+    return {
+        "multiImageModels": len(candidates),
+        "checkedModels": len(results),
+        "allChecked": verify_all or len(results) == len(candidates),
+        "checkedImages": sum(int(item["images"]) for item in results),
+        "models": results,
+    }
+
+
 def verify_public_catalog_exhaustive(
     api_base: str,
     opener: Callable = urllib.request.urlopen,
     *,
     page_limit: int = 100,
     max_pages: int = 1000,
+    gallery_sample: int = 0,
+    verify_all_galleries: bool = False,
 ) -> dict[str, Any]:
     """Audit every published catalog row without downloading every media object."""
     api_base = normalize_base(api_base, "API base")
@@ -272,6 +401,20 @@ def verify_public_catalog_exhaustive(
     if problems:
         raise CatalogSmokeError("auditoria exaustiva falhou: " + "; ".join(problems))
 
+    gallery_audit = verify_public_galleries(
+        api_base,
+        all_items,
+        opener,
+        sample_limit=gallery_sample,
+        verify_all=verify_all_galleries,
+    ) if gallery_sample > 0 or verify_all_galleries else {
+        "multiImageModels": sum(int(item.get("image_count") or 0) > 1 for item in all_items),
+        "checkedModels": 0,
+        "allChecked": False,
+        "checkedImages": 0,
+        "models": [],
+    }
+
     return {
         "ok": True,
         "exhaustive": True,
@@ -285,6 +428,7 @@ def verify_public_catalog_exhaustive(
         "zeroImageCount": zero_images,
         "categoryCount": len(expected_by_category),
         "categoryMismatchCount": len(category_mismatches),
+        "galleryAudit": gallery_audit,
     }
 
 
@@ -307,6 +451,17 @@ def main() -> int:
         action="store_true",
         help="percorre todos os modelos e valida unicidade, capas, imagens e contagens por categoria",
     )
+    parser.add_argument(
+        "--gallery-sample",
+        type=int,
+        default=0,
+        help="com --exhaustive, audita deterministicamente até N galerias com mais de uma imagem",
+    )
+    parser.add_argument(
+        "--all-galleries",
+        action="store_true",
+        help="com --exhaustive, audita todas as galerias com mais de uma imagem",
+    )
     args = parser.parse_args()
 
     api_base = configured_value(args.api_base, "CATALOG_API_URL", "VITE_API_BASE_URL")
@@ -314,11 +469,21 @@ def main() -> int:
     if not api_base or not media_base:
         print("ERRO: --api-base/--media-base ou variáveis equivalentes são obrigatórias", file=sys.stderr)
         return 2
+    if (args.gallery_sample < 0):
+        print("ERRO: --gallery-sample não pode ser negativo", file=sys.stderr)
+        return 2
+    if (args.gallery_sample and not args.exhaustive) or (args.all_galleries and not args.exhaustive):
+        print("ERRO: --gallery-sample/--all-galleries exigem --exhaustive", file=sys.stderr)
+        return 2
 
     try:
         summary = verify_public_catalog(api_base, media_base)
         if args.exhaustive:
-            summary["exhaustiveAudit"] = verify_public_catalog_exhaustive(api_base)
+            summary["exhaustiveAudit"] = verify_public_catalog_exhaustive(
+                api_base,
+                gallery_sample=args.gallery_sample,
+                verify_all_galleries=args.all_galleries,
+            )
     except CatalogSmokeError as exc:
         print(f"ERRO: {exc}", file=sys.stderr)
         return 2
