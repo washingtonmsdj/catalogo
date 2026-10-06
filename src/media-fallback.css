@@ -4,7 +4,8 @@ img[data-media-failed="true"] { display: none !important; }
 .gallery-real-image.media-failed,
 .image-lightbox__stage.media-failed,
 .storefront-model-card__media.media-failed,
-.model-detail-media.media-failed {
+.model-detail-media.media-failed,
+.comparison-cover.media-failed {
   position: relative;
   background:
     radial-gradient(circle at 50% 42%, rgba(89,94,96,.2), transparent 30%),
@@ -15,7 +16,8 @@ img[data-media-failed="true"] { display: none !important; }
 .gallery-real-image.media-failed::before,
 .image-lightbox__stage.media-failed::before,
 .storefront-model-card__media.media-failed::before,
-.model-detail-media.media-failed::before {
+.model-detail-media.media-failed::before,
+.comparison-cover.media-failed::before {
   content: "TS";
   position: absolute;
   left: 50%;
@@ -37,7 +39,8 @@ img[data-media-failed="true"] { display: none !important; }
 .gallery-real-image.media-failed::after,
 .image-lightbox__stage.media-failed::after,
 .storefront-model-card__media.media-failed::after,
-.model-detail-media.media-failed::after {
+.model-detail-media.media-failed::after,
+.comparison-cover.media-failed::after {
   content: "IMAGEM TEMPORARIAMENTE INDISPONÍVEL";
   position: absolute;
   left: 50%;
@@ -65,6 +68,19 @@ img[data-media-failed="true"] { display: none !important; }
 .model-detail-media.media-failed::before,
 .model-detail-media.media-failed::after { z-index: 1; }
 
+.comparison-cover.media-failed::before {
+  top: 44%;
+  width: 34px;
+  height: 34px;
+  font-size: 11px;
+}
+.comparison-cover.media-failed::after {
+  content: "MÍDIA INDISPONÍVEL";
+  top: calc(44% + 28px);
+  width: 80%;
+  font-size: 6px;
+}
+
 .model-art--compact.media-failed::before {
   width: 38px;
   height: 38px;
@@ -86,7 +102,8 @@ img[data-media-failed="true"] { display: none !important; }
   .gallery-real-image.media-failed::after,
   .image-lightbox__stage.media-failed::after,
   .storefront-model-card__media.media-failed::after,
-  .model-detail-media.media-failed::after {
+  .model-detail-media.media-failed::after,
+  .comparison-cover.media-failed::after {
     font-size: 7px;
   }
 }
