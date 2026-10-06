@@ -9,7 +9,7 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Base funcional do pipeline validada no CI: `2f5da435713d1be72a01526fd4914bf41977f368`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
+- Base funcional do pipeline validada no CI: `334ff0752e684020c8b2b86530f24788d82f907b`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
@@ -39,6 +39,7 @@ Baseline online confirmado:
 - 0 slugs duplicados;
 - 0 códigos duplicados;
 - FTS cobre 2.596 modelos e 250 franquias.
+- baseline revalidado após a preparação do pipeline de galerias: produção permaneceu em **2.596 modelos / 2.596 imagens**, `max_images=1`, sem publicação prematura.
 
 O deploy automático do backend continua fail-closed enquanto o GitHub Actions não possuir o secret `CLOUDFLARE_API_TOKEN`. Não criar fallback de autenticação e não colocar token em código, arquivo ou commit.
 
