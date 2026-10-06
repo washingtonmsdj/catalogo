@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from publish_d1 import CATEGORY_ORDER, build_statements, load_models, production_lookup_statements, validate_production_compatibility
+from publish_d1 import CATEGORY_ORDER, build_statements, load_models, production_lookup_statements, read_gallery_shrink_approvals, validate_production_compatibility
 
 
 def model(model_id: str, slug: str, code: str, *, variant: str) -> dict:
@@ -335,6 +335,187 @@ class PublishD1Tests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "pasta de modelo publicado mudaria"):
             validate_production_compatibility([candidate], production)
+
+    def test_production_compatibility_allows_gallery_expansion_with_new_version(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+        candidate["imageCount"] = 3
+        candidate["galleryManifestKey"] = "gallery/mdl-1/new-gallery.json"
+        candidate["galleryVersion"] = 2
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-1",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/manifest.json",
+            "gallery_version": 1,
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        result = validate_production_compatibility([candidate], production)
+
+        self.assertEqual(result["expandedGalleries"], 1)
+        self.assertEqual(result["reducedGalleries"], 0)
+
+    def test_production_compatibility_blocks_gallery_shrink_without_approval(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+        candidate["imageCount"] = 1
+        candidate["galleryManifestKey"] = "gallery/mdl-1/reduced.json"
+        candidate["galleryVersion"] = 2
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-1",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 3,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/full.json",
+            "gallery_version": 1,
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "redução de galeria exige aprovação explícita"):
+            validate_production_compatibility([candidate], production)
+
+    def test_production_compatibility_allows_exact_gallery_shrink_approval(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+        candidate["imageCount"] = 1
+        candidate["galleryManifestKey"] = "gallery/mdl-1/reduced.json"
+        candidate["galleryVersion"] = 2
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-1",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 3,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/full.json",
+            "gallery_version": 1,
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+        approvals = {
+            "mdl-1": {
+                "model_id": "mdl-1",
+                "current_image_count": 3,
+                "new_image_count": 1,
+                "current_gallery_version": 1,
+                "new_gallery_version": 2,
+                "reason": "vista incorreta removida após revisão",
+            }
+        }
+
+        result = validate_production_compatibility([candidate], production, approvals)
+
+        self.assertEqual(result["reducedGalleries"], 1)
+        self.assertEqual(result["galleryShrinkApprovalsUsed"], 1)
+
+    def test_production_compatibility_rejects_stale_gallery_shrink_approval(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+        candidate["imageCount"] = 1
+        candidate["galleryManifestKey"] = "gallery/mdl-1/reduced.json"
+        candidate["galleryVersion"] = 3
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-1",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 3,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/full.json",
+            "gallery_version": 2,
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+        approvals = {
+            "mdl-1": {
+                "model_id": "mdl-1",
+                "current_image_count": 3,
+                "new_image_count": 1,
+                "current_gallery_version": 1,
+                "new_gallery_version": 2,
+                "reason": "aprovação antiga",
+            }
+        }
+
+        with self.assertRaisesRegex(RuntimeError, "não corresponde ao delta atual"):
+            validate_production_compatibility([candidate], production, approvals)
+
+    def test_production_compatibility_requires_new_version_when_gallery_changes(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+        candidate["imageCount"] = 2
+        candidate["galleryManifestKey"] = "gallery/mdl-1/new.json"
+        candidate["galleryVersion"] = 1
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-1",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/old.json",
+            "gallery_version": 1,
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "galeria mudou sem nova gallery_version"):
+            validate_production_compatibility([candidate], production)
+
+    def test_production_compatibility_rejects_same_manifest_with_divergent_metadata(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+        candidate["imageCount"] = 2
+        candidate["galleryManifestKey"] = "gallery/mdl-1/shared.json"
+        candidate["galleryVersion"] = 2
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-1",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/shared.json",
+            "gallery_version": 1,
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "content-addressed igual com metadados divergentes"):
+            validate_production_compatibility([candidate], production)
+
+    def test_gallery_shrink_approval_csv_is_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "approvals.csv"
+            path.write_text(
+                "model_id,current_image_count,new_image_count,current_gallery_version,new_gallery_version,reason\n"
+                "mdl-1,3,1,10,11,remoção revisada\n",
+                encoding="utf-8",
+            )
+            approvals = read_gallery_shrink_approvals(path)
+            self.assertEqual(approvals["mdl-1"]["new_image_count"], 1)
+
+            path.write_text(
+                "model_id,current_image_count,new_image_count,current_gallery_version,new_gallery_version,reason\n"
+                "mdl-1,3,3,10,11,não é redução\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "não representa redução real"):
+                read_gallery_shrink_approvals(path)
 
     def test_production_lookup_is_bounded_and_uses_all_identity_keys(self) -> None:
         rows = [
