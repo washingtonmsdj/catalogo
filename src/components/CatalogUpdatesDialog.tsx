@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { listRecentCatalogModels, type CatalogRuntimeMode } from '../services/catalogApi'
 import type { CatalogModelCard } from '../services/catalogRepository'
 
@@ -32,6 +32,8 @@ export function CatalogUpdatesDialog({
   onClearViewed,
 }: CatalogUpdatesDialogProps) {
   const [tab, setTab] = useState<'new' | 'viewed'>('new')
+  const newTabRef = useRef<HTMLButtonElement>(null)
+  const viewedTabRef = useRef<HTMLButtonElement>(null)
   const [items, setItems] = useState<CatalogModelCard[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -71,6 +73,18 @@ export function CatalogUpdatesDialog({
 
   if (!open) return null
 
+  function handleTabKey(event: KeyboardEvent<HTMLButtonElement>) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+    event.preventDefault()
+    const next = event.key === 'Home'
+      ? 'new'
+      : event.key === 'End'
+        ? 'viewed'
+        : tab === 'new' ? 'viewed' : 'new'
+    setTab(next)
+    window.requestAnimationFrame(() => (next === 'new' ? newTabRef.current : viewedTabRef.current)?.focus())
+  }
+
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <section className="quote-modal catalog-updates-modal" role="dialog" aria-modal="true" aria-labelledby="catalog-updates-title" onMouseDown={(event) => event.stopPropagation()}>
@@ -84,16 +98,38 @@ export function CatalogUpdatesDialog({
         </div>
 
         <div className="catalog-updates-tabs" role="tablist" aria-label="Atualizações do catálogo">
-          <button type="button" role="tab" aria-selected={tab === 'new'} className={tab === 'new' ? 'is-active' : ''} onClick={() => setTab('new')}>
+          <button
+            ref={newTabRef}
+            id="catalog-updates-tab-new"
+            type="button"
+            role="tab"
+            aria-selected={tab === 'new'}
+            aria-controls="catalog-updates-panel-new"
+            tabIndex={tab === 'new' ? 0 : -1}
+            className={tab === 'new' ? 'is-active' : ''}
+            onClick={() => setTab('new')}
+            onKeyDown={handleTabKey}
+          >
             Recém adicionados
           </button>
-          <button type="button" role="tab" aria-selected={tab === 'viewed'} className={tab === 'viewed' ? 'is-active' : ''} onClick={() => setTab('viewed')}>
+          <button
+            ref={viewedTabRef}
+            id="catalog-updates-tab-viewed"
+            type="button"
+            role="tab"
+            aria-selected={tab === 'viewed'}
+            aria-controls="catalog-updates-panel-viewed"
+            tabIndex={tab === 'viewed' ? 0 : -1}
+            className={tab === 'viewed' ? 'is-active' : ''}
+            onClick={() => setTab('viewed')}
+            onKeyDown={handleTabKey}
+          >
             Vistos recentemente <b>{viewedIds.length}</b>
           </button>
         </div>
 
         {tab === 'new' ? (
-          <div className="catalog-updates-panel" role="tabpanel">
+          <div id="catalog-updates-panel-new" className="catalog-updates-panel" role="tabpanel" aria-labelledby="catalog-updates-tab-new">
             {mode !== 'live' && <div className="catalog-updates-empty"><strong>PRÉVIA LOCAL</strong><span>A lista de novos modelos usa a data de publicação do catálogo online.</span></div>}
             {error && <p className="catalog-updates-error" role="alert">{error}</p>}
             {loading && <div className="catalog-updates-empty"><strong>CARREGANDO</strong><span>Buscando as últimas entradas publicadas...</span></div>}
@@ -119,7 +155,7 @@ export function CatalogUpdatesDialog({
             )}
           </div>
         ) : (
-          <div className="catalog-updates-panel" role="tabpanel">
+          <div id="catalog-updates-panel-viewed" className="catalog-updates-panel" role="tabpanel" aria-labelledby="catalog-updates-tab-viewed">
             {viewedIds.length ? (
               <>
                 <div className="catalog-viewed-list">
