@@ -446,7 +446,7 @@ async function listImages(request: Request, slug: string, env: Env) {
   if (offset === null) return json(request, env, { error: 'invalid_cursor' }, { status: 400 })
 
   const model = await env.DB.prepare(
-    'SELECT id,image_count,gallery_manifest_key,gallery_version FROM models WHERE slug=? AND published=1',
+    'SELECT id,image_count,gallery_manifest_key,gallery_version,cover_storage_key FROM models WHERE slug=? AND published=1',
   ).bind(slug).first<GalleryModelState>()
   if (!model) return json(request, env, { error: 'model_not_found' }, { status: 404 })
   if (!model.gallery_manifest_key) return json(request, env, { items: [], total: 0, nextCursor: null, version: model.gallery_version })
