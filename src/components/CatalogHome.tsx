@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode, type RefObject } from 're
 import { BRAND_NAME, BRAND_SHORT_NAME, CATALOG_LABEL } from '../config/brand'
 import { useCatalogRuntime } from '../hooks/useCatalogRuntime'
 import { listCatalogFranchises } from '../services/catalogApi'
+import { FRANCHISE_SEARCH_MIN_LENGTH } from '../services/catalogRepository'
 import { hasResolvedCatalogDiscovery, isCatalogResultsMode, modelsForCatalogHome } from '../lib/catalogHomeView'
 import { CatalogSidebarTree } from './CatalogSidebarTree'
 import type { CatalogCategory, CatalogFranchise, CatalogModel } from '../types/catalog'
@@ -143,7 +144,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const showActiveFilterStrip = hasScopeFilters || hasAppliedSearch
   const franchiseNeedle = franchiseFilter.trim().toLocaleLowerCase('pt-BR')
   const franchiseSearchLength = Array.from(franchiseFilter.trim()).length
-  const sidebarRemoteSearch = catalog.mode === 'live' && franchiseSearchLength >= 3
+  const sidebarRemoteSearch = catalog.mode === 'live' && franchiseSearchLength >= FRANCHISE_SEARCH_MIN_LENGTH
   const visibleFranchises = useMemo(() => {
     const source = sidebarRemoteSearch ? sidebarSearchItems : catalog.franchises
     return source.filter((item) => !franchiseNeedle || item.label.toLocaleLowerCase('pt-BR').includes(franchiseNeedle))
@@ -329,7 +330,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
         <label className="storefront-franchise-search"><Icon name="search" /><input value={franchiseFilter} onChange={(event) => setFranchiseFilter(event.target.value)} placeholder="Buscar franquias..." /></label>
 
         <div className="storefront-franchise-list" aria-busy={sidebarSearchLoading}>
-          {catalog.mode === 'live' && franchiseSearchLength > 0 && franchiseSearchLength < 3 && <div className="storefront-franchise-status is-hint">Digite 3+ caracteres para pesquisar todo o acervo.</div>}
+          {catalog.mode === 'live' && franchiseSearchLength > 0 && franchiseSearchLength < FRANCHISE_SEARCH_MIN_LENGTH && <div className="storefront-franchise-status is-hint">Digite {FRANCHISE_SEARCH_MIN_LENGTH}+ caracteres para pesquisar todo o acervo.</div>}
           {sidebarSearchLoading && <div className="storefront-franchise-status" role="status">Pesquisando em todas as franquias…</div>}
           {sidebarSearchError && <div className="storefront-franchise-status is-error" role="status">{sidebarSearchError}</div>}
           {!sidebarSearchLoading && sidebarRemoteSearch && !sidebarSearchError && visibleFranchises.length === 0 && <div className="storefront-franchise-status">Nenhuma franquia encontrada.</div>}
