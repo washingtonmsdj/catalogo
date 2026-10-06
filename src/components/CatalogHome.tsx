@@ -463,9 +463,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
           <section className="storefront-hero" aria-label="Destaque editorial do catálogo">
             <div className="storefront-hero__backdrop">
               {heroCampaignCover && <>
-                <span className="storefront-hero__mobile-media" style={{ backgroundImage: `url("${heroCampaignCover}")` }} aria-hidden="true" />
-                <img className="storefront-hero__backdrop-blur" src={heroCampaignCover} alt="" loading="eager" fetchPriority="high" decoding="async" />
-                <img className="storefront-hero__backdrop-subject" src={heroCampaignCover} alt="" loading="eager" fetchPriority="high" decoding="async" />
+                <span key={`mobile-${heroCampaignCategory?.id ?? 'default'}`} className="storefront-hero__mobile-media" style={{ backgroundImage: `url("${heroCampaignCover}")` }} aria-hidden="true" />
+                <img key={`blur-${heroCampaignCategory?.id ?? 'default'}`} className="storefront-hero__backdrop-blur" src={heroCampaignCover} alt="" loading="eager" fetchPriority="high" decoding="async" />
+                <img key={`subject-${heroCampaignCategory?.id ?? 'default'}`} className="storefront-hero__backdrop-subject" src={heroCampaignCover} alt="" loading="eager" fetchPriority="high" decoding="async" />
               </>}
             </div>
             {heroCampaigns.length > 1 && <>
