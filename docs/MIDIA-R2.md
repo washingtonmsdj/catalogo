@@ -151,6 +151,32 @@ python tools/publish_d1.py ".publish-bundle/models.jsonl"
 ```
 
 
+### Redução de galeria é fail-closed
+
+Para modelos já publicados, `tools/publish_d1.py` compara o bundle com o D1 antes do R2 e novamente antes do upsert.
+
+- aumentar `imageCount` é permitido quando manifesto/versão representam a nova galeria;
+- substituir vistas mantendo a mesma contagem é permitido quando `galleryManifestKey` e `galleryVersion` mudam coerentemente;
+- reduzir `imageCount` é bloqueado por padrão;
+- o mesmo manifesto content-addressed não pode ser reutilizado com contagem, capa ou versão diferentes;
+- mudança de galeria sem nova `galleryVersion` é bloqueada.
+
+Uma redução intencional exige CSV por modelo:
+
+```csv
+model_id,current_image_count,new_image_count,current_gallery_version,new_gallery_version,reason
+mdl_xxx,4,3,123,456,vista incorreta removida após revisão
+```
+
+E o preflight/publicação deve receber:
+
+```bash
+python tools/publish_d1.py ".publish-bundle/models.jsonl" --check-production \
+  --gallery-shrink-approvals ".external-ingest/gallery-shrink-approvals.csv"
+```
+
+A autorização só vale para o delta exato registrado. Se o D1 ou o bundle mudarem, o gate falha e exige nova revisão.
+
 Antes de enviar qualquer mídia nova ao R2, valide também a identidade do bundle contra o D1 atual em modo **somente leitura**:
 
 ```bash
