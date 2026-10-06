@@ -253,7 +253,121 @@ def chunked(items: list[dict[str, Any]], size: int):
         yield items[start:start + size]
 
 
-def request_batch(account_id: str, database_id: str, token: str, batch: list[dict[str, Any]]) -> None:
+def production_lookup_statements(rows: list[dict[str, Any]], chunk_size: int = 25) -> list[dict[str, Any]]:
+    if chunk_size < 1:
+        raise ValueError("chunk_size deve ser positivo")
+    statements: list[dict[str, Any]] = []
+    for start in range(0, len(rows), chunk_size):
+        chunk = rows[start:start + chunk_size]
+        ids = [str(row["id"]) for row in chunk]
+        slugs = [str(row["slug"]) for row in chunk]
+        codes = [str(row["code"]) for row in chunk]
+        placeholders = ",".join("?" for _ in chunk)
+        statements.append({
+            "sql": f"""SELECT
+m.id,m.slug,m.code,c.slug AS category_slug,f.slug AS franchise_slug
+FROM models m
+JOIN franchises f ON f.id=m.franchise_id
+JOIN categories c ON c.id=f.category_id
+WHERE m.id IN ({placeholders})
+   OR m.slug IN ({placeholders})
+   OR m.code IN ({placeholders})""",
+            "params": [*ids, *slugs, *codes],
+        })
+    return statements
+
+
+def validate_production_compatibility(
+    rows: list[dict[str, Any]],
+    production_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    by_id: dict[str, dict[str, Any]] = {}
+    by_slug: dict[str, dict[str, Any]] = {}
+    by_code: dict[str, dict[str, Any]] = {}
+    for row in production_rows:
+        model_id = str(row.get("id") or "").strip()
+        slug = str(row.get("slug") or "").strip()
+        code = str(row.get("code") or "").strip()
+        if not model_id or not slug or not code:
+            raise RuntimeError(f"baseline D1 inválido: {row!r}")
+        if model_id in by_id and by_id[model_id] != row:
+            raise RuntimeError(f"ID duplicado no baseline D1: {model_id}")
+        if slug in by_slug and str(by_slug[slug].get("id")) != model_id:
+            raise RuntimeError(f"slug duplicado no baseline D1: {slug}")
+        if code in by_code and str(by_code[code].get("id")) != model_id:
+            raise RuntimeError(f"código duplicado no baseline D1: {code}")
+        by_id[model_id] = row
+        by_slug[slug] = row
+        by_code[code] = row
+
+    existing = 0
+    new = 0
+    for candidate in rows:
+        model_id = str(candidate["id"]).strip()
+        slug = str(candidate["slug"]).strip()
+        code = str(candidate["code"]).strip()
+        category_slug = str(candidate["categorySlug"]).strip()
+        franchise_slug = str(candidate["franchiseSlug"]).strip()
+
+        current = by_id.get(model_id)
+        slug_owner = by_slug.get(slug)
+        code_owner = by_code.get(code)
+
+        if current is None:
+            if slug_owner is not None:
+                raise RuntimeError(
+                    f"novo ID colide com slug já publicado: {model_id} -> {slug}; "
+                    f"owner={slug_owner['id']}"
+                )
+            if code_owner is not None:
+                raise RuntimeError(
+                    f"novo ID colide com código já publicado: {model_id} -> {code}; "
+                    f"owner={code_owner['id']}"
+                )
+            new += 1
+            continue
+
+        existing += 1
+        if str(current["slug"]) != slug:
+            raise RuntimeError(
+                f"slug de modelo publicado mudaria para o mesmo ID: {model_id}: "
+                f"{current['slug']!r} -> {slug!r}"
+            )
+        if str(current["code"]) != code:
+            raise RuntimeError(
+                f"código de modelo publicado mudaria para o mesmo ID: {model_id}: "
+                f"{current['code']!r} -> {code!r}"
+            )
+        if str(current.get("category_slug") or "") != category_slug:
+            raise RuntimeError(
+                f"categoria de modelo publicado mudaria sem migração explícita: {model_id}: "
+                f"{current.get('category_slug')!r} -> {category_slug!r}"
+            )
+        if str(current.get("franchise_slug") or "") != franchise_slug:
+            raise RuntimeError(
+                f"franquia de modelo publicado mudaria sem migração explícita: {model_id}: "
+                f"{current.get('franchise_slug')!r} -> {franchise_slug!r}"
+            )
+        if slug_owner is not None and str(slug_owner["id"]) != model_id:
+            raise RuntimeError(f"slug pertence a outro modelo publicado: {slug} -> {slug_owner['id']}")
+        if code_owner is not None and str(code_owner["id"]) != model_id:
+            raise RuntimeError(f"código pertence a outro modelo publicado: {code} -> {code_owner['id']}")
+
+    return {
+        "ready": True,
+        "candidateModels": len(rows),
+        "existingModels": existing,
+        "newModels": new,
+        "productionMatches": len(production_rows),
+    }
+
+
+def request_batch_json(
+    account_id: str,
+    database_id: str,
+    token: str,
+    batch: list[dict[str, Any]],
+) -> dict[str, Any]:
     url = (
         "https://api.cloudflare.com/client/v4/accounts/"
         f"{account_id}/d1/database/{database_id}/query"
@@ -277,6 +391,44 @@ def request_batch(account_id: str, database_id: str, token: str, batch: list[dic
         raise RuntimeError(f"D1 HTTP {exc.code}: {detail}") from exc
     if not body.get("success"):
         raise RuntimeError(f"D1 recusou batch: {body.get('errors')}")
+    return body
+
+
+def fetch_production_matches(
+    account_id: str,
+    database_id: str,
+    token: str,
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    statements = production_lookup_statements(rows)
+    if not statements:
+        return []
+    body = request_batch_json(account_id, database_id, token, statements)
+    result = body.get("result")
+    if not isinstance(result, list) or len(result) != len(statements):
+        raise RuntimeError("resposta inesperada ao consultar baseline D1")
+    matches: dict[str, dict[str, Any]] = {}
+    for item in result:
+        if not isinstance(item, dict) or item.get("success") is not True:
+            raise RuntimeError(f"consulta de baseline D1 falhou: {item!r}")
+        rows_found = item.get("results")
+        if not isinstance(rows_found, list):
+            raise RuntimeError("consulta de baseline D1 retornou results inválido")
+        for row in rows_found:
+            if not isinstance(row, dict):
+                raise RuntimeError("linha inválida no baseline D1")
+            model_id = str(row.get("id") or "").strip()
+            if not model_id:
+                raise RuntimeError(f"linha sem ID no baseline D1: {row!r}")
+            previous = matches.get(model_id)
+            if previous is not None and previous != row:
+                raise RuntimeError(f"baseline D1 inconsistente para ID: {model_id}")
+            matches[model_id] = row
+    return list(matches.values())
+
+
+def request_batch(account_id: str, database_id: str, token: str, batch: list[dict[str, Any]]) -> None:
+    request_batch_json(account_id, database_id, token, batch)
 
 
 def require_env(name: str) -> str:
@@ -321,6 +473,8 @@ def main() -> int:
         account_id = require_env("CLOUDFLARE_ACCOUNT_ID")
         database_id = require_env("CLOUDFLARE_D1_DATABASE_ID")
         token = require_env("CLOUDFLARE_API_TOKEN")
+        production_rows = fetch_production_matches(account_id, database_id, token, rows)
+        summary["productionCompatibility"] = validate_production_compatibility(rows, production_rows)
         batches = 0
         for batch in chunked(statements, args.batch_size):
             request_batch(account_id, database_id, token, batch)
