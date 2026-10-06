@@ -255,7 +255,7 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(len(models), 1)
             self.assertEqual(models[0]["imageCount"], 3)
             self.assertEqual(models[0]["displayName"], "Goku")
-            self.assertEqual(models[0]["slug"], "dragon-ball-goku")
+            self.assertEqual(models[0]["slug"], "dragon-ball-goku-modelo-01")
 
             gallery = json.loads((output / "r2" / models[0]["galleryManifestKey"]).read_text(encoding="utf-8"))
             self.assertEqual(len(gallery["images"]), 3)
@@ -370,7 +370,53 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual({model["displayName"] for model in models}, {"Goku"})
             self.assertEqual(len({model["id"] for model in models}), 2)
             self.assertEqual(len({model["slug"] for model in models}), 2)
-            self.assertTrue(all(model["slug"].startswith("dragon-ball-goku-") for model in models))
+            self.assertEqual({model["slug"] for model in models}, {"dragon-ball-goku-modelo-a", "dragon-ball-goku-modelo-b"})
+
+    def test_grouped_product_slug_does_not_change_when_sibling_product_is_added(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "OK - Animes & Desenhos [4]" / "OK - Animes [4]" / "OK - Dragon Ball [4]" / "OK - Goku [4]"
+            model_dir.mkdir(parents=True)
+            hierarchy = "Animes & Desenhos / Animes / Dragon Ball / Goku"
+
+            def make_row(product: str, index: int) -> dict:
+                path = model_dir / f"{product}-frente.webp"
+                Image.new("RGB", (800 + index * 10, 1200 + index * 20), f"#{index + 2}45566").save(path, "WEBP")
+                return {
+                    "path": str(path.relative_to(source)),
+                    "size": path.stat().st_size,
+                    "status": "OK",
+                    "canonical": True,
+                    "sha256": str(index + 6) * 64,
+                    "width": 800 + index * 10,
+                    "height": 1200 + index * 20,
+                    "quality_score": 80.0 + index,
+                    "model_key": hierarchy,
+                    "public_model_key": f"{hierarchy} / {product}",
+                    "audit_model_group": product,
+                }
+
+            first_row = make_row("goku-modelo-a", 1)
+            manifest_one = root / "one.jsonl"
+            manifest_one.write_text(json.dumps(first_row) + "\n", encoding="utf-8")
+            output_one = root / "bundle-one"
+            build_bundle(source, manifest_one, output_one, include_original=False)
+            first_model = json.loads((output_one / "models.jsonl").read_text(encoding="utf-8"))
+
+            second_row = make_row("goku-modelo-b", 2)
+            manifest_two = root / "two.jsonl"
+            manifest_two.write_text(
+                json.dumps(first_row) + "\n" + json.dumps(second_row) + "\n",
+                encoding="utf-8",
+            )
+            output_two = root / "bundle-two"
+            build_bundle(source, manifest_two, output_two, include_original=False)
+            models = [json.loads(line) for line in (output_two / "models.jsonl").read_text(encoding="utf-8").splitlines()]
+            same_model = next(model for model in models if model["id"] == first_model["id"])
+
+            self.assertEqual(first_model["slug"], "dragon-ball-goku-modelo-a")
+            self.assertEqual(same_model["slug"], first_model["slug"])
 
     def test_grouped_gallery_slug_does_not_change_when_cover_quality_changes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -412,8 +458,8 @@ class MediaBundleTests(unittest.TestCase):
             back_cover = build(70.0, 95.0, "back-cover")
 
             self.assertEqual(front_cover["id"], back_cover["id"])
-            self.assertEqual(front_cover["slug"], "god-of-war-kratos")
-            self.assertEqual(back_cover["slug"], "god-of-war-kratos")
+            self.assertEqual(front_cover["slug"], "god-of-war-kratos-modelo-01")
+            self.assertEqual(back_cover["slug"], "god-of-war-kratos-modelo-01")
             self.assertEqual(front_cover["displayName"], "Kratos")
             self.assertEqual(back_cover["displayName"], "Kratos")
             self.assertNotEqual(front_cover["coverStorageKey"], back_cover["coverStorageKey"])
