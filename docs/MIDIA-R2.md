@@ -124,6 +124,22 @@ O modo `--verify-remote` é propositalmente opcional: em um acervo com milhões 
 
 O publicador grava o SHA-256 como metadata de cada objeto. Galerias content-addressed recebem cache `immutable`; variantes de mídia recebem cache longo, mas não `immutable`, permitindo futura evolução do renderizador sem deixar uma URL permanentemente presa a uma versão antiga.
 
+## Consistência e cache da galeria
+
+A versão do manifesto (`gallery_version`) faz parte do contrato público do modelo. O Worker devolve essa versão nos cards/detalhes e o frontend a inclui nas URLs do detalhe e da galeria. Quando as imagens mudam, a versão muda e a URL de cache também muda; assim uma galeria nova não herda uma resposta antiga do edge ou do cache local.
+
+O Worker valida em runtime, antes de responder a uma galeria:
+
+- `manifest.modelId === models.id`;
+- `manifest.version === models.gallery_version`;
+- número de imagens igual a `models.image_count`;
+- IDs de imagem únicos;
+- exatamente uma capa, na primeira posição;
+- SHA-256 fonte válido;
+- variantes `thumb/card/detail` sob `media/<modelId>/...`, sem traversal ou backslashes.
+
+Divergência entre D1 e R2 responde `gallery_manifest_invalid` em vez de servir dados parciais.
+
 ## Publicação do índice no D1
 
 `tools/publish_d1.py` valida `models.jsonl` e prepara upserts idempotentes para categorias, franquias, árvore de pastas e modelos. Nós pais são publicados antes dos filhos e os modelos recebem `folder_id` somente após a pasta existir.
