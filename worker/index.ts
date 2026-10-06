@@ -71,6 +71,41 @@ type GalleryManifest = {
   images: GalleryImage[]
 }
 
+type GalleryModelState = {
+  id: string
+  image_count: number
+  gallery_manifest_key: string | null
+  gallery_version: number
+}
+
+function validGalleryImage(image: unknown): image is GalleryImage {
+  if (!image || typeof image !== 'object') return false
+  const candidate = image as Partial<GalleryImage>
+  if (typeof candidate.id !== 'string' || !candidate.id) return false
+  if (candidate.role !== 'cover' && candidate.role !== 'gallery') return false
+  if (!Number.isFinite(candidate.width) || Number(candidate.width) <= 0) return false
+  if (!Number.isFinite(candidate.height) || Number(candidate.height) <= 0) return false
+  if (!candidate.variantKeys || typeof candidate.variantKeys !== 'object') return false
+  for (const name of ['thumb', 'card', 'detail'] as const) {
+    const key = candidate.variantKeys[name]
+    if (typeof key !== 'string' || !key.startsWith('media/') || key.includes('\\') || key.split('/').includes('..')) {
+      return false
+    }
+  }
+  return true
+}
+
+function validGalleryManifest(manifest: unknown, model: GalleryModelState): manifest is GalleryManifest {
+  if (!manifest || typeof manifest !== 'object') return false
+  const candidate = manifest as Partial<GalleryManifest>
+  if (candidate.modelId !== model.id) return false
+  if (!Number.isInteger(candidate.version) || candidate.version !== model.gallery_version) return false
+  if (!Array.isArray(candidate.images) || candidate.images.length !== model.image_count) return false
+  if (!candidate.images.every(validGalleryImage)) return false
+  if (candidate.images.length > 0 && candidate.images[0].role !== 'cover') return false
+  return true
+}
+
 type TurnstileResult = {
   success: boolean
   action?: string
@@ -469,14 +504,19 @@ async function listImages(request: Request, slug: string, env: Env) {
 
   const model = await env.DB.prepare(
     'SELECT id,image_count,gallery_manifest_key,gallery_version FROM models WHERE slug=? AND published=1',
-  ).bind(slug).first<{ id: string; image_count: number; gallery_manifest_key: string | null; gallery_version: number }>()
+  ).bind(slug).first<GalleryModelState>()
   if (!model) return json(request, env, { error: 'model_not_found' }, { status: 404 })
   if (!model.gallery_manifest_key) return json(request, env, { items: [], total: 0, nextCursor: null, version: model.gallery_version })
 
   const object = await env.MEDIA.get(model.gallery_manifest_key)
   if (!object) return json(request, env, { error: 'gallery_manifest_missing' }, { status: 503 })
-  const manifest = await object.json<GalleryManifest>()
-  if (manifest.modelId !== model.id || !Array.isArray(manifest.images)) {
+  let manifest: unknown
+  try {
+    manifest = await object.json<unknown>()
+  } catch {
+    return json(request, env, { error: 'gallery_manifest_invalid' }, { status: 503 })
+  }
+  if (!validGalleryManifest(manifest, model)) {
     return json(request, env, { error: 'gallery_manifest_invalid' }, { status: 503 })
   }
 
