@@ -98,6 +98,28 @@ python tools/resolve_gallery_merge.py ".external-ingest/gallery-merge-plan.json"
 
 O resolvedor é fail-closed: candidato visual sem decisão, decisão extra, decisão duplicada ou `replace_sha256` fora dos candidatos interrompem a execução. O JSON de resolução informa apenas promoções autorizadas; ele não move, apaga nem reescreve imagens.
 
+
+### Manifesto de promoção controlada
+
+Depois de o resolvedor retornar `ready=true`, gere um CSV auditável para a automação local:
+
+```bash
+python tools/build_gallery_promotion_manifest.py ".external-ingest/gallery-merge-resolution.json" \
+  --output ".external-ingest/gallery-promotions.csv" \
+  --summary ".external-ingest/gallery-promotions-summary.json"
+```
+
+O CSV contém:
+
+- `authorization_id`: identificador determinístico da autorização;
+- `source_path` e `source_sha256`: origem e hash que devem ser conferidos novamente antes da cópia;
+- `target_model`: identidade pública lógica do produto;
+- `source_model`: identidade do produto na fonte de entrada;
+- `mode`: `add_view` ou `replace_existing`;
+- `replace_sha256`: somente quando uma vista publicada deverá ser supersedida.
+
+Esse manifesto **não contém caminho físico de destino por projeto** e não altera arquivos. O PowerShell local deve resolver o destino usando a árvore auditada atual, verificar o SHA da origem imediatamente antes de copiar e falhar se houver divergência, ambiguidade ou colisão. `replace_existing` significa superseder na publicação; não autoriza deletar o mestre antigo.
+
 A política é fail-closed:
 
 - SHA-256 igual: não republicar a mesma imagem;
