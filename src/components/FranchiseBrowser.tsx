@@ -44,7 +44,9 @@ export function FranchiseBrowser({
   onSelectCategory,
   onSelectFranchise,
 }: Props) {
+  const modalRef = useRef<HTMLElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
+  const previousFocusRef = useRef<HTMLElement | null>(null)
   const [category, setCategory] = useState(activeCategory)
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<CatalogFranchise[]>([])
@@ -57,15 +59,63 @@ export function FranchiseBrowser({
     setCategory(activeCategory)
     setQuery('')
     setError('')
-    const frame = window.requestAnimationFrame(() => searchRef.current?.focus())
-    return () => window.cancelAnimationFrame(frame)
   }, [open, activeCategory])
 
   useEffect(() => {
     if (!open) return
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
+
+    previousFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const frame = window.requestAnimationFrame(() => searchRef.current?.focus())
+
+    return () => {
+      window.cancelAnimationFrame(frame)
+      const previousFocus = previousFocusRef.current
+      previousFocusRef.current = null
+      if (previousFocus?.isConnected) previousFocus.focus()
     }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onClose()
+        return
+      }
+
+      if (event.key !== 'Tab') return
+
+      const modal = modalRef.current
+      if (!modal) return
+
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => element.getClientRects().length > 0)
+
+      if (focusable.length === 0) {
+        event.preventDefault()
+        return
+      }
+
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+
+      if (event.shiftKey) {
+        if (active === first || !modal.contains(active)) {
+          event.preventDefault()
+          last.focus()
+        }
+      } else if (active === last || !modal.contains(active)) {
+        event.preventDefault()
+        first.focus()
+      }
+    }
+
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [open, onClose])
@@ -133,7 +183,7 @@ export function FranchiseBrowser({
 
   return (
     <div className="modal-backdrop explorer-backdrop" onMouseDown={onClose}>
-      <section className="explorer-modal" role="dialog" aria-modal="true" aria-labelledby="explorer-title" onMouseDown={(event) => event.stopPropagation()}>
+      <section ref={modalRef} className="explorer-modal" role="dialog" aria-modal="true" aria-labelledby="explorer-title" onMouseDown={(event) => event.stopPropagation()}>
         <div className="modal-head explorer-head">
           <div>
             <span>NAVEGADOR DO ACERVO</span>
