@@ -46,6 +46,7 @@ export function FranchiseBrowser({
 }: Props) {
   const searchRef = useRef<HTMLInputElement>(null)
   const dialogRef = useRef<HTMLElement>(null)
+  const returnFocusRef = useRef<HTMLElement | null>(null)
   const [category, setCategory] = useState(activeCategory)
   const [query, setQuery] = useState('')
   const [items, setItems] = useState<CatalogFranchise[]>([])
@@ -61,6 +62,19 @@ export function FranchiseBrowser({
     const frame = window.requestAnimationFrame(() => searchRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
   }, [open, activeCategory])
+
+  useEffect(() => {
+    if (!open) return
+
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    returnFocusRef.current = previousFocus
+
+    return () => {
+      const target = returnFocusRef.current
+      returnFocusRef.current = null
+      if (target?.isConnected) window.requestAnimationFrame(() => target.focus())
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
