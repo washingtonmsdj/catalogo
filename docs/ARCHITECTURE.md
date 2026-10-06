@@ -139,6 +139,17 @@ A leitura pública usa o código como segredo de posse do link e pode receber ca
 - Proteção de formulários e gravações públicas: Turnstile
 - Login: camada de autenticação desacoplada do catálogo público
 
+## Fronteira pública do acervo
+
+`config/public-catalog-roots.json` é o SSOT versionado das categorias elegíveis para publicação. `tools/catalog_scope.py` carrega e valida esse contrato em modo fail-closed.
+
+A fronteira é aplicada em duas etapas independentes:
+
+1. `tools/ingest_catalog.py` só descobre/aceita caminhos sob uma categoria pública canônica;
+2. `tools/publish_d1.py` rejeita novamente qualquer modelo cuja `categoryName` esteja fora do SSOT.
+
+Essa defesa em profundidade impede que material operacional, referência, lote de trabalho ou categoria desconhecida seja publicado mesmo se um manifesto intermediário for montado incorretamente. Scripts locais de auditoria devem consumir o mesmo JSON em vez de manter uma whitelist própria.
+
 ## Repositório
 
 O GitHub armazena código, testes, documentação e dados de demonstração. Não armazenar o acervo de 100 mil+ imagens no Git.
