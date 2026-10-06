@@ -36,6 +36,7 @@ type CatalogHomeProps = {
   onOpenQuote: () => void
   onOpenModel: (model: CatalogModel) => void
   onToggleFavorite: (id: string) => void
+  onToggleQuote: (id: string) => void
 }
 
 type IconName = 'home' | 'star' | 'clock' | 'layers' | 'search' | 'heart' | 'grid' | 'chevron' | 'plus' | 'sliders' | 'image'
@@ -56,14 +57,16 @@ function Icon({ name }: { name: IconName }) {
   }
   return <svg className="storefront-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>
 }
-function ModelCard({ model, favorite, active, priority = false, categoryLabel, onSelect, onFavorite }: {
+function ModelCard({ model, favorite, quoted, active, priority = false, categoryLabel, onSelect, onFavorite, onQuote }: {
   model: CatalogModel
   favorite: boolean
+  quoted: boolean
   active?: boolean
   priority?: boolean
   categoryLabel?: string
   onSelect: () => void
   onFavorite: () => void
+  onQuote: () => void
 }) {
   return (
     <article className={`storefront-model-card ${active ? 'is-active' : ''}`}>
@@ -85,9 +88,14 @@ function ModelCard({ model, favorite, active, priority = false, categoryLabel, o
         </span>
         <span className="storefront-model-card__open" aria-hidden="true"><Icon name="chevron" /></span>
       </button>
-      <button type="button" className={`storefront-model-card__heart ${favorite ? 'is-active' : ''}`} onClick={onFavorite} aria-label={favorite ? `Remover ${model.name} dos favoritos` : `Favoritar ${model.name}`} aria-pressed={favorite}>
-        <Icon name="heart" />
-      </button>
+      <div className="storefront-model-card__quick-actions">
+        <button type="button" className={`storefront-model-card__heart ${favorite ? 'is-active' : ''}`} onClick={onFavorite} aria-label={favorite ? `Remover ${model.name} dos favoritos` : `Favoritar ${model.name}`} aria-pressed={favorite}>
+          <Icon name="heart" />
+        </button>
+        <button type="button" className={`storefront-model-card__quote ${quoted ? 'is-active' : ''}`} onClick={onQuote} aria-label={quoted ? `Remover ${model.name} da minha lista` : `Adicionar ${model.name} à minha lista`} aria-pressed={quoted}>
+          <Icon name={quoted ? 'layers' : 'plus'} />
+        </button>
+      </div>
     </article>
   )
 }
@@ -134,7 +142,7 @@ function CategoryTile({ category, cover, active, onSelect }: {
   )
 }
 
-export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onOpenExplorer, onOpenUpdates, onOpenFavorites, onOpenQuote, onOpenModel, onToggleFavorite }: CatalogHomeProps) {
+export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onOpenExplorer, onOpenUpdates, onOpenFavorites, onOpenQuote, onOpenModel, onToggleFavorite, onToggleQuote }: CatalogHomeProps) {
   const [franchiseFilter, setFranchiseFilter] = useState('')
   const [sidebarSearchItems, setSidebarSearchItems] = useState<CatalogFranchise[]>([])
   const [sidebarSearchLoading, setSidebarSearchLoading] = useState(false)
@@ -543,7 +551,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             </div>
             {featuredModels.length ? (
               <div className={`storefront-model-grid ${resultsMode ? 'is-results' : ''} ${catalog.loading ? 'is-updating' : ''}`} aria-busy={catalog.loading}>
-                {featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}
+                {featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} quoted={quoteList.includes(model.id)} active={selected.id === model.id} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} onQuote={() => onToggleQuote(model.id)} />)}
               </div>
             ) : catalog.loading ? (
               <div className={`storefront-model-grid storefront-model-grid--skeleton ${resultsMode ? 'is-results' : ''}`} role="status" aria-label="Carregando modelos">
@@ -588,7 +596,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
 
             <section className="storefront-section storefront-section--compact">
               <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" disabled={catalog.loading || !catalog.hasPreviousPage} onClick={previousCatalogPage}>‹</button><button type="button" disabled={catalog.loading || !catalog.hasNextPage} onClick={nextCatalogPage}>›</button></div></div>
-              <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div>
+              <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} quoted={quoteList.includes(model.id)} active={selected.id === model.id} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} onQuote={() => onToggleQuote(model.id)} />)}</div>
             </section>
           </div>
           </>}
