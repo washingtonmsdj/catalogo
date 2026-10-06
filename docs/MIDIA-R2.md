@@ -65,11 +65,15 @@ O manifesto da galeria é **content-addressed**: se a galeria não muda, a chave
 
 Slugs colidentes recebem um sufixo determinístico derivado do ID do modelo. Portanto dois personagens diferentes nunca disputam a mesma URL por acidente.
 
-### Catálogo auditado atual
+### Catálogo auditado e galerias
 
-Quando a ingestão usa `--audit-registry`, cada linha do registro RV1 representa uma entrada pública individual. Nesse modo, duas imagens distintas na mesma pasta continuam sendo **dois modelos/versões públicos distintos**. A hierarquia da pasta continua servindo para categoria/franquia/coleção, mas não é usada sozinha como identidade do modelo.
+No modo `--audit-registry`, a identidade pública vem de `modelo_publico` quando essa coluna está preenchida. Registros com a **mesma hierarquia + mesmo `modelo_publico`** são agrupados em uma única ficha e cada registro canônico vira uma imagem da galeria.
 
-Exemplo: 17 imagens auditadas dentro de `Dragon Ball/Androides/Androide 18` resultam em 17 entradas públicas, não em uma galeria única de 17 imagens.
+Exemplo: se 17 vistas auditadas de um mesmo produto em `Dragon Ball/Androides/Androide 18` compartilham `modelo_publico=goku-modelo-01`, o bundle produz **1 modelo com 17 imagens**, não 17 modelos.
+
+Para compatibilidade com o acervo histórico, registros sem `modelo_publico` ainda usam a identidade baseada no arquivo e podem continuar aparecendo como entradas individuais. Novos lotes — especialmente STL Forge — não devem depender desse fallback.
+
+Antes de gerar o bundle após integrar uma nova fonte, `tools/plan_gallery_merge.py` deve separar duplicatas exatas, novas vistas e candidatos visuais. Similaridade perceptual nunca elimina automaticamente uma imagem; ela apenas recomenda qual fonte possui maior qualidade para revisão.
 
 ### Taxonomia pública sem mover a origem
 
