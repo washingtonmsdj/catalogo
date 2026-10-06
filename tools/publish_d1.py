@@ -98,14 +98,17 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
 def safe_storage_key(value: Any, expected_prefix: str, model_id: str) -> str:
     key = str(value or "").strip()
     path = PurePosixPath(key)
+    model_prefix = f"{expected_prefix}{model_id}/"
     if (
         not key
         or key.startswith("/")
         or "\\" in key
         or ".." in path.parts
-        or not key.startswith(expected_prefix)
+        or not key.startswith(model_prefix)
     ):
-        raise RuntimeError(f"chave R2 inválida no modelo {model_id}: {key!r}")
+        raise RuntimeError(
+            f"chave R2 inválida ou pertencente a outro modelo {model_id}: {key!r}"
+        )
     return key
 
 
