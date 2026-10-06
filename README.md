@@ -2,7 +2,7 @@
 
 Catálogo web escalável para 100 mil+ modelos/personagens, com navegação inspirada em seletores de personagens de fliperama e interface limpa/industrial.
 
-**Preview público:** https://washingtonmsdj.github.io/catalogo/
+**URL pública canônica:** https://acheguese.com.br/catalogo/\n\n**Origem/preview independente:** https://washingtonmsdj.github.io/catalogo/
 
 > **Retomando o projeto em outra conversa/sessão?** Leia primeiro [`docs/CONTINUIDADE-OPERACIONAL.md`](docs/CONTINUIDADE-OPERACIONAL.md). Esse arquivo é o SSOT do checkpoint real, bloqueios, decisões já tomadas e ordem dos próximos passos. Não reinicie auditorias ou ingestões antes de conferir esse estado.
 
@@ -10,7 +10,7 @@ Catálogo web escalável para 100 mil+ modelos/personagens, com navegação insp
 
 - Identidade comercial: `config/brand.json` é o SSOT; veja `docs/BRANDING.md`.
 - React + TypeScript + Vite no frontend.
-- GitHub Pages como preview público contínuo.
+- `acheguese.com.br/catalogo/` como URL pública canônica, montada por reverse proxy no projeto Achegue-se.\n- GitHub Pages como origem/preview independente do frontend.
 - Cloudflare Worker para API, busca e formulários.
 - Cloudflare D1 para categorias, franquias, modelos e solicitações.
 - Cloudflare R2/CDN para variantes web e manifestos de galeria; imagens não ficam no GitHub.
@@ -27,7 +27,7 @@ São geradas variantes WebP de `thumb`, `card` e `detail`; o original pode ser p
 
 ## Runtime
 
-Sem configuração Cloudflare, o frontend funciona em modo `DEMO`. Com `VITE_API_BASE_URL` e `VITE_MEDIA_BASE_URL`, a mesma interface passa para `LIVE` e consome API/mídia reais.
+Sem configuração Cloudflare, o frontend funciona em modo `DEMO`. Com `VITE_API_BASE_URL` e `VITE_MEDIA_BASE_URL`, a mesma interface passa para `LIVE`. Quando aberto em `acheguese.com.br`, a API é acessada pelo proxy first-party `/catalogo-api`; no GitHub Pages, o preview continua usando `VITE_API_BASE_URL` diretamente.
 
 No modo LIVE, solicitações de orçamento exigem Turnstile validado no Worker, aceitam no máximo 50 modelos e conferem server-side se todos os IDs enviados correspondem a modelos publicados.
 
