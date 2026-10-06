@@ -48,6 +48,7 @@ export type CatalogModel = {
   material: string
   heightCm: number
   galleryCount: number
+  galleryVersion?: number
   description: string
   tags: string[]
   accent: string
