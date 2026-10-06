@@ -1,8 +1,7 @@
-import { defineConfig, loadEnv } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import brand from './config/brand.json'
-
-const DEFAULT_PUBLIC_SITE_URL = 'https://washingtonmsdj.github.io/catalogo/'
+import publicRuntime from './config/public-runtime.json'
 
 const catalogName = `${brand.catalogLabel} ${brand.name}`
 const catalogPageTitle = `${brand.catalogLabel} — ${brand.name}`
@@ -42,9 +41,8 @@ function applyBrandTokens(html: string) {
     .replaceAll('__CATALOG_PAGE_TITLE__', catalogPageTitle)
 }
 
-export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, '.', '')
-  const publicSiteUrl = (env.VITE_PUBLIC_SITE_URL || DEFAULT_PUBLIC_SITE_URL).replace(/\/?$/, '/')
+export default defineConfig(() => {
+  const publicSiteUrl = publicRuntime.publicSiteUrl.replace(/\/?$/, '/')
 
   return {
     base: './',
