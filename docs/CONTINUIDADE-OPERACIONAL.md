@@ -9,7 +9,7 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Base funcional do pipeline validada no CI: `0d2f52097be4418a436f88db5f3a8d0acd9198be`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
+- Base funcional do pipeline validada no CI: `6eada11556155a2d77f8c6cf86e512896ff4110f`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
@@ -30,8 +30,16 @@
   - fallback visual cobre também cards e imagem principal da ficha quando uma mídia falha;
   - `src/lib/catalogHomeView.ts` centraliza o contrato editorial × resultados;
   - `tools/test_catalog_home_view.mjs` roda no CI e garante que 24 itens recebidos continuem 24 em resultados, enquanto a home editorial preserva 6 destaques;
+  - a grade da galeria aceita setas esquerda/direita/cima/baixo com cálculo das colunas responsivas; `tools/test_gallery_grid_navigation.mjs` protege esse comportamento no CI;
+  - ao trocar a página da galeria, a página já renderizada permanece visível até o lote novo chegar; erro de rede preserva a página anterior;
+  - a galeria mantém altura estável durante paginação e o mobile usa melhor a altura disponível;
+  - o lightbox de alta resolução mostra estado explícito de carregamento, usa prioridade alta apenas para a imagem aberta e mantém prefetch limitado às vistas vizinhas;
+  - o comparador mantém a coluna de rótulos visível durante scroll horizontal, preserva a tabela durante atualização e usa fallback quando uma capa falha;
+  - a busca da sidebar deixa de pesquisar apenas as 24 franquias carregadas: com 3+ caracteres usa o índice completo de franquias do backend;
+  - `FRANCHISE_SEARCH_MIN_LENGTH` é o contrato único dessa busca no frontend e `listCatalogFranchises` não envia consultas curtas ao backend;
   - não existe seletor de ordenação falso: `/api/catalog` ainda ordena deterministicamente por nome + ID e não expõe parâmetro de sort.
-- A arquitetura de dialogs usa um controlador global para focus trap, restauração de foco e scroll lock.
+- A arquitetura de dialogs usa um controlador global para focus trap, restauração de foco, scroll lock e isolamento da pilha modal.
+- Quando há ficha → galeria → lightbox, apenas o dialog superior fica exposto; os inferiores recebem `inert` + `aria-hidden` temporários e são restaurados ao voltar ao topo.
 - O CI protege essa arquitetura com `npm run dialog:a11y`.
 
 ### Cloudflare
