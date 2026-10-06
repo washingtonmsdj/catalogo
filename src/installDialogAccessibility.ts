@@ -26,6 +26,7 @@ export function installDialogAccessibility() {
   let activeDialog: HTMLElement | null = null
   const returnFocus = new WeakMap<HTMLElement, HTMLElement>()
   let focusFrame = 0
+  let bodyOverflowBeforeDialog: string | null = null
 
   const focusInside = (dialog: HTMLElement, preferred?: HTMLElement | null) => {
     window.cancelAnimationFrame(focusFrame)
@@ -45,6 +46,15 @@ export function installDialogAccessibility() {
 
   const syncDialog = () => {
     const nextDialog = visibleDialogs().at(-1) ?? null
+
+    if (nextDialog && bodyOverflowBeforeDialog === null) {
+      bodyOverflowBeforeDialog = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+    } else if (!nextDialog && bodyOverflowBeforeDialog !== null) {
+      document.body.style.overflow = bodyOverflowBeforeDialog
+      bodyOverflowBeforeDialog = null
+    }
+
     if (nextDialog === activeDialog) return
 
     const previousDialog = activeDialog
