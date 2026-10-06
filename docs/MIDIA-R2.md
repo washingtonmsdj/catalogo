@@ -53,7 +53,7 @@ O manifesto da galeria é **content-addressed**: se a galeria não muda, a chave
 
 `models.jsonl` é a ponte para alimentar o D1. Cada linha contém:
 
-- ID determinístico do personagem;
+- ID determinístico do produto/modelo 3D;
 - slug público e código estável `TS-*`;
 - categoria/franquia com nome e slug;
 - coleção intermediária, quando existir;
@@ -69,7 +69,7 @@ Slugs colidentes recebem um sufixo determinístico derivado do ID do modelo. Por
 
 No modo `--audit-registry`, a identidade pública vem de `modelo_publico` quando essa coluna está preenchida. Registros com a **mesma hierarquia + mesmo `modelo_publico`** são agrupados em uma única ficha e cada registro canônico vira uma imagem da galeria.
 
-Exemplo: se 17 vistas auditadas de um mesmo produto em `Dragon Ball/Androides/Androide 18` compartilham `modelo_publico=goku-modelo-01`, o bundle produz **1 modelo com 17 imagens**, não 17 modelos.
+Exemplo: se 17 vistas auditadas de um mesmo produto em `Dragon Ball/Androides/Androide 18` compartilham `modelo_publico=androide18-modelo-01`, o bundle produz **1 modelo com 17 imagens**, não 17 modelos.
 
 Para compatibilidade com o acervo histórico, registros sem `modelo_publico` ainda usam a identidade baseada no arquivo e podem continuar aparecendo como entradas individuais. Novos lotes — especialmente fonte externa — não devem depender desse fallback.
 
@@ -136,7 +136,8 @@ O Worker valida em runtime, antes de responder a uma galeria:
 - IDs de imagem únicos;
 - exatamente uma capa, na primeira posição;
 - SHA-256 fonte válido;
-- variantes `thumb/card/detail` sob `media/<modelId>/...`, sem traversal ou backslashes.
+- variantes `thumb/card/detail` sob `media/<modelId>/...`, sem traversal ou backslashes;
+- `cover_storage_key` do D1 igual à variante `card` da primeira imagem/capa.
 
 Divergência entre D1 e R2 responde `gallery_manifest_invalid` em vez de servir dados parciais.
 
@@ -190,6 +191,8 @@ Esse preflight consulta apenas os IDs, slugs e códigos presentes no bundle cand
 - mudança de categoria/franquia de um modelo existente sem migração explícita.
 
 O mesmo gate é executado novamente dentro de `--apply`, imediatamente antes dos upserts. Assim uma validação antiga não autoriza uma escrita posterior se a produção tiver mudado.
+
+Antes do D1, o gate R2 também valida o contrato completo do manifesto: versão, quantidade, IDs únicos, exatamente uma capa na primeira posição, SHA-256 de origem, chaves pertencentes ao mesmo modelo e correspondência da capa do D1 com o manifesto. Qualquer divergência falha antes de escrever o índice.
 
 Para aplicar em produção:
 
