@@ -100,10 +100,28 @@
   font: 760 7.5px/1 ui-monospace, monospace;
 }
 
-.quote-request-items article > div {
+.quote-request-item__open {
   min-width: 0;
+  min-height: 52px;
   display: grid;
+  align-content: center;
   gap: 4px;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.quote-request-item__open:disabled {
+  cursor: default;
+  opacity: .68;
+}
+
+.quote-request-item__open:hover:not(:disabled) strong,
+.quote-request-item__open:focus-visible strong {
+  color: var(--store-accent);
 }
 
 .quote-request-items strong,
@@ -123,7 +141,7 @@
   font: 560 8px/1 ui-sans-serif, system-ui;
 }
 
-.quote-request-items button {
+.quote-request-item__remove {
   width: 27px;
   height: 27px;
   display: grid;
@@ -137,7 +155,7 @@
   cursor: pointer;
 }
 
-.quote-request-items button:hover {
+.quote-request-item__remove:hover {
   border-color: rgba(218,131,114,.44);
   color: #dda092;
 }
@@ -323,7 +341,8 @@
 }
 
 
-.quote-request-items button:focus-visible,
+.quote-request-item__open:focus-visible,
+.quote-request-item__remove:focus-visible,
 .quote-request-submit button:focus-visible,
 .quote-request-success button:focus-visible {
   outline: 2px solid var(--store-accent);
