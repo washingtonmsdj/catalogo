@@ -35,6 +35,26 @@ Para cada arquivo são registrados:
 
 Arquivos vazios, ilegíveis ou com formato inválido ficam com `status=ERRO` e permanecem intactos no acervo.
 
+## Identidade de modelo e galerias
+
+No modo `--audit-registry`, a coluna `modelo_publico` é a identidade estável do modelo dentro da sua hierarquia. **Todas as imagens que pertencem ao mesmo produto/modelo devem compartilhar o mesmo `modelo_publico`**. Assim, frente, costas, laterais e detalhes continuam como imagens distintas de uma única ficha pública.
+
+Quando `modelo_publico` estiver vazio, o importador mantém o comportamento legado e usa o nome-base do arquivo como identidade, preservando compatibilidade com o catálogo já publicado. Esse fallback não deve ser usado para novos lotes do STL Forge.
+
+Antes de publicar um lote novo ou complementar, use o planejador de galeria:
+
+```bash
+python tools/plan_gallery_merge.py ".catalog-ingest/manifest.jsonl" ".stlforge-ingest/manifest.jsonl" --output ".stlforge-ingest/gallery-merge-plan.json"
+```
+
+A política é fail-closed:
+
+- SHA-256 igual: não republicar a mesma imagem;
+- sem correspondência exata/perceptual: adicionar como nova vista;
+- semelhança perceptual: apenas candidato de revisão, nunca remoção automática;
+- quando o STL Forge tiver maior `quality_score`, o plano recomenda a imagem do STL Forge como vencedora da revisão;
+- nenhuma decisão do planejador apaga ou move os mestres.
+
 ## Duplicatas exatas
 
 Mesmo SHA-256 significa conteúdo binário idêntico. O grupo recebe `kind=exact` e somente um membro é marcado como `canonical=true`.
