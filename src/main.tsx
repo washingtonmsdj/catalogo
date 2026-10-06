@@ -31,6 +31,7 @@ import './publication-status.css'
 import './catalog-shell.css'
 import './catalog-home.css'
 import './model-detail.css'
+import './favorites.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest(
