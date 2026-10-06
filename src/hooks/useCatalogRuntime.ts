@@ -308,7 +308,7 @@ export function useCatalogRuntime(initialSlug = '') {
     const card = liveModels.find((model) => model.id === selectedId)
     if (!card) return
     let cancelled = false
-    getCatalogModel(card.slug).then((model) => {
+    getCatalogModel(card.slug, card.galleryVersion).then((model) => {
       if (!cancelled && model) setSelectedDetail(model)
     }).catch(() => undefined)
     return () => { cancelled = true }
