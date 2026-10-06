@@ -134,6 +134,21 @@ Sem `--apply`, o comando é somente leitura e imprime o plano:
 python tools/publish_d1.py ".publish-bundle/models.jsonl"
 ```
 
+
+Antes de enviar qualquer mídia nova ao R2, valide também a identidade do bundle contra o D1 atual em modo **somente leitura**:
+
+```bash
+python tools/publish_d1.py ".publish-bundle/models.jsonl" --check-production
+```
+
+Esse preflight consulta apenas os IDs, slugs e códigos presentes no bundle candidato. Ele bloqueia:
+
+- um novo ID tentando reutilizar slug ou código já publicado;
+- um ID existente mudando slug ou código;
+- mudança de categoria/franquia de um modelo existente sem migração explícita.
+
+O mesmo gate é executado novamente dentro de `--apply`, imediatamente antes dos upserts. Assim uma validação antiga não autoriza uma escrita posterior se a produção tiver mudado.
+
 Para aplicar em produção:
 
 ```text
