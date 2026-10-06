@@ -151,6 +151,42 @@ class PublishReadinessTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "bundle R2 incompleto"):
                 validate_r2_ready(models_path, rows, state_path)
 
+    def test_cover_key_for_another_model_blocks_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            models_path, _ = self.make_bundle(Path(tmp))
+            row = model()
+            row["coverStorageKey"] = "media/mdl-other/img-1/card.webp"
+            models_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            rows = load_models(models_path)
+            state_path = self.write_complete_state(models_path)
+
+            with self.assertRaisesRegex(RuntimeError, "pertencente a outro modelo"):
+                validate_r2_ready(models_path, rows, state_path)
+
+    def test_gallery_key_for_another_model_blocks_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            models_path, _ = self.make_bundle(Path(tmp))
+            row = model()
+            row["galleryManifestKey"] = "gallery/mdl-other/manifest.json"
+            models_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            rows = load_models(models_path)
+            state_path = self.write_complete_state(models_path)
+
+            with self.assertRaisesRegex(RuntimeError, "pertencente a outro modelo"):
+                validate_r2_ready(models_path, rows, state_path)
+
+    def test_variant_key_for_another_model_blocks_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            models_path, rows = self.make_bundle(Path(tmp))
+            manifest_path = models_path.parent / "r2" / "gallery" / "mdl-1" / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["images"][0]["variantKeys"]["detail"] = "media/mdl-other/img-1/detail.webp"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            state_path = self.write_complete_state(models_path)
+
+            with self.assertRaisesRegex(RuntimeError, "pertencente a outro modelo"):
+                validate_r2_ready(models_path, rows, state_path)
+
     def test_manifest_for_another_model_blocks_gate(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             models_path, rows = self.make_bundle(Path(tmp), manifest_model_id="mdl-other")
