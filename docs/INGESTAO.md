@@ -128,10 +128,11 @@ Antes de qualquer cópia local, valide o CSV contra a resolução e contra os by
 python tools/verify_gallery_promotion_manifest.py \
   ".external-ingest/gallery-merge-resolution.json" \
   ".external-ingest/gallery-promotions.csv" \
-  --source-root "/caminho/real/da/fonte"
+  --source-root "/caminho/real/da/fonte" \
+  --existing-manifest ".catalog-ingest/manifest.jsonl"
 ```
 
-O verificador exige correspondência exata das autorizações com a resolução, confere `resolution_sha256`, bloqueia caminhos que escapem da raiz autorizada e recalcula o SHA-256 de cada arquivo. Só um resultado com `ready=true` autoriza a etapa de cópia.
+O verificador exige correspondência exata das autorizações com a resolução, confere `resolution_sha256`, bloqueia caminhos que escapem da raiz autorizada, recalcula o SHA-256 de cada arquivo e, para `replace_existing`, confirma que o SHA a superseder ainda pertence ao mesmo modelo no manifesto atual. Só um resultado com `ready=true` autoriza a etapa de cópia.
 
 A política é fail-closed:
 
