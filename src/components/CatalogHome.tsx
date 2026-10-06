@@ -168,6 +168,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
 
   function exploreHeroCampaign() {
     if (heroCampaignCategory) catalog.setCategory(heroCampaignCategory.id)
+    setShowFullCatalogPage(true)
     window.requestAnimationFrame(() => {
       document.querySelector('#destaques')?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
     })
@@ -204,12 +205,16 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
     setExpandedFranchiseKey(franchiseKey(item))
     if (catalog.category !== item.category) catalog.setCategory(item.category)
     catalog.setFranchise(item.id)
+    setShowFullCatalogPage(true)
+    scrollToResults()
   }
 
   function selectFranchiseFolder(item: CatalogFranchise, folder: string) {
     if (catalog.category !== item.category) catalog.setCategory(item.category)
     if (catalog.franchise !== item.id) catalog.setFranchise(item.id)
     catalog.setFolder(folder)
+    setShowFullCatalogPage(true)
+    scrollToResults()
   }
 
   function scrollToResults() {
@@ -219,6 +224,12 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
         block: 'start',
       })
     })
+  }
+
+  function selectCategory(category: string) {
+    catalog.setCategory(category)
+    setShowFullCatalogPage(true)
+    scrollToResults()
   }
 
   function showCatalogPage() {
@@ -368,7 +379,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
 
           <div className="storefront-filterbar" aria-label="Categorias do catálogo">
             <div className="storefront-filterbar__rail">
-              {catalog.categories.slice(0, 12).map((item) => <button type="button" key={item.id} className={catalog.category === item.id ? 'is-active' : ''} onClick={() => catalog.setCategory(item.id)}>{item.label}</button>)}
+              {catalog.categories.slice(0, 12).map((item) => <button type="button" key={item.id} className={catalog.category === item.id ? 'is-active' : ''} onClick={() => selectCategory(item.id)}>{item.label}</button>)}
             </div>
             <button type="button" className="storefront-filterbar__filters" onClick={onOpenExplorer}><Icon name="sliders" /> Filtros <Icon name="chevron" /></button>
           </div>
@@ -440,7 +451,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
           {!resultsMode && <>
           <section className="storefront-section storefront-section--categories">
             <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="grid" /></span><div><h2>Categorias</h2><p>Explore o acervo por temática.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todas <Icon name="chevron" /></button></div>
-            <div className="storefront-category-grid">{categoryTiles.map((category) => <CategoryTile key={category.id} category={category} cover={coverForCategory(category)} active={catalog.category === category.id} onSelect={() => catalog.setCategory(category.id)} />)}</div>
+            <div className="storefront-category-grid">{categoryTiles.map((category) => <CategoryTile key={category.id} category={category} cover={coverForCategory(category)} active={catalog.category === category.id} onSelect={() => selectCategory(category.id)} />)}</div>
           </section>
 
           <div className="storefront-lower-grid">
