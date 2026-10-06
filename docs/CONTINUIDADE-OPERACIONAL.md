@@ -9,7 +9,7 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Base funcional do pipeline validada no CI: `8b0031cb8c29d9ef601f116ac05038ac697012ce`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
+- Base funcional do pipeline validada no CI: `43878e99b53015f324279d588e8f871ebcf1a9af`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
@@ -40,6 +40,7 @@
   - a busca da sidebar pode continuar no explorador completo sem apagar o termo digitado; quando o recorte excede a lista curta, “Ver mais resultados” abre o navegador já pesquisando o mesmo termo;
   - Favoritos deixou de ser um bloco de chips e virou `FavoritesDialog`: lista pesquisável, remoção individual, abertura de ficha e ação para enviar todos ao orçamento sem chamadas em massa à API;
   - “Minha lista / orçamento” usa `QuoteDialog`: revisão numerada dos modelos, remoção individual, formulário separado visualmente e preservação de Turnstile/protocolo;
+  - durante a revisão de “Minha lista”, itens com slug conhecido podem abrir a ficha diretamente; o modal fecha, a seleção local é preservada e o usuário pode voltar ao orçamento sem perder modelos;
   - cards de modelo possuem ação rápida de Favoritos e de Minha lista; os estados usam `aria-pressed`, ficam discretos no desktop e sempre visíveis em touch;
   - em dispositivos coarse/touch os alvos dos atalhos dos cards aumentam e o badge de galeria se reposiciona para não sobrepor controles;
   - abaixo de 620 px a barra principal deixa de exigir rolagem horizontal e passa a distribuir Explorar, Coleções, Novos, Favoritos e Minha lista em cinco ações fixas, mantendo a busca acima;
