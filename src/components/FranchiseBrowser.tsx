@@ -12,6 +12,7 @@ type Props = {
   mode: CatalogRuntimeMode
   categories: CatalogCategory[]
   activeCategory: string
+  initialQuery?: string
   onClose: () => void
   onSelectCategory: (category: string) => void
   onSelectFranchise: (category: string, franchise: string) => void
@@ -40,6 +41,7 @@ export function FranchiseBrowser({
   mode,
   categories,
   activeCategory,
+  initialQuery = '',
   onClose,
   onSelectCategory,
   onSelectFranchise,
@@ -55,11 +57,11 @@ export function FranchiseBrowser({
   useEffect(() => {
     if (!open) return
     setCategory(activeCategory)
-    setQuery('')
+    setQuery(initialQuery.trim())
     setError('')
     const frame = window.requestAnimationFrame(() => searchRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
-  }, [open, activeCategory])
+  }, [open, activeCategory, initialQuery])
 
   const demoItems = useMemo(() => demoFranchises(category, query), [category, query])
   const queryLength = Array.from(query.trim()).length
