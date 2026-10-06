@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from publish_d1 import build_statements, load_models
+from publish_d1 import build_statements, load_models, production_lookup_statements, validate_production_compatibility
 
 
 def model(model_id: str, slug: str, code: str, *, variant: str) -> dict:
@@ -142,6 +142,103 @@ class PublishD1Tests(unittest.TestCase):
 
             with self.assertRaisesRegex(RuntimeError, "fora do escopo público"):
                 load_models(path)
+
+    def test_production_compatibility_allows_existing_model_and_new_model(self) -> None:
+        existing = model("mdl-1", "android-18-a", "TS-1", variant="Androide 18 A")
+        new_model = model("mdl-2", "android-18-b", "TS-2", variant="Androide 18 B")
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18-a",
+            "code": "TS-1",
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        result = validate_production_compatibility([existing, new_model], production)
+
+        self.assertTrue(result["ready"])
+        self.assertEqual(result["existingModels"], 1)
+        self.assertEqual(result["newModels"], 1)
+
+    def test_production_compatibility_rejects_new_id_with_existing_slug(self) -> None:
+        candidate = model("mdl-new", "android-18", "TS-NEW", variant="Androide 18")
+        production = [{
+            "id": "mdl-old",
+            "slug": "android-18",
+            "code": "TS-OLD",
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "colide com slug já publicado"):
+            validate_production_compatibility([candidate], production)
+
+    def test_production_compatibility_rejects_new_id_with_existing_code(self) -> None:
+        candidate = model("mdl-new", "android-18-new", "TS-OLD", variant="Androide 18")
+        production = [{
+            "id": "mdl-old",
+            "slug": "android-18-old",
+            "code": "TS-OLD",
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "colide com código já publicado"):
+            validate_production_compatibility([candidate], production)
+
+    def test_production_compatibility_rejects_slug_change_for_existing_id(self) -> None:
+        candidate = model("mdl-1", "slug-novo", "TS-1", variant="Androide 18")
+        production = [{
+            "id": "mdl-1",
+            "slug": "slug-antigo",
+            "code": "TS-1",
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "slug de modelo publicado mudaria"):
+            validate_production_compatibility([candidate], production)
+
+    def test_production_compatibility_rejects_code_change_for_existing_id(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-NEW", variant="Androide 18")
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-OLD",
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "código de modelo publicado mudaria"):
+            validate_production_compatibility([candidate], production)
+
+    def test_production_compatibility_rejects_taxonomy_move_without_explicit_migration(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-1",
+            "category_slug": "games",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "categoria de modelo publicado mudaria"):
+            validate_production_compatibility([candidate], production)
+
+    def test_production_lookup_is_bounded_and_uses_all_identity_keys(self) -> None:
+        rows = [
+            model(f"mdl-{index}", f"slug-{index}", f"TS-{index}", variant=f"Model {index}")
+            for index in range(30)
+        ]
+
+        statements = production_lookup_statements(rows, chunk_size=25)
+
+        self.assertEqual(len(statements), 2)
+        self.assertEqual(len(statements[0]["params"]), 75)
+        self.assertEqual(len(statements[1]["params"]), 15)
+        self.assertIn("m.id IN", statements[0]["sql"])
+        self.assertIn("m.slug IN", statements[0]["sql"])
+        self.assertIn("m.code IN", statements[0]["sql"])
 
     def test_load_rejects_model_without_publishable_image(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
