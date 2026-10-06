@@ -34,7 +34,7 @@ import './model-detail.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest(
-    '.model-art, .gallery-real-image, .image-lightbox__stage, .storefront-model-card__media, .model-detail-media',
+    '.model-art, .gallery-real-image, .image-lightbox__stage, .storefront-model-card__media, .model-detail-media, .comparison-cover',
   )
 }
 
