@@ -9,7 +9,7 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Base funcional do pipeline validada no CI: `334ff0752e684020c8b2b86530f24788d82f907b`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
+- Base funcional do pipeline validada no CI: `9e5738e6ddc776534296f26746af35b6ffe998b2`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
@@ -230,7 +230,9 @@ Executar nesta ordem, sem pular etapas:
    - slugs/códigos;
    - buscas/FTS;
    - categorias/franquias/pastas;
-   - smoke e auditoria pública.
+   - executar `verify_public_catalog.py --exhaustive --all-galleries`;
+   - exigir `total == image_count`, `version == gallery_version`, paginação válida, IDs de imagens únicos e uma única capa;
+   - só considerar a integração concluída depois desse gate público.
 
 8. **Executar uma única auditoria pós-integração**
    - atualizar contadores `[N]` e prefixos `OK -` quando aplicável;
@@ -264,7 +266,7 @@ Executar nesta ordem, sem pular etapas:
 - `tools/build_media_bundle.py` — galeria, variantes e identidade estável;
 - `tools/publish_r2.py` — upload incremental de mídia;
 - `tools/publish_d1.py` — preflight read-only de identidade em produção + upsert idempotente após revalidação e gate R2;
-- `tools/verify_public_catalog.py` — validação pública;
+- `tools/verify_public_catalog.py` — validação pública, incluindo auditoria amostral ou completa das galerias multi-imagem;
 - `docs/INGESTAO.md` — contrato da ingestão;
 - `docs/MIDIA-R2.md` — contrato de mídia e galeria;
 - `docs/DATA_MODEL.md` — modelo de dados;
