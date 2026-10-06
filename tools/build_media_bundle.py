@@ -280,6 +280,21 @@ def model_metadata(
     }
 
 
+def validate_model_group(identity_key: str, rows: list[dict]) -> None:
+    if not rows:
+        raise RuntimeError(f"grupo de modelo vazio: {identity_key}")
+    model_keys = {str(row.get("model_key") or "").strip() for row in rows}
+    if "" in model_keys or len(model_keys) != 1:
+        raise RuntimeError(
+            f"identidade pública usada em hierarquias diferentes: {identity_key}: {sorted(model_keys)}"
+        )
+    explicit_groups = {str(row.get("audit_model_group") or "").strip() for row in rows if row.get("audit_model_group")}
+    if len(explicit_groups) > 1:
+        raise RuntimeError(
+            f"identidade pública mistura produtos auditados diferentes: {identity_key}: {sorted(explicit_groups)}"
+        )
+
+
 def build_model_bundle(
     identity_key: str,
     rows: list[dict],
@@ -289,6 +304,7 @@ def build_model_bundle(
     taxonomy: dict,
     include_original: bool,
 ) -> tuple[dict, int, int]:
+    validate_model_group(identity_key, rows)
     rows = sorted(
         rows,
         key=lambda row: (
