@@ -255,6 +255,12 @@
 .storefront-section--results .storefront-section__head { min-height: 50px; }
 .storefront-model-grid.is-results { row-gap: 10px; }
 .storefront-model-grid.is-results .storefront-model-card { height: 188px; }
+.storefront-model-grid.is-updating {
+  opacity: .48;
+  filter: saturate(.72);
+  pointer-events: none;
+  transition: opacity .16s ease, filter .16s ease;
+}
 .storefront-model-card { position: relative; min-width: 0; height: 176px; overflow: hidden; border: 1px solid rgba(96,174,154,.2); border-radius: 10px; background: #081918; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
 .storefront-model-card:hover { transform: translateY(-3px); border-color: rgba(36,240,176,.42); box-shadow: 0 16px 34px rgba(0,0,0,.3); }
 .storefront-model-card.is-active { border-color: rgba(36,240,176,.78); box-shadow: inset 0 -2px 0 var(--store-accent), 0 14px 28px rgba(0,0,0,.28); }
