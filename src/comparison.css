@@ -70,6 +70,9 @@
 }
 
 .comparison-label {
+  position: sticky;
+  left: 0;
+  z-index: 3;
   display: flex;
   align-items: center;
   padding: 13px 12px;
@@ -78,9 +81,11 @@
   font: 900 9px/1.25 "Courier New", monospace;
   letter-spacing: .8px;
   text-transform: uppercase;
+  box-shadow: 7px 0 16px rgba(0,0,0,.18);
 }
 
 .comparison-label--hero {
+  z-index: 4;
   align-items: flex-end;
   min-height: 270px;
   color: #a58b63;
