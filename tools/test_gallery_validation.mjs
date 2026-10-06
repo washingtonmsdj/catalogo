@@ -8,6 +8,7 @@ const model = {
   image_count: 2,
   gallery_manifest_key: 'gallery/mdl_abc/manifest.json',
   gallery_version: 123,
+  cover_storage_key: 'media/mdl_abc/img_a/card.webp',
 }
 
 function image(id, role, sha) {
@@ -92,6 +93,16 @@ test('rejects duplicate image IDs', () => {
   const candidate = manifest()
   candidate.images[1].id = candidate.images[0].id
   assert.equal(validGalleryManifest(candidate, model), false)
+})
+
+test('rejects D1 cover key different from manifest cover', () => {
+  assert.equal(
+    validGalleryManifest(manifest(), {
+      ...model,
+      cover_storage_key: 'media/mdl_abc/img_b/card.webp',
+    }),
+    false,
+  )
 })
 
 test('requires positive model image count', () => {
