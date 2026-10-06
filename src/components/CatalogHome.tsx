@@ -9,6 +9,16 @@ import type { CatalogCategory, CatalogFranchise, CatalogModel } from '../types/c
 
 const formatter = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 })
 
+const SIDEBAR_COLLAPSED_STORAGE_KEY = 'tonecos:catalog-sidebar-collapsed'
+
+function loadSidebarCollapsed() {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSED_STORAGE_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 function imageCountLabel(count: number) {
   return `${formatter.format(count)} ${count === 1 ? 'imagem' : 'imagens'}`
 }
@@ -119,7 +129,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const [sidebarSearchLoading, setSidebarSearchLoading] = useState(false)
   const [sidebarSearchError, setSidebarSearchError] = useState('')
   const [sidebarSearchTruncated, setSidebarSearchTruncated] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(loadSidebarCollapsed)
   const [expandedFranchiseKey, setExpandedFranchiseKey] = useState<string | null>(null)
   const [heroCampaignIndex, setHeroCampaignIndex] = useState(0)
   const [showFullCatalogPage, setShowFullCatalogPage] = useState(false)
@@ -206,6 +216,14 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
       window.clearTimeout(timer)
     }
   }, [catalog.category, franchiseFilter, sidebarRemoteSearch])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_COLLAPSED_STORAGE_KEY, sidebarCollapsed ? '1' : '0')
+    } catch {
+      // The layout still works when local storage is unavailable.
+    }
+  }, [sidebarCollapsed])
 
   useEffect(() => {
     if (catalog.franchise === 'all') return
