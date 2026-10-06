@@ -552,8 +552,11 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             ) : (
               <div className="storefront-empty">
                 <strong>Nenhum modelo neste recorte</strong>
-                <span>Remova filtros ou altere a busca para voltar ao acervo.</span>
-                <button type="button" onClick={catalog.resetDiscovery}>Limpar filtros</button>
+                <span>Remova filtros, altere a busca ou navegue pelas franquias para continuar explorando.</span>
+                <div className="storefront-empty__actions">
+                  <button type="button" onClick={catalog.resetDiscovery}>Limpar filtros</button>
+                  <button type="button" className="is-secondary" onClick={() => onOpenExplorer(catalog.search.trim())}>Explorar franquias</button>
+                </div>
               </div>
             )}
             {resultsMode && featuredModels.length > 0 && (
