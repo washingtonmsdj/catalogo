@@ -112,6 +112,7 @@ python tools/build_gallery_promotion_manifest.py ".external-ingest/gallery-merge
 O CSV contém:
 
 - `authorization_id`: identificador determinístico da autorização;
+- `resolution_sha256`: SHA-256 da resolução completa que originou a autorização; qualquer mudança de revisão produz novas autorizações;
 - `source_path` e `source_sha256`: origem e hash que devem ser conferidos novamente antes da cópia;
 - `target_model`: identidade pública lógica do produto;
 - `source_model`: identidade do produto na fonte de entrada;
