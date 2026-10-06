@@ -191,10 +191,6 @@
 .storefront-button--ghost { border: 1px solid rgba(69,236,186,.45); background: rgba(3,18,16,.68); color: #edf8f4; backdrop-filter: blur(10px); }
 .storefront-button:hover { filter: brightness(1.08); }
 .storefront-button:disabled { opacity: .5; cursor: default; }
-.storefront-hero__feature { position: absolute; z-index: 5; right: 20px; bottom: 14px; width: min(260px, 31%); padding: 11px 13px; border-left: 2px solid var(--store-accent); background: linear-gradient(90deg, rgba(3,16,15,.84), rgba(3,16,15,.22)); text-align: left; }
-.storefront-hero__feature span { display: block; color: var(--store-accent); font: 780 8px/1 ui-sans-serif, system-ui; letter-spacing: .8px; text-transform: uppercase; }
-.storefront-hero__feature strong { display: block; margin-top: 5px; color: #f2faf7; font: 780 18px/1.05 ui-sans-serif, system-ui; }
-.storefront-hero__feature p { margin: 5px 0 0; color: #9cb2ac; font: 560 9px/1.35 ui-sans-serif, system-ui; }
 .storefront-filterbar { min-height: 44px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 10px; margin-top: 6px; }
 .storefront-filterbar__rail { min-width: 0; display: flex; gap: 7px; overflow-x: auto; scrollbar-width: none; }
 .storefront-filterbar__rail::-webkit-scrollbar { display: none; }
@@ -428,7 +424,6 @@
   .storefront-topbar { grid-template-columns: 1fr minmax(300px, 1fr); }
   .storefront-topbar__status { display: none; }
   .storefront-hero__copy { width: 64%; padding-left: 30px; }
-  .storefront-hero__feature { width: 30%; }
   .storefront-model-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
   .storefront-model-card:nth-child(n+5) { display: none; }
   .storefront-category-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
@@ -453,7 +448,6 @@
   .storefront-hero__copy { width: 74%; padding: 28px 0 28px 26px; }
   .storefront-hero h1 { font-size: clamp(29px, 6vw, 42px); }
   .storefront-hero__backdrop-subject { width: 72%; right: -12%; opacity: .78; }
-  .storefront-hero__feature { right: 16px; bottom: 14px; width: 36%; }
   .storefront-model-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
   .storefront-model-card:nth-child(n+4) { display: none; }
   .storefront-category-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
@@ -480,7 +474,6 @@
   }
   .storefront-hero__copy { position: absolute; left: 18px; right: 18px; bottom: 18px; width: auto; padding: 0; }
   .storefront-hero h1 { max-width: 14ch; font-size: clamp(30px, 9vw, 40px); }
-  .storefront-hero__feature { display: none; }
   .storefront-hero__metrics {
     width: 100%;
     overflow-x: auto;
