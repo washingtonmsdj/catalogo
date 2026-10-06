@@ -57,6 +57,21 @@ Antes de publicar um lote novo ou complementar, use o planejador de galeria:
 python tools/plan_gallery_merge.py ".catalog-ingest/manifest.jsonl" ".external-ingest/manifest.jsonl" --output ".external-ingest/gallery-merge-plan.json"
 ```
 
+Quando um produto da entrada já corresponde a um modelo público existente, use um **mapa explícito de identidade** em CSV, nunca heurística de nome:
+
+```csv
+incoming_model,target_model
+fonte / produto-abc,Games / Saga / Heroi / modelo-publico-01
+```
+
+```bash
+python tools/plan_gallery_merge.py ".catalog-ingest/manifest.jsonl" ".external-ingest/manifest.jsonl" \
+  --mapping ".external-ingest/model-identity-map.csv" \
+  --output ".external-ingest/gallery-merge-plan.json"
+```
+
+O mapa é fail-closed: origem inexistente, alvo inexistente, origem duplicada ou dois produtos diferentes apontando para o mesmo modelo público interrompem o planejamento.
+
 A política é fail-closed:
 
 - SHA-256 igual: não republicar a mesma imagem;
