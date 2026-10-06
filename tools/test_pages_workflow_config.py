@@ -40,6 +40,14 @@ class PagesWorkflowConfigTests(unittest.TestCase):
         self.assertIn("Missing required Repository Variables", self.workflow)
         self.assertIn("exit 1", self.workflow)
 
+    def test_catalog_uses_first_party_api_proxy_only_on_acheguese_domain(self):
+        root = Path(__file__).resolve().parents[1]
+        source = (root / "src" / "services" / "catalogApi.ts").read_text(encoding="utf-8")
+        self.assertIn("hostname === 'acheguese.com.br'", source)
+        self.assertIn("hostname === 'www.acheguese.com.br'", source)
+        self.assertIn("${window.location.origin}/catalogo-api", source)
+        self.assertIn("return configuredApiBase", source)
+
     def test_published_brand_assets_are_validated_from_ssot(self):
         required = [
             "config/brand.json",
