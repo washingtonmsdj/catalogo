@@ -261,10 +261,14 @@ def production_lookup_statements(rows: list[dict[str, Any]], chunk_size: int = 2
         placeholders = ",".join("?" for _ in chunk)
         statements.append({
             "sql": f"""SELECT
-m.id,m.slug,m.code,c.slug AS category_slug,f.slug AS franchise_slug
+m.id,m.slug,m.code,m.name,m.collection,
+COALESCE(cf.path,'') AS folder_path,
+m.image_count,m.cover_storage_key,m.gallery_manifest_key,m.gallery_version,
+c.slug AS category_slug,f.slug AS franchise_slug
 FROM models m
 JOIN franchises f ON f.id=m.franchise_id
 JOIN categories c ON c.id=f.category_id
+LEFT JOIN catalog_folders cf ON cf.id=m.folder_id
 WHERE m.id IN ({placeholders})
    OR m.slug IN ({placeholders})
    OR m.code IN ({placeholders})""",
@@ -343,6 +347,21 @@ def validate_production_compatibility(
             raise RuntimeError(
                 f"franquia de modelo publicado mudaria sem migração explícita: {model_id}: "
                 f"{current.get('franchise_slug')!r} -> {franchise_slug!r}"
+            )
+        if str(current.get("name") or "") != str(candidate["displayName"]).strip():
+            raise RuntimeError(
+                f"nome de modelo publicado mudaria sem migração explícita: {model_id}: "
+                f"{current.get('name')!r} -> {candidate['displayName']!r}"
+            )
+        if str(current.get("collection") or "") != str(candidate.get("collection") or ""):
+            raise RuntimeError(
+                f"coleção de modelo publicado mudaria sem migração explícita: {model_id}: "
+                f"{current.get('collection')!r} -> {candidate.get('collection')!r}"
+            )
+        if str(current.get("folder_path") or "") != str(candidate.get("folderPathKey") or ""):
+            raise RuntimeError(
+                f"pasta de modelo publicado mudaria sem migração explícita: {model_id}: "
+                f"{current.get('folder_path')!r} -> {candidate.get('folderPathKey')!r}"
             )
         if slug_owner is not None and str(slug_owner["id"]) != model_id:
             raise RuntimeError(f"slug pertence a outro modelo publicado: {slug} -> {slug_owner['id']}")
