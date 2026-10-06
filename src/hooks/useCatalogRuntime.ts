@@ -469,7 +469,11 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
     let cancelled = false
     setLoading(true)
     setError('')
-    listCatalogImages(selected.slug, { page: pageIndex, limit: GALLERY_PAGE_SIZE })
+    listCatalogImages(selected.slug, {
+      page: pageIndex,
+      limit: GALLERY_PAGE_SIZE,
+      version: selected.galleryVersion,
+    })
       .then((page) => {
         if (cancelled) return
         const totalPages = Math.max(1, Math.ceil(page.total / GALLERY_PAGE_SIZE))
@@ -488,7 +492,7 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [mode, open, selected.id, selected.slug, pageIndex])
+  }, [mode, open, selected.id, selected.slug, selected.galleryVersion, pageIndex])
 
   const demoTotal = selected.galleryCount
   const demoStart = pageIndex * GALLERY_PAGE_SIZE
