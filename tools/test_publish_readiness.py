@@ -83,6 +83,54 @@ class PublishReadinessTests(unittest.TestCase):
             self.assertEqual(result["objects"], 4)
             self.assertEqual(result["requiredKeys"], 4)
 
+    def test_multi_image_gallery_requires_matching_count_and_all_variants(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            models_path, _ = self.make_bundle(Path(tmp))
+            r2 = models_path.parent / "r2"
+            second_media = r2 / "media" / "mdl-1" / "img-2"
+            second_media.mkdir(parents=True)
+            (second_media / "thumb.webp").write_bytes(b"thumb-2")
+            (second_media / "card.webp").write_bytes(b"card-2")
+            (second_media / "detail.webp").write_bytes(b"detail-2")
+
+            manifest_path = r2 / "gallery" / "mdl-1" / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["images"].append({
+                "variantKeys": {
+                    "thumb": "media/mdl-1/img-2/thumb.webp",
+                    "card": "media/mdl-1/img-2/card.webp",
+                    "detail": "media/mdl-1/img-2/detail.webp",
+                }
+            })
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            row = model()
+            row["imageCount"] = 2
+            models_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            rows = load_models(models_path)
+            state_path = self.write_complete_state(models_path)
+
+            result = validate_r2_ready(models_path, rows, state_path)
+            self.assertTrue(result["ready"])
+            self.assertEqual(result["objects"], 7)
+            self.assertEqual(result["requiredKeys"], 7)
+
+            (second_media / "detail.webp").unlink()
+            with self.assertRaisesRegex(RuntimeError, "bundle R2 incompleto"):
+                validate_r2_ready(models_path, rows, state_path)
+
+    def test_multi_image_gallery_rejects_manifest_count_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            models_path, _ = self.make_bundle(Path(tmp))
+            row = model()
+            row["imageCount"] = 2
+            models_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            rows = load_models(models_path)
+            state_path = self.write_complete_state(models_path)
+
+            with self.assertRaisesRegex(RuntimeError, "quantidade de imagens divergente"):
+                validate_r2_ready(models_path, rows, state_path)
+
     def test_partial_checkpoint_blocks_d1_gate(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             models_path, rows = self.make_bundle(Path(tmp))
