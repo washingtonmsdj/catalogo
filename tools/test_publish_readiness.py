@@ -42,14 +42,18 @@ class PublishReadinessTests(unittest.TestCase):
         (media / "card.webp").write_bytes(b"card")
         (media / "detail.webp").write_bytes(b"detail")
         manifest = {
+            "version": 1,
             "modelId": manifest_model_id,
             "images": [
                 {
+                    "id": "img-1",
+                    "role": "cover",
+                    "sourceSha256": "a" * 64,
                     "variantKeys": {
                         "thumb": "media/mdl-1/img-1/thumb.webp",
                         "card": "media/mdl-1/img-1/card.webp",
                         "detail": "media/mdl-1/img-1/detail.webp",
-                    }
+                    },
                 }
             ],
         }
@@ -96,11 +100,14 @@ class PublishReadinessTests(unittest.TestCase):
             manifest_path = r2 / "gallery" / "mdl-1" / "manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             manifest["images"].append({
+                "id": "img-2",
+                "role": "gallery",
+                "sourceSha256": "b" * 64,
                 "variantKeys": {
                     "thumb": "media/mdl-1/img-2/thumb.webp",
                     "card": "media/mdl-1/img-2/card.webp",
                     "detail": "media/mdl-1/img-2/detail.webp",
-                }
+                },
             })
             manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
 
@@ -129,6 +136,94 @@ class PublishReadinessTests(unittest.TestCase):
             state_path = self.write_complete_state(models_path)
 
             with self.assertRaisesRegex(RuntimeError, "quantidade de imagens divergente"):
+                validate_r2_ready(models_path, rows, state_path)
+
+    def test_gallery_version_mismatch_blocks_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            models_path, rows = self.make_bundle(Path(tmp))
+            manifest_path = models_path.parent / "r2" / "gallery" / "mdl-1" / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["version"] = 2
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            state_path = self.write_complete_state(models_path)
+
+            with self.assertRaisesRegex(RuntimeError, "versão de galeria divergente"):
+                validate_r2_ready(models_path, rows, state_path)
+
+    def test_duplicate_image_id_blocks_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            models_path, _ = self.make_bundle(Path(tmp))
+            r2 = models_path.parent / "r2"
+            second_media = r2 / "media" / "mdl-1" / "img-2"
+            second_media.mkdir(parents=True)
+            for name in ("thumb.webp", "card.webp", "detail.webp"):
+                (second_media / name).write_bytes(name.encode())
+
+            manifest_path = r2 / "gallery" / "mdl-1" / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["images"].append({
+                "id": "img-1",
+                "role": "gallery",
+                "sourceSha256": "b" * 64,
+                "variantKeys": {
+                    "thumb": "media/mdl-1/img-2/thumb.webp",
+                    "card": "media/mdl-1/img-2/card.webp",
+                    "detail": "media/mdl-1/img-2/detail.webp",
+                },
+            })
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            row = model()
+            row["imageCount"] = 2
+            models_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            rows = load_models(models_path)
+            state_path = self.write_complete_state(models_path)
+
+            with self.assertRaisesRegex(RuntimeError, "id de imagem vazio/duplicado"):
+                validate_r2_ready(models_path, rows, state_path)
+
+    def test_multiple_covers_block_gate(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            models_path, _ = self.make_bundle(Path(tmp))
+            r2 = models_path.parent / "r2"
+            second_media = r2 / "media" / "mdl-1" / "img-2"
+            second_media.mkdir(parents=True)
+            for name in ("thumb.webp", "card.webp", "detail.webp"):
+                (second_media / name).write_bytes(name.encode())
+
+            manifest_path = r2 / "gallery" / "mdl-1" / "manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["images"].append({
+                "id": "img-2",
+                "role": "cover",
+                "sourceSha256": "b" * 64,
+                "variantKeys": {
+                    "thumb": "media/mdl-1/img-2/thumb.webp",
+                    "card": "media/mdl-1/img-2/card.webp",
+                    "detail": "media/mdl-1/img-2/detail.webp",
+                },
+            })
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            row = model()
+            row["imageCount"] = 2
+            models_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            rows = load_models(models_path)
+            state_path = self.write_complete_state(models_path)
+
+            with self.assertRaisesRegex(RuntimeError, "exatamente uma capa"):
+                validate_r2_ready(models_path, rows, state_path)
+
+    def test_cover_storage_key_must_match_manifest_cover(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            models_path, _ = self.make_bundle(Path(tmp))
+            row = model()
+            row["coverStorageKey"] = "media/mdl-1/img-1/thumb.webp"
+            models_path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+            rows = load_models(models_path)
+            state_path = self.write_complete_state(models_path)
+
+            with self.assertRaisesRegex(RuntimeError, "coverStorageKey diverge"):
                 validate_r2_ready(models_path, rows, state_path)
 
     def test_partial_checkpoint_blocks_d1_gate(self) -> None:
