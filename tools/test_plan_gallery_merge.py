@@ -1,6 +1,8 @@
+import tempfile
 import unittest
+from pathlib import Path
 
-from plan_gallery_merge import plan_gallery_merge
+from plan_gallery_merge import plan_gallery_merge, read_identity_mapping
 
 
 def row(
@@ -93,6 +95,88 @@ class GalleryMergePlannerTests(unittest.TestCase):
         plan = plan_gallery_merge([], incoming)
 
         self.assertEqual(plan["counts"], {"add_view": 1, "skip_exact": 1})
+
+
+    def test_explicit_identity_mapping_matches_external_product_to_existing_model(self):
+        existing_model = "Games / Saga / Heroi / modelo-publico-01"
+        incoming_model = "fonte / produto-abc"
+        existing = [row("catalogo/frente.jpg", "a" * 64, "0000000000000000", 60, model=existing_model)]
+        incoming = [row("fonte-externa/frente-hq.png", "b" * 64, "0000000000000001", 95, model=incoming_model, width=1800, height=2700)]
+
+        plan = plan_gallery_merge(
+            existing,
+            incoming,
+            identity_mapping={incoming_model: existing_model},
+        )
+
+        self.assertEqual(plan["identityMappings"], 1)
+        self.assertEqual(plan["modelsTouched"], 1)
+        action = plan["actions"][0]
+        self.assertEqual(action["model"], existing_model)
+        self.assertEqual(action["sourceModel"], incoming_model)
+        self.assertEqual(action["action"], "review_visual_candidate")
+        self.assertEqual(action["recommendedSource"], "incoming")
+
+    def test_identity_mapping_fails_when_target_does_not_exist(self):
+        incoming_model = "fonte / produto-abc"
+        incoming = [row("fonte-externa/frente.jpg", "a" * 64, "0000000000000000", 80, model=incoming_model)]
+
+        with self.assertRaisesRegex(RuntimeError, "alvos do mapa ausentes"):
+            plan_gallery_merge(
+                [],
+                incoming,
+                identity_mapping={incoming_model: "Games / Ausente / modelo-01"},
+            )
+
+    def test_identity_mapping_fails_when_source_is_not_in_incoming_manifest(self):
+        existing_model = "Games / Saga / Heroi / modelo-publico-01"
+        existing = [row("catalogo/frente.jpg", "a" * 64, "0000000000000000", 80, model=existing_model)]
+
+        with self.assertRaisesRegex(RuntimeError, "origens do mapa ausentes"):
+            plan_gallery_merge(
+                existing,
+                [],
+                identity_mapping={"fonte / produto-inexistente": existing_model},
+            )
+
+    def test_identity_mapping_rejects_two_products_to_same_public_model(self):
+        existing_model = "Games / Saga / Heroi / modelo-publico-01"
+        incoming_a = "fonte / produto-a"
+        incoming_b = "fonte / produto-b"
+        existing = [row("catalogo/frente.jpg", "a" * 64, "0000000000000000", 80, model=existing_model)]
+        incoming = [
+            row("fonte-externa/a.jpg", "b" * 64, "ffffffffffffffff", 80, model=incoming_a),
+            row("fonte-externa/b.jpg", "c" * 64, "aaaaaaaaaaaaaaaa", 80, model=incoming_b),
+        ]
+
+        with self.assertRaisesRegex(RuntimeError, "produtos diferentes"):
+            plan_gallery_merge(
+                existing,
+                incoming,
+                identity_mapping={incoming_a: existing_model, incoming_b: existing_model},
+            )
+
+    def test_mapping_csv_is_fail_closed_and_unique(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "mapping.csv"
+            path.write_text(
+                "incoming_model,target_model\n"
+                "fonte / produto-a,Games / Saga / Heroi / modelo-a\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(
+                read_identity_mapping(path),
+                {"fonte / produto-a": "Games / Saga / Heroi / modelo-a"},
+            )
+
+            path.write_text(
+                "incoming_model,target_model\n"
+                "fonte / produto-a,Games / Saga / Heroi / modelo-a\n"
+                "fonte / produto-b,Games / Saga / Heroi / modelo-a\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "produtos diferentes"):
+                read_identity_mapping(path)
 
 
 if __name__ == "__main__":
