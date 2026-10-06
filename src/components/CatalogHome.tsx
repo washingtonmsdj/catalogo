@@ -73,6 +73,7 @@ function ModelCard({ model, favorite, active, priority = false, categoryLabel, o
           <small>{model.franchise || 'Catálogo'}</small>
           <span className="storefront-model-card__meta"><b>{model.code}</b><i aria-hidden="true" /><span>{imageCountLabel(model.galleryCount)}</span></span>
         </span>
+        <span className="storefront-model-card__open" aria-hidden="true"><Icon name="chevron" /></span>
       </button>
       <button type="button" className={`storefront-model-card__heart ${favorite ? 'is-active' : ''}`} onClick={onFavorite} aria-label={favorite ? `Remover ${model.name} dos favoritos` : `Favoritar ${model.name}`} aria-pressed={favorite}>
         <Icon name="heart" />
@@ -416,23 +417,18 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               <button type="button" className="storefront-hero__nav storefront-hero__nav--next" onClick={showNextHeroCampaign} aria-label="Próxima coleção em destaque"><Icon name="chevron" /></button>
             </>}
             <div className="storefront-hero__copy">
-              <span className="storefront-hero__eyebrow"><Icon name="star" /> Acervo digital organizado</span>
+              <span className="storefront-hero__eyebrow"><Icon name="star" /> Destaque · {heroCampaignCategory?.label ?? 'Acervo digital'}</span>
               <h1>Encontre o modelo certo <em>sem se perder no catálogo.</em></h1>
               <p>Explore por franquia, personagem ou categoria, abra cada ficha e compare as vistas disponíveis antes de adicionar o modelo à sua lista.</p>
               <div className="storefront-hero__metrics" aria-label="Resumo do acervo">
                 <span><strong>{formatter.format(catalogTotal)}</strong><small>modelos</small></span>
                 <span><strong>{formatter.format(publicCategories.length)}</strong><small>categorias</small></span>
-                <span><strong>{catalog.loading ? '—' : formatter.format(models.length)}</strong><small>nesta página</small></span>
+                <span><strong>{heroCampaignCategory ? formatter.format(heroCampaignCategory.count) : '—'}</strong><small>na coleção</small></span>
               </div>
               <div className="storefront-hero__actions">
                 <button type="button" className="storefront-button storefront-button--primary" onClick={exploreHeroCampaign}>Explorar coleção <Icon name="chevron" /></button>
                 <button type="button" className="storefront-button storefront-button--ghost" onClick={() => onOpenExplorer()}><Icon name="grid" /> Ver franquias</button>
               </div>
-            </div>
-            <div className="storefront-hero__feature">
-              <span>COLEÇÃO EM DESTAQUE</span>
-              <strong>{heroCampaignCategory?.label ?? `Acervo ${BRAND_SHORT_NAME}`}</strong>
-              <p>{formatter.format(heroCampaignCategory?.count ?? catalogTotal)} modelos organizados para explorar.</p>
             </div>
             {heroCampaigns.length > 1 && (
               <div className="storefront-hero__dots" aria-label="Coleções em destaque">
