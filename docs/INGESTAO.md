@@ -39,6 +39,8 @@ Arquivos vazios, ilegíveis ou com formato inválido ficam com `status=ERRO` e p
 
 No modo `--audit-registry`, a coluna `modelo_publico` é a identidade estável do modelo dentro da sua hierarquia. **Todas as imagens que pertencem ao mesmo produto/modelo devem compartilhar o mesmo `modelo_publico`**. Assim, frente, costas, laterais e detalhes continuam como imagens distintas de uma única ficha pública.
 
+O inverso também é obrigatório: **produtos 3D diferentes do mesmo personagem precisam ter `modelo_publico` diferentes**. Nome de personagem, pasta e franquia não são suficientes para agrupar. Isso evita, por exemplo, transformar dezenas de esculturas diferentes de um mesmo personagem em uma única galeria.
+
 Quando `modelo_publico` estiver vazio, o importador mantém o comportamento legado e usa o nome-base do arquivo como identidade, preservando compatibilidade com o catálogo já publicado. Esse fallback não deve ser usado para novos lotes do fonte externa.
 
 Antes de publicar um lote novo ou complementar, use o planejador de galeria:
