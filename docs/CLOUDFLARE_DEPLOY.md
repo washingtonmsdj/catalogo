@@ -100,6 +100,20 @@ Para auditorias completas após publicação, use `--exhaustive`:
 python tools/verify_public_catalog.py --api-base https://<worker> --media-base https://<origem-publica-r2> --exhaustive
 ```
 
+Para validar também galerias com múltiplas imagens, há dois modos adicionais. Uma amostra determinística dos modelos com maior `image_count`:
+
+```powershell
+python tools/verify_public_catalog.py --api-base https://<worker> --media-base https://<origem-publica-r2> --exhaustive --gallery-sample 20
+```
+
+Após uma integração de galerias, o gate final recomendado é auditar **todas** as fichas multi-imagem:
+
+```powershell
+python tools/verify_public_catalog.py --api-base https://<worker> --media-base https://<origem-publica-r2> --exhaustive --all-galleries
+```
+
+Esse modo confere `total == image_count`, `version == gallery_version`, paginação sem ciclo, IDs de imagens únicos e uma única capa na primeira posição.
+
 O modo exaustivo percorre todas as páginas do catálogo e falha se encontrar total divergente, paginação cíclica, ID/slug/código duplicado, modelo sem capa, modelo sem imagem, categoria desconhecida ou contagem por categoria incompatível com `/api/categories`. Ele não baixa todas as imagens; o smoke inicial continua provando que a origem pública de mídia serve uma capa real.
 
 ## Turnstile
