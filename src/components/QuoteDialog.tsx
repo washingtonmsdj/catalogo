@@ -17,6 +17,7 @@ type Props = {
   turnstileResetKey: number
   onClose: () => void
   onRemove: (id: string) => void
+  onOpenModel: (id: string) => void
   onSubmit: FormEventHandler<HTMLFormElement>
   onDismissSuccess: () => void
 }
@@ -36,6 +37,7 @@ export function QuoteDialog({
   turnstileResetKey,
   onClose,
   onRemove,
+  onOpenModel,
   onSubmit,
   onDismissSuccess,
 }: Props) {
@@ -91,12 +93,18 @@ export function QuoteDialog({
                   {ids.map((id, index) => (
                     <article key={id}>
                       <span>{String(index + 1).padStart(2, '0')}</span>
-                      <div>
-                        <strong>{knownModels[id]?.name ?? 'Modelo selecionado'}</strong>
-                        <small>{knownModels[id]?.slug ? 'Modelo do catálogo' : 'Referência preservada'}</small>
-                      </div>
                       <button
                         type="button"
+                        className="quote-request-item__open"
+                        disabled={!knownModels[id]?.slug}
+                        onClick={() => onOpenModel(id)}
+                      >
+                        <strong>{knownModels[id]?.name ?? 'Modelo selecionado'}</strong>
+                        <small>{knownModels[id]?.slug ? 'Abrir ficha para revisar ↗' : 'Referência preservada'}</small>
+                      </button>
+                      <button
+                        type="button"
+                        className="quote-request-item__remove"
                         aria-label={`Remover ${knownModels[id]?.name ?? id} da solicitação`}
                         onClick={() => onRemove(id)}
                       >
