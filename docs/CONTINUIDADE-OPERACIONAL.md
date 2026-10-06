@@ -218,8 +218,10 @@ Executar nesta ordem, sem pular etapas:
    - `tools/plan_gallery_merge.py`;
    - `tools/build_media_bundle.py`;
    - validar variantes e manifestos;
+   - executar `tools/publish_d1.py models.jsonl --check-production` em modo somente leitura **antes do R2**;
+   - bloquear qualquer colisão de ID/slug/código ou mudança implícita de categoria/franquia;
    - publicar delta no R2;
-   - somente depois publicar/upsert no D1.
+   - executar `tools/publish_d1.py ... --apply`, que revalida produção e o gate R2 antes dos upserts.
 
 7. **Validar produção**
    - modelos novos e modelos atualizados;
@@ -261,7 +263,7 @@ Executar nesta ordem, sem pular etapas:
 - `tools/verify_gallery_promotion_manifest.py` — valida resolução, CSV, caminhos e SHA dos arquivos antes da cópia;
 - `tools/build_media_bundle.py` — galeria, variantes e identidade estável;
 - `tools/publish_r2.py` — upload incremental de mídia;
-- `tools/publish_d1.py` — upsert idempotente após gate R2;
+- `tools/publish_d1.py` — preflight read-only de identidade em produção + upsert idempotente após revalidação e gate R2;
 - `tools/verify_public_catalog.py` — validação pública;
 - `docs/INGESTAO.md` — contrato da ingestão;
 - `docs/MIDIA-R2.md` — contrato de mídia e galeria;
