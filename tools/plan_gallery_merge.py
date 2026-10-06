@@ -207,7 +207,7 @@ def plan_gallery_merge(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Planeja mescla de galerias sem alterar catálogo, STL Forge ou R2."
+        description="Planeja mescla de galerias sem alterar catálogo, fonte externa ou R2."
     )
     parser.add_argument("existing", type=Path, help="manifest.jsonl do catálogo atual")
     parser.add_argument("incoming", type=Path, help="manifest.jsonl das imagens a integrar")
