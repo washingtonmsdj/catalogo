@@ -412,6 +412,7 @@ export default function App() {
         turnstileResetKey={turnstileResetKey}
         onClose={() => setQuoteOpen(false)}
         onRemove={safeToggleQuote}
+        onOpenModel={(id) => openKnownModel(id, () => setQuoteOpen(false))}
         onSubmit={submitQuote}
         onDismissSuccess={() => { setSent(false); setQuoteOpen(false) }}
       />
