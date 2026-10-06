@@ -446,7 +446,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               <button type="button" className="storefront-hero__nav storefront-hero__nav--next" onClick={showNextHeroCampaign} aria-label="Próxima coleção em destaque"><Icon name="chevron" /></button>
             </>}
             <div className="storefront-hero__copy">
-              <span className="storefront-hero__eyebrow"><Icon name="star" /> Destaque · {heroCampaignCategory?.label ?? 'Acervo digital'}</span>
+              <span className="storefront-hero__eyebrow"><Icon name="star" /> Destaque · {heroCampaignCategory?.label ?? `Acervo ${BRAND_SHORT_NAME}`}</span>
               <h1>Encontre o modelo certo <em>sem se perder no catálogo.</em></h1>
               <p>Explore por franquia, personagem ou categoria, abra cada ficha e compare as vistas disponíveis antes de adicionar o modelo à sua lista.</p>
               <div className="storefront-hero__metrics" aria-label="Resumo do acervo">
