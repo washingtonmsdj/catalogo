@@ -427,7 +427,8 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             )}
           </section>
 
-          {!resultsMode && <section className="storefront-section storefront-section--categories">
+          {!resultsMode && <>
+          <section className="storefront-section storefront-section--categories">
             <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="grid" /></span><div><h2>Categorias</h2><p>Explore o acervo por temática.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todas <Icon name="chevron" /></button></div>
             <div className="storefront-category-grid">{categoryTiles.map((category) => <CategoryTile key={category.id} category={category} cover={coverForCategory(category)} active={catalog.category === category.id} onSelect={() => catalog.setCategory(category.id)} />)}</div>
           </section>
@@ -442,10 +443,11 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             </section>
 
             <section className="storefront-section storefront-section--compact">
-              <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" disabled={!catalog.hasPreviousPage} onClick={catalog.goPreviousPage}>‹</button><button type="button" disabled={!catalog.hasNextPage} onClick={catalog.goNextPage}>›</button></div></div>
+              <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" disabled={!catalog.hasPreviousPage} onClick={previousCatalogPage}>‹</button><button type="button" disabled={!catalog.hasNextPage} onClick={nextCatalogPage}>›</button></div></div>
               <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div>
             </section>
-          </div>}
+          </div>
+          </>}
 
           <footer className="storefront-footer"><span role="status" aria-live="polite"><b className={`is-${runtimeStatus.tone}`} />{runtimeStatus.label}</span><strong>{formatter.format(catalogTotal)} modelos organizados</strong><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b> <Icon name="chevron" /></button></footer>
         </main>
