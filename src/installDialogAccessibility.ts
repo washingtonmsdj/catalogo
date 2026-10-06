@@ -27,6 +27,8 @@ export function installDialogAccessibility() {
   const returnFocus = new WeakMap<HTMLElement, HTMLElement>()
   let focusFrame = 0
   let bodyOverflowBeforeDialog: string | null = null
+  const dialogStackState = new WeakMap<HTMLElement, { ariaHidden: string | null; inert: boolean }>()
+  const managedDialogs = new Set<HTMLElement>()
 
   const focusInside = (dialog: HTMLElement, preferred?: HTMLElement | null) => {
     window.cancelAnimationFrame(focusFrame)
@@ -44,8 +46,43 @@ export function installDialogAccessibility() {
     })
   }
 
+  const restoreDialogStackState = (dialog: HTMLElement) => {
+    const original = dialogStackState.get(dialog)
+    if (!original) return
+    if (original.ariaHidden === null) dialog.removeAttribute('aria-hidden')
+    else dialog.setAttribute('aria-hidden', original.ariaHidden)
+    if (original.inert) dialog.setAttribute('inert', '')
+    else dialog.removeAttribute('inert')
+  }
+
+  const syncDialogStack = (dialogs: HTMLElement[], nextDialog: HTMLElement | null) => {
+    for (const managed of Array.from(managedDialogs)) {
+      if (dialogs.includes(managed)) continue
+      restoreDialogStackState(managed)
+      managedDialogs.delete(managed)
+    }
+
+    for (const dialog of dialogs) {
+      if (!dialogStackState.has(dialog)) {
+        dialogStackState.set(dialog, {
+          ariaHidden: dialog.getAttribute('aria-hidden'),
+          inert: dialog.hasAttribute('inert'),
+        })
+      }
+      managedDialogs.add(dialog)
+      if (dialog === nextDialog) {
+        restoreDialogStackState(dialog)
+      } else {
+        dialog.setAttribute('aria-hidden', 'true')
+        dialog.setAttribute('inert', '')
+      }
+    }
+  }
+
   const syncDialog = () => {
-    const nextDialog = visibleDialogs().at(-1) ?? null
+    const dialogs = visibleDialogs()
+    const nextDialog = dialogs.at(-1) ?? null
+    syncDialogStack(dialogs, nextDialog)
 
     if (nextDialog && bodyOverflowBeforeDialog === null) {
       bodyOverflowBeforeDialog = document.body.style.overflow
