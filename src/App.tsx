@@ -112,6 +112,7 @@ export default function App() {
   const [recentIds, setRecentIds] = useState<string[]>(() => loadStoredIds('tonecos:recent-models', MAX_RECENT_MODELS))
   const [knownModels, setKnownModels] = useState<Record<string, KnownModelSummary>>(loadKnownModels)
   const [explorerOpen, setExplorerOpen] = useState(false)
+  const [explorerInitialQuery, setExplorerInitialQuery] = useState('')
   const [updatesOpen, setUpdatesOpen] = useState(false)
   const [compareOpen, setCompareOpen] = useState(false)
   const [modelDetailOpen, setModelDetailOpen] = useState(Boolean(initialModelSlug))
@@ -229,6 +230,10 @@ export default function App() {
     window.addEventListener('keydown', handleKey); return () => window.removeEventListener('keydown', handleKey)
   })
 
+  function openExplorer(initialQuery = '') {
+    setExplorerInitialQuery(initialQuery)
+    setExplorerOpen(true)
+  }
   function toggleFavorite(id: string) { setFavorites((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]) }
   function toggleCompare(id: string) {
     setCompareIds((current) => {
@@ -337,7 +342,7 @@ export default function App() {
         searchInputRef={searchInputRef}
         favorites={favorites}
         quoteList={quoteList}
-        onOpenExplorer={() => setExplorerOpen(true)}
+        onOpenExplorer={openExplorer}
         onOpenUpdates={() => setUpdatesOpen(true)}
         onOpenFavorites={() => setFavoritesOpen(true)}
         onOpenQuote={() => setQuoteOpen(true)}
@@ -358,7 +363,7 @@ export default function App() {
         onToggleCompare={() => toggleCompare(selected.id)}
         onToggleQuote={() => safeToggleQuote(selected.id)}
       />
-      <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} />
+      <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} initialQuery={explorerInitialQuery} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} />
 
       <ModelComparison open={compareOpen} mode={catalog.mode} ids={compareIds} knownModels={knownModels} onClose={() => setCompareOpen(false)} onRemove={(id) => setCompareIds((current) => current.filter((item) => item !== id))} onClear={() => setCompareIds([])} onOpenModel={(id) => openKnownModel(id, () => setCompareOpen(false))} onAddToQuote={addComparisonToQuote} />
 
