@@ -61,6 +61,15 @@ export function FranchiseBrowser({
     return () => window.cancelAnimationFrame(frame)
   }, [open, activeCategory])
 
+  useEffect(() => {
+    if (!open) return
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [open, onClose])
+
   const demoItems = useMemo(() => demoFranchises(category, query), [category, query])
   const queryLength = Array.from(query.trim()).length
   const searchPending = mode === 'live' && queryLength > 0 && queryLength < SEARCH_MIN_LENGTH
