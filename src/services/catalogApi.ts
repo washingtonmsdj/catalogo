@@ -193,9 +193,11 @@ export async function listRecentCatalogModels(limit = 12): Promise<CatalogModelC
   return result.items.map(toCatalogModelCard)
 }
 
-export async function getCatalogModel(slug: string): Promise<CatalogModel | null> {
+export async function getCatalogModel(slug: string, galleryVersion?: number): Promise<CatalogModel | null> {
   try {
-    const row = await requestJson<ApiModelRow>(endpoint(`/api/models/${encodeURIComponent(slug)}`))
+    const row = await requestJson<ApiModelRow>(endpoint(`/api/models/${encodeURIComponent(slug)}`, {
+      v: galleryVersion,
+    }))
     return {
       id: row.id,
       slug: row.slug,
