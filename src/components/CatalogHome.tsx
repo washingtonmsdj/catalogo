@@ -332,7 +332,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
           <button type="button" onClick={onOpenFavorites}><Icon name="heart" /><span>Favoritos</span><b>{favorites.length}</b></button>
         </nav>
 
-        <div className="storefront-sidebar__section-head"><span>Franquias</span><button type="button" onClick={onOpenExplorer} aria-label="Explorar todas as franquias">+</button></div>
+        <div className="storefront-sidebar__section-head"><span>Franquias</span><button type="button" onClick={() => onOpenExplorer()} aria-label="Explorar todas as franquias">+</button></div>
         <label className="storefront-franchise-search"><Icon name="search" /><input value={franchiseFilter} onChange={(event) => setFranchiseFilter(event.target.value)} placeholder="Buscar franquias..." /></label>
 
         <div className="storefront-franchise-list" aria-busy={sidebarSearchLoading}>
@@ -376,7 +376,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
 
         <div className="storefront-sidebar__summary">
           <Icon name="grid" /><div><strong>{formatter.format(catalogTotal)}</strong><span>modelos no acervo</span></div>
-          <button type="button" onClick={onOpenExplorer}>Explorar tudo <Icon name="chevron" /></button>
+          <button type="button" onClick={() => onOpenExplorer()}>Explorar tudo <Icon name="chevron" /></button>
         </div>
       </aside>
 
@@ -426,7 +426,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               </div>
               <div className="storefront-hero__actions">
                 <button type="button" className="storefront-button storefront-button--primary" onClick={exploreHeroCampaign}>Explorar coleção <Icon name="chevron" /></button>
-                <button type="button" className="storefront-button storefront-button--ghost" onClick={onOpenExplorer}><Icon name="grid" /> Ver franquias</button>
+                <button type="button" className="storefront-button storefront-button--ghost" onClick={() => onOpenExplorer()}><Icon name="grid" /> Ver franquias</button>
               </div>
             </div>
             <div className="storefront-hero__feature">
@@ -445,7 +445,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             <div className="storefront-filterbar__rail">
               {catalog.categories.slice(0, 12).map((item) => <button type="button" key={item.id} className={catalog.category === item.id ? 'is-active' : ''} aria-pressed={catalog.category === item.id} onClick={() => selectCategory(item.id)}>{item.label}</button>)}
             </div>
-            <button type="button" className="storefront-filterbar__filters" onClick={onOpenExplorer}><Icon name="sliders" /> Filtros <Icon name="chevron" /></button>
+            <button type="button" className="storefront-filterbar__filters" onClick={() => onOpenExplorer()}><Icon name="sliders" /> Filtros <Icon name="chevron" /></button>
           </div>
 
           {catalog.searchPending && (
@@ -514,13 +514,13 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
 
           {!resultsMode && <>
           <section className="storefront-section storefront-section--categories">
-            <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="grid" /></span><div><h2>Categorias</h2><p>Explore o acervo por temática.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todas <Icon name="chevron" /></button></div>
+            <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="grid" /></span><div><h2>Categorias</h2><p>Explore o acervo por temática.</p></div></div><button type="button" onClick={() => onOpenExplorer()}>Ver todas <Icon name="chevron" /></button></div>
             <div className="storefront-category-grid">{categoryTiles.map((category) => <CategoryTile key={category.id} category={category} cover={coverForCategory(category)} active={catalog.category === category.id} onSelect={() => selectCategory(category.id)} />)}</div>
           </section>
 
           <div className="storefront-lower-grid">
             <section id="colecoes" className="storefront-section storefront-section--compact">
-              <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="layers" /></span><div><h2>Coleções populares</h2><p>Navegue pelas coleções organizadas.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todas <Icon name="chevron" /></button></div>
+              <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="layers" /></span><div><h2>Coleções populares</h2><p>Navegue pelas coleções organizadas.</p></div></div><button type="button" onClick={() => onOpenExplorer()}>Ver todas <Icon name="chevron" /></button></div>
               <div className="storefront-franchise-cards">{franchiseCards.map((item) => {
                 const cover = coverForFranchise(item)
                 return <button type="button" key={`${item.category}:${item.id}`} onClick={() => selectFranchise(item)}>{cover && <img src={cover} alt="" loading="lazy" decoding="async" />}<span className="storefront-franchise-cards__shade" /><span><strong>{item.label}</strong><small>{formatter.format(item.count)} modelos</small></span><i><Icon name="chevron" /></i></button>
