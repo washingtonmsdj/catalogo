@@ -121,6 +121,18 @@ O CSV contém:
 
 Esse manifesto **não contém caminho físico de destino por projeto** e não altera arquivos. O PowerShell local deve resolver o destino usando a árvore auditada atual, verificar o SHA da origem imediatamente antes de copiar e falhar se houver divergência, ambiguidade ou colisão. `replace_existing` significa superseder na publicação; não autoriza deletar o mestre antigo.
 
+
+Antes de qualquer cópia local, valide o CSV contra a resolução e contra os bytes atuais da fonte:
+
+```bash
+python tools/verify_gallery_promotion_manifest.py \
+  ".external-ingest/gallery-merge-resolution.json" \
+  ".external-ingest/gallery-promotions.csv" \
+  --source-root "/caminho/real/da/fonte"
+```
+
+O verificador exige correspondência exata das autorizações com a resolução, confere `resolution_sha256`, bloqueia caminhos que escapem da raiz autorizada e recalcula o SHA-256 de cada arquivo. Só um resultado com `ready=true` autoriza a etapa de cópia.
+
 A política é fail-closed:
 
 - SHA-256 igual: não republicar a mesma imagem;
