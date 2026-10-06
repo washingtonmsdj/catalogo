@@ -20,7 +20,7 @@ type CatalogHomeProps = {
   searchInputRef: RefObject<HTMLInputElement | null>
   favorites: string[]
   quoteList: string[]
-  onOpenExplorer: () => void
+  onOpenExplorer: (initialQuery?: string) => void
   onOpenUpdates: () => void
   onOpenFavorites: () => void
   onOpenQuote: () => void
@@ -117,6 +117,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const [sidebarSearchItems, setSidebarSearchItems] = useState<CatalogFranchise[]>([])
   const [sidebarSearchLoading, setSidebarSearchLoading] = useState(false)
   const [sidebarSearchError, setSidebarSearchError] = useState('')
+  const [sidebarSearchTruncated, setSidebarSearchTruncated] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [expandedFranchiseKey, setExpandedFranchiseKey] = useState<string | null>(null)
   const [heroCampaignIndex, setHeroCampaignIndex] = useState(0)
@@ -172,6 +173,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
       setSidebarSearchItems([])
       setSidebarSearchLoading(false)
       setSidebarSearchError('')
+      setSidebarSearchTruncated(false)
       return
     }
 
@@ -179,14 +181,18 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
     setSidebarSearchItems([])
     setSidebarSearchLoading(true)
     setSidebarSearchError('')
+    setSidebarSearchTruncated(false)
     const timer = window.setTimeout(() => {
       listCatalogFranchises(catalog.category, 24, franchiseFilter.trim())
         .then((page) => {
-          if (!cancelled) setSidebarSearchItems(page.items)
+          if (cancelled) return
+          setSidebarSearchItems(page.items)
+          setSidebarSearchTruncated(page.truncated)
         })
         .catch(() => {
           if (cancelled) return
           setSidebarSearchItems([])
+          setSidebarSearchTruncated(false)
           setSidebarSearchError('Não foi possível pesquisar todas as franquias agora.')
         })
         .finally(() => {
@@ -361,6 +367,11 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               </div>
             )
           })}
+          {!sidebarSearchLoading && sidebarRemoteSearch && !sidebarSearchError && (visibleFranchises.length > 12 || sidebarSearchTruncated) && (
+            <button type="button" className="storefront-franchise-more" onClick={() => onOpenExplorer(franchiseFilter.trim())}>
+              Ver mais resultados <Icon name="chevron" />
+            </button>
+          )}
         </div>
 
         <div className="storefront-sidebar__summary">
