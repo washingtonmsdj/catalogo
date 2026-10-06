@@ -434,7 +434,7 @@ async function getModel(request: Request, slug: string, env: Env) {
     LEFT JOIN catalog_folders cf ON cf.id=m.folder_id
     WHERE m.slug=? AND m.published=1 LIMIT 1`).bind(slug).first()
   return model
-    ? json(request, env, model, {}, 'public, max-age=300, s-maxage=1800')
+    ? json(request, env, model, {}, 'public, max-age=30, s-maxage=120')
     : json(request, env, { error: 'model_not_found' }, { status: 404 })
 }
 
