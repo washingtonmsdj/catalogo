@@ -66,8 +66,20 @@ type GalleryCacheEntry = {
   promise: Promise<GalleryPage>
 }
 
-const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
+const configuredApiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
 const mediaBase = (import.meta.env.VITE_MEDIA_BASE_URL as string | undefined)?.replace(/\/$/, '')
+
+function resolveApiBase() {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname.toLocaleLowerCase('en-US')
+    if (hostname === 'acheguese.com.br' || hostname === 'www.acheguese.com.br') {
+      return `${window.location.origin}/catalogo-api`
+    }
+  }
+  return configuredApiBase
+}
+
+const apiBase = resolveApiBase()
 const GALLERY_PAGE_CACHE_LIMIT = 40
 const GALLERY_PAGE_CACHE_TTL_MS = 5 * 60 * 1000
 const galleryPageCache = new Map<string, GalleryCacheEntry>()
