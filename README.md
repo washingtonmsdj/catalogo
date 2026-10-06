@@ -4,6 +4,8 @@ Catálogo web escalável para 100 mil+ modelos/personagens, com navegação insp
 
 **Preview público:** https://washingtonmsdj.github.io/catalogo/
 
+> **Retomando o projeto em outra conversa/sessão?** Leia primeiro [`docs/CONTINUIDADE-OPERACIONAL.md`](docs/CONTINUIDADE-OPERACIONAL.md). Esse arquivo é o SSOT do checkpoint real, bloqueios, decisões já tomadas e ordem dos próximos passos. Não reinicie auditorias ou ingestões antes de conferir esse estado.
+
 ## Arquitetura
 
 - Identidade comercial: `config/brand.json` é o SSOT; veja `docs/BRANDING.md`.
