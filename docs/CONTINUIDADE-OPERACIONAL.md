@@ -9,11 +9,23 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Base funcional do pipeline validada no CI: `e401e69c8a5cf683e7d847645a03e2f17b3edd96`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
+- Base funcional do pipeline validada no CI: `7ce4e976914fdd4b6e0d6d12ed4cdd187a10cf45`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
 - O frontend já suporta galeria paginada, lightbox, múltiplas imagens por modelo, navegação por teclado e carregamento separado da mídia.
+- Refresh de frontend validado em 2026-10-06:
+  - hero orientado à descoberta, com métricas reais do acervo;
+  - busca com limpar, feedback explícito para consultas abaixo do mínimo de 3 caracteres e sem fingir filtro ainda não aplicado;
+  - cards preservam o enquadramento completo da peça com `object-fit: contain`, em vez de cortar frente/base;
+  - cards mostram badge de quantidade quando um modelo possui mais de uma imagem;
+  - a imagem principal da ficha abre a galeria diretamente e informa a quantidade de vistas;
+  - filtros, busca resolvida e paginação entram em modo de resultados;
+  - o modo de resultados exibe **todos os até 24 modelos já retornados pela API**, em vez de ocultar parte da página atrás do layout editorial;
+  - resultado responsivo: 6 colunas desktop, 4 tablet amplo, 3 tablet, 2 mobile e 1 em telas muito estreitas;
+  - favoritos continuam acessíveis no menu mobile;
+  - fallback visual cobre também cards e imagem principal da ficha quando uma mídia falha;
+  - não existe seletor de ordenação falso: `/api/catalog` ainda ordena deterministicamente por nome + ID e não expõe parâmetro de sort.
 - A arquitetura de dialogs usa um controlador global para focus trap, restauração de foco e scroll lock.
 - O CI protege essa arquitetura com `npm run dialog:a11y`.
 
