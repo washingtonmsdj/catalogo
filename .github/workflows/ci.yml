@@ -24,6 +24,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Test bounded browser metadata cache
         run: npm run test:known-cache
+      - name: Check dialog architecture
+        run: npm run dialog:a11y
       - name: Build frontend
         run: npm run build
       - name: Check frontend performance budget
