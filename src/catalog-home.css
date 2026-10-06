@@ -91,6 +91,22 @@
 .storefront-search input::placeholder { color: #638078; }
 .storefront-search kbd { min-width: 25px; height: 20px; display: grid; place-items: center; padding: 0 5px; border: 1px solid rgba(255,255,255,.08); border-radius: 6px; background: rgba(255,255,255,.04); color: #6f8982; font: 650 8px/1 ui-monospace, monospace; }
 .storefront-search kbd + kbd { min-width: 20px; }
+.storefront-search__shortcut { display: inline-flex; align-items: center; gap: 4px; }
+.storefront-search__clear {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(93, 207, 176, .18);
+  border-radius: 50%;
+  background: rgba(255,255,255,.025);
+  color: #87aaa1;
+  font: 500 18px/1 ui-sans-serif, system-ui;
+  cursor: pointer;
+}
+.storefront-search__clear:hover { border-color: rgba(36,240,176,.5); color: var(--store-accent); background: rgba(36,240,176,.06); }
 .storefront-topbar__status { justify-self: end; display: flex; align-items: center; gap: 8px; color: #89a49d; white-space: nowrap; }
 .storefront-topbar__status span { width: 8px; height: 8px; border-radius: 50%; background: #d8a648; box-shadow: 0 0 0 4px rgba(216,166,72,.07); }
 .storefront-topbar__status span.is-live { background: var(--store-accent); box-shadow: 0 0 0 4px rgba(36,240,176,.07), 0 0 12px rgba(36,240,176,.45); }
@@ -113,6 +129,29 @@
 .storefront-hero h1 { margin: 10px 0 7px; max-width: 31ch; color: #f8fcfb; font: 870 clamp(29px, 2.55vw, 42px)/.98 ui-sans-serif, system-ui; letter-spacing: -1.6px; text-wrap: balance; }
 .storefront-hero h1 em { color: var(--store-accent); font-style: normal; }
 .storefront-hero__copy > p { max-width: 66ch; margin: 0; color: #b3c5c0; font: 560 11px/1.5 ui-sans-serif, system-ui; }
+.storefront-hero__metrics {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 13px;
+  overflow: hidden;
+  border: 1px solid rgba(92, 191, 164, .16);
+  border-radius: 9px;
+  background: rgba(3, 16, 15, .56);
+  backdrop-filter: blur(10px);
+}
+.storefront-hero__metrics > span {
+  min-width: 82px;
+  display: grid;
+  gap: 3px;
+  padding: 8px 11px;
+  border-right: 1px solid rgba(92, 191, 164, .12);
+}
+.storefront-hero__metrics > span:last-child { border-right: 0; }
+.storefront-hero__metrics strong { color: #effaf6; font: 800 12px/1 ui-sans-serif, system-ui; font-variant-numeric: tabular-nums; }
+.storefront-hero__metrics small { color: #75978e; font: 620 7.5px/1 ui-sans-serif, system-ui; letter-spacing: .35px; text-transform: uppercase; white-space: nowrap; }
 .storefront-hero__actions { display: flex; gap: 9px; margin-top: 14px; }
 .storefront-button { min-height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 0 16px; border-radius: 8px; font: 760 10px/1 ui-sans-serif, system-ui; cursor: pointer; }
 .storefront-button .storefront-icon { width: 14px; height: 14px; }
@@ -165,6 +204,26 @@
 .storefront-model-card__heart { position: absolute; z-index: 4; top: 8px; right: 8px; width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.12); border-radius: 50%; background: rgba(3,13,12,.64); color: #e7f1ee; backdrop-filter: blur(8px); cursor: pointer; }
 .storefront-model-card__heart .storefront-icon { width: 14px; height: 14px; }
 .storefront-model-card__heart.is-active { border-color: rgba(36,240,176,.55); color: var(--store-accent); background: rgba(36,240,176,.12); }
+.storefront-model-card__gallery-badge {
+  position: absolute;
+  z-index: 3;
+  top: 42px;
+  right: 8px;
+  min-height: 22px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border: 1px solid rgba(87, 228, 187, .24);
+  border-radius: 999px;
+  background: rgba(3, 14, 13, .72);
+  color: #c8e8de;
+  backdrop-filter: blur(8px);
+  font: 720 7.5px/1 ui-sans-serif, system-ui;
+  font-variant-numeric: tabular-nums;
+}
+.storefront-model-card__gallery-badge .storefront-icon { width: 11px; height: 11px; color: var(--store-accent); }
+.storefront-mini-grid .storefront-model-card__gallery-badge { top: 8px; right: 42px; }
 .storefront-category-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 7px; }
 .storefront-category-tile { position: relative; min-height: 84px; overflow: hidden; display: flex; align-items: flex-end; padding: 10px 11px; border: 1px solid rgba(91,166,147,.2); border-radius: 9px; background: radial-gradient(circle at 60% 30%, rgba(40,198,160,.25), transparent 35%), linear-gradient(135deg, #0c2522, #071412); color: #eef7f4; text-align: left; cursor: pointer; isolation: isolate; }
 .storefront-category-tile:hover, .storefront-category-tile.is-active { border-color: rgba(36,240,176,.52); box-shadow: 0 12px 28px rgba(0,0,0,.22); }
@@ -252,8 +311,8 @@
 
 @media (max-width: 620px) {
   .storefront-sidebar__nav a:nth-child(n+5), .storefront-sidebar__nav button:nth-child(n+5) { display: none; }
-  .storefront-search kbd { display: none; }
-  .storefront-hero { min-height: 470px; }
+  .storefront-search__shortcut { display: none; }
+  .storefront-hero { min-height: 520px; }
   .storefront-hero::before { background: linear-gradient(180deg, rgba(3,15,14,.08) 0%, rgba(3,15,14,.3) 38%, rgba(3,15,14,.96) 68%); }
   .storefront-hero__backdrop-blur, .storefront-hero__backdrop-subject { display: none; }
   .storefront-hero__mobile-media {
@@ -272,6 +331,13 @@
   .storefront-hero__copy { position: absolute; left: 18px; right: 18px; bottom: 18px; width: auto; padding: 0; }
   .storefront-hero h1 { max-width: 14ch; font-size: clamp(30px, 9vw, 40px); }
   .storefront-hero__feature { display: none; }
+  .storefront-hero__metrics {
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .storefront-hero__metrics::-webkit-scrollbar { display: none; }
+  .storefront-hero__metrics > span { flex: 1 0 auto; min-width: 86px; }
   .storefront-hero__actions { flex-direction: column; align-items: stretch; }
   .storefront-button { width: 100%; }
   .storefront-filterbar { grid-template-columns: minmax(0,1fr); }
