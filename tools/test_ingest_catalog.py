@@ -19,12 +19,12 @@ class CatalogIngestTests(unittest.TestCase):
         self.assertEqual(
             PUBLIC_TOP_LEVEL_CATEGORIES,
             (
-                "Pessoas",
                 "Animes & Desenhos",
+                "Games",
                 "Filmes & Séries",
                 "Marvel & DC",
-                "Games",
                 "Tokusatsu & Cultura Japonesa",
+                "Pessoas",
             ),
         )
 
