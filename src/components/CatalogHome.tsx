@@ -174,6 +174,22 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const hasScopeFilters = catalog.category !== 'all' || catalog.franchise !== 'all' || Boolean(catalog.folder)
   const hasAppliedSearch = Boolean(catalog.search.trim()) && !catalog.searchPending
   const showActiveFilterStrip = hasScopeFilters || hasAppliedSearch
+  const activeCategoryLabel = catalog.categories.find((item) => item.id === catalog.category)?.label
+  const activeFranchiseLabel = catalog.franchises.find((item) => item.id === catalog.franchise)?.label ?? selected.franchise
+  const resultTitle = hasAppliedSearch
+    ? `Resultados para “${catalog.search.trim()}”`
+    : catalog.folder
+      ? (catalog.folderLabel || catalog.folder.split('/').at(-1) || 'Pasta selecionada')
+      : catalog.franchise !== 'all'
+        ? activeFranchiseLabel
+        : catalog.category !== 'all'
+          ? (activeCategoryLabel ?? 'Categoria selecionada')
+          : 'Todos os modelos'
+  const resultScope = [
+    catalog.category !== 'all' ? activeCategoryLabel : '',
+    catalog.franchise !== 'all' ? activeFranchiseLabel : '',
+    catalog.folder ? (catalog.folderLabel || catalog.folder.split('/').at(-1) || '') : '',
+  ].filter(Boolean).join(' · ')
   const franchiseNeedle = franchiseFilter.trim().toLocaleLowerCase('pt-BR')
   const franchiseSearchLength = Array.from(franchiseFilter.trim()).length
   const sidebarRemoteSearch = catalog.mode === 'live' && franchiseSearchLength >= FRANCHISE_SEARCH_MIN_LENGTH
@@ -532,8 +548,8 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               <div>
                 <span className="storefront-section__icon"><Icon name={resultsMode ? 'grid' : 'star'} /></span>
                 <div>
-                  <h2>{resultsMode ? (catalog.search.trim() && !catalog.searchPending ? `Resultados para “${catalog.search.trim()}”` : 'Modelos do catálogo') : 'Em destaque'}</h2>
-                  <p>{resultsMode ? `${formatter.format(models.length)} modelos nesta página · página ${catalog.pageIndex + 1}` : 'Uma seleção do acervo para começar a explorar.'}</p>
+                  <h2>{resultsMode ? resultTitle : 'Em destaque'}</h2>
+                  <p>{resultsMode ? `${resultScope ? `${resultScope} · ` : ''}${formatter.format(models.length)} modelos nesta página · página ${catalog.pageIndex + 1}` : 'Uma seleção do acervo para começar a explorar.'}</p>
                 </div>
               </div>
               <div className="storefront-section__actions">
