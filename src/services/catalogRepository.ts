@@ -11,7 +11,7 @@ export type CursorPage<T> = {
 
 export type CatalogModelCard = Pick<
   CatalogModel,
-  'id' | 'slug' | 'code' | 'name' | 'franchise' | 'category' | 'collection' | 'folderPath' | 'galleryCount' | 'accent'
+  'id' | 'slug' | 'code' | 'name' | 'franchise' | 'category' | 'collection' | 'folderPath' | 'galleryCount' | 'galleryVersion' | 'accent'
 > & {
   franchiseSlug?: string
   coverUrl?: string
@@ -28,6 +28,8 @@ export type CatalogListQuery = {
 
 export type GalleryQuery = {
   cursor?: string
+  /** Versão do manifesto para invalidar caches quando a galeria mudar. */
+  version?: number
   /** Índice zero-based para acesso direto a uma página do manifesto. */
   page?: number
   limit?: number
