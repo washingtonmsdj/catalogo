@@ -9,7 +9,7 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Base funcional do pipeline validada no CI: `6eada11556155a2d77f8c6cf86e512896ff4110f`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
+- Base funcional do pipeline validada no CI: `8b0031cb8c29d9ef601f116ac05038ac697012ce`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
@@ -37,6 +37,13 @@
   - o comparador mantém a coluna de rótulos visível durante scroll horizontal, preserva a tabela durante atualização e usa fallback quando uma capa falha;
   - a busca da sidebar deixa de pesquisar apenas as 24 franquias carregadas: com 3+ caracteres usa o índice completo de franquias do backend;
   - `FRANCHISE_SEARCH_MIN_LENGTH` é o contrato único dessa busca no frontend e `listCatalogFranchises` não envia consultas curtas ao backend;
+  - a busca da sidebar pode continuar no explorador completo sem apagar o termo digitado; quando o recorte excede a lista curta, “Ver mais resultados” abre o navegador já pesquisando o mesmo termo;
+  - Favoritos deixou de ser um bloco de chips e virou `FavoritesDialog`: lista pesquisável, remoção individual, abertura de ficha e ação para enviar todos ao orçamento sem chamadas em massa à API;
+  - “Minha lista / orçamento” usa `QuoteDialog`: revisão numerada dos modelos, remoção individual, formulário separado visualmente e preservação de Turnstile/protocolo;
+  - cards de modelo possuem ação rápida de Favoritos e de Minha lista; os estados usam `aria-pressed`, ficam discretos no desktop e sempre visíveis em touch;
+  - em dispositivos coarse/touch os alvos dos atalhos dos cards aumentam e o badge de galeria se reposiciona para não sobrepor controles;
+  - abaixo de 620 px a barra principal deixa de exigir rolagem horizontal e passa a distribuir Explorar, Coleções, Novos, Favoritos e Minha lista em cinco ações fixas, mantendo a busca acima;
+  - o cabeçalho do modo de resultados identifica o recorte real: termo pesquisado, categoria, franquia e/ou pasta, além da página atual;
   - não existe seletor de ordenação falso: `/api/catalog` ainda ordena deterministicamente por nome + ID e não expõe parâmetro de sort.
 - A arquitetura de dialogs usa um controlador global para focus trap, restauração de foco, scroll lock e isolamento da pilha modal.
 - Quando há ficha → galeria → lightbox, apenas o dialog superior fica exposto; os inferiores recebem `inert` + `aria-hidden` temporários e são restaurados ao voltar ao topo.
