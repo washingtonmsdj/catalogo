@@ -211,6 +211,55 @@ class MediaBundleTests(unittest.TestCase):
             self.assertTrue(any("busto display" in model["searchText"] for model in models))
             self.assertTrue(any("traje azul" in model["searchText"] for model in models))
 
+    def test_audited_shared_public_model_builds_one_multi_image_gallery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "OK - Animes & Desenhos [3]" / "OK - Animes [3]" / "OK - Dragon Ball [3]" / "OK - Goku [3]"
+            model_dir.mkdir(parents=True)
+            paths = [
+                model_dir / "goku-frente.webp",
+                model_dir / "goku-costas.webp",
+                model_dir / "goku-lateral.webp",
+            ]
+            for index, path in enumerate(paths):
+                Image.new("RGB", (800 + index * 80, 1200 + index * 120), f"#{2 + index}{3 + index}{4 + index}455").save(path, "WEBP")
+
+            hierarchy = "Animes & Desenhos / Animes / Dragon Ball / Goku"
+            public_key = f"{hierarchy} / goku-modelo-01"
+            rows = [
+                {
+                    "path": str(path.relative_to(source)),
+                    "size": path.stat().st_size,
+                    "status": "OK",
+                    "canonical": True,
+                    "sha256": str(index + 4) * 64,
+                    "width": 800 + index * 80,
+                    "height": 1200 + index * 120,
+                    "quality_score": 70.0 + index,
+                    "model_key": hierarchy,
+                    "public_model_key": public_key,
+                    "audit_model_group": "goku-modelo-01",
+                }
+                for index, path in enumerate(paths)
+            ]
+            manifest = root / "manifest.jsonl"
+            manifest.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            output = root / "bundle"
+
+            summary = build_bundle(source, manifest, output, include_original=False)
+            models = [json.loads(line) for line in (output / "models.jsonl").read_text(encoding="utf-8").splitlines()]
+
+            self.assertEqual(summary["models"], 1)
+            self.assertEqual(summary["canonicalImages"], 3)
+            self.assertEqual(len(models), 1)
+            self.assertEqual(models[0]["imageCount"], 3)
+
+            gallery = json.loads((output / "r2" / models[0]["galleryManifestKey"]).read_text(encoding="utf-8"))
+            self.assertEqual(len(gallery["images"]), 3)
+            self.assertEqual(gallery["images"][0]["role"], "cover")
+            self.assertEqual({image["sourceSha256"] for image in gallery["images"]}, {"4" * 64, "5" * 64, "6" * 64})
+
     def test_explicit_taxonomy_override_creates_nested_villain_folder(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
