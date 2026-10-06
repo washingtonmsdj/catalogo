@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from build_gallery_promotion_manifest import build_promotion_rows, read_resolution
+from plan_gallery_merge import image_sha, model_identity, public_candidate, read_jsonl
 
 FIELDS = [
     "authorization_id",
@@ -68,6 +69,7 @@ def verify_manifest(
     actual_rows: list[dict[str, str]],
     *,
     source_root: Path | None = None,
+    existing_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     expected_rows, expected_summary = build_promotion_rows(resolution)
     expected_by_id = {row["authorization_id"]: row for row in expected_rows}
@@ -93,6 +95,24 @@ def verify_manifest(
             raise RuntimeError(
                 f"autorização alterada em relação à resolução: {auth_id}; campos={differing}"
             )
+
+    verified_replace_targets = 0
+    if existing_rows is not None:
+        current = {
+            (model_identity(row), image_sha(row))
+            for row in existing_rows
+            if public_candidate(row)
+        }
+        for row in actual_rows:
+            if row["mode"] != "replace_existing":
+                continue
+            target = (row["target_model"], row["replace_sha256"])
+            if target not in current:
+                raise RuntimeError(
+                    f"vista a superseder não existe mais no catálogo atual: "
+                    f"{row['target_model']} / {row['replace_sha256']}"
+                )
+            verified_replace_targets += 1
 
     verified_sources = 0
     verified_cache: set[tuple[str, str]] = set()
@@ -123,6 +143,8 @@ def verify_manifest(
         "authorizations": len(actual_rows),
         "verifiedSources": verified_sources,
         "sourceVerificationRequested": source_root is not None,
+        "verifiedReplaceTargets": verified_replace_targets,
+        "existingManifestVerificationRequested": existing_rows is not None,
         "destructiveDeletes": 0,
     }
 
@@ -134,6 +156,11 @@ def main() -> int:
     parser.add_argument("resolution", type=Path)
     parser.add_argument("manifest", type=Path)
     parser.add_argument("--source-root", type=Path, help="raiz real da fonte para recalcular SHA-256")
+    parser.add_argument(
+        "--existing-manifest",
+        type=Path,
+        help="manifest.jsonl atual do catálogo para revalidar alvos replace_existing",
+    )
     args = parser.parse_args()
 
     try:
@@ -141,6 +168,7 @@ def main() -> int:
             read_resolution(args.resolution),
             read_promotion_csv(args.manifest),
             source_root=args.source_root,
+            existing_rows=read_jsonl(args.existing_manifest) if args.existing_manifest else None,
         )
     except RuntimeError as exc:
         print(f"ERRO: {exc}", file=sys.stderr)
