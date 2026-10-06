@@ -350,6 +350,7 @@ export default function App() {
         onOpenQuote={() => setQuoteOpen(true)}
         onOpenModel={openModel}
         onToggleFavorite={toggleFavorite}
+        onToggleQuote={safeToggleQuote}
       />
       <ModelDetailDialog
         open={modelDetailOpen}
