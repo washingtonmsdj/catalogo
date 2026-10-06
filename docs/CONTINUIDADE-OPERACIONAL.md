@@ -200,8 +200,8 @@ Executar nesta ordem, sem pular etapas:
    - registrar a decisão em CSV e executar `tools/resolve_gallery_merge.py`;
    - nenhuma promoção de candidato visual pode seguir sem o resolvedor retornar `ready=true`;
    - gerar `gallery-promotions.csv` com `tools/build_gallery_promotion_manifest.py`; cada linha fica vinculada ao `resolution_sha256` da revisão exata;
-   - no desktop, executar `tools/verify_gallery_promotion_manifest.py ... --source-root <raiz>`; só `ready=true` libera a cópia;
-   - o verificador confere `resolution_sha256`, integridade do CSV, segurança do caminho e recalcula `source_sha256`;
+   - no desktop, executar `tools/verify_gallery_promotion_manifest.py ... --source-root <raiz> --existing-manifest <manifest-atual>`; só `ready=true` libera a cópia;
+   - o verificador confere `resolution_sha256`, integridade do CSV, segurança do caminho, recalcula `source_sha256` e revalida todo `replace_existing` contra o manifesto atual;
    - resolver o destino somente pela árvore auditada atual;
    - `replace_existing` supersede a vista na publicação, mas não autoriza apagar o mestre antigo;
    - produto diferente do mesmo personagem → manter modelo separado.
