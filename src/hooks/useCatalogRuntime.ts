@@ -451,14 +451,16 @@ export function useCatalogRuntime(initialSlug = '') {
 }
 
 export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, open: boolean) {
-  const [pageIndex, setPageIndex] = useState(0)
+  const [requestedPageIndex, setRequestedPageIndex] = useState(0)
+  const [loadedPageIndex, setLoadedPageIndex] = useState(0)
   const [liveItems, setLiveItems] = useState<CatalogImage[]>([])
   const [liveTotal, setLiveTotal] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    setPageIndex(0)
+    setRequestedPageIndex(0)
+    setLoadedPageIndex(0)
     setLiveItems([])
     setLiveTotal(0)
     setError('')
@@ -470,32 +472,32 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
     setLoading(true)
     setError('')
     listCatalogImages(selected.slug, {
-      page: pageIndex,
+      page: requestedPageIndex,
       limit: GALLERY_PAGE_SIZE,
       version: selected.galleryVersion,
     })
       .then((page) => {
         if (cancelled) return
         const totalPages = Math.max(1, Math.ceil(page.total / GALLERY_PAGE_SIZE))
-        if (pageIndex >= totalPages && page.total > 0) {
-          setPageIndex(totalPages - 1)
+        if (requestedPageIndex >= totalPages && page.total > 0) {
+          setRequestedPageIndex(totalPages - 1)
           return
         }
         setLiveItems(page.items.map(toCatalogImage))
         setLiveTotal(page.total)
+        setLoadedPageIndex(requestedPageIndex)
       })
       .catch(() => {
         if (!cancelled) {
-          setLiveItems([])
-          setError('Não foi possível carregar esta página da galeria.')
+          setError('Não foi possível carregar esta página da galeria. A página anterior continua disponível.')
         }
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [mode, open, selected.id, selected.slug, selected.galleryVersion, pageIndex])
+  }, [mode, open, selected.id, selected.slug, selected.galleryVersion, requestedPageIndex])
 
   const demoTotal = selected.galleryCount
-  const demoStart = pageIndex * GALLERY_PAGE_SIZE
+  const demoStart = requestedPageIndex * GALLERY_PAGE_SIZE
   const demoLength = Math.max(0, Math.min(GALLERY_PAGE_SIZE, demoTotal - demoStart))
   const demoItems = useMemo<CatalogImage[]>(() => Array.from({ length: demoLength }, (_, index) => {
     const position = demoStart + index
@@ -513,36 +515,37 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
   const total = mode === 'live' ? liveTotal : demoTotal
   const items = mode === 'live' ? liveItems : demoItems
   const totalPages = Math.max(1, Math.ceil(total / GALLERY_PAGE_SIZE))
-  const pageStart = total > 0 ? pageIndex * GALLERY_PAGE_SIZE + 1 : 0
-  const pageEnd = total > 0 ? Math.min(total, pageIndex * GALLERY_PAGE_SIZE + items.length) : 0
+  const displayPageIndex = mode === 'live' && liveItems.length ? loadedPageIndex : requestedPageIndex
+  const pageStart = total > 0 ? displayPageIndex * GALLERY_PAGE_SIZE + 1 : 0
+  const pageEnd = total > 0 ? Math.min(total, displayPageIndex * GALLERY_PAGE_SIZE + items.length) : 0
 
   function goToPage(target: number) {
     const next = Math.max(0, Math.min(totalPages - 1, Math.trunc(target)))
-    if (next === pageIndex) return
+    if (next === requestedPageIndex) return
     if (mode === 'live') {
-      setLiveItems([])
       setLoading(true)
+      setError('')
     }
-    setPageIndex(next)
+    setRequestedPageIndex(next)
   }
 
   function nextPage() {
-    goToPage(pageIndex + 1)
+    goToPage(requestedPageIndex + 1)
   }
 
   function previousPage() {
-    goToPage(pageIndex - 1)
+    goToPage(requestedPageIndex - 1)
   }
 
   return {
     items,
     total,
-    pageIndex,
+    pageIndex: displayPageIndex,
     totalPages,
     pageStart,
     pageEnd,
-    hasPreviousPage: pageIndex > 0,
-    hasNextPage: pageIndex < totalPages - 1,
+    hasPreviousPage: requestedPageIndex > 0,
+    hasNextPage: requestedPageIndex < totalPages - 1,
     goToPage,
     nextPage,
     previousPage,
