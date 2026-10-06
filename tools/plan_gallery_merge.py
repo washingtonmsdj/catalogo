@@ -1,0 +1,238 @@
+#!/usr/bin/env python3
+"""Plan a safe gallery-level merge between an existing catalog and incoming images.
+
+This planner is intentionally non-destructive. It distinguishes exact duplicates
+from new gallery views and perceptual candidates. Perceptual similarity never
+authorizes removal by itself; it only produces a quality-ranked review proposal.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from collections import defaultdict
+from pathlib import Path
+from typing import Any, Iterable
+
+DEFAULT_VISUAL_THRESHOLD = 6
+
+
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    if not path.is_file():
+        raise RuntimeError(f"manifesto não encontrado: {path}")
+    rows: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8") as handle:
+        for line_no, line in enumerate(handle, 1):
+            if not line.strip():
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError as exc:
+                raise RuntimeError(f"JSON inválido em {path}, linha {line_no}: {exc}") from exc
+            if not isinstance(row, dict):
+                raise RuntimeError(f"registro inválido em {path}, linha {line_no}")
+            rows.append(row)
+    return rows
+
+
+def model_identity(row: dict[str, Any]) -> str:
+    value = str(row.get("public_model_key") or row.get("model_key") or "").strip()
+    if not value:
+        raise RuntimeError(f"imagem sem identidade de modelo: {row.get('path', '<sem caminho>')}")
+    return value
+
+
+def image_sha(row: dict[str, Any]) -> str:
+    digest = str(row.get("sha256") or "").strip().lower()
+    if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
+        raise RuntimeError(f"SHA-256 inválido: {row.get('path', '<sem caminho>')}")
+    return digest
+
+
+def image_dhash(row: dict[str, Any]) -> str | None:
+    value = str(row.get("dhash") or "").strip().lower()
+    if not value:
+        return None
+    if len(value) != 16 or any(char not in "0123456789abcdef" for char in value):
+        raise RuntimeError(f"dHash inválido: {row.get('path', '<sem caminho>')}")
+    return value
+
+
+def quality_tuple(row: dict[str, Any]) -> tuple[float, int, int, int]:
+    return (
+        float(row.get("quality_score") or 0),
+        int(row.get("width") or 0),
+        int(row.get("height") or 0),
+        int(row.get("size") or 0),
+    )
+
+
+def hamming(left: str, right: str) -> int:
+    return (int(left, 16) ^ int(right, 16)).bit_count()
+
+
+def public_candidate(row: dict[str, Any]) -> bool:
+    return row.get("status") == "OK" and row.get("canonical") is True
+
+
+def compact_image(row: dict[str, Any], source: str) -> dict[str, Any]:
+    return {
+        "source": source,
+        "path": str(row.get("path") or ""),
+        "sha256": image_sha(row),
+        "dhash": image_dhash(row),
+        "qualityScore": float(row.get("quality_score") or 0),
+        "width": int(row.get("width") or 0),
+        "height": int(row.get("height") or 0),
+        "bytes": int(row.get("size") or 0),
+    }
+
+
+def best_quality(rows: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    return max(rows, key=quality_tuple)
+
+
+def plan_gallery_merge(
+    existing_rows: list[dict[str, Any]],
+    incoming_rows: list[dict[str, Any]],
+    *,
+    visual_threshold: int = DEFAULT_VISUAL_THRESHOLD,
+) -> dict[str, Any]:
+    if not 0 <= visual_threshold <= 16:
+        raise ValueError("visual_threshold deve ficar entre 0 e 16")
+
+    existing = [row for row in existing_rows if public_candidate(row)]
+    incoming = [row for row in incoming_rows if public_candidate(row)]
+
+    by_model: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(lambda: {"existing": [], "incoming": []})
+    for row in existing:
+        by_model[model_identity(row)]["existing"].append(row)
+    for row in incoming:
+        by_model[model_identity(row)]["incoming"].append(row)
+
+    actions: list[dict[str, Any]] = []
+    counts = defaultdict(int)
+
+    for identity in sorted(by_model, key=str.casefold):
+        current = by_model[identity]["existing"]
+        candidates = sorted(
+            by_model[identity]["incoming"],
+            key=lambda row: (str(row.get("path") or "").casefold(), image_sha(row)),
+        )
+
+        # The evolving accepted set lets the planner deduplicate duplicates inside
+        # the incoming batch without mutating either manifest.
+        accepted = list(current)
+
+        for row in candidates:
+            digest = image_sha(row)
+            exact = [item for item in accepted if image_sha(item) == digest]
+            if exact:
+                preferred = best_quality(exact)
+                actions.append({
+                    "model": identity,
+                    "action": "skip_exact",
+                    "incoming": compact_image(row, "incoming"),
+                    "matches": [compact_image(item, "existing_or_planned") for item in exact],
+                    "recommendedSource": "existing_or_planned",
+                    "reason": "sha256_equal",
+                })
+                counts["skip_exact"] += 1
+                continue
+
+            dhash = image_dhash(row)
+            visual_matches: list[tuple[int, dict[str, Any]]] = []
+            if dhash:
+                for item in accepted:
+                    other_hash = image_dhash(item)
+                    if not other_hash:
+                        continue
+                    distance = hamming(dhash, other_hash)
+                    if distance <= visual_threshold:
+                        visual_matches.append((distance, item))
+
+            if visual_matches:
+                visual_matches.sort(key=lambda pair: (pair[0], tuple(-value for value in quality_tuple(pair[1]))))
+                best_existing = best_quality(item for _, item in visual_matches)
+                incoming_better = quality_tuple(row) > quality_tuple(best_existing)
+                actions.append({
+                    "model": identity,
+                    "action": "review_visual_candidate",
+                    "incoming": compact_image(row, "incoming"),
+                    "matches": [
+                        {**compact_image(item, "existing_or_planned"), "dhashDistance": distance}
+                        for distance, item in visual_matches
+                    ],
+                    "recommendedSource": "incoming" if incoming_better else "existing_or_planned",
+                    "reason": "perceptual_similarity_requires_review",
+                })
+                counts["review_visual_candidate"] += 1
+                if incoming_better:
+                    counts["review_prefers_incoming"] += 1
+                else:
+                    counts["review_prefers_existing"] += 1
+                # Do not add a visual candidate to the accepted set automatically:
+                # a reviewer must first decide whether this is the same view or a
+                # genuinely different angle.
+                continue
+
+            actions.append({
+                "model": identity,
+                "action": "add_view",
+                "incoming": compact_image(row, "incoming"),
+                "matches": [],
+                "recommendedSource": "incoming",
+                "reason": "no_exact_or_perceptual_match",
+            })
+            counts["add_view"] += 1
+            accepted.append(row)
+
+    models_touched = len({action["model"] for action in actions})
+    return {
+        "version": 1,
+        "policy": {
+            "exactDuplicate": "skip",
+            "distinctView": "add",
+            "perceptualCandidate": "review_only",
+            "visualThreshold": visual_threshold,
+            "destructiveDeletes": 0,
+        },
+        "existingImages": len(existing),
+        "incomingImages": len(incoming),
+        "modelsTouched": models_touched,
+        "counts": dict(sorted(counts.items())),
+        "actions": actions,
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Planeja mescla de galerias sem alterar catálogo, STL Forge ou R2."
+    )
+    parser.add_argument("existing", type=Path, help="manifest.jsonl do catálogo atual")
+    parser.add_argument("incoming", type=Path, help="manifest.jsonl das imagens a integrar")
+    parser.add_argument("--output", type=Path, help="arquivo JSON do plano; stdout quando omitido")
+    parser.add_argument("--visual-threshold", type=int, default=DEFAULT_VISUAL_THRESHOLD)
+    args = parser.parse_args()
+
+    try:
+        plan = plan_gallery_merge(
+            read_jsonl(args.existing),
+            read_jsonl(args.incoming),
+            visual_threshold=args.visual_threshold,
+        )
+    except (RuntimeError, ValueError) as exc:
+        print(f"ERRO: {exc}", file=sys.stderr)
+        return 2
+
+    encoded = json.dumps(plan, ensure_ascii=False, indent=2) + "\n"
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(encoded, encoding="utf-8")
+    else:
+        print(encoded, end="")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
