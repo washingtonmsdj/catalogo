@@ -27,6 +27,7 @@ export type GalleryModelState = {
   image_count: number
   gallery_manifest_key: string | null
   gallery_version: number
+  cover_storage_key: string | null
 }
 
 function safeMediaKey(value: unknown, modelId: string) {
@@ -76,5 +77,12 @@ export function validGalleryManifest(manifest: unknown, model: GalleryModelState
   if (ids.size !== candidate.images.length) return false
   const covers = candidate.images.filter((image) => image.role === 'cover')
   if (covers.length !== 1 || candidate.images[0].role !== 'cover') return false
+  if (
+    typeof model.cover_storage_key !== 'string'
+    || !model.cover_storage_key
+    || candidate.images[0].variantKeys.card !== model.cover_storage_key
+  ) {
+    return false
+  }
   return true
 }
