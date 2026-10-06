@@ -7,15 +7,23 @@ class PagesWorkflowConfigTests(unittest.TestCase):
     def setUpClass(cls):
         cls.workflow = (Path(__file__).resolve().parents[1] / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
 
-    def test_production_runtime_values_come_from_repository_variables(self):
+    def test_runtime_secrets_and_endpoints_use_repository_variables(self):
         required = [
             "VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}",
             "VITE_MEDIA_BASE_URL: ${{ vars.VITE_MEDIA_BASE_URL }}",
             "VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}",
-            "VITE_PUBLIC_SITE_URL: ${{ vars.VITE_PUBLIC_SITE_URL }}",
         ]
         for entry in required:
             self.assertIn(entry, self.workflow)
+        self.assertNotIn("VITE_PUBLIC_SITE_URL: ${{ vars.VITE_PUBLIC_SITE_URL }}", self.workflow)
+
+    def test_public_site_url_comes_from_versioned_ssot(self):
+        root = Path(__file__).resolve().parents[1]
+        runtime = (root / "config" / "public-runtime.json").read_text(encoding="utf-8")
+        vite = (root / "vite.config.ts").read_text(encoding="utf-8")
+        self.assertIn("https://acheguese.com.br/catalogo/", runtime)
+        self.assertIn("publicRuntime.publicSiteUrl", vite)
+        self.assertIn("config/public-runtime.json", self.workflow)
 
     def test_pages_workflow_has_no_production_endpoint_fallbacks(self):
         forbidden = [
