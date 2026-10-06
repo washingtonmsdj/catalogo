@@ -9,7 +9,7 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Base funcional do pipeline validada no CI: `7ce4e976914fdd4b6e0d6d12ed4cdd187a10cf45`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
+- Base funcional do pipeline validada no CI: `0d2f52097be4418a436f88db5f3a8d0acd9198be`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
@@ -20,11 +20,16 @@
   - cards preservam o enquadramento completo da peça com `object-fit: contain`, em vez de cortar frente/base;
   - cards mostram badge de quantidade quando um modelo possui mais de uma imagem;
   - a imagem principal da ficha abre a galeria diretamente e informa a quantidade de vistas;
-  - filtros, busca resolvida e paginação entram em modo de resultados;
+  - filtros, busca resolvida, seleção de franquia/pasta e paginação entram em modo de resultados e levam o viewport diretamente à grade;
   - o modo de resultados exibe **todos os até 24 modelos já retornados pela API**, em vez de ocultar parte da página atrás do layout editorial;
   - resultado responsivo: 6 colunas desktop, 4 tablet amplo, 3 tablet, 2 mobile e 1 em telas muito estreitas;
+  - durante carregamento, a grade anterior permanece estável para evitar layout shift, fica atenuada e sem cliques/paginação até o lote novo chegar;
+  - busca com 1–2 caracteres mostra instrução explícita e não é apresentada como filtro aplicado;
   - favoritos continuam acessíveis no menu mobile;
+  - filtros selecionados/removíveis expõem `aria-pressed`/rótulos de remoção adequados;
   - fallback visual cobre também cards e imagem principal da ficha quando uma mídia falha;
+  - `src/lib/catalogHomeView.ts` centraliza o contrato editorial × resultados;
+  - `tools/test_catalog_home_view.mjs` roda no CI e garante que 24 itens recebidos continuem 24 em resultados, enquanto a home editorial preserva 6 destaques;
   - não existe seletor de ordenação falso: `/api/catalog` ainda ordena deterministicamente por nome + ID e não expõe parâmetro de sort.
 - A arquitetura de dialogs usa um controlador global para focus trap, restauração de foco e scroll lock.
 - O CI protege essa arquitetura com `npm run dialog:a11y`.
