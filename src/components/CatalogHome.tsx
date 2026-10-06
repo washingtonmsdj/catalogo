@@ -415,9 +415,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               <div className="storefront-section__actions">
                 {resultsMode ? (
                   <>
-                    <button type="button" disabled={!catalog.hasPreviousPage} onClick={previousCatalogPage}>‹ <span>Anterior</span></button>
+                    <button type="button" disabled={catalog.loading || !catalog.hasPreviousPage} onClick={previousCatalogPage}>‹ <span>Anterior</span></button>
                     <span>Página {catalog.pageIndex + 1}</span>
-                    <button type="button" disabled={!catalog.hasNextPage} onClick={nextCatalogPage}><span>Próxima</span> ›</button>
+                    <button type="button" disabled={catalog.loading || !catalog.hasNextPage} onClick={nextCatalogPage}><span>Próxima</span> ›</button>
                     {!hasResolvedDiscovery && catalog.pageIndex === 0 && <button type="button" className="is-secondary" onClick={showEditorialHome}>Ver destaques</button>}
                   </>
                 ) : (
@@ -426,7 +426,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               </div>
             </div>
             {featuredModels.length ? (
-              <div className={`storefront-model-grid ${resultsMode ? 'is-results' : ''}`}>
+              <div className={`storefront-model-grid ${resultsMode ? 'is-results' : ''} ${catalog.loading ? 'is-updating' : ''}`} aria-busy={catalog.loading}>
                 {featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}
               </div>
             ) : (
@@ -440,9 +440,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               <div className="storefront-results-footer" aria-label="Paginação dos modelos">
                 <span><strong>{formatter.format(models.length)}</strong> modelos carregados nesta página</span>
                 <div>
-                  <button type="button" disabled={!catalog.hasPreviousPage} onClick={previousCatalogPage}>‹ Anterior</button>
+                  <button type="button" disabled={catalog.loading || !catalog.hasPreviousPage} onClick={previousCatalogPage}>‹ Anterior</button>
                   <b>Página {catalog.pageIndex + 1}</b>
-                  <button type="button" disabled={!catalog.hasNextPage} onClick={nextCatalogPage}>Próxima ›</button>
+                  <button type="button" disabled={catalog.loading || !catalog.hasNextPage} onClick={nextCatalogPage}>Próxima ›</button>
                 </div>
               </div>
             )}
@@ -464,7 +464,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             </section>
 
             <section className="storefront-section storefront-section--compact">
-              <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" disabled={!catalog.hasPreviousPage} onClick={previousCatalogPage}>‹</button><button type="button" disabled={!catalog.hasNextPage} onClick={nextCatalogPage}>›</button></div></div>
+              <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" disabled={catalog.loading || !catalog.hasPreviousPage} onClick={previousCatalogPage}>‹</button><button type="button" disabled={catalog.loading || !catalog.hasNextPage} onClick={nextCatalogPage}>›</button></div></div>
               <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div>
             </section>
           </div>
