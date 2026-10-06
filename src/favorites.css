@@ -272,3 +272,14 @@
     flex: 1;
   }
 }
+
+
+.favorites-toolbar label button:focus-visible,
+.favorites-list__open:focus-visible,
+.favorites-list__remove:focus-visible,
+.favorites-no-results button:focus-visible,
+.favorites-empty button:focus-visible,
+.favorites-footer button:focus-visible {
+  outline: 2px solid var(--store-accent);
+  outline-offset: 2px;
+}
