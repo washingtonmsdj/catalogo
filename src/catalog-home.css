@@ -47,6 +47,23 @@
   border-color: rgba(214, 130, 113, .2);
   color: #c58f84;
 }
+.storefront-franchise-more {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 0 9px;
+  border: 1px solid rgba(36,240,176,.2);
+  border-radius: 7px;
+  background: rgba(36,240,176,.045);
+  color: #87cbb7;
+  font: 700 8.5px/1 ui-sans-serif, system-ui;
+  cursor: pointer;
+}
+.storefront-franchise-more:hover { border-color: rgba(36,240,176,.48); color: var(--store-accent); }
+.storefront-franchise-more .storefront-icon { width: 12px; height: 12px; }
 .storefront-franchise-entry { min-width: 0; border: 1px solid transparent; border-radius: 8px; overflow: hidden; }
 .storefront-franchise-entry.is-active { border-color: rgba(36,240,176,.18); background: rgba(36,240,176,.035); box-shadow: inset 2px 0 0 var(--store-accent); }
 .storefront-franchise-row { width: 100%; min-height: 34px; display: grid; grid-template-columns: minmax(0, 1fr) 24px; align-items: center; padding-right: 4px; border: 0; background: transparent; color: #a4b9b3; }
