@@ -57,9 +57,13 @@ Quando o bootstrap está disponível, o job de produção:
 8. confirma novamente que o nome do secret está ativo;
 9. consulta `/api/health` para provar que o Worker está respondendo;
 10. consulta `/api/categories` e valida a estrutura JSON para provar que o binding D1 e o schema do catálogo estão acessíveis;
-11. consulta uma coleção pública inexistente e exige `404 shared_collection_not_found`, provando que a rota `/api/shared-collections/:code` está realmente presente no Worker publicado.
+11. consulta `/api/recent` para provar que a rota de novidades retorna modelos publicados;
+12. executa `tools/check_worker_gallery_contract.mjs`: o primeiro modelo precisa expor `gallery_version`, e `/api/models/:slug/images` deve retornar `total == image_count`, versão idêntica e capa na primeira posição;
+13. consulta uma coleção pública inexistente e exige `404 shared_collection_not_found`, provando que a rota `/api/shared-collections/:code` está realmente presente no Worker publicado.
 
 O R2 é validado antes do deploy via Wrangler. Assim, Worker, D1 e bucket precisam estar operacionais para o pipeline de produção terminar com sucesso.
+
+Quando `CLOUDFLARE_API_TOKEN` for configurado pela primeira vez ou restaurado, execute manualmente **Deploy Cloudflare API** pela ação `workflow_dispatch`; não é necessário criar commit artificial. Mantenha `force_turnstile_secret_sync=false` nesse caso.
 
 Na rotação da chave Turnstile, execute manualmente o workflow com `force_turnstile_secret_sync=true`. O valor do segredo continua mascarado pelo GitHub e é enviado ao Wrangler por stdin.
 
