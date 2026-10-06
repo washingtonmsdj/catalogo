@@ -254,11 +254,59 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(summary["canonicalImages"], 3)
             self.assertEqual(len(models), 1)
             self.assertEqual(models[0]["imageCount"], 3)
+            self.assertEqual(models[0]["displayName"], "Goku")
+            self.assertEqual(models[0]["slug"], "dragon-ball-goku")
 
             gallery = json.loads((output / "r2" / models[0]["galleryManifestKey"]).read_text(encoding="utf-8"))
             self.assertEqual(len(gallery["images"]), 3)
             self.assertEqual(gallery["images"][0]["role"], "cover")
             self.assertEqual({image["sourceSha256"] for image in gallery["images"]}, {"4" * 64, "5" * 64, "6" * 64})
+
+    def test_grouped_gallery_slug_does_not_change_when_cover_quality_changes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "OK - Games [2]" / "OK - God of War [2]" / "OK - Kratos [2]"
+            model_dir.mkdir(parents=True)
+            front = model_dir / "kratos-frente.webp"
+            back = model_dir / "kratos-costas.webp"
+            Image.new("RGB", (800, 1200), "#445566").save(front, "WEBP")
+            Image.new("RGB", (900, 1350), "#556677").save(back, "WEBP")
+            hierarchy = "Games / God of War / Kratos"
+            public_key = f"{hierarchy} / kratos-modelo-01"
+
+            def build(quality_front: float, quality_back: float, output_name: str):
+                rows = [
+                    {
+                        "path": str(front.relative_to(source)), "size": front.stat().st_size,
+                        "status": "OK", "canonical": True, "sha256": "7" * 64,
+                        "width": 800, "height": 1200, "quality_score": quality_front,
+                        "model_key": hierarchy, "public_model_key": public_key,
+                        "audit_model_group": "kratos-modelo-01",
+                    },
+                    {
+                        "path": str(back.relative_to(source)), "size": back.stat().st_size,
+                        "status": "OK", "canonical": True, "sha256": "8" * 64,
+                        "width": 900, "height": 1350, "quality_score": quality_back,
+                        "model_key": hierarchy, "public_model_key": public_key,
+                        "audit_model_group": "kratos-modelo-01",
+                    },
+                ]
+                manifest = root / f"{output_name}.jsonl"
+                manifest.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+                output = root / output_name
+                build_bundle(source, manifest, output, include_original=False)
+                return json.loads((output / "models.jsonl").read_text(encoding="utf-8"))
+
+            front_cover = build(95.0, 70.0, "front-cover")
+            back_cover = build(70.0, 95.0, "back-cover")
+
+            self.assertEqual(front_cover["id"], back_cover["id"])
+            self.assertEqual(front_cover["slug"], "god-of-war-kratos")
+            self.assertEqual(back_cover["slug"], "god-of-war-kratos")
+            self.assertEqual(front_cover["displayName"], "Kratos")
+            self.assertEqual(back_cover["displayName"], "Kratos")
+            self.assertNotEqual(front_cover["coverStorageKey"], back_cover["coverStorageKey"])
 
     def test_explicit_taxonomy_override_creates_nested_villain_folder(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
