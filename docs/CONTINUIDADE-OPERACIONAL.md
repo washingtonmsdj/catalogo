@@ -124,6 +124,35 @@ A correção profissional é:
 
 O usuário explicitamente não quer refazer trabalho já concluído.
 
+## Alterações locais já concluídas
+
+Estas mudanças foram feitas no workspace operacional do desktop e **não devem ser refeitas do zero**:
+
+- `catalogo-pastas-publicas.ps1`: corrigido o caso em que `Resolve-PublicCatalogFile -AllowMissingDirectories` recebia uma pasta existente mas um arquivo-folha ainda inexistente. Agora o helper retorna o caminho exato esperado quando não há correspondência física e falha fechado se houver ambiguidade.
+- `testar-integridade-automacao.ps1`: adicionado teste de regressão para o caso acima.
+- preflight local após a correção: **225 checks, 0 falhas críticas, 0 warnings**.
+- `executar-consolidacao-novos.ps1`: dry-run voltou a avançar normalmente depois da correção do helper.
+- fila final de `Novos`: 56 itens, todos com decisão preservada, 0 inconclusivos e 0 bloqueados; 40 promoção controlada e 16 quarentena privada.
+- o portão local parou apenas pelo bloqueio de **111 grupos de SHA interno** no catálogo oficial, posteriormente diagnosticado como escopo público contaminado por material de referência/legado.
+- seis destinos da fonte externa apresentavam nomes com mojibake no manifesto; os caminhos físicos corretos já usam grafia Unicode correta. Não criar árvores duplicadas para corrigir encoding.
+
+Scripts/artefatos locais relevantes que uma nova sessão deve localizar pelo nome antes de criar alternativas:
+
+- `auditar-sha-catalogo-novos.ps1`;
+- `catalogo-pastas-publicas.ps1`;
+- `testar-integridade-automacao.ps1`;
+- `executar-consolidacao-novos.ps1`;
+- `preparar-fila-revisao-novos-catalogo.ps1`;
+- `verificar-portao-publicacao.ps1`;
+- `planejar-correcao-catalogo-oficial.ps1`;
+- `auditoria-sha-novos-catalogo-state.json`;
+- `auditoria-sha-catalogo-cache.csv`;
+- `auditoria-sha-novos-catalogo.csv`;
+- `fila-revisao-novos-catalogo-resumo.json`;
+- `portao-publicacao-resumo.json`.
+
+Ao retomar no desktop, primeiro localizar e ler esses artefatos; não criar um pipeline paralelo se o existente puder ser evoluído de forma limpa.
+
 ## Fonte externa privada: checkpoint
 
 O nome comercial da fonte não deve ser gravado no repositório público; o pipeline deve permanecer neutro.
