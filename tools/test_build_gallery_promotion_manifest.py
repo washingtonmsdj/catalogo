@@ -44,6 +44,8 @@ class GalleryPromotionManifestTests(unittest.TestCase):
 
         self.assertEqual(len(rows), 2)
         self.assertTrue(all(row["authorization_id"].startswith("promo_") for row in rows))
+        self.assertTrue(all(len(row["resolution_sha256"]) == 64 for row in rows))
+        self.assertEqual({row["resolution_sha256"] for row in rows}, {summary["resolutionSha256"]})
         self.assertEqual(summary["promotions"], 2)
         self.assertEqual(summary["addView"], 1)
         self.assertEqual(summary["replaceExisting"], 1)
@@ -128,6 +130,23 @@ class GalleryPromotionManifestTests(unittest.TestCase):
         self.assertEqual(summary["promotions"], 2)
         self.assertEqual(len({row["authorization_id"] for row in rows}), 2)
 
+    def test_authorization_is_bound_to_full_resolution_digest(self):
+        promotion = {
+            "model": "modelo-01",
+            "sourceModel": "produto-01",
+            "incoming": incoming("fonte/costas.jpg", "a" * 64),
+            "mode": "add_view",
+            "replaceSha256": None,
+        }
+        first = {"version": 1, "ready": True, "promotions": [promotion], "keptExisting": []}
+        second = {"version": 1, "ready": True, "promotions": [promotion], "keptExisting": [{"note": "review changed"}]}
+
+        first_rows, first_summary = build_promotion_rows(first)
+        second_rows, second_summary = build_promotion_rows(second)
+
+        self.assertNotEqual(first_summary["resolutionSha256"], second_summary["resolutionSha256"])
+        self.assertNotEqual(first_rows[0]["authorization_id"], second_rows[0]["authorization_id"])
+
     def test_csv_has_stable_columns_and_utf8_bom(self):
         resolution = {
             "version": 1,
@@ -148,7 +167,7 @@ class GalleryPromotionManifestTests(unittest.TestCase):
             raw = path.read_bytes()
             self.assertTrue(raw.startswith(b"\xef\xbb\xbf"))
             text = raw.decode("utf-8-sig")
-            self.assertIn("authorization_id,source_path,source_sha256,target_model,source_model,mode,replace_sha256", text)
+            self.assertIn("authorization_id,resolution_sha256,source_path,source_sha256,target_model,source_model,mode,replace_sha256", text)
             self.assertIn("Herói", text)
 
 
