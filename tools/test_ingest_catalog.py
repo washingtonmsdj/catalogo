@@ -1,18 +1,51 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import unittest
 from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from ingest_catalog import analyze, clean_folder, discover_catalog_roots, disambiguate_public_model_keys, hamming, iter_images, load_audit_registry, mark_duplicates, save_progress_manifest
+from ingest_catalog import PUBLIC_TOP_LEVEL_CATEGORIES, analyze, clean_folder, discover_catalog_roots, disambiguate_public_model_keys, hamming, iter_images, load_audit_registry, load_public_top_level_categories, mark_duplicates, save_progress_manifest
 
 
 class CatalogIngestTests(unittest.TestCase):
     def test_clean_folder_removes_audit_prefix_and_count(self) -> None:
         self.assertEqual(clean_folder("OK - Games [539]"), "Games")
         self.assertEqual(clean_folder("OK - Resident Evil [32]"), "Resident Evil")
+
+    def test_public_scope_comes_from_versioned_ssot(self) -> None:
+        self.assertEqual(
+            PUBLIC_TOP_LEVEL_CATEGORIES,
+            (
+                "Pessoas",
+                "Animes & Desenhos",
+                "Filmes & Séries",
+                "Marvel & DC",
+                "Games",
+                "Tokusatsu & Cultura Japonesa",
+            ),
+        )
+
+    def test_public_scope_config_fails_closed_on_duplicates_and_unsafe_names(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            duplicate = root / "duplicate.json"
+            duplicate.write_text(
+                json.dumps({"version": 1, "categories": ["Games", "games"]}),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "duplicada"):
+                load_public_top_level_categories(duplicate)
+
+            unsafe = root / "unsafe.json"
+            unsafe.write_text(
+                json.dumps({"version": 1, "categories": ["Games/Interno"]}),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "insegura"):
+                load_public_top_level_categories(unsafe)
 
     def test_discovery_only_selects_canonical_top_level_categories(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
