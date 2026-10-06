@@ -15,6 +15,7 @@ export type ApiCatalogRow = {
   collection: string | null
   folder_path: string | null
   image_count: number
+  gallery_version: number
   cover_storage_key: string | null
 }
 
@@ -162,6 +163,7 @@ function toCatalogModelCard(row: ApiCatalogRow): CatalogModelCard {
     collection: row.collection ?? '',
     folderPath: row.folder_path ?? '',
     galleryCount: row.image_count,
+    galleryVersion: row.gallery_version,
     accent: '#c98a3d',
     coverUrl: mediaObjectUrl(row.cover_storage_key),
   }
@@ -207,6 +209,7 @@ export async function getCatalogModel(slug: string): Promise<CatalogModel | null
       material: row.material ?? '',
       heightCm: row.height_cm ?? 0,
       galleryCount: row.image_count,
+      galleryVersion: row.gallery_version,
       description: row.description ?? '',
       tags: [],
       accent: '#c98a3d',
@@ -220,7 +223,7 @@ export async function getCatalogModel(slug: string): Promise<CatalogModel | null
 }
 
 function galleryCacheKey(slug: string, query: GalleryQuery) {
-  return `${slug}|page:${query.page ?? 'cursor'}|cursor:${query.cursor ?? 'first'}|limit:${query.limit ?? 24}`
+  return `${slug}|v:${query.version ?? 'unknown'}|page:${query.page ?? 'cursor'}|cursor:${query.cursor ?? 'first'}|limit:${query.limit ?? 24}`
 }
 
 function directGalleryCursor(query: GalleryQuery) {
@@ -249,6 +252,7 @@ function loadGalleryPage(slug: string, query: GalleryQuery): Promise<GalleryPage
   const pending = requestJson<GalleryPage>(endpoint(`/api/models/${encodeURIComponent(slug)}/images`, {
     cursor: directGalleryCursor(query),
     limit: query.limit,
+    v: query.version,
   })).catch((error) => {
     galleryPageCache.delete(key)
     throw error
@@ -264,8 +268,8 @@ export async function listCatalogImages(slug: string, query: GalleryQuery = {}):
   // são baixadas quando a página entra na interface.
   if (page.nextCursor) {
     const nextQuery: GalleryQuery = query.page !== undefined
-      ? { page: query.page + 1, limit: query.limit }
-      : { cursor: page.nextCursor, limit: query.limit }
+      ? { page: query.page + 1, limit: query.limit, version: query.version }
+      : { cursor: page.nextCursor, limit: query.limit, version: query.version }
     const nextKey = galleryCacheKey(slug, nextQuery)
     const cached = galleryPageCache.get(nextKey)
     if (!cached || cached.expiresAt <= Date.now()) {
