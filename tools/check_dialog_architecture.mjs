@@ -1,8 +1,9 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = new URL('../', import.meta.url)
-const srcRoot = new URL('../src/', import.meta.url)
+const root = fileURLToPath(new URL('../', import.meta.url))
+const srcRoot = fileURLToPath(new URL('../src/', import.meta.url))
 const controller = 'src/installDialogAccessibility.ts'
 
 function walk(directory) {
