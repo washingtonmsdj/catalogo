@@ -9,7 +9,7 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Base funcional do pipeline validada no CI: `9e5738e6ddc776534296f26746af35b6ffe998b2`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
+- Base funcional do pipeline validada no CI: `2085e3b6393100853cd3b76a6cbe3643cdc064b8`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
@@ -79,7 +79,11 @@ A política é não destrutiva:
 - se a fonte nova tiver qualidade superior, recomendar a nova;
 - se a imagem atual for superior, conservar a atual;
 - arquivos mestres nunca são apagados pela ingestão;
-- a origem não é modificada pelo pipeline web.
+- a origem não é modificada pelo pipeline web;
+- para modelo já publicado, aumento de `imageCount` é permitido quando o manifesto/versão mudam de forma coerente;
+- redução de `imageCount` é bloqueada por padrão e só pode avançar com CSV de aprovação explícita para aquele modelo e aquele delta exato;
+- uma aprovação antiga não vale se contagem ou `gallery_version` tiverem mudado;
+- o mesmo `galleryManifestKey` content-addressed nunca pode aparecer com contagem, capa ou versão divergentes.
 
 Assim, uma fonte externa marcada anteriormente como “modelo já existente” **ainda precisa ter todas as imagens analisadas**: duplicidade de modelo não significa duplicidade de galeria.
 
@@ -104,12 +108,12 @@ O auditor SHA local antigo considerou como “catálogo público” uma raiz de 
 
 A fronteira pública agora possui SSOT versionado em `config/public-catalog-roots.json`, carregado pelo módulo compartilhado `tools/catalog_scope.py`. `tools/ingest_catalog.py` usa esse contrato na entrada e `tools/publish_d1.py` valida novamente antes do D1. A automação local deve consumir o mesmo JSON, sem manter uma lista paralela. As seis categorias públicas são:
 
-1. Pessoas
-2. Animes & Desenhos
+1. Animes & Desenhos
+2. Games
 3. Filmes & Séries
 4. Marvel & DC
-5. Games
-6. Tokusatsu & Cultura Japonesa
+5. Tokusatsu & Cultura Japonesa
+6. Pessoas
 
 A correção local deve adotar a **mesma whitelist fail-closed**, não apenas acrescentar exclusões ad hoc.
 
@@ -156,6 +160,8 @@ Scripts/artefatos locais relevantes que uma nova sessão deve localizar pelo nom
 - `portao-publicacao-resumo.json`.
 
 Ao retomar no desktop, primeiro localizar e ler esses artefatos; não criar um pipeline paralelo se o existente puder ser evoluído de forma limpa.
+
+Estado do acesso remoto em 2026-10-06: o dispositivo `DESKTOP-COHT67R` está online e responde a ping, porém operações de arquivo continuam bloqueadas pela cota mensal do Desktop Commander. O serviço instruiu explicitamente a não repetir/reconectar. Até a cota liberar, não tentar contornar por outro controlador do PC.
 
 ## Fonte externa privada: checkpoint
 
@@ -222,7 +228,8 @@ Executar nesta ordem, sem pular etapas:
    - `tools/build_media_bundle.py`;
    - validar variantes e manifestos;
    - executar `tools/publish_d1.py models.jsonl --check-production` em modo somente leitura **antes do R2**;
-   - bloquear qualquer colisão de ID/slug/código ou mudança implícita de categoria/franquia;
+   - bloquear qualquer colisão de ID/slug/código ou mudança implícita de categoria/franquia/nome/coleção/pasta;
+   - bloquear redução de galeria por padrão; quando realmente necessária, usar `--gallery-shrink-approvals <csv>` com contagem e versões exatas antes/depois e motivo explícito;
    - publicar delta no R2;
    - executar `tools/publish_d1.py ... --apply`, que revalida produção e o gate R2 antes dos upserts.
 
