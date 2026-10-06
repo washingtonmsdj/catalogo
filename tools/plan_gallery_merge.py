@@ -8,6 +8,7 @@ authorizes removal by itself; it only produces a quality-ranked review proposal.
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import sys
 from collections import defaultdict
@@ -40,6 +41,37 @@ def model_identity(row: dict[str, Any]) -> str:
     if not value:
         raise RuntimeError(f"imagem sem identidade de modelo: {row.get('path', '<sem caminho>')}")
     return value
+
+
+def read_identity_mapping(path: Path) -> dict[str, str]:
+    if not path.is_file():
+        raise RuntimeError(f"mapa de identidade não encontrado: {path}")
+    mapping: dict[str, str] = {}
+    targets: dict[str, str] = {}
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        required = {"incoming_model", "target_model"}
+        if not required.issubset(reader.fieldnames or []):
+            raise RuntimeError(
+                f"mapa de identidade sem colunas obrigatórias {sorted(required)}: {path}"
+            )
+        for line_no, row in enumerate(reader, 2):
+            incoming = str(row.get("incoming_model") or "").strip()
+            target = str(row.get("target_model") or "").strip()
+            if not incoming or not target:
+                raise RuntimeError(f"mapa de identidade incompleto em {path}, linha {line_no}")
+            if incoming in mapping:
+                raise RuntimeError(f"origem duplicada no mapa de identidade: {incoming}")
+            previous = targets.get(target)
+            if previous and previous != incoming:
+                raise RuntimeError(
+                    f"produtos diferentes apontam para o mesmo modelo público: {previous!r}, {incoming!r} -> {target!r}"
+                )
+            mapping[incoming] = target
+            targets[target] = incoming
+    if not mapping:
+        raise RuntimeError(f"mapa de identidade vazio: {path}")
+    return mapping
 
 
 def image_sha(row: dict[str, Any]) -> str:
@@ -97,6 +129,7 @@ def plan_gallery_merge(
     incoming_rows: list[dict[str, Any]],
     *,
     visual_threshold: int = DEFAULT_VISUAL_THRESHOLD,
+    identity_mapping: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     if not 0 <= visual_threshold <= 16:
         raise ValueError("visual_threshold deve ficar entre 0 e 16")
@@ -104,11 +137,34 @@ def plan_gallery_merge(
     existing = [row for row in existing_rows if public_candidate(row)]
     incoming = [row for row in incoming_rows if public_candidate(row)]
 
+    existing_identities = {model_identity(row) for row in existing}
+    incoming_identities = {model_identity(row) for row in incoming}
+    mapping = dict(identity_mapping or {})
+
+    missing_sources = sorted(set(mapping).difference(incoming_identities), key=str.casefold)
+    if missing_sources:
+        raise RuntimeError(f"origens do mapa ausentes no manifesto de entrada: {missing_sources[:5]}")
+    missing_targets = sorted(set(mapping.values()).difference(existing_identities), key=str.casefold)
+    if missing_targets:
+        raise RuntimeError(f"alvos do mapa ausentes no catálogo existente: {missing_targets[:5]}")
+    reverse_targets: dict[str, str] = {}
+    for source, target in mapping.items():
+        previous = reverse_targets.get(target)
+        if previous and previous != source:
+            raise RuntimeError(
+                f"produtos diferentes apontam para o mesmo modelo público: {previous!r}, {source!r} -> {target!r}"
+            )
+        reverse_targets[target] = source
+
     by_model: dict[str, dict[str, list[dict[str, Any]]]] = defaultdict(lambda: {"existing": [], "incoming": []})
     for row in existing:
         by_model[model_identity(row)]["existing"].append(row)
     for row in incoming:
-        by_model[model_identity(row)]["incoming"].append(row)
+        source_identity = model_identity(row)
+        resolved_identity = mapping.get(source_identity, source_identity)
+        planned_row = dict(row)
+        planned_row["_source_model_identity"] = source_identity
+        by_model[resolved_identity]["incoming"].append(planned_row)
 
     actions: list[dict[str, Any]] = []
     counts = defaultdict(int)
@@ -131,6 +187,7 @@ def plan_gallery_merge(
                 preferred = best_quality(exact)
                 actions.append({
                     "model": identity,
+                    "sourceModel": str(row.get("_source_model_identity") or identity),
                     "action": "skip_exact",
                     "incoming": compact_image(row, "incoming"),
                     "matches": [compact_image(item, "existing_or_planned") for item in exact],
@@ -157,6 +214,7 @@ def plan_gallery_merge(
                 incoming_better = quality_tuple(row) > quality_tuple(best_existing)
                 actions.append({
                     "model": identity,
+                    "sourceModel": str(row.get("_source_model_identity") or identity),
                     "action": "review_visual_candidate",
                     "incoming": compact_image(row, "incoming"),
                     "matches": [
@@ -178,6 +236,7 @@ def plan_gallery_merge(
 
             actions.append({
                 "model": identity,
+                "sourceModel": str(row.get("_source_model_identity") or identity),
                 "action": "add_view",
                 "incoming": compact_image(row, "incoming"),
                 "matches": [],
@@ -199,6 +258,7 @@ def plan_gallery_merge(
         },
         "existingImages": len(existing),
         "incomingImages": len(incoming),
+        "identityMappings": len(mapping),
         "modelsTouched": models_touched,
         "counts": dict(sorted(counts.items())),
         "actions": actions,
@@ -212,14 +272,21 @@ def main() -> int:
     parser.add_argument("existing", type=Path, help="manifest.jsonl do catálogo atual")
     parser.add_argument("incoming", type=Path, help="manifest.jsonl das imagens a integrar")
     parser.add_argument("--output", type=Path, help="arquivo JSON do plano; stdout quando omitido")
+    parser.add_argument(
+        "--mapping",
+        type=Path,
+        help="CSV explícito incoming_model,target_model para vincular produtos da entrada a modelos públicos existentes",
+    )
     parser.add_argument("--visual-threshold", type=int, default=DEFAULT_VISUAL_THRESHOLD)
     args = parser.parse_args()
 
     try:
+        mapping = read_identity_mapping(args.mapping) if args.mapping else None
         plan = plan_gallery_merge(
             read_jsonl(args.existing),
             read_jsonl(args.incoming),
             visual_threshold=args.visual_threshold,
+            identity_mapping=mapping,
         )
     except (RuntimeError, ValueError) as exc:
         print(f"ERRO: {exc}", file=sys.stderr)
