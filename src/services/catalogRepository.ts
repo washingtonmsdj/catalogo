@@ -2,6 +2,7 @@ import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, Ca
 
 export const DEFAULT_PAGE_SIZE = 24
 export const MAX_PAGE_SIZE = 60
+export const FRANCHISE_SEARCH_MIN_LENGTH = 3
 
 export type CursorPage<T> = {
   items: T[]
