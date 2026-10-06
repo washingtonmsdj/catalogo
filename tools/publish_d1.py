@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import os
 import re
@@ -277,10 +278,68 @@ WHERE m.id IN ({placeholders})
     return statements
 
 
+def read_gallery_shrink_approvals(path: Path | None) -> dict[str, dict[str, Any]]:
+    if path is None:
+        return {}
+    if not path.is_file():
+        raise RuntimeError(f"aprovações de redução de galeria não encontradas: {path}")
+    required = {
+        "model_id",
+        "current_image_count",
+        "new_image_count",
+        "current_gallery_version",
+        "new_gallery_version",
+        "reason",
+    }
+    approvals: dict[str, dict[str, Any]] = {}
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        if not required.issubset(reader.fieldnames or []):
+            raise RuntimeError(
+                f"aprovações de redução sem colunas obrigatórias {sorted(required)}: {path}"
+            )
+        for line_no, row in enumerate(reader, 2):
+            model_id = str(row.get("model_id") or "").strip()
+            reason = str(row.get("reason") or "").strip()
+            if not model_id or not reason:
+                raise RuntimeError(f"aprovação de redução inválida em {path}, linha {line_no}")
+            if model_id in approvals:
+                raise RuntimeError(f"aprovação de redução duplicada para modelo: {model_id}")
+            try:
+                current_count = int(str(row.get("current_image_count") or "").strip())
+                new_count = int(str(row.get("new_image_count") or "").strip())
+                current_version = int(str(row.get("current_gallery_version") or "").strip())
+                new_version = int(str(row.get("new_gallery_version") or "").strip())
+            except ValueError as exc:
+                raise RuntimeError(
+                    f"aprovação de redução com contagem/versão inválida em {path}, linha {line_no}"
+                ) from exc
+            if current_count < 1 or new_count < 1 or new_count >= current_count:
+                raise RuntimeError(
+                    f"aprovação não representa redução real em {path}, linha {line_no}"
+                )
+            if current_version < 1 or new_version < 1 or current_version == new_version:
+                raise RuntimeError(
+                    f"aprovação exige versões válidas e diferentes em {path}, linha {line_no}"
+                )
+            approvals[model_id] = {
+                "model_id": model_id,
+                "current_image_count": current_count,
+                "new_image_count": new_count,
+                "current_gallery_version": current_version,
+                "new_gallery_version": new_version,
+                "reason": reason,
+            }
+    return approvals
+
+
 def validate_production_compatibility(
     rows: list[dict[str, Any]],
     production_rows: list[dict[str, Any]],
+    gallery_shrink_approvals: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    approvals = dict(gallery_shrink_approvals or {})
+    used_approvals: set[str] = set()
     by_id: dict[str, dict[str, Any]] = {}
     by_slug: dict[str, dict[str, Any]] = {}
     by_code: dict[str, dict[str, Any]] = {}
@@ -363,10 +422,96 @@ def validate_production_compatibility(
                 f"pasta de modelo publicado mudaria sem migração explícita: {model_id}: "
                 f"{current.get('folder_path')!r} -> {candidate.get('folderPathKey')!r}"
             )
+
+        try:
+            current_count = int(current.get("image_count"))
+            new_count = int(candidate.get("imageCount"))
+            current_version = int(current.get("gallery_version"))
+            new_version = int(candidate.get("galleryVersion"))
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(f"contrato de galeria inválido no modelo publicado {model_id}") from exc
+        current_manifest = str(current.get("gallery_manifest_key") or "").strip()
+        new_manifest = str(candidate.get("galleryManifestKey") or "").strip()
+        current_cover = str(current.get("cover_storage_key") or "").strip()
+        new_cover = str(candidate.get("coverStorageKey") or "").strip()
+        if current_count < 1 or new_count < 1 or current_version < 1 or new_version < 1:
+            raise RuntimeError(f"contrato de galeria inválido no modelo publicado {model_id}")
+        if not current_manifest or not new_manifest or not current_cover or not new_cover:
+            raise RuntimeError(f"metadados de galeria incompletos no modelo publicado {model_id}")
+
+        same_manifest = current_manifest == new_manifest
+        gallery_changed = (
+            current_count != new_count
+            or current_manifest != new_manifest
+            or current_cover != new_cover
+        )
+        if same_manifest and (
+            current_count != new_count
+            or current_cover != new_cover
+            or current_version != new_version
+        ):
+            raise RuntimeError(
+                f"manifesto content-addressed igual com metadados divergentes: {model_id}"
+            )
+        if gallery_changed and current_version == new_version:
+            raise RuntimeError(
+                f"galeria mudou sem nova gallery_version: {model_id}: {current_version}"
+            )
+        if not gallery_changed and current_version != new_version:
+            raise RuntimeError(
+                f"gallery_version mudou sem alteração da galeria: {model_id}: "
+                f"{current_version} -> {new_version}"
+            )
+
+        if new_count < current_count:
+            approval = approvals.get(model_id)
+            if approval is None:
+                raise RuntimeError(
+                    f"redução de galeria exige aprovação explícita: {model_id}: "
+                    f"{current_count} -> {new_count}"
+                )
+            expected = {
+                "current_image_count": current_count,
+                "new_image_count": new_count,
+                "current_gallery_version": current_version,
+                "new_gallery_version": new_version,
+            }
+            mismatches = [
+                key for key, value in expected.items()
+                if int(approval.get(key, -1)) != value
+            ]
+            if mismatches:
+                raise RuntimeError(
+                    f"aprovação de redução não corresponde ao delta atual de {model_id}: {mismatches}"
+                )
+            used_approvals.add(model_id)
+
         if slug_owner is not None and str(slug_owner["id"]) != model_id:
             raise RuntimeError(f"slug pertence a outro modelo publicado: {slug} -> {slug_owner['id']}")
         if code_owner is not None and str(code_owner["id"]) != model_id:
             raise RuntimeError(f"código pertence a outro modelo publicado: {code} -> {code_owner['id']}")
+
+    unused_approvals = sorted(set(approvals).difference(used_approvals))
+    if unused_approvals:
+        raise RuntimeError(
+            f"aprovações de redução sem delta correspondente: {unused_approvals[:5]}"
+        )
+
+    expanded = 0
+    changed_same_count = 0
+    unchanged = 0
+    for candidate in rows:
+        current = by_id.get(str(candidate["id"]).strip())
+        if current is None:
+            continue
+        current_count = int(current["image_count"])
+        new_count = int(candidate["imageCount"])
+        if new_count > current_count:
+            expanded += 1
+        elif new_count == current_count and str(current["gallery_manifest_key"]) != str(candidate["galleryManifestKey"]):
+            changed_same_count += 1
+        elif new_count == current_count:
+            unchanged += 1
 
     return {
         "ready": True,
@@ -374,6 +519,11 @@ def validate_production_compatibility(
         "existingModels": existing,
         "newModels": new,
         "productionMatches": len(production_rows),
+        "expandedGalleries": expanded,
+        "changedSameCountGalleries": changed_same_count,
+        "reducedGalleries": len(used_approvals),
+        "unchangedGalleries": unchanged,
+        "galleryShrinkApprovalsUsed": len(used_approvals),
     }
 
 
@@ -462,6 +612,11 @@ def main() -> int:
         action="store_true",
         help="consulta o D1 em modo somente leitura e valida identidade antes de qualquer upload/publicação",
     )
+    parser.add_argument(
+        "--gallery-shrink-approvals",
+        type=Path,
+        help="CSV de aprovações explícitas para reduções de imageCount em modelos já publicados",
+    )
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--r2-state", type=Path, help="checkpoint R2; padrão: r2-publish-state.json ao lado de models.jsonl")
     args = parser.parse_args()
@@ -491,7 +646,12 @@ def main() -> int:
         database_id = require_env("CLOUDFLARE_D1_DATABASE_ID")
         token = require_env("CLOUDFLARE_API_TOKEN")
         production_rows = fetch_production_matches(account_id, database_id, token, rows)
-        summary["productionCompatibility"] = validate_production_compatibility(rows, production_rows)
+        gallery_shrink_approvals = read_gallery_shrink_approvals(args.gallery_shrink_approvals)
+        summary["productionCompatibility"] = validate_production_compatibility(
+            rows,
+            production_rows,
+            gallery_shrink_approvals,
+        )
 
         if not args.apply:
             print(json.dumps(summary, ensure_ascii=False))
