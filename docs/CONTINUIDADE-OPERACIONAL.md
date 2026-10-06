@@ -9,7 +9,7 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Commit de referência deste checkpoint: `7eb0840c8d9bb6ff5c550ec91a7a38fe95975020`.
+- Base funcional do pipeline validada no CI: `47b46ba7034acb6331b3736e212b3bf52b4b3c31`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
