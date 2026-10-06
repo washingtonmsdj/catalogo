@@ -16,6 +16,7 @@ from typing import Any
 
 from publish_r2 import discover as discover_r2
 from publish_r2 import load_state as load_r2_state
+from catalog_scope import PUBLIC_TOP_LEVEL_KEYS
 
 CATEGORY_ORDER = {
     "Animes & Desenhos": 10,
@@ -87,6 +88,9 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
         if duplicates:
             raise RuntimeError(f"{key} vazio ou duplicado: {duplicates[:5]}")
     for row in rows:
+        category_name = str(row["categoryName"]).strip()
+        if category_name.casefold() not in PUBLIC_TOP_LEVEL_KEYS:
+            raise RuntimeError(f"categoria fora do escopo público no modelo {row['id']}: {category_name!r}")
         if not str(row["categorySlug"]).strip() or not str(row["franchiseSlug"]).strip():
             raise RuntimeError(f"taxonomia vazia no modelo {row['id']}")
         if int(row["imageCount"]) < 1:
