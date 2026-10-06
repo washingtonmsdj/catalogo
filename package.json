@@ -11,9 +11,10 @@
     "brand:dist": "node tools/check_generated_brand.mjs",
     "budget:frontend": "node tools/check_frontend_budget.mjs",
     "typecheck:worker": "tsc -p tsconfig.worker.json --noEmit",
-    "check": "npm run brand:source && npm run test:known-cache && npm run build && npm run brand:dist && npm run budget:frontend && npm run typecheck:worker",
+    "check": "npm run brand:source && npm run test:known-cache && npm run dialog:a11y && npm run build && npm run brand:dist && npm run budget:frontend && npm run typecheck:worker",
     "cloudflare:config": "node tools/render_wrangler_config.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dialog:a11y": "node tools/check_dialog_architecture.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
