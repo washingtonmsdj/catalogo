@@ -25,7 +25,7 @@ type CatalogHomeProps = {
   onToggleFavorite: (id: string) => void
 }
 
-type IconName = 'home' | 'star' | 'clock' | 'layers' | 'search' | 'heart' | 'grid' | 'chevron' | 'plus' | 'sliders'
+type IconName = 'home' | 'star' | 'clock' | 'layers' | 'search' | 'heart' | 'grid' | 'chevron' | 'plus' | 'sliders' | 'image'
 
 function Icon({ name }: { name: IconName }) {
   const paths: Record<IconName, ReactNode> = {
@@ -39,6 +39,7 @@ function Icon({ name }: { name: IconName }) {
     chevron: <path d="m9 6 6 6-6 6" />,
     plus: <><circle cx="12" cy="12" r="9" /><path d="M12 8v8M8 12h8" /></>,
     sliders: <><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></>,
+    image: <><rect x="3.5" y="4.5" width="17" height="15" rx="2" /><circle cx="9" cy="9" r="1.6" /><path d="m5.5 17 4.6-4.7 3.3 3.1 2.2-2.2 2.9 3.8" /></>,
   }
   return <svg className="storefront-icon" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>
 }
@@ -58,6 +59,11 @@ function ModelCard({ model, favorite, active, priority = false, categoryLabel, o
           {model.coverUrl ? <img src={model.coverUrl} alt="" loading={priority ? 'eager' : 'lazy'} fetchPriority={priority ? 'high' : 'auto'} decoding="async" /> : <span className="storefront-model-card__fallback">{model.name.slice(0, 1)}</span>}
           <span className="storefront-model-card__shade" />
           {categoryLabel && <span className="storefront-model-card__category">{categoryLabel}</span>}
+          {model.galleryCount > 1 && (
+            <span className="storefront-model-card__gallery-badge" aria-hidden="true">
+              <Icon name="image" /> {formatter.format(model.galleryCount)}
+            </span>
+          )}
         </div>
         <span className="storefront-model-card__copy">
           <strong>{model.name}</strong>
@@ -88,7 +94,13 @@ function CategoryTile({ category, cover, active, onSelect }: {
   onSelect: () => void
 }) {
   return (
-    <button type="button" className={`storefront-category-tile ${active ? 'is-active' : ''}`} onClick={onSelect}>
+    <button
+      type="button"
+      className={`storefront-category-tile ${active ? 'is-active' : ''}`}
+      onClick={onSelect}
+      aria-pressed={active}
+      aria-label={`${category.label}: ${category.count} modelos`}
+    >
       {cover && <img src={cover} alt="" loading="lazy" decoding="async" />}
       <span className="storefront-category-tile__shade" />
       <span><strong>{category.label}</strong><small>{formatter.format(category.count)} modelos</small></span>
@@ -107,7 +119,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const catalogTotal = catalog.categories.find((item) => item.id === 'all')?.count ?? catalog.totalCount
   const featuredModels = models.slice(0, 6)
   const secondaryModels = models.slice(6, 10).length ? models.slice(6, 10) : models.slice(0, 4)
-  const categoryTiles = catalog.categories.filter((item) => item.id !== 'all').slice(0, 6)
+  const publicCategories = catalog.categories.filter((item) => item.id !== 'all')
+  const categoryTiles = publicCategories.slice(0, 6)
+  const scopedModelCount = catalog.totalCount
   const visibleFranchises = useMemo(() => catalog.franchises.filter((item) => item.label.toLocaleLowerCase('pt-BR').includes(franchiseFilter.trim().toLocaleLowerCase('pt-BR'))), [catalog.franchises, franchiseFilter])
   const franchiseCards = catalog.franchises.slice(0, 4)
   const categoryLabels = useMemo(() => new Map(catalog.categories.map((item) => [item.id, item.label])), [catalog.categories])
@@ -246,7 +260,21 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
       <div className="storefront-main">
         <header className="storefront-topbar">
           <nav aria-label="Navegação principal"><a href="#catalogo" className="is-active">Explorar</a><a href="#colecoes">Coleções</a><button type="button" onClick={onOpenUpdates}>Novos</button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
-          <label className={`storefront-search ${catalog.searchPending ? 'is-pending' : ''}`}><Icon name="search" /><input ref={searchInputRef} value={catalog.search} onChange={(event) => catalog.setSearch(event.target.value)} placeholder="Buscar modelos, personagens, franquias..." aria-label="Buscar no catálogo" /><kbd>Ctrl</kbd><kbd>K</kbd></label>
+          <div className={`storefront-search ${catalog.searchPending ? 'is-pending' : ''}`} role="search">
+            <Icon name="search" />
+            <input
+              ref={searchInputRef}
+              value={catalog.search}
+              onChange={(event) => catalog.setSearch(event.target.value)}
+              placeholder="Buscar modelos, personagens, franquias..."
+              aria-label="Buscar no catálogo"
+            />
+            {catalog.search.trim() ? (
+              <button type="button" className="storefront-search__clear" onClick={() => catalog.setSearch('')} aria-label="Limpar busca">×</button>
+            ) : (
+              <span className="storefront-search__shortcut" aria-hidden="true"><kbd>Ctrl</kbd><kbd>K</kbd></span>
+            )}
+          </div>
           <div className="storefront-topbar__status" role="status" aria-live="polite"><span className={`is-${runtimeStatus.tone}`} /><strong>{runtimeStatus.label}</strong></div>
         </header>
         <main id="catalogo" className="storefront-content" aria-busy={catalog.loading}>
@@ -265,9 +293,15 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               <button type="button" className="storefront-hero__nav storefront-hero__nav--next" onClick={showNextHeroCampaign} aria-label="Próxima coleção em destaque"><Icon name="chevron" /></button>
             </>}
             <div className="storefront-hero__copy">
-              <span className="storefront-hero__eyebrow"><Icon name="star" /> Destaque editorial</span>
-              <h1>Explore o catálogo com uma <em>experiência visual premium.</em></h1>
-              <p>Descubra modelos organizados por franquias, personagens e categorias, com destaques editoriais que ajudam a navegar pelo acervo sem interromper sua exploração.</p>
+              <span className="storefront-hero__eyebrow"><Icon name="star" /> Acervo digital organizado</span>
+              <h1>Encontre o modelo certo <em>sem se perder no catálogo.</em></h1>
+              <p>Explore por franquia, personagem ou categoria, abra cada ficha e compare as vistas disponíveis antes de adicionar o modelo à sua lista.</p>
+              <div className="storefront-hero__metrics" aria-label="Resumo do acervo">
+                <span><strong>{formatter.format(catalogTotal)}</strong><small>modelos</small></span>
+                <span><strong>{formatter.format(publicCategories.length)}</strong><small>categorias</small></span>
+                <span><strong>{formatter.format(catalog.franchises.length)}</strong><small>franquias no recorte</small></span>
+                {catalog.hasActiveFilters && <span><strong>{formatter.format(scopedModelCount)}</strong><small>resultados</small></span>}
+              </div>
               <div className="storefront-hero__actions">
                 <button type="button" className="storefront-button storefront-button--primary" onClick={exploreHeroCampaign}>Explorar coleção <Icon name="chevron" /></button>
                 <button type="button" className="storefront-button storefront-button--ghost" onClick={onOpenExplorer}><Icon name="grid" /> Ver franquias</button>
