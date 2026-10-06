@@ -1,6 +1,6 @@
 # Deploy Cloudflare
 
-O catálogo usa GitHub Pages para o frontend e Cloudflare para API, banco, mídia e proteção dos fluxos públicos de gravação.
+O catálogo usa `acheguese.com.br/catalogo/` como URL pública canônica. O frontend continua publicado no GitHub Pages como origem/preview e é montado sob o domínio Achegue-se por reverse proxy. Cloudflare continua responsável por API, banco, mídia e proteção dos fluxos públicos de gravação.
 O deploy normal do backend é automatizado; somente o provisionamento inicial da conta é feito uma vez.
 
 ## Recursos de produção
@@ -17,7 +17,7 @@ O deploy normal do backend é automatizado; somente o provisionamento inicial da
 1. Criar o banco D1 `tonecos-catalogo` e guardar o UUID.
 2. Criar o bucket R2 `tonecos-catalogo-media`.
 3. Configurar uma origem pública/CDN para os objetos web do R2.
-4. Criar um widget Cloudflare Turnstile em modo Managed. Autorizar `washingtonmsdj.github.io` e, quando existir, o domínio próprio do catálogo.
+4. Criar um widget Cloudflare Turnstile em modo Managed. Autorizar `washingtonmsdj.github.io`, `acheguese.com.br` e `www.acheguese.com.br`.
 5. Criar um API Token Cloudflare com somente as permissões necessárias para Worker, D1 e R2.
 6. Configurar no GitHub as variáveis e secrets descritos abaixo.
 
@@ -31,8 +31,7 @@ O arquivo `wrangler.jsonc` mantém um placeholder de D1. O UUID real nunca preci
 - `CLOUDFLARE_D1_DATABASE_ID`
 - `VITE_API_BASE_URL` — origem pública do Worker, sem barra final
 - `VITE_MEDIA_BASE_URL` — origem pública/CDN do R2, sem barra final
-- `VITE_TURNSTILE_SITE_KEY` — chave pública do widget Turnstile
-- `CATALOG_CORS_ORIGINS` — opcional; lista separada por vírgulas para futuros domínios próprios
+- `VITE_TURNSTILE_SITE_KEY` — chave pública do widget Turnstile\n- `CATALOG_CORS_ORIGINS` — opcional; lista separada por vírgulas para origens adicionais que precisem chamar o Worker diretamente
 
 ## GitHub Repository Secrets
 
@@ -74,11 +73,18 @@ O bootstrap inicial foi executado em 2026-09-30/2026-10-01 com recursos próprio
 - Worker `tonecos-catalogo-api` publicado em `workers.dev`;
 - D1 `tonecos-catalogo` com as migrações `0001`–`0010` aplicadas e reconciliadas na tabela `d1_migrations`;
 - R2 `tonecos-catalogo-media` criado com endpoint público `r2.dev` para as variantes web;
-- widget Turnstile Managed próprio do catálogo, autorizado para `washingtonmsdj.github.io`.
+- widget Turnstile Managed próprio do catálogo, autorizado para `washingtonmsdj.github.io`, `acheguese.com.br` e `www.acheguese.com.br`.
 
 O workflow do Pages exige as Repository Variables de produção para API, mídia, site key do Turnstile e URL pública. Ele não contém endpoints ou chaves públicas de produção como fallback: configuração ausente falha explicitamente antes do build. Segredos privados continuam fora do Git.
 
 ## Frontend
+
+A URL pública canônica fica em `https://acheguese.com.br/catalogo/`. O repositório Achegue-se faz dois encaminhamentos independentes:
+
+- `/catalogo/*` → origem GitHub Pages do frontend;
+- `/catalogo-api/*` → Worker do Catálogo.
+
+Isso mantém a API first-party no navegador quando o cliente usa o domínio Achegue-se, sem exigir relaxar o CSP do projeto principal. O preview GitHub Pages continua funcional e usa o Worker diretamente.
 
 O workflow do GitHub Pages injeta durante o build:
 
