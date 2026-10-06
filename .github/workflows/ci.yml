@@ -24,6 +24,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Test bounded browser metadata cache
         run: npm run test:known-cache
+      - name: Test gallery runtime validation
+        run: npm run test:gallery-runtime
       - name: Check dialog architecture
         run: npm run dialog:a11y
       - name: Build frontend
