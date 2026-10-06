@@ -39,6 +39,10 @@ const requiredControllerTokens = [
   "event.key !== 'Tab'",
   "document.addEventListener('focusin'",
   'returnFocus',
+  'syncDialogStack',
+  "dialog.setAttribute('aria-hidden', 'true')",
+  "dialog.setAttribute('inert', '')",
+  'restoreDialogStackState',
 ]
 
 for (const token of requiredControllerTokens) {
@@ -54,4 +58,4 @@ if (!main.includes("import { installDialogAccessibility } from './installDialogA
   process.exit(1)
 }
 
-console.log('Dialog architecture ready: focus trap, focus restoration and scroll lock share one controller.')
+console.log('Dialog architecture ready: focus trap, focus restoration, stacked modal isolation and scroll lock share one controller.')
