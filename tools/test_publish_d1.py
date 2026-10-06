@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from publish_d1 import build_statements, load_models, production_lookup_statements, validate_production_compatibility
+from publish_d1 import CATEGORY_ORDER, build_statements, load_models, production_lookup_statements, validate_production_compatibility
 
 
 def model(model_id: str, slug: str, code: str, *, variant: str) -> dict:
@@ -31,6 +31,19 @@ def model(model_id: str, slug: str, code: str, *, variant: str) -> dict:
 
 
 class PublishD1Tests(unittest.TestCase):
+    def test_category_order_is_derived_from_public_scope_ssot(self) -> None:
+        self.assertEqual(
+            CATEGORY_ORDER,
+            {
+                "Animes & Desenhos": 10,
+                "Games": 20,
+                "Filmes & Séries": 30,
+                "Marvel & DC": 40,
+                "Tokusatsu & Cultura Japonesa": 50,
+                "Pessoas": 60,
+            },
+        )
+
     def test_plan_deduplicates_taxonomy_but_preserves_models(self) -> None:
         rows = [
             model("mdl-1", "android-18-a", "TS-1", variant="Androide 18 A"),
