@@ -40,6 +40,7 @@ type CatalogRow = {
   collection: string | null
   folder_path: string | null
   image_count: number
+  gallery_version: number
   cover_storage_key: string | null
 }
 
@@ -390,7 +391,7 @@ async function listCatalog(request: Request, env: Env) {
   }
 
   const searchJoin = query ? 'JOIN models_fts ON models_fts.model_id = m.id' : ''
-  const sql = `${folderCte} SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,m.image_count,m.cover_storage_key,
+  const sql = `${folderCte} SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,m.image_count,m.gallery_version,m.cover_storage_key,
     f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m
     JOIN franchises f ON f.id=m.franchise_id
@@ -415,7 +416,7 @@ async function listCatalog(request: Request, env: Env) {
 async function listRecentCatalog(request: Request, env: Env) {
   const url = new URL(request.url)
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '12', 10) || 12, 1, 24)
-  const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,m.image_count,m.cover_storage_key,
+  const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,m.image_count,m.gallery_version,m.cover_storage_key,
     f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m
     JOIN franchises f ON f.id=m.franchise_id
