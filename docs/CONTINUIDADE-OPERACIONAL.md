@@ -199,6 +199,9 @@ Executar nesta ordem, sem pular etapas:
    - candidato visual → revisão de qualidade;
    - registrar a decisão em CSV e executar `tools/resolve_gallery_merge.py`;
    - nenhuma promoção de candidato visual pode seguir sem o resolvedor retornar `ready=true`;
+   - gerar `gallery-promotions.csv` com `tools/build_gallery_promotion_manifest.py`;
+   - no desktop, conferir novamente `source_sha256` imediatamente antes da cópia e resolver o destino somente pela árvore auditada atual;
+   - `replace_existing` supersede a vista na publicação, mas não autoriza apagar o mestre antigo;
    - produto diferente do mesmo personagem → manter modelo separado.
 
 5. **Promover conteúdo aprovado para o catálogo mestre**
@@ -251,6 +254,7 @@ Executar nesta ordem, sem pular etapas:
 - `tools/publish_d1.py` — revalida o SSOT antes de publicar/upsert no D1;
 - `tools/plan_gallery_merge.py` — plano não destrutivo para mesclar galerias e aplicar mapa explícito produto→modelo;
 - `tools/resolve_gallery_merge.py` — gate fail-closed das decisões visuais antes da promoção;
+- `tools/build_gallery_promotion_manifest.py` — gera CSV auditável de autorizações, sem copiar/apagar arquivos;
 - `tools/build_media_bundle.py` — galeria, variantes e identidade estável;
 - `tools/publish_r2.py` — upload incremental de mídia;
 - `tools/publish_d1.py` — upsert idempotente após gate R2;
