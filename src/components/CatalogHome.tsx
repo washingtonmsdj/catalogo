@@ -144,6 +144,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const [expandedFranchiseKey, setExpandedFranchiseKey] = useState<string | null>(null)
   const [heroCampaignIndex, setHeroCampaignIndex] = useState(0)
   const [showFullCatalogPage, setShowFullCatalogPage] = useState(false)
+  const [activeNavSection, setActiveNavSection] = useState<'catalogo' | 'destaques' | 'colecoes'>('catalogo')
   const selected = catalog.selected
   const models = catalog.models
   const catalogTotal = catalog.categories.find((item) => item.id === 'all')?.count ?? catalog.totalCount
@@ -246,6 +247,32 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
     if (!heroCampaigns.length && heroCampaignIndex !== 0) setHeroCampaignIndex(0)
     else if (heroCampaignIndex >= heroCampaigns.length) setHeroCampaignIndex(0)
   }, [heroCampaignIndex, heroCampaigns.length])
+
+  useEffect(() => {
+    let frame = 0
+    const update = () => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(() => {
+        const threshold = 120
+        const collections = document.getElementById('colecoes')
+        const highlights = document.getElementById('destaques')
+        const next = collections && collections.getBoundingClientRect().top <= threshold
+          ? 'colecoes'
+          : highlights && highlights.getBoundingClientRect().top <= threshold
+            ? 'destaques'
+            : 'catalogo'
+        setActiveNavSection((current) => current === next ? current : next)
+      })
+    }
+    update()
+    window.addEventListener('scroll', update, { passive: true })
+    window.addEventListener('resize', update)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [resultsMode])
 
   function selectModel(model: CatalogModel) {
     onOpenModel(model)
@@ -355,10 +382,10 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
         </div>
 
         <nav className="storefront-sidebar__nav" aria-label="Navegação do catálogo">
-          <a href="#catalogo" className="is-active"><Icon name="home" /><span>Catálogo</span></a>
-          <a href="#destaques"><Icon name="star" /><span>Em destaque</span></a>
+          <a href="#catalogo" className={activeNavSection === 'catalogo' ? 'is-active' : ''} aria-current={activeNavSection === 'catalogo' ? 'page' : undefined}><Icon name="home" /><span>Catálogo</span></a>
+          <a href="#destaques" className={activeNavSection === 'destaques' ? 'is-active' : ''} aria-current={activeNavSection === 'destaques' ? 'page' : undefined}><Icon name="star" /><span>Em destaque</span></a>
           <button type="button" onClick={onOpenUpdates}><Icon name="clock" /><span>Recém adicionados</span></button>
-          <a href="#colecoes"><Icon name="layers" /><span>Coleções</span><b>{catalog.franchises.length}</b></a>
+          <a href="#colecoes" className={activeNavSection === 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection === 'colecoes' ? 'page' : undefined}><Icon name="layers" /><span>Coleções</span><b>{catalog.franchises.length}</b></a>
           <button type="button" onClick={onOpenFavorites}><Icon name="heart" /><span>Favoritos</span><b>{favorites.length}</b></button>
         </nav>
 
@@ -412,7 +439,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
 
       <div className="storefront-main">
         <header className="storefront-topbar">
-          <nav aria-label="Navegação principal"><a href="#catalogo" className="is-active">Explorar</a><a href="#colecoes">Coleções</a><button type="button" onClick={onOpenUpdates}>Novos</button><button type="button" className="storefront-topbar__favorites" onClick={onOpenFavorites}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
+          <nav aria-label="Navegação principal"><a href="#catalogo" className={activeNavSection !== 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection !== 'colecoes' ? 'page' : undefined}>Explorar</a><a href="#colecoes" className={activeNavSection === 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection === 'colecoes' ? 'page' : undefined}>Coleções</a><button type="button" onClick={onOpenUpdates}>Novos</button><button type="button" className="storefront-topbar__favorites" onClick={onOpenFavorites}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
           <div className={`storefront-search ${catalog.searchPending ? 'is-pending' : ''}`} role="search">
             <Icon name="search" />
             <input
