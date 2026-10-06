@@ -9,7 +9,7 @@
 ### GitHub / frontend
 
 - Branch autoritativa: `main`.
-- Base funcional do pipeline validada no CI: `2085e3b6393100853cd3b76a6cbe3643cdc064b8`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
+- Base funcional do pipeline validada no CI: `e401e69c8a5cf683e7d847645a03e2f17b3edd96`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
 - Deploy do preview GitHub Pages: **verde**.
 - Preview público: `https://washingtonmsdj.github.io/catalogo/`.
@@ -46,6 +46,8 @@ O deploy automático do backend continua fail-closed enquanto o GitHub Actions n
 
 Consequência operacional: alterações recentes em `worker/` ficam validadas por CI/dry-run, porém o Worker público permanece na versão anteriormente implantada até esse secret ser configurado e o workflow Cloudflare terminar verde.
 
+Depois que `CLOUDFLARE_API_TOKEN` for configurado em GitHub Actions Secrets, executar manualmente o workflow **Deploy Cloudflare API** por `workflow_dispatch`. Não criar commit artificial só para disparar deploy. Deixar `force_turnstile_secret_sync=false` salvo rotação real do segredo Turnstile.
+
 O domínio comercial ainda não deve ser forçado no código sem a zona/DNS corretos na conta Cloudflare responsável.
 
 ## Regra de identidade: modelo não é imagem
@@ -65,7 +67,10 @@ O bundle já possui testes garantindo:
 - uma identidade pública compartilhada gera 1 modelo com N imagens;
 - duas identidades de produto do mesmo personagem continuam separadas;
 - trocar a imagem escolhida como capa não muda ID/nome/slug da galeria;
-- o gate R2/D1 exige que `imageCount` coincida com o manifesto e que todas as variantes `thumb/card/detail` existam.
+- o gate R2/D1 exige que `imageCount` e `galleryVersion` coincidam com o manifesto e que todas as variantes `thumb/card/detail` existam;
+- as chaves R2 de capa, manifesto e variantes precisam pertencer ao mesmo `model_id`;
+- a capa do D1 precisa ser exatamente a variante `card` da primeira imagem/capa do manifesto;
+- o CI possui ensaio integrado que publica um produto sintético com 1 imagem, expande para 3 e prova que ID/slug/código permanecem estáveis e o D1 continua com apenas 1 modelo.
 
 ## Política de imagens e qualidade
 
@@ -277,6 +282,8 @@ Executar nesta ordem, sem pular etapas:
 - `tools/publish_r2.py` — upload incremental de mídia;
 - `tools/publish_d1.py` — preflight read-only de identidade em produção + upsert idempotente após revalidação e gate R2;
 - `tools/verify_public_catalog.py` — validação pública, incluindo auditoria amostral ou completa das galerias multi-imagem;
+- `tools/check_worker_gallery_contract.mjs` — smoke pós-deploy do Worker para `gallery_version`, `image_count`, total e capa;
+- `tools/test_multi_image_release_contract.py` — ensaio integrado de expansão 1→3 imagens preservando identidade e um único registro D1;
 - `docs/INGESTAO.md` — contrato da ingestão;
 - `docs/MIDIA-R2.md` — contrato de mídia e galeria;
 - `docs/DATA_MODEL.md` — modelo de dados;
