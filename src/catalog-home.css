@@ -32,6 +32,21 @@
 .storefront-franchise-search input { width: 100%; border: 0; outline: 0; background: transparent; color: #dceae6; font: 600 10px/1 ui-sans-serif, system-ui; }
 .storefront-franchise-search input::placeholder { color: #58776f; }
 .storefront-franchise-list { display: grid; gap: 2px; padding: 0 10px 8px; }
+.storefront-franchise-status {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 7px 8px;
+  border: 1px dashed rgba(91, 178, 154, .16);
+  border-radius: 7px;
+  color: #76978e;
+  font: 620 8px/1.4 ui-sans-serif, system-ui;
+}
+.storefront-franchise-status.is-hint { color: #64837b; }
+.storefront-franchise-status.is-error {
+  border-color: rgba(214, 130, 113, .2);
+  color: #c58f84;
+}
 .storefront-franchise-entry { min-width: 0; border: 1px solid transparent; border-radius: 8px; overflow: hidden; }
 .storefront-franchise-entry.is-active { border-color: rgba(36,240,176,.18); background: rgba(36,240,176,.035); box-shadow: inset 2px 0 0 var(--store-accent); }
 .storefront-franchise-row { width: 100%; min-height: 34px; display: grid; grid-template-columns: minmax(0, 1fr) 24px; align-items: center; padding-right: 4px; border: 0; background: transparent; color: #a4b9b3; }
