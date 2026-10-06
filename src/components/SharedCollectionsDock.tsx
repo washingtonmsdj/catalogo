@@ -109,14 +109,9 @@ export function SharedCollectionsDock() {
     const current = loadCollections()
     setCollections(current)
     setSelectedId((id) => current.some((item) => item.id === id) ? id : current[0]?.id ?? '')
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
     window.addEventListener('keydown', close)
-    return () => {
-      document.body.style.overflow = previousOverflow
-      window.removeEventListener('keydown', close)
-    }
+    return () => window.removeEventListener('keydown', close)
   }, [open])
 
   const selected = useMemo(() => collections.find((item) => item.id === selectedId) ?? null, [collections, selectedId])
