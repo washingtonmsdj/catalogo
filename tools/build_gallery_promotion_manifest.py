@@ -50,7 +50,7 @@ def build_promotion_rows(resolution: dict[str, Any]) -> tuple[list[dict[str, str
         raise RuntimeError("resolução de galeria sem lista de promoções")
 
     rows: list[dict[str, str]] = []
-    seen_images: set[tuple[str, str]] = set()
+    seen_images: set[tuple[str, str, str]] = set()
     seen_authorizations: set[str] = set()
 
     for index, promotion in enumerate(promotions, 1):
@@ -71,9 +71,9 @@ def build_promotion_rows(resolution: dict[str, Any]) -> tuple[list[dict[str, str
         source_sha = validate_sha(incoming.get("sha256"), "source_sha256")
         if not source_path:
             raise RuntimeError(f"promoção sem source_path na posição {index}")
-        key = (source_path, source_sha)
+        key = (source_path, source_sha, model)
         if key in seen_images:
-            raise RuntimeError(f"imagem aparece em múltiplas promoções: {source_path}")
+            raise RuntimeError(f"imagem aparece em múltiplas promoções para o mesmo modelo: {source_path} -> {model}")
         seen_images.add(key)
 
         raw_replace = promotion.get("replaceSha256")
