@@ -860,3 +860,9 @@
 @media (prefers-reduced-motion: reduce) {
   .storefront-model-card__open { transition: none; }
 }
+
+.storefront-topbar__favorites { display: none !important; }
+
+@media (max-width: 900px) {
+  .storefront-topbar__favorites { display: inline-flex !important; }
+}
