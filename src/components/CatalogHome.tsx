@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode, type RefObject } from 'react'
 import { BRAND_NAME, BRAND_SHORT_NAME, CATALOG_LABEL } from '../config/brand'
 import { useCatalogRuntime } from '../hooks/useCatalogRuntime'
+import { listCatalogFranchises } from '../services/catalogApi'
 import { hasResolvedCatalogDiscovery, isCatalogResultsMode, modelsForCatalogHome } from '../lib/catalogHomeView'
 import { CatalogSidebarTree } from './CatalogSidebarTree'
 import type { CatalogCategory, CatalogFranchise, CatalogModel } from '../types/catalog'
@@ -112,6 +113,9 @@ function CategoryTile({ category, cover, active, onSelect }: {
 
 export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onOpenExplorer, onOpenUpdates, onOpenFavorites, onOpenQuote, onOpenModel, onToggleFavorite }: CatalogHomeProps) {
   const [franchiseFilter, setFranchiseFilter] = useState('')
+  const [sidebarSearchItems, setSidebarSearchItems] = useState<CatalogFranchise[]>([])
+  const [sidebarSearchLoading, setSidebarSearchLoading] = useState(false)
+  const [sidebarSearchError, setSidebarSearchError] = useState('')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [expandedFranchiseKey, setExpandedFranchiseKey] = useState<string | null>(null)
   const [heroCampaignIndex, setHeroCampaignIndex] = useState(0)
@@ -137,7 +141,13 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const hasScopeFilters = catalog.category !== 'all' || catalog.franchise !== 'all' || Boolean(catalog.folder)
   const hasAppliedSearch = Boolean(catalog.search.trim()) && !catalog.searchPending
   const showActiveFilterStrip = hasScopeFilters || hasAppliedSearch
-  const visibleFranchises = useMemo(() => catalog.franchises.filter((item) => item.label.toLocaleLowerCase('pt-BR').includes(franchiseFilter.trim().toLocaleLowerCase('pt-BR'))), [catalog.franchises, franchiseFilter])
+  const franchiseNeedle = franchiseFilter.trim().toLocaleLowerCase('pt-BR')
+  const franchiseSearchLength = Array.from(franchiseFilter.trim()).length
+  const sidebarRemoteSearch = catalog.mode === 'live' && franchiseSearchLength >= 3
+  const visibleFranchises = useMemo(() => {
+    const source = sidebarRemoteSearch ? sidebarSearchItems : catalog.franchises
+    return source.filter((item) => !franchiseNeedle || item.label.toLocaleLowerCase('pt-BR').includes(franchiseNeedle))
+  }, [catalog.franchises, franchiseNeedle, sidebarRemoteSearch, sidebarSearchItems])
   const franchiseCards = catalog.franchises.slice(0, 4)
   const categoryLabels = useMemo(() => new Map(catalog.categories.map((item) => [item.id, item.label])), [catalog.categories])
   const heroCampaigns = useMemo(() => {
@@ -155,6 +165,38 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
       : catalog.loading
         ? { label: 'Conectando...', tone: 'pending' }
         : { label: 'Catálogo indisponível', tone: 'error' }
+
+  useEffect(() => {
+    if (!sidebarRemoteSearch) {
+      setSidebarSearchItems([])
+      setSidebarSearchLoading(false)
+      setSidebarSearchError('')
+      return
+    }
+
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      setSidebarSearchLoading(true)
+      setSidebarSearchError('')
+      listCatalogFranchises(catalog.category, 24, franchiseFilter.trim())
+        .then((page) => {
+          if (!cancelled) setSidebarSearchItems(page.items)
+        })
+        .catch(() => {
+          if (cancelled) return
+          setSidebarSearchItems([])
+          setSidebarSearchError('Não foi possível pesquisar todas as franquias agora.')
+        })
+        .finally(() => {
+          if (!cancelled) setSidebarSearchLoading(false)
+        })
+    }, 220)
+
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [catalog.category, franchiseFilter, sidebarRemoteSearch])
 
   useEffect(() => {
     if (catalog.franchise === 'all') return
@@ -285,7 +327,10 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
         <div className="storefront-sidebar__section-head"><span>Franquias</span><button type="button" onClick={onOpenExplorer} aria-label="Explorar todas as franquias">+</button></div>
         <label className="storefront-franchise-search"><Icon name="search" /><input value={franchiseFilter} onChange={(event) => setFranchiseFilter(event.target.value)} placeholder="Buscar franquias..." /></label>
 
-        <div className="storefront-franchise-list">
+        <div className="storefront-franchise-list" aria-busy={sidebarSearchLoading}>
+          {sidebarSearchLoading && <div className="storefront-franchise-status" role="status">Pesquisando em todas as franquias…</div>}
+          {sidebarSearchError && <div className="storefront-franchise-status is-error" role="status">{sidebarSearchError}</div>}
+          {!sidebarSearchLoading && sidebarRemoteSearch && !sidebarSearchError && visibleFranchises.length === 0 && <div className="storefront-franchise-status">Nenhuma franquia encontrada.</div>}
           {visibleFranchises.slice(0, 12).map((item) => {
             const key = franchiseKey(item)
             const active = catalog.franchise === item.id && catalog.category === item.category
