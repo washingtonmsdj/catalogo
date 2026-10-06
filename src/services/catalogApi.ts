@@ -1,5 +1,5 @@
 import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
-import type { CatalogListQuery, CatalogModelCard, CursorPage, GalleryQuery } from './catalogRepository'
+import { FRANCHISE_SEARCH_MIN_LENGTH, type CatalogListQuery, type CatalogModelCard, type CursorPage, type GalleryQuery } from './catalogRepository'
 
 export type CatalogRuntimeMode = 'demo' | 'live'
 
@@ -116,7 +116,7 @@ export async function listCatalogFranchises(category?: string, limit = 24, searc
   const page = await requestJson<{ items: Array<Omit<CatalogFranchise, 'coverUrl'> & { cover_storage_key?: string | null }>; truncated: boolean }>(endpoint('/api/franchises', {
     category: category && category !== 'all' ? category : undefined,
     limit,
-    q: search?.trim() || undefined,
+    q: search && Array.from(search.trim()).length >= FRANCHISE_SEARCH_MIN_LENGTH ? search.trim() : undefined,
   }))
   return {
     truncated: page.truncated,
