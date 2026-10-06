@@ -30,6 +30,8 @@ jobs:
         run: npm run test:worker-gallery-contract
       - name: Test catalog home display contract
         run: npm run test:catalog-home
+      - name: Test gallery grid navigation
+        run: npm run test:gallery-grid
       - name: Check dialog architecture
         run: npm run dialog:a11y
       - name: Build frontend
