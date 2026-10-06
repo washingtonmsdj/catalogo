@@ -98,7 +98,7 @@ Checkpoint técnico confirmado da auditoria SHA:
 
 O auditor SHA local antigo considerou como “catálogo público” uma raiz de referências/legado que não pertence às seis categorias públicas. Isso gerou **111 grupos falsos/ambíguos de duplicatas internas** no portão local.
 
-A ingestão do site já possui a fronteira correta em `tools/ingest_catalog.py`: somente estas seis categorias são públicas:
+A fronteira pública agora possui SSOT versionado em `config/public-catalog-roots.json`, consumido por `tools/ingest_catalog.py`. A automação local deve consumir esse mesmo JSON, sem manter uma lista paralela. As seis categorias públicas são:
 
 1. Pessoas
 2. Animes & Desenhos
@@ -115,7 +115,7 @@ Não executar `-Reset` como primeira opção.
 
 A correção profissional é:
 
-1. centralizar a definição das raízes públicas no helper local;
+1. fazer o helper local carregar `config/public-catalog-roots.json` como SSOT das raízes públicas;
 2. atualizar os consumidores do inventário/portão para essa definição;
 3. migrar o inventário/cache existente para o novo escopo;
 4. reutilizar hashes já válidos dos arquivos que continuam no escopo;
@@ -240,7 +240,8 @@ Executar nesta ordem, sem pular etapas:
 
 ## Arquivos técnicos relevantes do repositório
 
-- `tools/ingest_catalog.py` — fronteira pública, hashes, qualidade e manifesto;
+- `config/public-catalog-roots.json` — SSOT versionado das categorias públicas;
+- `tools/ingest_catalog.py` — consumidor do SSOT, hashes, qualidade e manifesto;
 - `tools/plan_gallery_merge.py` — plano não destrutivo para mesclar galerias;
 - `tools/build_media_bundle.py` — galeria, variantes e identidade estável;
 - `tools/publish_r2.py` — upload incremental de mídia;
