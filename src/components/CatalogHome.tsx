@@ -114,10 +114,18 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [expandedFranchiseKey, setExpandedFranchiseKey] = useState<string | null>(null)
   const [heroCampaignIndex, setHeroCampaignIndex] = useState(0)
+  const [showFullCatalogPage, setShowFullCatalogPage] = useState(false)
   const selected = catalog.selected
   const models = catalog.models
   const catalogTotal = catalog.categories.find((item) => item.id === 'all')?.count ?? catalog.totalCount
-  const featuredModels = models.slice(0, 6)
+  const hasResolvedDiscovery = (
+    catalog.category !== 'all'
+    || catalog.franchise !== 'all'
+    || Boolean(catalog.folder)
+    || Boolean(catalog.search.trim() && !catalog.searchPending)
+  )
+  const resultsMode = showFullCatalogPage || catalog.pageIndex > 0 || hasResolvedDiscovery
+  const featuredModels = resultsMode ? models : models.slice(0, 6)
   const secondaryModels = models.slice(6, 10).length ? models.slice(6, 10) : models.slice(0, 4)
   const publicCategories = catalog.categories.filter((item) => item.id !== 'all')
   const categoryTiles = publicCategories.slice(0, 6)
@@ -201,6 +209,44 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
     if (catalog.franchise !== item.id) catalog.setFranchise(item.id)
     catalog.setFolder(folder)
   }
+
+  function scrollToResults() {
+    window.requestAnimationFrame(() => {
+      document.querySelector('#destaques')?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      })
+    })
+  }
+
+  function showCatalogPage() {
+    setShowFullCatalogPage(true)
+    scrollToResults()
+  }
+
+  function showEditorialHome() {
+    setShowFullCatalogPage(false)
+    catalog.resetDiscovery()
+    window.requestAnimationFrame(() => {
+      document.querySelector('#catalogo')?.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start',
+      })
+    })
+  }
+
+  function nextCatalogPage() {
+    catalog.goNextPage()
+    setShowFullCatalogPage(true)
+    scrollToResults()
+  }
+
+  function previousCatalogPage() {
+    catalog.goPreviousPage()
+    setShowFullCatalogPage(true)
+    scrollToResults()
+  }
+
   return (
     <div className={`storefront-shell ${sidebarCollapsed ? 'is-sidebar-collapsed' : ''}`}>
       <aside className="storefront-sidebar">
@@ -336,12 +382,52 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               <button type="button" className="storefront-active-filters__clear" onClick={catalog.resetDiscovery}>Limpar tudo</button>
             </div>
           )}
-          <section id="destaques" className="storefront-section">
-            <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="star" /></span><div><h2>Em destaque</h2><p>Modelos do recorte atual para explorar.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todos <Icon name="chevron" /></button></div>
-            {featuredModels.length ? <div className="storefront-model-grid">{featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div> : <div className="storefront-empty"><strong>Nenhum modelo neste recorte</strong><span>Remova filtros ou altere a busca para voltar ao acervo.</span><button type="button" onClick={catalog.resetDiscovery}>Limpar filtros</button></div>}
+          <section id="destaques" className={`storefront-section ${resultsMode ? 'storefront-section--results' : ''}`}>
+            <div className="storefront-section__head">
+              <div>
+                <span className="storefront-section__icon"><Icon name={resultsMode ? 'grid' : 'star'} /></span>
+                <div>
+                  <h2>{resultsMode ? (catalog.search.trim() && !catalog.searchPending ? `Resultados para “${catalog.search.trim()}”` : 'Modelos do catálogo') : 'Em destaque'}</h2>
+                  <p>{resultsMode ? `${formatter.format(models.length)} modelos nesta página · página ${catalog.pageIndex + 1}` : 'Uma seleção do acervo para começar a explorar.'}</p>
+                </div>
+              </div>
+              <div className="storefront-section__actions">
+                {resultsMode ? (
+                  <>
+                    <button type="button" disabled={!catalog.hasPreviousPage} onClick={previousCatalogPage}>‹ <span>Anterior</span></button>
+                    <span>Página {catalog.pageIndex + 1}</span>
+                    <button type="button" disabled={!catalog.hasNextPage} onClick={nextCatalogPage}><span>Próxima</span> ›</button>
+                    {!hasResolvedDiscovery && catalog.pageIndex === 0 && <button type="button" className="is-secondary" onClick={showEditorialHome}>Ver destaques</button>}
+                  </>
+                ) : (
+                  <button type="button" onClick={showCatalogPage}>Ver página completa <Icon name="chevron" /></button>
+                )}
+              </div>
+            </div>
+            {featuredModels.length ? (
+              <div className={`storefront-model-grid ${resultsMode ? 'is-results' : ''}`}>
+                {featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}
+              </div>
+            ) : (
+              <div className="storefront-empty">
+                <strong>Nenhum modelo neste recorte</strong>
+                <span>Remova filtros ou altere a busca para voltar ao acervo.</span>
+                <button type="button" onClick={catalog.resetDiscovery}>Limpar filtros</button>
+              </div>
+            )}
+            {resultsMode && featuredModels.length > 0 && (
+              <div className="storefront-results-footer" aria-label="Paginação dos modelos">
+                <span><strong>{formatter.format(models.length)}</strong> modelos carregados nesta página</span>
+                <div>
+                  <button type="button" disabled={!catalog.hasPreviousPage} onClick={previousCatalogPage}>‹ Anterior</button>
+                  <b>Página {catalog.pageIndex + 1}</b>
+                  <button type="button" disabled={!catalog.hasNextPage} onClick={nextCatalogPage}>Próxima ›</button>
+                </div>
+              </div>
+            )}
           </section>
 
-          <section className="storefront-section storefront-section--categories">
+          {!resultsMode && <section className="storefront-section storefront-section--categories">
             <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="grid" /></span><div><h2>Categorias</h2><p>Explore o acervo por temática.</p></div></div><button type="button" onClick={onOpenExplorer}>Ver todas <Icon name="chevron" /></button></div>
             <div className="storefront-category-grid">{categoryTiles.map((category) => <CategoryTile key={category.id} category={category} cover={coverForCategory(category)} active={catalog.category === category.id} onSelect={() => catalog.setCategory(category.id)} />)}</div>
           </section>
@@ -359,7 +445,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" disabled={!catalog.hasPreviousPage} onClick={catalog.goPreviousPage}>‹</button><button type="button" disabled={!catalog.hasNextPage} onClick={catalog.goNextPage}>›</button></div></div>
               <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}</div>
             </section>
-          </div>
+          </div>}
 
           <footer className="storefront-footer"><span role="status" aria-live="polite"><b className={`is-${runtimeStatus.tone}`} />{runtimeStatus.label}</span><strong>{formatter.format(catalogTotal)} modelos organizados</strong><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b> <Icon name="chevron" /></button></footer>
         </main>
