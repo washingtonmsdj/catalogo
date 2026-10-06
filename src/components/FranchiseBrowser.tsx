@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { models as demoModels } from '../data/mockCatalog'
 import { listCatalogFranchises, type CatalogRuntimeMode } from '../services/catalogApi'
+import { FRANCHISE_FRANCHISE_SEARCH_MIN_LENGTH } from '../services/catalogRepository'
 import type { CatalogCategory, CatalogFranchise } from '../types/catalog'
 
 const DISCOVERY_LIMIT = 48
-const SEARCH_MIN_LENGTH = 3
 const numberFormatter = new Intl.NumberFormat('pt-BR')
 
 type Props = {
@@ -63,11 +63,11 @@ export function FranchiseBrowser({
 
   const demoItems = useMemo(() => demoFranchises(category, query), [category, query])
   const queryLength = Array.from(query.trim()).length
-  const searchPending = mode === 'live' && queryLength > 0 && queryLength < SEARCH_MIN_LENGTH
+  const searchPending = mode === 'live' && queryLength > 0 && queryLength < FRANCHISE_SEARCH_MIN_LENGTH
 
   useEffect(() => {
     if (!open || mode !== 'live') return
-    if (queryLength > 0 && queryLength < SEARCH_MIN_LENGTH) {
+    if (queryLength > 0 && queryLength < FRANCHISE_SEARCH_MIN_LENGTH) {
       setLoading(false)
       setError('')
       setItems([])
@@ -170,7 +170,7 @@ export function FranchiseBrowser({
           <div className="explorer-results__head">
             <div>
               <span>{selectedCategoryLabel}</span>
-              <strong>{searchPending ? `Digite ${SEARCH_MIN_LENGTH}+ caracteres` : query.trim() ? `Resultados para “${query.trim()}”` : 'Franquias em destaque'}</strong>
+              <strong>{searchPending ? `Digite ${FRANCHISE_SEARCH_MIN_LENGTH}+ caracteres` : query.trim() ? `Resultados para “${query.trim()}”` : 'Franquias em destaque'}</strong>
             </div>
             <small>{loading ? 'Carregando…' : searchPending ? 'Busca indexada' : `${visible.length} exibidas`}</small>
           </div>
@@ -181,7 +181,7 @@ export function FranchiseBrowser({
             <div className="explorer-empty explorer-empty--hint">
               <span>⌕</span>
               <strong>Continue digitando</strong>
-              <p>Use pelo menos {SEARCH_MIN_LENGTH} caracteres para pesquisar rapidamente em todas as franquias.</p>
+              <p>Use pelo menos {FRANCHISE_SEARCH_MIN_LENGTH} caracteres para pesquisar rapidamente em todas as franquias.</p>
             </div>
           ) : !loading && !error && visible.length === 0 ? (
             <div className="explorer-empty">
