@@ -163,6 +163,13 @@ class PublishD1Tests(unittest.TestCase):
             "id": "mdl-1",
             "slug": "android-18-a",
             "code": "TS-1",
+            "name": "Androide 18 A",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/manifest.json",
+            "gallery_version": 1,
             "category_slug": "animes-desenhos",
             "franchise_slug": "dragon-ball",
         }]
@@ -179,6 +186,13 @@ class PublishD1Tests(unittest.TestCase):
             "id": "mdl-old",
             "slug": "android-18",
             "code": "TS-OLD",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/manifest.json",
+            "gallery_version": 1,
             "category_slug": "animes-desenhos",
             "franchise_slug": "dragon-ball",
         }]
@@ -192,6 +206,13 @@ class PublishD1Tests(unittest.TestCase):
             "id": "mdl-old",
             "slug": "android-18-old",
             "code": "TS-OLD",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/manifest.json",
+            "gallery_version": 1,
             "category_slug": "animes-desenhos",
             "franchise_slug": "dragon-ball",
         }]
@@ -205,6 +226,13 @@ class PublishD1Tests(unittest.TestCase):
             "id": "mdl-1",
             "slug": "slug-antigo",
             "code": "TS-1",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/manifest.json",
+            "gallery_version": 1,
             "category_slug": "animes-desenhos",
             "franchise_slug": "dragon-ball",
         }]
@@ -218,6 +246,13 @@ class PublishD1Tests(unittest.TestCase):
             "id": "mdl-1",
             "slug": "android-18",
             "code": "TS-OLD",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/manifest.json",
+            "gallery_version": 1,
             "category_slug": "animes-desenhos",
             "franchise_slug": "dragon-ball",
         }]
@@ -236,6 +271,69 @@ class PublishD1Tests(unittest.TestCase):
         }]
 
         with self.assertRaisesRegex(RuntimeError, "categoria de modelo publicado mudaria"):
+            validate_production_compatibility([candidate], production)
+
+    def test_production_compatibility_rejects_public_name_change_without_migration(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-1", variant="Androide 18 Revisada")
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-1",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/manifest.json",
+            "gallery_version": 1,
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "nome de modelo publicado mudaria"):
+            validate_production_compatibility([candidate], production)
+
+    def test_production_compatibility_rejects_collection_change_without_migration(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+        candidate["collection"] = "Androides / Outra Coleção"
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-1",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/manifest.json",
+            "gallery_version": 1,
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "coleção de modelo publicado mudaria"):
+            validate_production_compatibility([candidate], production)
+
+    def test_production_compatibility_rejects_folder_move_without_migration(self) -> None:
+        candidate = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+        candidate["folderPath"] = ["Androides", "Outra Pasta"]
+        candidate["folderPathKey"] = "androides/outra-pasta"
+        production = [{
+            "id": "mdl-1",
+            "slug": "android-18",
+            "code": "TS-1",
+            "name": "Androide 18",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-1/card.webp",
+            "gallery_manifest_key": "gallery/mdl-1/manifest.json",
+            "gallery_version": 1,
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "pasta de modelo publicado mudaria"):
             validate_production_compatibility([candidate], production)
 
     def test_production_lookup_is_bounded_and_uses_all_identity_keys(self) -> None:
