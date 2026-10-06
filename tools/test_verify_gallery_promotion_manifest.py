@@ -18,6 +18,22 @@ def incoming(path: str, sha: str) -> dict:
     }
 
 
+def existing_row(model: str, sha: str) -> dict:
+    return {
+        "path": "catalogo/frente.jpg",
+        "status": "OK",
+        "canonical": True,
+        "sha256": sha,
+        "dhash": "0000000000000000",
+        "quality_score": 80.0,
+        "width": 800,
+        "height": 1200,
+        "size": 100000,
+        "model_key": "Games / Saga / Heroi",
+        "public_model_key": model,
+    }
+
+
 def resolution_for(path: str, sha: str) -> dict:
     return {
         "version": 1,
@@ -89,6 +105,57 @@ class VerifyGalleryPromotionManifestTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaisesRegex(RuntimeError, "source_path inseguro"):
                 verify_manifest(resolution, rows, source_root=Path(tmp))
+
+    def test_replace_target_is_revalidated_against_current_catalog_manifest(self):
+        model = "Games / Saga / Heroi / modelo-01"
+        replacement_sha = "c" * 64
+        resolution = {
+            "version": 1,
+            "ready": True,
+            "promotions": [{
+                "model": model,
+                "sourceModel": "fonte / produto-01",
+                "incoming": incoming("produto/frente-hq.png", "b" * 64),
+                "mode": "replace_existing",
+                "replaceSha256": replacement_sha,
+            }],
+            "keptExisting": [],
+            "skippedExact": [],
+        }
+        rows, _ = build_promotion_rows(resolution)
+
+        result = verify_manifest(
+            resolution,
+            rows,
+            existing_rows=[existing_row(model, replacement_sha)],
+        )
+
+        self.assertEqual(result["verifiedReplaceTargets"], 1)
+        self.assertTrue(result["existingManifestVerificationRequested"])
+
+    def test_replace_target_missing_from_current_catalog_fails_closed(self):
+        model = "Games / Saga / Heroi / modelo-01"
+        resolution = {
+            "version": 1,
+            "ready": True,
+            "promotions": [{
+                "model": model,
+                "sourceModel": "fonte / produto-01",
+                "incoming": incoming("produto/frente-hq.png", "b" * 64),
+                "mode": "replace_existing",
+                "replaceSha256": "c" * 64,
+            }],
+            "keptExisting": [],
+            "skippedExact": [],
+        }
+        rows, _ = build_promotion_rows(resolution)
+
+        with self.assertRaisesRegex(RuntimeError, "não existe mais no catálogo atual"):
+            verify_manifest(
+                resolution,
+                rows,
+                existing_rows=[existing_row(model, "d" * 64)],
+            )
 
     def test_csv_roundtrip_preserves_exact_contract(self):
         resolution = resolution_for("produto/costas.jpg", "a" * 64)
