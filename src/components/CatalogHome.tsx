@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode, type RefObject } from 'react'
 import { BRAND_NAME, BRAND_SHORT_NAME, CATALOG_LABEL } from '../config/brand'
 import { useCatalogRuntime } from '../hooks/useCatalogRuntime'
+import { hasResolvedCatalogDiscovery, isCatalogResultsMode, modelsForCatalogHome } from '../lib/catalogHomeView'
 import { CatalogSidebarTree } from './CatalogSidebarTree'
 import type { CatalogCategory, CatalogFranchise, CatalogModel } from '../types/catalog'
 
@@ -118,14 +119,18 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const selected = catalog.selected
   const models = catalog.models
   const catalogTotal = catalog.categories.find((item) => item.id === 'all')?.count ?? catalog.totalCount
-  const hasResolvedDiscovery = (
-    catalog.category !== 'all'
-    || catalog.franchise !== 'all'
-    || Boolean(catalog.folder)
-    || Boolean(catalog.search.trim() && !catalog.searchPending)
-  )
-  const resultsMode = showFullCatalogPage || catalog.pageIndex > 0 || hasResolvedDiscovery
-  const featuredModels = resultsMode ? models : models.slice(0, 6)
+  const homeModeInput = {
+    showFullCatalogPage,
+    pageIndex: catalog.pageIndex,
+    category: catalog.category,
+    franchise: catalog.franchise,
+    folder: catalog.folder,
+    search: catalog.search,
+    searchPending: catalog.searchPending,
+  }
+  const hasResolvedDiscovery = hasResolvedCatalogDiscovery(homeModeInput)
+  const resultsMode = isCatalogResultsMode(homeModeInput)
+  const featuredModels = modelsForCatalogHome(models, resultsMode)
   const secondaryModels = models.slice(6, 10).length ? models.slice(6, 10) : models.slice(0, 4)
   const publicCategories = catalog.categories.filter((item) => item.id !== 'all')
   const categoryTiles = publicCategories.slice(0, 6)
