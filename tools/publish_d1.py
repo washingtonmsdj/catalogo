@@ -442,6 +442,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Publica models.jsonl no D1 de forma idempotente.")
     parser.add_argument("models", type=Path)
     parser.add_argument("--apply", action="store_true", help="executa mutações; sem esta flag apenas valida/planeja")
+    parser.add_argument(
+        "--check-production",
+        action="store_true",
+        help="consulta o D1 em modo somente leitura e valida identidade antes de qualquer upload/publicação",
+    )
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--r2-state", type=Path, help="checkpoint R2; padrão: r2-publish-state.json ao lado de models.jsonl")
     args = parser.parse_args()
@@ -463,6 +468,16 @@ def main() -> int:
             "apply": args.apply,
             "destructiveDeletes": 0,
         }
+        if not args.apply and not args.check_production:
+            print(json.dumps(summary, ensure_ascii=False))
+            return 0
+
+        account_id = require_env("CLOUDFLARE_ACCOUNT_ID")
+        database_id = require_env("CLOUDFLARE_D1_DATABASE_ID")
+        token = require_env("CLOUDFLARE_API_TOKEN")
+        production_rows = fetch_production_matches(account_id, database_id, token, rows)
+        summary["productionCompatibility"] = validate_production_compatibility(rows, production_rows)
+
         if not args.apply:
             print(json.dumps(summary, ensure_ascii=False))
             return 0
@@ -470,11 +485,6 @@ def main() -> int:
         state_path = args.r2_state.resolve() if args.r2_state else args.models.resolve().parent / "r2-publish-state.json"
         summary["r2Gate"] = validate_r2_ready(args.models, rows, state_path)
 
-        account_id = require_env("CLOUDFLARE_ACCOUNT_ID")
-        database_id = require_env("CLOUDFLARE_D1_DATABASE_ID")
-        token = require_env("CLOUDFLARE_API_TOKEN")
-        production_rows = fetch_production_matches(account_id, database_id, token, rows)
-        summary["productionCompatibility"] = validate_production_compatibility(rows, production_rows)
         batches = 0
         for batch in chunked(statements, args.batch_size):
             request_batch(account_id, database_id, token, batch)
