@@ -199,8 +199,8 @@ Executar nesta ordem, sem pular etapas:
    - candidato visual → revisão de qualidade;
    - registrar a decisão em CSV e executar `tools/resolve_gallery_merge.py`;
    - nenhuma promoção de candidato visual pode seguir sem o resolvedor retornar `ready=true`;
-   - gerar `gallery-promotions.csv` com `tools/build_gallery_promotion_manifest.py`;
-   - no desktop, conferir novamente `source_sha256` imediatamente antes da cópia e resolver o destino somente pela árvore auditada atual;
+   - gerar `gallery-promotions.csv` com `tools/build_gallery_promotion_manifest.py`; cada linha fica vinculada ao `resolution_sha256` da revisão exata;
+   - no desktop, conferir novamente `resolution_sha256` e `source_sha256` imediatamente antes da cópia e resolver o destino somente pela árvore auditada atual;
    - `replace_existing` supersede a vista na publicação, mas não autoriza apagar o mestre antigo;
    - produto diferente do mesmo personagem → manter modelo separado.
 
