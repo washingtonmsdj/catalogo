@@ -50,7 +50,7 @@ def slugify(value: str) -> str:
 DEFAULT_TAXONOMY_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-taxonomy.json"
 MEDIA_BUILD_STATE_VERSION = 1
 MEDIA_RENDERER_VERSION = 1
-MEDIA_METADATA_VERSION = 3
+MEDIA_METADATA_VERSION = 4
 MEDIA_CHECKPOINT_INTERVAL = 10
 MEDIA_STATE_REPLACE_ATTEMPTS = 10
 MEDIA_STATE_REPLACE_DELAY_SECONDS = 0.1
@@ -80,6 +80,15 @@ def model_display_name(hierarchy: list[str], public_collection_parts: list[str],
             break
         return humanize_stem(source_stem)
     return hierarchy[-1] if hierarchy else humanize_stem(source_stem)
+
+
+def public_identity_label(identity_key: str, hierarchy_key: str, source_stem: str) -> str:
+    prefix = f"{hierarchy_key} / "
+    if identity_key.startswith(prefix):
+        value = identity_key[len(prefix):].strip()
+        if value:
+            return value
+    return source_stem
 
 
 def franchise_index(hierarchy: list[str], taxonomy: dict) -> int:
@@ -244,6 +253,7 @@ def model_metadata(
     franchise_pos = franchise_index(hierarchy, taxonomy)
     franchise_name = hierarchy[franchise_pos] if hierarchy else category_name
     source_stem = Path(source_path).stem
+    hierarchy_key_normalized = " / ".join(hierarchy)
     source_collection_parts = hierarchy[franchise_pos + 1:-1] if not audited_public else hierarchy[franchise_pos + 1:]
     category_slug = slugify(category_name)
     franchise_slug = slugify(franchise_name)
@@ -251,8 +261,9 @@ def model_metadata(
     display_name = hierarchy[-1] if grouped_gallery and hierarchy else model_display_name(hierarchy, collection_parts, source_stem, audited_public)
     collection = " / ".join(collection_parts)
 
-    source_label = humanize_stem(source_stem)
-    slug_name = display_name if grouped_gallery else (source_label if audited_public else display_name)
+    identity_label = public_identity_label(identity_key, hierarchy_key_normalized, source_stem) if audited_public else source_stem
+    source_label = humanize_stem(identity_label)
+    slug_name = source_label if audited_public else display_name
     clean_parts = [franchise_name, slug_name] if audited_public else [franchise_name, *collection_parts, display_name]
     base_slug = slugify(" ".join(clean_parts) or slug_name)
     model_slug = base_slug
@@ -589,7 +600,8 @@ def build_bundle(
         source_stem = Path(str(row["path"])).stem
         grouped_gallery = bool(row.get("audit_model_group"))
         display_name = hierarchy[-1] if grouped_gallery and hierarchy else model_display_name(hierarchy, collection_parts, source_stem, audited_public)
-        slug_name = display_name if grouped_gallery else (humanize_stem(source_stem) if audited_public else display_name)
+        identity_label = public_identity_label(identity_key, str(row["model_key"]), source_stem) if audited_public else source_stem
+        slug_name = humanize_stem(identity_label) if audited_public else display_name
         slug_parts = [franchise_name, slug_name] if audited_public else [franchise_name, *collection_parts, display_name]
         base_slugs.append(slugify(" ".join(slug_parts)))
     slug_collisions = Counter(base_slugs)
