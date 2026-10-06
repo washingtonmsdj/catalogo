@@ -1,0 +1,323 @@
+.quote-request-backdrop {
+  z-index: 110;
+  padding: 22px;
+}
+
+.quote-request-modal {
+  width: min(900px, 96vw);
+  max-height: 92vh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border: 1px solid rgba(82,199,167,.24);
+  background:
+    radial-gradient(circle at 82% 0%, rgba(36,240,176,.045), transparent 28%),
+    linear-gradient(180deg, #0a1716, #050e0d);
+  box-shadow: 0 34px 100px rgba(0,0,0,.64);
+}
+
+.quote-request-head {
+  position: relative;
+}
+
+.quote-request-form {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(280px, .86fr) minmax(360px, 1.14fr);
+  overflow: hidden;
+}
+
+.quote-request-selection {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0,1fr);
+  border-right: 1px solid rgba(82,199,167,.13);
+  background: #06110f;
+}
+
+.quote-request-selection__head {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 15px;
+  border-bottom: 1px solid rgba(82,199,167,.12);
+}
+
+.quote-request-selection__head > div {
+  display: grid;
+  gap: 4px;
+}
+
+.quote-request-selection__head span {
+  color: #5e9787;
+  font: 760 7.5px/1 ui-sans-serif, system-ui;
+  letter-spacing: .8px;
+}
+
+.quote-request-selection__head strong {
+  color: #dfeae6;
+  font: 740 11px/1 ui-sans-serif, system-ui;
+}
+
+.quote-request-selection__head b {
+  min-width: 44px;
+  padding: 6px 8px;
+  border: 1px solid rgba(36,240,176,.18);
+  border-radius: 999px;
+  color: #71dcb9;
+  text-align: center;
+  font: 760 8px/1 ui-monospace, monospace;
+}
+
+.quote-request-items {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  padding: 9px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(76,216,175,.22) transparent;
+}
+
+.quote-request-items article {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: 29px minmax(0,1fr) 30px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 7px;
+  border: 1px solid rgba(83,165,145,.12);
+  border-radius: 8px;
+  background: rgba(12,27,23,.68);
+}
+
+.quote-request-items article > span {
+  color: #56877a;
+  text-align: center;
+  font: 760 7.5px/1 ui-monospace, monospace;
+}
+
+.quote-request-items article > div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.quote-request-items strong,
+.quote-request-items small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quote-request-items strong {
+  color: #dce8e4;
+  font: 690 10px/1.1 ui-sans-serif, system-ui;
+}
+
+.quote-request-items small {
+  color: #657f78;
+  font: 560 8px/1 ui-sans-serif, system-ui;
+}
+
+.quote-request-items button {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(181,106,92,.14);
+  border-radius: 7px;
+  background: rgba(88,33,27,.07);
+  color: #a8786f;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.quote-request-items button:hover {
+  border-color: rgba(218,131,114,.44);
+  color: #dda092;
+}
+
+.quote-request-empty {
+  min-height: 240px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 7px;
+  padding: 24px;
+  text-align: center;
+}
+
+.quote-request-empty strong {
+  color: #d9e6e1;
+  font-size: 11px;
+}
+
+.quote-request-empty span {
+  max-width: 34ch;
+  color: #708a83;
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+.quote-request-fields {
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(76,216,175,.22) transparent;
+}
+
+.quote-request-fields__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.quote-request-fields label {
+  display: grid;
+  gap: 6px;
+  color: #849a94;
+  font: 720 8px/1 ui-sans-serif, system-ui;
+  letter-spacing: .55px;
+  text-transform: uppercase;
+}
+
+.quote-request-fields input,
+.quote-request-fields textarea {
+  width: 100%;
+  border: 1px solid rgba(95,168,149,.2);
+  border-radius: 8px;
+  background: #07110f;
+  color: #e5f0ec;
+  padding: 11px;
+  outline: 0;
+  resize: vertical;
+  text-transform: none;
+  font: 600 10px/1.35 ui-sans-serif, system-ui;
+}
+
+.quote-request-fields input {
+  min-height: 40px;
+}
+
+.quote-request-fields input:focus,
+.quote-request-fields textarea:focus {
+  border-color: rgba(36,240,176,.52);
+  box-shadow: 0 0 0 3px rgba(36,240,176,.06);
+}
+
+.quote-request-error {
+  margin: 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(211,119,102,.22);
+  border-radius: 8px;
+  background: rgba(90,31,25,.12);
+  color: #d59a8e;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.quote-request-submit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-top: 4px;
+}
+
+.quote-request-submit > span {
+  max-width: 38ch;
+  color: #667e77;
+  font-size: 8.5px;
+  line-height: 1.45;
+}
+
+.quote-request-submit .primary-action {
+  width: auto;
+  min-width: 176px;
+  min-height: 42px;
+  margin: 0;
+}
+
+.quote-request-success {
+  min-height: 460px;
+  overflow-y: auto;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 38px 24px;
+  text-align: center;
+}
+
+.quote-request-success__mark {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(36,240,176,.35);
+  border-radius: 50%;
+  background: rgba(36,240,176,.07);
+  color: var(--store-accent);
+  font-size: 19px;
+}
+
+.quote-request-success > strong {
+  color: #e5eee9;
+  font: 820 13px/1 ui-sans-serif, system-ui;
+  letter-spacing: .7px;
+}
+
+.quote-request-success > p {
+  max-width: 54ch;
+  margin: 0;
+  color: #788f88;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.quote-request-success > .primary-action {
+  width: auto;
+  min-height: 40px;
+  margin: 4px 0 0;
+}
+
+@media (max-width: 760px) {
+  .quote-request-backdrop { padding: 4px; }
+  .quote-request-modal {
+    width: calc(100vw - 8px);
+    max-height: calc(100dvh - 8px);
+  }
+  .quote-request-form {
+    display: block;
+    overflow-y: auto;
+  }
+  .quote-request-selection {
+    min-height: 260px;
+    max-height: 42vh;
+    border-right: 0;
+    border-bottom: 1px solid rgba(82,199,167,.13);
+  }
+  .quote-request-fields {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 520px) {
+  .quote-request-fields__grid { grid-template-columns: 1fr; }
+  .quote-request-submit {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .quote-request-submit .primary-action {
+    width: 100%;
+  }
+}
