@@ -32,6 +32,7 @@ import './catalog-shell.css'
 import './catalog-home.css'
 import './model-detail.css'
 import './favorites.css'
+import './quote-dialog.css'
 
 function mediaContainer(image: HTMLImageElement) {
   return image.closest(
