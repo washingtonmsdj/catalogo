@@ -190,7 +190,10 @@ Executar nesta ordem, sem pular etapas:
 
 4. **Auditar a fonte externa por produto, não por imagem principal**
    - agrupar todas as imagens pelo identificador/slug do produto;
-   - para modelos já existentes, comparar galeria existente × imagens da fonte;
+   - para modelos já existentes, criar um CSV explícito `incoming_model,target_model` e passar em `tools/plan_gallery_merge.py --mapping`;
+   - nunca resolver correspondência apenas por nome de personagem/pasta;
+   - o mapa deve falhar se origem/alvo não existirem ou se dois produtos diferentes apontarem para o mesmo modelo público;
+   - comparar galeria existente × imagens da fonte;
    - SHA igual → ignorar cópia;
    - nova vista → adicionar;
    - candidato visual → revisão de qualidade;
@@ -244,7 +247,7 @@ Executar nesta ordem, sem pular etapas:
 - `tools/catalog_scope.py` — carregamento/validação compartilhada do SSOT;
 - `tools/ingest_catalog.py` — aplica o SSOT na ingestão, além de hashes, qualidade e manifesto;
 - `tools/publish_d1.py` — revalida o SSOT antes de publicar/upsert no D1;
-- `tools/plan_gallery_merge.py` — plano não destrutivo para mesclar galerias;
+- `tools/plan_gallery_merge.py` — plano não destrutivo para mesclar galerias e aplicar mapa explícito produto→modelo;
 - `tools/build_media_bundle.py` — galeria, variantes e identidade estável;
 - `tools/publish_r2.py` — upload incremental de mídia;
 - `tools/publish_d1.py` — upsert idempotente após gate R2;
