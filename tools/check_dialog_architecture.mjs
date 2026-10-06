@@ -17,7 +17,7 @@ const sourceFiles = walk(srcRoot)
   .filter((path) => /\.(ts|tsx)$/.test(path))
   .map((path) => ({
     path,
-    relativePath: relative(root.pathname, path).replaceAll('\\', '/'),
+    relativePath: relative(root, path).replaceAll('\\', '/'),
     content: readFileSync(path, 'utf8'),
   }))
 
