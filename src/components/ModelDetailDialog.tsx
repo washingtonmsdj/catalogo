@@ -108,16 +108,25 @@ export function ModelDetailDialog({
           <button type="button" aria-label="Fechar detalhe do modelo" onClick={onClose}>×</button>
         </header>
 
-        <div className="model-detail-media">
+        <button
+          type="button"
+          className="model-detail-media model-detail-media--interactive"
+          onClick={onOpenGallery}
+          aria-label={model.galleryCount > 1 ? `Abrir galeria com ${model.galleryCount} imagens de ${model.name}` : `Abrir imagem de ${model.name}`}
+        >
           {model.coverUrl
-            ? <img src={model.coverUrl} alt={model.name} decoding="async" fetchPriority="high" />
-            : <span className="model-detail-media__fallback">{model.name.slice(0, 1)}</span>}
+            ? <img src={model.coverUrl} alt="" decoding="async" fetchPriority="high" />
+            : <span className="model-detail-media__fallback" aria-hidden="true">{model.name.slice(0, 1)}</span>}
           <span className="model-detail-media__shade" />
-          <div className="model-detail-media__meta">
+          <span className="model-detail-media__open">
+            <span>{model.galleryCount > 1 ? `Ver ${model.galleryCount} imagens` : 'Ver imagem'}</span>
+            <b aria-hidden="true">↗</b>
+          </span>
+          <span className="model-detail-media__meta">
             <span>{categoryLabel || 'Catálogo'}</span>
             <strong>{model.franchise || BRAND_NAME}</strong>
-          </div>
-        </div>
+          </span>
+        </button>
 
         <div className="model-detail-body">
           <div className="model-detail-title">
@@ -138,7 +147,8 @@ export function ModelDetailDialog({
 
           <div className="model-detail-actions">
             <button type="button" className="model-detail-primary" onClick={onOpenGallery}>
-              Ver galeria <span>›</span>
+              <span>{model.galleryCount > 1 ? `Ver galeria · ${model.galleryCount} imagens` : 'Ver imagem'}</span>
+              <span aria-hidden="true">›</span>
             </button>
             <button type="button" className={favorite ? 'is-active' : ''} aria-pressed={favorite} onClick={onToggleFavorite}>
               {favorite ? '♥ Favoritado' : '♡ Favoritar'}
