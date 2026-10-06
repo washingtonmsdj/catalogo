@@ -1,4 +1,4 @@
-import { FormEvent, Fragment, useEffect, useRef, useState } from 'react'
+import { FormEvent, Fragment, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { CatalogHome } from './components/CatalogHome'
 import { CatalogUpdatesDialog } from './components/CatalogUpdatesDialog'
 import { FranchiseBrowser } from './components/FranchiseBrowser'
@@ -7,6 +7,7 @@ import { ModelDetailDialog } from './components/ModelDetailDialog'
 import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
 import { catalogDocumentTitle } from './config/brand'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
+import { galleryGridColumnCount, nextGalleryGridIndex, type GalleryDirection } from './lib/galleryGridNavigation'
 import {
   compactKnownModelCache,
   readKnownModelCache,
@@ -104,6 +105,7 @@ export default function App() {
   const catalog = useCatalogRuntime(initialModelSlug)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const previewPrefetchedUrls = useRef(new Set<string>())
+  const galleryGridRef = useRef<HTMLDivElement>(null)
   const [favorites, setFavorites] = useState<string[]>(() => loadStoredIds('tonecos:favorites'))
   const [quoteList, setQuoteList] = useState<string[]>(() => loadStoredIds('tonecos:quote', MAX_QUOTE_ITEMS))
   const [compareIds, setCompareIds] = useState<string[]>(() => loadStoredIds('tonecos:compare', MAX_COMPARE_MODELS))
@@ -262,6 +264,40 @@ export default function App() {
   function addComparisonToQuote(ids: string[]) { setQuoteList((current) => { const next = [...current]; for (const id of ids) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setCompareOpen(false); setQuoteOpen(true) }
   function chooseExplorerCategory(category: string) { catalog.setSearch(''); catalog.setCategory(category) }
   function chooseExplorerFranchise(category: string, franchise: string) { catalog.setSearch(''); catalog.setCategory(category); catalog.setFranchise(franchise) }
+  function handleGalleryGridKey(event: ReactKeyboardEvent<HTMLDivElement>) {
+    const directionByKey: Partial<Record<string, GalleryDirection>> = {
+      ArrowLeft: 'left',
+      ArrowRight: 'right',
+      ArrowUp: 'up',
+      ArrowDown: 'down',
+    }
+    const direction = directionByKey[event.key]
+    if (!direction) return
+
+    const target = event.target instanceof HTMLElement
+      ? event.target.closest<HTMLButtonElement>('button[data-gallery-index]')
+      : null
+    const grid = galleryGridRef.current
+    if (!target || !grid) return
+
+    const currentIndex = Number(target.dataset.galleryIndex)
+    if (!Number.isInteger(currentIndex)) return
+
+    const buttons = Array.from(grid.querySelectorAll<HTMLButtonElement>('button[data-gallery-index]'))
+    const columns = galleryGridColumnCount(window.getComputedStyle(grid).gridTemplateColumns)
+    let nextIndex = nextGalleryGridIndex(currentIndex, buttons.length, columns, direction)
+
+    while (nextIndex !== currentIndex && buttons[nextIndex]?.disabled) {
+      const candidate = nextGalleryGridIndex(nextIndex, buttons.length, columns, direction)
+      if (candidate === nextIndex) break
+      nextIndex = candidate
+    }
+
+    const next = buttons[nextIndex]
+    if (!next || next.disabled || next === target) return
+    event.preventDefault()
+    next.focus()
+  }
   function closePreview() { setPreviewPageTarget(null); setPreviewImage(null) }
   function prefetchPreview(image: CatalogImage) { const url = image.detailUrl; if (!url || url === image.url || previewPrefetchedUrls.current.has(url)) return; previewPrefetchedUrls.current.add(url); const preload = new Image(); preload.decoding = 'async'; preload.src = url }
   function navigatePreview(offset: number) {
@@ -333,7 +369,7 @@ export default function App() {
       />
 
 
-      {galleryOpen && <div className="modal-backdrop" onMouseDown={() => setGalleryOpen(false)}><section className="gallery-modal" role="dialog" aria-modal="true" aria-labelledby="gallery-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>GALERIA DO PERSONAGEM</span><h2 id="gallery-title">{selected.name}</h2><p>{gallery.total ? `${formatter.format(gallery.pageStart)}–${formatter.format(gallery.pageEnd)} de ${formatter.format(gallery.total)} imagens` : `${selected.galleryCount} imagens`} · página {gallery.pageIndex + 1} de {gallery.totalPages}</p></div><button type="button" aria-label="Fechar galeria" onClick={() => setGalleryOpen(false)}>×</button></div>{gallery.error && <p className="runtime-alert" role="alert">{gallery.error}</p>}<div className="gallery-grid" aria-busy={gallery.loading}>{gallery.items.map((image, localIndex) => { const canPreview = Boolean(image.detailUrl ?? image.url); return <button type="button" key={image.id} disabled={!canPreview} aria-label={canPreview ? `Ampliar imagem ${gallery.pageIndex * GALLERY_PAGE_SIZE + localIndex + 1} de ${selected.name}` : undefined} className={image.role === 'cover' ? 'is-cover' : ''} onPointerEnter={() => prefetchPreview(image)} onFocus={() => prefetchPreview(image)} onClick={() => canPreview && setPreviewImage(image)}><GalleryArt image={image} model={selected} angle={((localIndex % 5) - 2) * 3} /><span>{image.role === 'cover' ? 'CAPA · MELHOR QUALIDADE' : `VISTA ${String(gallery.pageIndex * GALLERY_PAGE_SIZE + localIndex + 1).padStart(2, '0')}`}</span></button> })}{gallery.loading && <div className="gallery-loading">Carregando imagens...</div>}{!gallery.loading && !gallery.items.length && <div className="gallery-loading">Nenhuma imagem disponível nesta página.</div>}</div><div className="gallery-collection-progress"><div><strong>{gallery.total ? `${formatter.format(gallery.pageStart)}–${formatter.format(gallery.pageEnd)}` : '0'}</strong><span>de {formatter.format(gallery.total || selected.galleryCount)} imagens</span></div><div className="gallery-collection-progress__track" aria-hidden="true"><i style={{ width: `${galleryProgress}%` }} /></div><small>PgUp/PgDn navegar · Home/End início/fim</small></div><div className="gallery-footer gallery-footer--paged"><span>Miniaturas otimizadas na grade · alta resolução carregada somente ao ampliar.</span><div className="gallery-pager"><button type="button" aria-label="Primeira página da galeria" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={() => gallery.goToPage(0)}>« início</button><button type="button" aria-label="Página anterior" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={gallery.previousPage}>‹</button><div className="gallery-page-rail" aria-label="Páginas da galeria">{galleryTokens.map((token) => typeof token === 'number' ? <button type="button" key={token} aria-current={token === gallery.pageIndex ? 'page' : undefined} className={token === gallery.pageIndex ? 'is-current' : ''} disabled={gallery.loading} onClick={() => gallery.goToPage(token)}>{token + 1}</button> : <span key={token} aria-hidden="true">…</span>)}</div><button type="button" aria-label="Próxima página" disabled={!gallery.hasNextPage || gallery.loading} onClick={gallery.nextPage}>›</button><button type="button" aria-label="Última página da galeria" disabled={!gallery.hasNextPage || gallery.loading} onClick={() => gallery.goToPage(gallery.totalPages - 1)}>fim »</button></div></div></section></div>}
+      {galleryOpen && <div className="modal-backdrop" onMouseDown={() => setGalleryOpen(false)}><section className="gallery-modal" role="dialog" aria-modal="true" aria-labelledby="gallery-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>GALERIA DO PERSONAGEM</span><h2 id="gallery-title">{selected.name}</h2><p>{gallery.total ? `${formatter.format(gallery.pageStart)}–${formatter.format(gallery.pageEnd)} de ${formatter.format(gallery.total)} imagens` : `${selected.galleryCount} imagens`} · página {gallery.pageIndex + 1} de {gallery.totalPages}</p></div><button type="button" aria-label="Fechar galeria" onClick={() => setGalleryOpen(false)}>×</button></div>{gallery.error && <p className="runtime-alert" role="alert">{gallery.error}</p>}<div ref={galleryGridRef} className={`gallery-grid ${gallery.loading ? 'is-loading' : ''}`} aria-busy={gallery.loading} onKeyDown={handleGalleryGridKey}>{gallery.items.map((image, localIndex) => { const canPreview = Boolean(image.detailUrl ?? image.url); return <button type="button" key={image.id} data-gallery-index={localIndex} disabled={!canPreview} aria-label={canPreview ? `Ampliar imagem ${gallery.pageIndex * GALLERY_PAGE_SIZE + localIndex + 1} de ${selected.name}` : undefined} className={image.role === 'cover' ? 'is-cover' : ''} onPointerEnter={() => prefetchPreview(image)} onFocus={() => prefetchPreview(image)} onClick={() => canPreview && setPreviewImage(image)}><GalleryArt image={image} model={selected} angle={((localIndex % 5) - 2) * 3} /><span>{image.role === 'cover' ? 'CAPA · MELHOR QUALIDADE' : `VISTA ${String(gallery.pageIndex * GALLERY_PAGE_SIZE + localIndex + 1).padStart(2, '0')}`}</span></button> })}{gallery.loading && <div className="gallery-loading">Carregando imagens...</div>}{!gallery.loading && !gallery.items.length && <div className="gallery-loading">Nenhuma imagem disponível nesta página.</div>}</div><div className="gallery-collection-progress"><div><strong>{gallery.total ? `${formatter.format(gallery.pageStart)}–${formatter.format(gallery.pageEnd)}` : '0'}</strong><span>de {formatter.format(gallery.total || selected.galleryCount)} imagens</span></div><div className="gallery-collection-progress__track" aria-hidden="true"><i style={{ width: `${galleryProgress}%` }} /></div><small>PgUp/PgDn navegar · Home/End início/fim</small></div><div className="gallery-footer gallery-footer--paged"><span>Miniaturas otimizadas na grade · alta resolução carregada somente ao ampliar.</span><div className="gallery-pager"><button type="button" aria-label="Primeira página da galeria" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={() => gallery.goToPage(0)}>« início</button><button type="button" aria-label="Página anterior" disabled={!gallery.hasPreviousPage || gallery.loading} onClick={gallery.previousPage}>‹</button><div className="gallery-page-rail" aria-label="Páginas da galeria">{galleryTokens.map((token) => typeof token === 'number' ? <button type="button" key={token} aria-current={token === gallery.pageIndex ? 'page' : undefined} className={token === gallery.pageIndex ? 'is-current' : ''} disabled={gallery.loading} onClick={() => gallery.goToPage(token)}>{token + 1}</button> : <span key={token} aria-hidden="true">…</span>)}</div><button type="button" aria-label="Próxima página" disabled={!gallery.hasNextPage || gallery.loading} onClick={gallery.nextPage}>›</button><button type="button" aria-label="Última página da galeria" disabled={!gallery.hasNextPage || gallery.loading} onClick={() => gallery.goToPage(gallery.totalPages - 1)}>fim »</button></div></div></section></div>}
 
       {expandedImageUrl && previewImage && <div className="image-lightbox-backdrop" onMouseDown={closePreview}><section className="image-lightbox" role="dialog" aria-modal="true" aria-labelledby="lightbox-title" onMouseDown={(event) => event.stopPropagation()}><div className="image-lightbox__head"><div><span>VISUALIZAÇÃO · USE ← → PARA NAVEGAR</span><h2 id="lightbox-title">{selected.name}</h2></div><button type="button" aria-label="Fechar imagem ampliada" onClick={closePreview}>×</button></div><div className="image-lightbox__stage"><button type="button" className="image-lightbox__nav image-lightbox__nav--prev" aria-label="Imagem anterior" disabled={!canPreviewPrevious || gallery.loading} onClick={() => navigatePreview(-1)}>‹</button><img src={expandedImageUrl} alt={`${selected.name} — imagem ampliada`} /><button type="button" className="image-lightbox__nav image-lightbox__nav--next" aria-label="Próxima imagem" disabled={!canPreviewNext || gallery.loading} onClick={() => navigatePreview(1)}>›</button></div><div className="image-lightbox__footer"><span className="image-lightbox__position"><strong>{previewGlobalPosition ? `${formatter.format(previewGlobalPosition)} / ${formatter.format(gallery.total || selected.galleryCount)}` : 'Imagem do catálogo'}</strong>{previewImage.width > 0 && previewImage.height > 0 && <span>{formatter.format(previewImage.width)} × {formatter.format(previewImage.height)} px</span>}</span><a href={expandedImageUrl} target="_blank" rel="noreferrer">Abrir imagem em nova aba ↗</a></div></section></div>}
 
