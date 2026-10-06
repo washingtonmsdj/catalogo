@@ -132,6 +132,17 @@ class PublishD1Tests(unittest.TestCase):
         )
         self.assertIn('idx_models_published_created', plan)
 
+    def test_load_rejects_category_outside_public_scope(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "models.jsonl"
+            row = model("mdl-1", "interno", "TS-1", variant="Interno")
+            row["categoryName"] = "Referências Internas"
+            row["categorySlug"] = "referencias-internas"
+            path.write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "fora do escopo público"):
+                load_models(path)
+
     def test_load_rejects_model_without_publishable_image(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "models.jsonl"
