@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { models as demoModels } from '../data/mockCatalog'
 import { listCatalogFranchises, type CatalogRuntimeMode } from '../services/catalogApi'
-import { FRANCHISE_FRANCHISE_SEARCH_MIN_LENGTH } from '../services/catalogRepository'
+import { FRANCHISE_SEARCH_MIN_LENGTH } from '../services/catalogRepository'
 import type { CatalogCategory, CatalogFranchise } from '../types/catalog'
 
 const DISCOVERY_LIMIT = 48
