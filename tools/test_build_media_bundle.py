@@ -262,6 +262,77 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(gallery["images"][0]["role"], "cover")
             self.assertEqual({image["sourceSha256"] for image in gallery["images"]}, {"4" * 64, "5" * 64, "6" * 64})
 
+    def test_grouped_identity_cannot_cross_model_hierarchies(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            first_dir = source / "Games" / "Saga A" / "Heroi"
+            second_dir = source / "Games" / "Saga B" / "Heroi"
+            first_dir.mkdir(parents=True)
+            second_dir.mkdir(parents=True)
+            first = first_dir / "frente.webp"
+            second = second_dir / "costas.webp"
+            Image.new("RGB", (640, 960), "#223344").save(first, "WEBP")
+            Image.new("RGB", (640, 960), "#334455").save(second, "WEBP")
+            public_key = "produto-compartilhado"
+            rows = [
+                {
+                    "path": str(first.relative_to(source)), "size": first.stat().st_size,
+                    "status": "OK", "canonical": True, "sha256": "9" * 64,
+                    "width": 640, "height": 960, "quality_score": 80.0,
+                    "model_key": "Games / Saga A / Heroi",
+                    "public_model_key": public_key,
+                    "audit_model_group": "produto-01",
+                },
+                {
+                    "path": str(second.relative_to(source)), "size": second.stat().st_size,
+                    "status": "OK", "canonical": True, "sha256": "a" * 64,
+                    "width": 640, "height": 960, "quality_score": 79.0,
+                    "model_key": "Games / Saga B / Heroi",
+                    "public_model_key": public_key,
+                    "audit_model_group": "produto-01",
+                },
+            ]
+            manifest = root / "manifest.jsonl"
+            manifest.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "hierarquias diferentes"):
+                build_bundle(source, manifest, root / "bundle", include_original=False)
+
+    def test_grouped_identity_cannot_mix_different_product_ids(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "Games" / "Saga" / "Heroi"
+            model_dir.mkdir(parents=True)
+            first = model_dir / "frente.webp"
+            second = model_dir / "costas.webp"
+            Image.new("RGB", (640, 960), "#223344").save(first, "WEBP")
+            Image.new("RGB", (640, 960), "#334455").save(second, "WEBP")
+            hierarchy = "Games / Saga / Heroi"
+            public_key = f"{hierarchy} / produto-publico"
+            rows = [
+                {
+                    "path": str(first.relative_to(source)), "size": first.stat().st_size,
+                    "status": "OK", "canonical": True, "sha256": "b" * 64,
+                    "width": 640, "height": 960, "quality_score": 80.0,
+                    "model_key": hierarchy, "public_model_key": public_key,
+                    "audit_model_group": "produto-a",
+                },
+                {
+                    "path": str(second.relative_to(source)), "size": second.stat().st_size,
+                    "status": "OK", "canonical": True, "sha256": "c" * 64,
+                    "width": 640, "height": 960, "quality_score": 79.0,
+                    "model_key": hierarchy, "public_model_key": public_key,
+                    "audit_model_group": "produto-b",
+                },
+            ]
+            manifest = root / "manifest.jsonl"
+            manifest.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "produtos auditados diferentes"):
+                build_bundle(source, manifest, root / "bundle", include_original=False)
+
     def test_two_grouped_products_for_same_character_remain_distinct_models(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
