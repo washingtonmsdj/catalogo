@@ -372,6 +372,44 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(len({model["slug"] for model in models}), 2)
             self.assertEqual({model["slug"] for model in models}, {"dragon-ball-goku-modelo-a", "dragon-ball-goku-modelo-b"})
 
+    def test_grouped_gallery_is_detected_even_when_historical_cover_has_no_group_marker(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "OK - Games [2]" / "OK - God of War [2]" / "OK - Kratos [2]"
+            model_dir.mkdir(parents=True)
+            historical = model_dir / "kratos-estatua-classica.webp"
+            incoming = model_dir / "kratos-costas.webp"
+            Image.new("RGB", (1600, 2400), "#445566").save(historical, "WEBP")
+            Image.new("RGB", (900, 1350), "#556677").save(incoming, "WEBP")
+            hierarchy = "Games / God of War / Kratos"
+            public_key = f"{hierarchy} / kratos-estatua-classica"
+            rows = [
+                {
+                    "path": str(historical.relative_to(source)), "size": historical.stat().st_size,
+                    "status": "OK", "canonical": True, "sha256": "d" * 64,
+                    "width": 1600, "height": 2400, "quality_score": 99.0,
+                    "model_key": hierarchy, "public_model_key": public_key,
+                },
+                {
+                    "path": str(incoming.relative_to(source)), "size": incoming.stat().st_size,
+                    "status": "OK", "canonical": True, "sha256": "e" * 64,
+                    "width": 900, "height": 1350, "quality_score": 70.0,
+                    "model_key": hierarchy, "public_model_key": public_key,
+                    "audit_model_group": "kratos-estatua-classica",
+                },
+            ]
+            manifest = root / "manifest.jsonl"
+            manifest.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            output = root / "bundle"
+
+            build_bundle(source, manifest, output, include_original=False)
+            model = json.loads((output / "models.jsonl").read_text(encoding="utf-8"))
+
+            self.assertEqual(model["imageCount"], 2)
+            self.assertEqual(model["displayName"], "Kratos")
+            self.assertEqual(model["slug"], "god-of-war-kratos-estatua-classica")
+
     def test_grouped_product_slug_does_not_change_when_sibling_product_is_added(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
