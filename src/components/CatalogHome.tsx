@@ -92,6 +92,17 @@ function ModelCard({ model, favorite, active, priority = false, categoryLabel, o
   )
 }
 
+function ModelCardSkeleton({ index }: { index: number }) {
+  return (
+    <article className="storefront-model-card storefront-model-card--skeleton" aria-hidden="true">
+      <span className="storefront-model-card--skeleton__media" />
+      <span className="storefront-model-card--skeleton__line storefront-model-card--skeleton__line--title" />
+      <span className="storefront-model-card--skeleton__line storefront-model-card--skeleton__line--meta" />
+      <span className="storefront-model-card--skeleton__index">{String(index + 1).padStart(2, '0')}</span>
+    </article>
+  )
+}
+
 function FranchiseMark({ item }: { item: CatalogFranchise }) {
   const fallback = item.label.trim().slice(0, 1).toLocaleUpperCase('pt-BR') || '•'
   return (
@@ -506,6 +517,10 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
             {featuredModels.length ? (
               <div className={`storefront-model-grid ${resultsMode ? 'is-results' : ''} ${catalog.loading ? 'is-updating' : ''}`} aria-busy={catalog.loading}>
                 {featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} active={selected.id === model.id} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} />)}
+              </div>
+            ) : catalog.loading ? (
+              <div className={`storefront-model-grid storefront-model-grid--skeleton ${resultsMode ? 'is-results' : ''}`} role="status" aria-label="Carregando modelos">
+                {Array.from({ length: resultsMode ? 12 : 6 }, (_, index) => <ModelCardSkeleton key={index} index={index} />)}
               </div>
             ) : (
               <div className="storefront-empty">
