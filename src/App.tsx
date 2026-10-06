@@ -5,7 +5,8 @@ import { FranchiseBrowser } from './components/FranchiseBrowser'
 import { FavoritesDialog } from './components/FavoritesDialog'
 import { ModelComparison } from './components/ModelComparison'
 import { ModelDetailDialog } from './components/ModelDetailDialog'
-import { TurnstileWidget, isTurnstileConfigured } from './components/TurnstileWidget'
+import { QuoteDialog } from './components/QuoteDialog'
+import { isTurnstileConfigured } from './components/TurnstileWidget'
 import { catalogDocumentTitle } from './config/brand'
 import { useCatalogRuntime, useModelGallery } from './hooks/useCatalogRuntime'
 import { galleryGridColumnCount, nextGalleryGridIndex, type GalleryDirection } from './lib/galleryGridNavigation'
@@ -395,7 +396,24 @@ export default function App() {
         onAddAllToQuote={addFavoritesToQuote}
       />
 
-      {quoteOpen && <div className="modal-backdrop" onMouseDown={() => setQuoteOpen(false)}><section className="quote-modal" role="dialog" aria-modal="true" aria-labelledby="quote-title" onMouseDown={(event) => event.stopPropagation()}><div className="modal-head"><div><span>FORMULÁRIO</span><h2 id="quote-title">Solicitar orçamento</h2><p>Envie sua seleção pelo formulário. Não é necessário informar telefone.</p></div><button type="button" aria-label="Fechar formulário" onClick={() => setQuoteOpen(false)}>×</button></div>{sent ? <div className="success-state"><strong>SOLICITAÇÃO REGISTRADA</strong><p>{quoteMode === 'live' ? 'Sua solicitação foi enviada com sucesso. Guarde o protocolo abaixo para referência.' : 'Esta prévia não envia pedidos reais. O protocolo abaixo demonstra como será a confirmação em produção.'}</p>{quoteReference && <div className="quote-receipt"><span>{quoteMode === 'live' ? 'PROTOCOLO' : 'PROTOCOLO DEMO'}</span><code>{quoteReference}</code><small>{submittedQuoteCount} modelo{submittedQuoteCount === 1 ? '' : 's'} nesta solicitação</small></div>}<button type="button" onClick={() => { setSent(false); setQuoteOpen(false) }}>Voltar ao catálogo</button></div> : <form onSubmit={submitQuote}><label>Nome completo<input required autoComplete="name" maxLength={120} name="name" placeholder="Seu nome" /></label><label>E-mail<input required autoComplete="email" maxLength={254} type="email" name="email" placeholder="voce@email.com" /></label><div className="quote-selected"><span>Itens selecionados</span><strong>{quoteList.length}/{MAX_QUOTE_ITEMS}</strong></div><div className="quote-chips">{quoteList.map((id) => <button type="button" key={id} onClick={() => safeToggleQuote(id)}>{knownModels[id]?.name ?? id} ×</button>)}</div><label>Observações<textarea maxLength={4000} name="notes" rows={5} placeholder="Quantidade, tamanho desejado, acabamento ou outras informações..." /></label>{catalog.mode === 'live' && <TurnstileWidget resetKey={turnstileResetKey} />}{quoteError && <p role="alert">{quoteError}</p>}<button className="primary-action" type="submit" disabled={!quoteList.length || quoteSubmitting || (catalog.mode === 'live' && !isTurnstileConfigured())}>{quoteSubmitting ? 'Enviando...' : 'Enviar solicitação'} <span>›</span></button></form>}</section></div>}
+      <QuoteDialog
+        open={quoteOpen}
+        ids={quoteList}
+        knownModels={knownModels}
+        maxItems={MAX_QUOTE_ITEMS}
+        mode={catalog.mode}
+        sent={sent}
+        quoteMode={quoteMode}
+        quoteReference={quoteReference}
+        submittedQuoteCount={submittedQuoteCount}
+        submitting={quoteSubmitting}
+        error={quoteError}
+        turnstileResetKey={turnstileResetKey}
+        onClose={() => setQuoteOpen(false)}
+        onRemove={safeToggleQuote}
+        onSubmit={submitQuote}
+        onDismissSuccess={() => { setSent(false); setQuoteOpen(false) }}
+      />
     </div>
   )
 }
