@@ -72,6 +72,32 @@ python tools/plan_gallery_merge.py ".catalog-ingest/manifest.jsonl" ".external-i
 
 O mapa é fail-closed: origem inexistente, alvo inexistente, origem duplicada ou dois produtos diferentes apontando para o mesmo modelo público interrompem o planejamento.
 
+
+### Gate de decisões visuais
+
+`tools/plan_gallery_merge.py` nunca transforma similaridade perceptual em substituição automática. Quando o plano contém `review_visual_candidate`, gere um CSV de decisões com estas colunas:
+
+```csv
+incoming_path,incoming_sha256,decision,replace_sha256
+fonte/frente-hq.png,<sha-da-entrada>,replace_existing,<sha-da-vista-atual>
+```
+
+Decisões permitidas:
+
+- `keep_existing`: conserva a vista atual e não promove a candidata;
+- `add_view`: trata a candidata como ângulo/vista distinta e adiciona à galeria;
+- `replace_existing`: promove a candidata e marca qual SHA publicado deverá ser supersedido na publicação; não apaga o arquivo mestre.
+
+Resolva o plano:
+
+```bash
+python tools/resolve_gallery_merge.py ".external-ingest/gallery-merge-plan.json" \
+  --decisions ".external-ingest/gallery-decisions.csv" \
+  --output ".external-ingest/gallery-merge-resolution.json"
+```
+
+O resolvedor é fail-closed: candidato visual sem decisão, decisão extra, decisão duplicada ou `replace_sha256` fora dos candidatos interrompem a execução. O JSON de resolução informa apenas promoções autorizadas; ele não move, apaga nem reescreve imagens.
+
 A política é fail-closed:
 
 - SHA-256 igual: não republicar a mesma imagem;
