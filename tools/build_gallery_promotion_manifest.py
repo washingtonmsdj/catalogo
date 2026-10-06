@@ -37,6 +37,11 @@ def validate_sha(value: Any, label: str) -> str:
     return digest
 
 
+def resolution_sha256(resolution: dict[str, Any]) -> str:
+    canonical = json.dumps(resolution, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def authorization_id(row: dict[str, str]) -> str:
     canonical = json.dumps(row, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return "promo_" + hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:20]
@@ -49,6 +54,7 @@ def build_promotion_rows(resolution: dict[str, Any]) -> tuple[list[dict[str, str
     if not isinstance(promotions, list):
         raise RuntimeError("resolução de galeria sem lista de promoções")
 
+    resolution_digest = resolution_sha256(resolution)
     rows: list[dict[str, str]] = []
     seen_images: set[tuple[str, str, str]] = set()
     seen_authorizations: set[str] = set()
@@ -86,6 +92,7 @@ def build_promotion_rows(resolution: dict[str, Any]) -> tuple[list[dict[str, str
             raise RuntimeError(f"add_view não aceita replace_sha256: {source_path}")
 
         core = {
+            "resolution_sha256": resolution_digest,
             "source_path": source_path,
             "source_sha256": source_sha,
             "target_model": model,
@@ -102,6 +109,7 @@ def build_promotion_rows(resolution: dict[str, Any]) -> tuple[list[dict[str, str
     summary = {
         "version": 1,
         "ready": True,
+        "resolutionSha256": resolution_digest,
         "promotions": len(rows),
         "addView": sum(row["mode"] == "add_view" for row in rows),
         "replaceExisting": sum(row["mode"] == "replace_existing" for row in rows),
@@ -115,6 +123,7 @@ def write_csv(path: Path, rows: list[dict[str, str]]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fields = [
         "authorization_id",
+        "resolution_sha256",
         "source_path",
         "source_sha256",
         "target_model",
