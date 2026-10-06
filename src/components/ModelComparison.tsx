@@ -116,7 +116,7 @@ export function ModelComparison({ open, mode, ids, knownModels, onClose, onRemov
         </div>
 
         {error && <p className="runtime-alert comparison-alert" role="alert">{error}</p>}
-        {loading && <div className="comparison-loading" role="status">Carregando fichas dos modelos…</div>}
+        {loading && !models.length && <div className="comparison-loading" role="status">Carregando fichas dos modelos…</div>}
 
         {!loading && !ids.length && (
           <div className="comparison-empty">
@@ -126,9 +126,10 @@ export function ModelComparison({ open, mode, ids, knownModels, onClose, onRemov
           </div>
         )}
 
-        {!loading && ids.length > 0 && (
+        {ids.length > 0 && (loading ? models.length > 0 : true) && (
           <>
-            <div className="comparison-scroll">
+            {loading && <div className="comparison-refresh" role="status">Atualizando comparação…</div>}
+            <div className={`comparison-scroll ${loading ? 'is-updating' : ''}`} aria-busy={loading}>
               <div className="comparison-grid" style={{ '--compare-cols': Math.max(2, ids.length) } as React.CSSProperties}>
                 <div className="comparison-label comparison-label--hero">Modelo</div>
                 {ids.map((id) => {
