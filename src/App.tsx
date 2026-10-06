@@ -201,12 +201,6 @@ export default function App() {
   }, [previewImage?.id, previewIndex, gallery.items])
 
   useEffect(() => {
-    if (!anyModalOpen) return
-    const previousOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = previousOverflow }
-  }, [anyModalOpen])
-
-  useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         if (previewImage) closePreview(); else if (quoteOpen) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (compareOpen) setCompareOpen(false); else if (updatesOpen) setUpdatesOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false); else if (modelDetailOpen) closeModelDetail()
