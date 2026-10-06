@@ -40,7 +40,7 @@ export interface CatalogRepository {
   listFranchises(category?: string): Promise<CatalogFranchise[]>
   listFolders(category: string, franchise: string, parent?: string): Promise<CatalogFolder[]>
   listModels(query: CatalogListQuery): Promise<CursorPage<CatalogModelCard>>
-  getModel(slug: string): Promise<CatalogModel | null>
+  getModel(slug: string, galleryVersion?: number): Promise<CatalogModel | null>
   listModelImages(slug: string, query?: GalleryQuery): Promise<CursorPage<CatalogImage>>
 }
 
