@@ -205,14 +205,40 @@ class CatalogIngestTests(unittest.TestCase):
             blue = records[4:6]
             bust = records[6]
             self.assertEqual(grouped, 6)
-            self.assertEqual({record.audit_model_group for record in casual}, {"traje casual"})
+            self.assertEqual({record.audit_model_group for record in casual}, {"traje-casual-frente"})
             self.assertEqual(len({record.public_model_key for record in casual}), 1)
-            self.assertTrue(casual[0].public_model_key.endswith("/ traje casual"))
-            self.assertEqual({record.audit_model_group for record in blue}, {"traje azul"})
+            self.assertTrue(casual[0].public_model_key.endswith("/ traje-casual-frente"))
+            self.assertEqual({record.audit_model_group for record in blue}, {"traje-azul-corpo-inteiro"})
             self.assertEqual(len({record.public_model_key for record in blue}), 1)
-            self.assertTrue(blue[0].public_model_key.endswith("/ traje azul"))
+            self.assertTrue(blue[0].public_model_key.endswith("/ traje-azul-corpo-inteiro"))
             self.assertIsNone(bust.audit_model_group)
             self.assertTrue(bust.public_model_key.endswith("/ busto-realista"))
+
+    def test_inferred_gallery_anchor_is_stable_independent_of_input_order(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "Animes & Desenhos [4]" / "Dragon Ball [4]" / "Androide 18 [4]"
+            target.mkdir(parents=True)
+            records = []
+            for index, name in enumerate((
+                "traje-casual-costas.jpg",
+                "traje-casual-lateral.jpg",
+                "traje-casual-frente-alternativo.jpg",
+                "traje-casual-frente.jpg",
+            ), 1):
+                path = target / name
+                Image.new("RGB", (320, 480), (30 * index, 20, 10)).save(path)
+                record = analyze(root, path)
+                record.public_model_key = f"{record.model_key} / {path.stem}"
+                records.append(record)
+
+            grouped = infer_audited_gallery_groups(list(reversed(records)))
+
+            self.assertEqual(grouped, 4)
+            self.assertEqual(
+                {record.public_model_key for record in records},
+                {f"{records[0].model_key} / traje-casual-frente"},
+            )
 
     def test_explicit_public_model_group_is_never_overridden_by_inference(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
