@@ -9,7 +9,7 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
     def setUp(self) -> None:
         self.db = sqlite3.connect(":memory:")
         migrations = Path(__file__).resolve().parents[1] / "migrations"
-        for name in ("0001_catalog.sql", "0002_keyset_pagination.sql", "0003_catalog_counts.sql", "0009_catalog_folders.sql", "0010_recent_models_index.sql", "0011_model_gallery_members.sql", "0012_folder_materialized_counts.sql", "0013_model_image_sources.sql", "0014_gallery_member_integrity.sql", "0015_gallery_publication_invariant.sql", "0016_public_gallery_revision.sql", "0017_gallery_lifecycle_integrity.sql"):
+        for name in ("0001_catalog.sql", "0002_keyset_pagination.sql", "0003_catalog_counts.sql", "0009_catalog_folders.sql", "0010_recent_models_index.sql", "0011_model_gallery_members.sql", "0012_folder_materialized_counts.sql", "0013_model_image_sources.sql", "0014_gallery_member_integrity.sql", "0015_gallery_publication_invariant.sql", "0016_public_gallery_revision.sql", "0017_gallery_lifecycle_integrity.sql", "0018_gallery_alias_immutability.sql"):
             self.db.executescript((migrations / name).read_text(encoding="utf-8"))
         self.db.execute("INSERT INTO categories(slug,name) VALUES('animes-desenhos','Animes & Desenhos')")
         category_id = self.db.execute("SELECT id FROM categories WHERE slug='animes-desenhos'").fetchone()[0]
@@ -486,6 +486,35 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
             self.db.execute("DELETE FROM models WHERE id='mdl-a'")
         with self.assertRaises(sqlite3.IntegrityError):
             self.db.execute("DELETE FROM models WHERE id='mdl-b'")
+
+    def test_gallery_alias_public_identity_and_relation_are_immutable(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,1)",
+            (self.franchise_id, "grupo", "Grupo", "grupo"),
+        )
+        folder_id = self.db.execute(
+            "SELECT id FROM catalog_folders WHERE franchise_id=? AND path='grupo'",
+            (self.franchise_id,),
+        ).fetchone()[0]
+        self._insert_gallery_model("mdl-a", folder_id, "a", "TS-A", "Produto")
+        self._insert_gallery_model("mdl-b", folder_id, "b", "TS-B", "Produto")
+        self.db.execute(
+            "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
+            ("mdl-a", "mdl-b", 1),
+        )
+
+        for sql in (
+            "UPDATE models SET slug='novo-a' WHERE id='mdl-a'",
+            "UPDATE models SET code='NOVO' WHERE id='mdl-b'",
+            "UPDATE models SET collection='Outra coleção' WHERE id='mdl-a'",
+        ):
+            with self.assertRaises(sqlite3.IntegrityError):
+                self.db.execute(sql)
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute(
+                "DELETE FROM model_gallery_members WHERE canonical_model_id='mdl-a' AND source_model_id='mdl-b'"
+            )
 
     def test_gallery_members_reject_chains_and_cycles(self) -> None:
         self.db.execute(
