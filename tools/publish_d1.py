@@ -18,7 +18,7 @@ from typing import Any
 from publish_r2 import discover as discover_r2
 from publish_r2 import load_state as load_r2_state
 from catalog_scope import PUBLIC_TOP_LEVEL_CATEGORIES, PUBLIC_TOP_LEVEL_KEYS
-from audit_model_identity import split_view_candidates
+from audit_model_identity import sibling_suffix_candidates, split_view_candidates
 
 CATEGORY_ORDER = {
     name: (index + 1) * 10
@@ -105,6 +105,18 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
         raise RuntimeError(
             f"fichas fragmentadas por vista detectadas: {len(unresolved)} grupo(s) de alta confiança; "
             f"consolide a identidade do produto antes de publicar: {sample}"
+        )
+
+    explicit_copy_markers = [
+        candidate
+        for candidate in sibling_suffix_candidates(rows)
+        if candidate["kind"] == "explicit-copy-marker"
+    ]
+    if explicit_copy_markers:
+        sample = ", ".join(candidate["baseSlug"] for candidate in explicit_copy_markers[:5])
+        raise RuntimeError(
+            f"marcadores explícitos de cópia detectados em {len(explicit_copy_markers)} grupo(s); "
+            f"revise a identidade antes de publicar: {sample}"
         )
 
 
