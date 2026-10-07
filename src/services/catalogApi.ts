@@ -9,6 +9,7 @@ export type ApiCatalogRow = {
   slug: string
   code: string
   name: string
+  variant_name: string
   franchise: string
   franchise_slug: string
   category: string
@@ -223,6 +224,7 @@ function catalogModelToCard(model: CatalogModel): CatalogModelCard {
     slug: model.slug,
     code: model.code,
     name: model.name,
+    variantName: model.variantName,
     franchise: model.franchise,
     franchiseSlug: model.franchiseSlug,
     category: model.category,
@@ -320,6 +322,7 @@ function toCatalogModelCard(row: ApiCatalogRow): CatalogModelCard {
     slug: row.slug,
     code: row.code,
     name: row.name,
+    variantName: row.variant_name ?? '',
     franchise: row.franchise,
     franchiseSlug: row.franchise_slug,
     category: row.category_slug,
