@@ -15,6 +15,7 @@ import math
 import os
 import re
 import sys
+import unicodedata
 from collections import defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -125,7 +126,7 @@ def load_audit_registry(root: Path, registry: Path) -> tuple[list[Path], dict[st
                 )
             if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
                 raise RuntimeError(f"SHA-256 inválido na linha {line_no}: {rel}")
-            key = normalized.casefold()
+            key = unicodedata.normalize("NFKC", normalized).casefold()
             if key in seen:
                 raise RuntimeError(f"caminho duplicado no registro de auditoria: {rel}")
             seen.add(key)
