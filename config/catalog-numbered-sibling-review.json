@@ -654,8 +654,8 @@
       "siblingSlugs": [
         "the-king-of-fighters-athena-asamiya-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte: os dois arquivos de Athena Asamiya representam esculturas, poses, figurinos e bases diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -667,8 +667,8 @@
       "siblingSlugs": [
         "the-king-of-fighters-blue-mary-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte: os dois arquivos de Blue Mary representam esculturas, poses e bases diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -681,8 +681,8 @@
         "the-king-of-fighters-mai-shiranui-02",
         "the-king-of-fighters-mai-shiranui-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte: os três arquivos de Mai Shiranui representam esculturas, poses e bases diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
