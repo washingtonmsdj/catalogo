@@ -8,6 +8,68 @@ from pathlib import Path
 from typing import Iterable, Mapping
 
 DEFAULT_VIEW_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-view-descriptors.json"
+DEFAULT_IDENTITY_ALIAS_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-model-identity-aliases.json"
+
+
+def load_identity_aliases(path: Path | None = None) -> dict[str, str]:
+    config_path = path or DEFAULT_IDENTITY_ALIAS_CONFIG
+    if not config_path.is_file():
+        return {}
+    try:
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"JSON de aliases de identidade inválido: {config_path}: {exc}") from exc
+    if not isinstance(data, dict) or data.get("version") != 1:
+        raise RuntimeError(f"configuração de aliases de identidade inválida: {config_path}")
+    raw = data.get("aliases")
+    if not isinstance(raw, list):
+        raise RuntimeError(f"aliases de identidade inválidos: {config_path}")
+
+    alias_to_canonical: dict[str, str] = {}
+    canonical_keys: set[str] = set()
+    for index, item in enumerate(raw, 1):
+        if not isinstance(item, dict):
+            raise RuntimeError(f"alias de identidade inválido na posição {index}: {config_path}")
+        canonical = str(item.get("canonicalIdentityKey") or "").strip()
+        aliases = item.get("aliases")
+        reason = str(item.get("reason") or "").strip()
+        if not canonical or not reason or not isinstance(aliases, list) or not aliases:
+            raise RuntimeError(f"alias de identidade incompleto na posição {index}: {config_path}")
+        if canonical in canonical_keys:
+            raise RuntimeError(f"identidade canônica repetida: {canonical}")
+        canonical_keys.add(canonical)
+
+        local: set[str] = set()
+        for raw_alias in aliases:
+            alias = str(raw_alias or "").strip()
+            if not alias or alias == canonical:
+                raise RuntimeError(f"alias de identidade inválido para {canonical}: {alias!r}")
+            if alias in local:
+                raise RuntimeError(f"alias repetido para {canonical}: {alias}")
+            local.add(alias)
+            previous = alias_to_canonical.get(alias)
+            if previous is not None and previous != canonical:
+                raise RuntimeError(
+                    f"alias de identidade pertence a mais de um canônico: {alias}: "
+                    f"{previous} | {canonical}"
+                )
+            alias_to_canonical[alias] = canonical
+
+    for canonical in canonical_keys:
+        owner = alias_to_canonical.get(canonical)
+        if owner is not None:
+            raise RuntimeError(
+                f"identidade canônica também aparece como alias de outro produto: "
+                f"{canonical} -> {owner}"
+            )
+    return alias_to_canonical
+
+
+def canonical_identity_key(identity_key: str, aliases: dict[str, str]) -> str:
+    key = str(identity_key).strip()
+    if not key:
+        raise RuntimeError("identityKey vazia")
+    return aliases.get(key, key)
 
 
 @dataclass(frozen=True)
