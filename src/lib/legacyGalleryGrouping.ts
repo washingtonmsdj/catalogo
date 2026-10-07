@@ -1,5 +1,5 @@
-import viewDescriptorConfig from '../../config/catalog-view-descriptors.json'
-import legacyOverrideConfig from '../../config/catalog-legacy-gallery-overrides.json'
+import viewDescriptorConfig from '../../config/catalog-view-descriptors.json' with { type: 'json' }
+import legacyOverrideConfig from '../../config/catalog-legacy-gallery-overrides.json' with { type: 'json' }
 
 export type LegacyGalleryRow = {
   id: string
