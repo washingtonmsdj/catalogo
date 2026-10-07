@@ -144,6 +144,21 @@ function reviewedOverride(
   })
 }
 
+export function uniqueLegacyGalleryImages<T extends { sourceSha256: string }>(images: T[]): T[] {
+  const seen = new Set<string>()
+  const unique: T[] = []
+  for (const image of images) {
+    const sha = String(image.sourceSha256 ?? '').trim().toLowerCase()
+    if (!/^[0-9a-f]{64}$/.test(sha)) {
+      throw new Error('legacy gallery image has invalid sourceSha256')
+    }
+    if (seen.has(sha)) continue
+    seen.add(sha)
+    unique.push(image)
+  }
+  return unique
+}
+
 export function legacyCompositeGalleryVersion(
   members: Array<{ slug: string; gallery_version: number }>,
 ) {
