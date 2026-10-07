@@ -227,6 +227,20 @@
         "dragon-ball-shenlong-estatua-vista-traseira"
       ],
       "reason": "Alta confiança: vistas frontal/traseira da mesma estátua."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "mileena",
+      "family": "mortal-kombat-mileena-modelo-base",
+      "canonicalSlug": "mortal-kombat-mileena",
+      "memberSlugs": [
+        "mortal-kombat-mileena",
+        "mortal-kombat-mileena-04"
+      ],
+      "matchMode": "explicit-members",
+      "reason": "Revisão visual de 2026-10-07: Mileena.jpg e Mileena 04.jpg mostram a mesma escultura, pose, figurino e base em renders/enquadramentos diferentes; 02, 03 e 05 são produtos distintos."
     }
-  ]
+  ],
+  "auditedExtraCards": 30
 }
