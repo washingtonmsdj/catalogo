@@ -17,7 +17,6 @@ export type GallerySourcePayload = {
 export type AggregatedGallery = {
   images: GalleryImage[]
   total: number
-  version: number
 }
 
 function safePositiveSum(values: number[], label: string) {
@@ -30,10 +29,6 @@ function safePositiveSum(values: number[], label: string) {
 
 export function logicalGalleryImageCount(sources: GallerySourceState[]) {
   return safePositiveSum(sources.map((source) => source.image_count), 'gallery_image_count')
-}
-
-export function logicalGalleryVersion(sources: GallerySourceState[]) {
-  return safePositiveSum(sources.map((source) => source.gallery_version), 'gallery_version')
 }
 
 export function aggregateGallerySources(payloads: GallerySourcePayload[]): AggregatedGallery {
@@ -67,6 +62,5 @@ export function aggregateGallerySources(payloads: GallerySourcePayload[]): Aggre
   return {
     images,
     total,
-    version: logicalGalleryVersion(sources),
   }
 }
