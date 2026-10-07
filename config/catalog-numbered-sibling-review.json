@@ -251,8 +251,8 @@
         "league-of-legends-jinx-02",
         "league-of-legends-jinx-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "mixed",
+      "reason": "Revisão visual concluída em 2026-10-07: dois membros do grupo são a mesma escultura em renders diferentes; os demais são produtos distintos."
     },
     {
       "categorySlug": "games",
