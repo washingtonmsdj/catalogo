@@ -361,6 +361,17 @@ def cross_model_sha_candidates(rows: list[dict[str, Any]], r2_root: Path) -> lis
     return sorted(results, key=lambda item: (-item["modelCount"], item["sha256"]))
 
 
+def sibling_review_priority(candidate: dict[str, Any]) -> str:
+    if candidate.get("kind") == "explicit-copy-marker":
+        return "P0"
+    count = len(candidate.get("siblings") or [])
+    if count >= 10:
+        return "P1"
+    if count >= 4:
+        return "P2"
+    return "P3"
+
+
 def write_report(
     output: Path,
     view_candidates: list[dict[str, Any]],
@@ -368,13 +379,30 @@ def write_report(
     sibling_candidates: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     output.mkdir(parents=True, exist_ok=True)
-    sibling_candidates = list(sibling_candidates or [])
+    sibling_candidates = [
+        {
+            **item,
+            "reviewPriority": sibling_review_priority(item),
+            "siblingCount": len(item.get("siblings") or []),
+        }
+        for item in (sibling_candidates or [])
+    ]
+    sibling_candidates.sort(
+        key=lambda item: (
+            item["reviewPriority"],
+            -int(item["siblingCount"]),
+            item["categorySlug"],
+            item["franchiseSlug"],
+            item["folderPathKey"],
+            item["baseSlug"],
+        )
+    )
     explicit_copy = [item for item in sibling_candidates if item["kind"] == "explicit-copy-marker"]
     numbered_review = [item for item in sibling_candidates if item["kind"] == "numbered-review"]
     high = [item for item in view_candidates if item["confidence"] == "high"]
     review = [item for item in view_candidates if item["confidence"] != "high"]
     summary = {
-        "version": 2,
+        "version": 3,
         "splitViewCandidateGroups": len(view_candidates),
         "highConfidenceGroups": len(high),
         "reviewGroups": len(review),
@@ -405,10 +433,11 @@ def write_report(
             ])
     with (output / "sibling-suffix-candidates.csv").open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.writer(handle)
-        writer.writerow(["kind", "category", "franchise", "folder", "base_slug", "sibling_slugs"])
+        writer.writerow(["priority", "kind", "sibling_count", "category", "franchise", "folder", "base_slug", "sibling_slugs"])
         for item in sibling_candidates:
             writer.writerow([
-                item["kind"], item["categorySlug"], item["franchiseSlug"],
+                item["reviewPriority"], item["kind"], item["siblingCount"],
+                item["categorySlug"], item["franchiseSlug"],
                 item["folderPathKey"], item["baseSlug"],
                 " | ".join(member["slug"] for member in item["siblings"]),
             ])
