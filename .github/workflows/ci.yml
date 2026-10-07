@@ -28,6 +28,8 @@ jobs:
         run: npm run test:gallery-runtime
       - name: Test Worker gallery smoke contract
         run: npm run test:worker-gallery-contract
+      - name: Test Worker folder count contract
+        run: npm run test:worker-folder-counts
       - name: Test catalog home display contract
         run: npm run test:catalog-home
       - name: Test gallery grid navigation
