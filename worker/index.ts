@@ -83,14 +83,7 @@ const LOGICAL_IMAGE_COUNT_SQL = `(
   ), 0)
 )`
 
-const LOGICAL_GALLERY_VERSION_SQL = `(
-  m.gallery_version + COALESCE((
-    SELECT SUM(source.gallery_version)
-    FROM model_gallery_members gallery_member
-    JOIN models source ON source.id=gallery_member.source_model_id
-    WHERE gallery_member.canonical_model_id=m.id
-  ), 0)
-)`
+const PUBLIC_GALLERY_VERSION_SQL = 'm.public_gallery_version'
 
 function allowedOrigin(request: Request, env: Env) {
   const origin = request.headers.get('origin')
@@ -400,7 +393,7 @@ async function listCatalog(request: Request, env: Env) {
   const searchJoin = query ? 'JOIN models_fts ON models_fts.model_id = m.id' : ''
   const sql = `${folderCte} SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,
     ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
-    ${LOGICAL_GALLERY_VERSION_SQL} AS gallery_version,
+    ${PUBLIC_GALLERY_VERSION_SQL} AS gallery_version,
     m.cover_storage_key,
     f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m
@@ -428,7 +421,7 @@ async function listRecentCatalog(request: Request, env: Env) {
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '12', 10) || 12, 1, 24)
   const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,
     ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
-    ${LOGICAL_GALLERY_VERSION_SQL} AS gallery_version,
+    ${PUBLIC_GALLERY_VERSION_SQL} AS gallery_version,
     m.cover_storage_key,
     f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m
@@ -446,7 +439,7 @@ async function getModel(request: Request, slug: string, env: Env) {
     SELECT
     m.id,m.slug,m.code,m.name,m.collection,m.material,m.height_cm,m.description,m.search_text,
     ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
-    ${LOGICAL_GALLERY_VERSION_SQL} AS gallery_version,
+    ${PUBLIC_GALLERY_VERSION_SQL} AS gallery_version,
     m.cover_storage_key,cf.path AS folder_path,
     f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM resolved_model resolved
@@ -468,11 +461,13 @@ async function listImages(request: Request, slug: string, env: Env) {
   if (offset === null) return json(request, env, { error: 'invalid_cursor' }, { status: 400 })
 
   const model = await env.DB.prepare(`${RESOLVED_MODEL_BY_SLUG_CTE}
-    SELECT m.id,m.image_count,m.gallery_manifest_key,m.gallery_version,m.cover_storage_key
+    SELECT
+      m.id,m.image_count,m.gallery_manifest_key,m.gallery_version,m.cover_storage_key,
+      m.public_gallery_version
     FROM resolved_model resolved
     JOIN models m ON m.id=resolved.id
     WHERE m.published=1
-    LIMIT 1`).bind(slug).first<GalleryModelState>()
+    LIMIT 1`).bind(slug).first<GalleryModelState & { public_gallery_version: number }>()
   if (!model) return json(request, env, { error: 'model_not_found' }, { status: 404 })
   if (!model.gallery_manifest_key) return json(request, env, { items: [], total: 0, nextCursor: null, version: model.gallery_version })
 
@@ -515,7 +510,7 @@ async function listImages(request: Request, slug: string, env: Env) {
     items,
     total: gallery.total,
     nextCursor: nextOffset < gallery.total ? encodeOffsetCursor(nextOffset) : null,
-    version: gallery.version,
+    version: model.public_gallery_version,
   }, {}, 'public, max-age=300, s-maxage=1800')
 }
 
