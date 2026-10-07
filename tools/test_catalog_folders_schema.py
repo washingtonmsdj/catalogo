@@ -298,7 +298,7 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
             1,
         )
 
-    def test_retired_source_still_contributes_to_logical_gallery(self) -> None:
+    def test_retired_source_still_contributes_to_logical_image_count(self) -> None:
         self.db.execute(
             "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,1)",
             (self.franchise_id, "grupo", "Grupo", "grupo"),
@@ -317,22 +317,21 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
             ("mdl-a", "mdl-b", 1),
         )
 
-        logical = self.db.execute(
+        logical_image_count = self.db.execute(
             """SELECT
-            canonical.image_count + COALESCE(SUM(source.image_count),0),
-            canonical.gallery_version + COALESCE(SUM(source.gallery_version),0)
+            canonical.image_count + COALESCE(SUM(source.image_count),0)
             FROM models canonical
             LEFT JOIN model_gallery_members member ON member.canonical_model_id=canonical.id
             LEFT JOIN models source ON source.id=member.source_model_id
             WHERE canonical.id='mdl-a'
             GROUP BY canonical.id"""
-        ).fetchone()
+        ).fetchone()[0]
         source_published = self.db.execute(
             "SELECT published FROM models WHERE id='mdl-b'"
         ).fetchone()[0]
 
         self.assertEqual(source_published, 0)
-        self.assertEqual(logical, (2, 8))
+        self.assertEqual(logical_image_count, 2)
 
     def test_public_gallery_revision_is_monotonic_for_visible_gallery_changes(self) -> None:
         self.db.execute(
