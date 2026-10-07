@@ -113,8 +113,8 @@
       "siblingSlugs": [
         "o-senhor-dos-aneis-smaug-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: smaug.webp e smaug-03.jpg são esculturas distintas, com anatomia, pose e base diferentes."
     },
     {
       "categorySlug": "filmes-series",
@@ -130,8 +130,8 @@
         "star-wars-darth-vader-07",
         "star-wars-darth-vader-08"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: Darth Vader base e os irmãos 04–08 representam produtos distintos, incluindo estátuas de corpo inteiro, bustos/capacetes, peça artesanal e versão estilizada."
     },
     {
       "categorySlug": "filmes-series",
@@ -144,8 +144,8 @@
         "stranger-things-demogorgon-02",
         "stranger-things-demogorgon-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: Demogorgon base, 02 e 03 são esculturas e composições distintas, com poses e bases diferentes."
     },
     {
       "categorySlug": "filmes-series",
