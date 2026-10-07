@@ -34,6 +34,7 @@ export type LegacyGalleryOverride = {
   canonicalSlug: string
   memberSlugs: string[]
   reason: string
+  matchMode?: 'descriptor-family' | 'explicit-members'
 }
 
 const descriptors = (viewDescriptorConfig.descriptors as Descriptor[])
@@ -47,6 +48,18 @@ const descriptors = (viewDescriptorConfig.descriptors as Descriptor[])
 function validateReviewedOverrides(groups: LegacyGalleryOverride[]) {
   if (legacyOverrideConfig.version !== 2) {
     throw new Error(`legacy gallery override version unsupported: ${legacyOverrideConfig.version}`)
+  }
+  const auditedGroups = Number(legacyOverrideConfig.auditedGroups)
+  const auditedMemberCards = Number(legacyOverrideConfig.auditedMemberCards)
+  const auditedExtraCards = Number(legacyOverrideConfig.auditedExtraCards)
+  for (const [label, value] of [
+    ['auditedGroups', auditedGroups],
+    ['auditedMemberCards', auditedMemberCards],
+    ['auditedExtraCards', auditedExtraCards],
+  ] as const) {
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new Error(`legacy gallery ${label} must be a non-negative safe integer`)
+    }
   }
 
   const groupKeys = new Set<string>()
@@ -77,6 +90,21 @@ function validateReviewedOverrides(groups: LegacyGalleryOverride[]) {
       memberSlugs.add(slug)
     }
   }
+
+  const actualMemberCards = groups.reduce((sum, group) => sum + group.memberSlugs.length, 0)
+  const actualExtraCards = actualMemberCards - groups.length
+  if (
+    groups.length !== auditedGroups
+    || actualMemberCards !== auditedMemberCards
+    || actualExtraCards !== auditedExtraCards
+  ) {
+    throw new Error(
+      'legacy gallery audited baseline mismatch: '
+      + `groups=${groups.length}/${auditedGroups}, `
+      + `members=${actualMemberCards}/${auditedMemberCards}, `
+      + `extra=${actualExtraCards}/${auditedExtraCards}`,
+    )
+  }
 }
 
 const reviewedOverrides = legacyOverrideConfig.groups as LegacyGalleryOverride[]
@@ -92,6 +120,11 @@ function descriptorFor(slug: string) {
 }
 
 for (const group of reviewedOverrides) {
+  const mode = group.matchMode ?? 'descriptor-family'
+  if (!['descriptor-family', 'explicit-members'].includes(mode)) {
+    throw new Error(`legacy gallery match mode unsupported: ${mode}`)
+  }
+  if (mode === 'explicit-members') continue
   for (const slug of group.memberSlugs) {
     const descriptor = descriptorFor(slug)
     if (!descriptor || descriptor.family !== group.family) {
@@ -127,6 +160,10 @@ export function registeredLegacyGalleryGroups(): readonly LegacyGalleryOverride[
   return reviewedOverrides
 }
 
+export function registeredLegacyGalleryAuditBaseline(): number {
+  return Number(legacyOverrideConfig.auditedExtraCards)
+}
+
 function reviewedOverride(
   first: LegacyGalleryRow,
   family: string,
@@ -135,7 +172,8 @@ function reviewedOverride(
   const memberSlugs = new Set(members.map(({ row }) => row.slug))
   return reviewedOverrides.find((candidate) => {
     if (
-      !sameOverrideScope(first, candidate)
+      (candidate.matchMode ?? 'descriptor-family') !== 'descriptor-family'
+      || !sameOverrideScope(first, candidate)
       || candidate.family !== family
     ) return false
     const expected = new Set(candidate.memberSlugs)
@@ -224,6 +262,34 @@ export function planLegacyGalleryGroups(rows: LegacyGalleryRow[]): LegacyGallery
       memberIds,
       memberSlugs,
       source: override ? 'reviewed-override' : 'high-confidence',
+    })
+  }
+
+  for (const override of reviewedOverrides) {
+    if ((override.matchMode ?? 'descriptor-family') !== 'explicit-members') continue
+    const membersBySlug = new Map(
+      rows
+        .filter((row) => row.image_count === 1 && sameOverrideScope(row, override))
+        .map((row) => [row.slug, row]),
+    )
+    if (!override.memberSlugs.every((slug) => membersBySlug.has(slug))) continue
+
+    const memberRows = override.memberSlugs.map((slug) => membersBySlug.get(slug)!)
+    const key = [
+      override.categorySlug,
+      override.franchiseSlug,
+      override.folderPathKey,
+      memberRows[0].name.trim().toLocaleLowerCase('pt-BR'),
+      override.family,
+    ].join('|')
+    if (plans.some((plan) => plan.key === key)) continue
+    plans.push({
+      key,
+      family: override.family,
+      canonicalSlug: override.canonicalSlug,
+      memberIds: memberRows.map((row) => row.id),
+      memberSlugs: [...override.memberSlugs],
+      source: 'reviewed-override',
     })
   }
 

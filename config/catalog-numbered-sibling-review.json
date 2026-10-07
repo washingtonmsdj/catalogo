@@ -7,7 +7,8 @@
   "policy": {
     "pending": "Não consolidar automaticamente; exige revisão visual/identidade.",
     "distinct": "Produtos revisados e confirmados como distintos.",
-    "merge": "Não usar aqui; consolidações aprovadas devem migrar para o registro canônico de galeria."
+    "merge": "Não usar aqui; consolidações aprovadas devem migrar para o registro canônico de galeria.",
+    "mixed": "Grupo totalmente revisado: parte dos irmãos foi consolidada por registro canônico explícito e o restante foi confirmado como produto distinto."
   },
   "groups": [
     {
@@ -279,8 +280,8 @@
         "mortal-kombat-baraka-02",
         "mortal-kombat-baraka-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Baraka.jpg, Baraka 02.jpg e Baraka 03.jpg): esculturas, poses, figurinos e bases são diferentes; manter como produtos distintos. O arquivo Baraka - Chibi.jpg já é uma identidade separada e não participa deste grupo numerado."
     },
     {
       "categorySlug": "games",
@@ -309,8 +310,8 @@
       "siblingSlugs": [
         "mortal-kombat-kabal-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Kabal.jpg e Kabal 02.jpg): esculturas, poses, figurinos e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -323,8 +324,8 @@
         "mortal-kombat-kitana-02",
         "mortal-kombat-kitana-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Kitana.jpg, Kitana 02.jpg e Kitana 03.webp): poses, esculturas, figurinos e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -337,8 +338,8 @@
         "mortal-kombat-liu-kang-02",
         "mortal-kombat-liu-kang-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Liu Kang.jpg, Liu Kang 02.jpg e Liu Kang 03.jpg): poses, esculturas, figurinos e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -353,8 +354,8 @@
         "mortal-kombat-mileena-04",
         "mortal-kombat-mileena-05"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "mixed",
+      "reason": "Revisão visual concluída em 2026-10-07: Mileena.jpg e Mileena 04.jpg são a mesma escultura em renders/enquadramentos diferentes e foram registradas como uma galeria canônica explícita; Mileena 02.jpg, 03.jpg e 05.jpg são produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -367,7 +368,7 @@
         "mortal-kombat-motaro-02"
       ],
       "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "reason": "Revisão visual de 2026-10-07 detectou erro de classificação na origem: Motaro 02.jpg é Motaro, mas Motaro.jpg mostra outra escultura (figura humanoide com lobos). Não consolidar nem classificar como distinto até a origem ser corrigida e republicada."
     },
     {
       "categorySlug": "games",

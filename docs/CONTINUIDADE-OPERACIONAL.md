@@ -167,12 +167,12 @@ Auditoria read-only do D1 em 2026-10-07 confirmou:
 - contadores materializados de franquias: **0 divergências** contra `models WHERE published=1`;
 - agrupar apenas por personagem/pasta seria incorreto: existem **345** grupos de mesmo nome/pasta e a maioria representa esculturas realmente distintas;
 - a auditoria conservadora encontrou **17 grupos de alta confiança** fragmentados por vistas direcionais;
-- somando o par Android 18 / traje azul confirmado visualmente, o registro explícito contém **18 galerias legadas**, **47 slugs** e **29 cards excedentes**;
-- os 47 slugs registrados foram cruzados com o D1: **47/47 encontrados, 0 ausentes, 0 divergências** de categoria, franquia, pasta, publicação ou `image_count=1`;
-- `config/catalog-legacy-gallery-overrides.json` é o registro versionado dessa dívida; o CI bloqueia slug em mais de um grupo, canônico fora dos membros, família incoerente, motivo vazio e crescimento acima do baseline auditado de **29 cards excedentes**;
+- após a revisão visual de Mileena, o registro explícito contém **19 galerias legadas**, **49 slugs** e **30 cards excedentes**;
+- os 47 slugs do baseline anterior foram cruzados com o D1: **47/47 encontrados, 0 ausentes, 0 divergências**; o novo par `mortal-kombat-mileena` + `mortal-kombat-mileena-04` deve passar pelo mesmo preflight de produção antes de qualquer aplicação;
+- `config/catalog-legacy-gallery-overrides.json` é o registro versionado dessa dívida e contém o resumo auditado (`auditedGroups`, `auditedMemberCards`, `auditedExtraCards`); validações bloqueiam sobreposição de slugs, canônico fora dos membros, modo de correspondência inválido, motivo vazio e divergência entre o resumo e os grupos registrados;
 - `src/services/catalogApi.ts` consegue hidratar o grupo registrado mesmo quando suas vistas caem em páginas diferentes da API; a camada é transitória e se desativa naturalmente quando o backend passar a entregar a galeria canônica.
 
-Não aumentar esse registro para “resolver” ambiguidades. Casos novos devem primeiro passar por auditoria visual/identidade. O objetivo do número **29** é cair até zero, não crescer.
+Não aumentar esse registro para “resolver” ambiguidades. Casos novos só entram após auditoria visual/identidade conclusiva, com atualização explícita do resumo auditado na mesma mudança. A meta operacional é reduzir os cards excedentes até zero por consolidações comprovadas; crescimento só pode representar dívida real recém-descoberta e revisada, nunca heurística automática.
 
 ### Reconciliação segura de fichas obsoletas
 
@@ -185,7 +185,7 @@ Não aumentar esse registro para “resolver” ambiguidades. Casos novos devem 
 - a única mutação permitida é `published=0`; **não há DELETE**;
 - uma ficha ainda presente no snapshot nunca pode ser aposentada por esse CSV.
 
-Esse mecanismo genérico continua disponível para snapshots futuros, mas **não é o caminho autorizado para os 29 cards legados já revisados**. Para esses 18 grupos existe agora `tools/apply_legacy_gallery_repairs.py`, que só insere relações canônico→fonte; a migration 0015 aposenta cada fonte no mesmo statement, sem DELETE.
+Esse mecanismo genérico continua disponível para snapshots futuros, mas **não é o caminho autorizado para os cards legados já revisados**. Para os grupos do registro canônico existe `tools/apply_legacy_gallery_repairs.py`, que só insere relações canônico→fonte; a migration 0015 aposenta cada fonte no mesmo statement, sem DELETE.
 
 ### Estado de migrations da produção
 
@@ -212,14 +212,14 @@ Por isso `catalog_folders.direct_model_count` e `catalog_folders.subtree_model_c
 - `/api/health` consulta `d1_migrations` e retorna 503 `schema_not_ready` se faltar qualquer migration;
 - estado saudável é cacheado por instância do Worker; estado incompleto **não** é cacheado, permitindo recuperação imediata após a migration;
 - o workflow Cloudflare só prossegue depois de `check_worker_health.mjs` confirmar contrato, última migration e zero pendências;
-- todo deploy saudável executa `apply_legacy_gallery_repairs.py` em modo somente leitura para provar que o D1 ainda corresponde aos 18 grupos revisados;
+- todo deploy saudável executa `apply_legacy_gallery_repairs.py` em modo somente leitura para provar que o D1 ainda corresponde integralmente aos grupos revisados do registro versionado;
 - aplicar as relações exige `workflow_dispatch` com `apply_legacy_gallery_repairs=true`; o padrão é **false**;
 - a operação é idempotente: relações já corretas são ignoradas e progresso parcial pode ser retomado;
 - inserir a relação aposenta a fonte automaticamente; contadores de categoria, franquia e pasta são atualizados pelos triggers existentes;
 - uma fonte anexada não pode voltar a `published=1` enquanto a relação existir;
 - alterar identidade canônico/fonte de uma relação existente é proibido; reestruturação exige operação explícita e auditada.
 
-Não aplicar os 18 reparos antes de 0011–0015 e o Worker correspondente estarem realmente implantados e o health estrutural retornar verde.
+Não aplicar reparos registrados antes de 0011–0015 e o Worker correspondente estarem realmente implantados, o preflight do D1 confirmar todos os membros e o health estrutural retornar verde.
 
 ### Ciclo de vida protegido das galerias consolidadas
 

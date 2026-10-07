@@ -41,7 +41,22 @@ def load_config(path: Path) -> list[dict[str, Any]]:
     if not isinstance(groups, list) or not groups:
         raise RuntimeError("registro de reparos legados vazio")
 
+    audited_at = str(payload.get("auditedAt") or "").strip()
+    audited_groups = payload.get("auditedGroups")
+    audited_member_cards = payload.get("auditedMemberCards")
+    audited_extra_cards = payload.get("auditedExtraCards")
+    if not audited_at:
+        raise RuntimeError("registro de reparos legados sem auditedAt")
+    for label, value in (
+        ("auditedGroups", audited_groups),
+        ("auditedMemberCards", audited_member_cards),
+        ("auditedExtraCards", audited_extra_cards),
+    ):
+        if not isinstance(value, int) or isinstance(value, bool) or value < 0:
+            raise RuntimeError(f"{label} inválido no registro de reparos legados")
+
     seen_members: set[str] = set()
+    member_cards = 0
     for index, group in enumerate(groups, 1):
         if not isinstance(group, dict):
             raise RuntimeError(f"grupo de reparo inválido na posição {index}")
@@ -55,10 +70,33 @@ def load_config(path: Path) -> list[dict[str, Any]]:
             raise RuntimeError(f"canônico fora dos membros: {group['canonicalSlug']}")
         if len(set(members)) != len(members):
             raise RuntimeError(f"membro repetido no grupo: {group['family']}")
+        match_mode = str(group.get("matchMode") or "descriptor-family").strip()
+        if match_mode not in {"descriptor-family", "explicit-members"}:
+            raise RuntimeError(
+                f"matchMode inválido no grupo {group['family']}: {match_mode}"
+            )
         overlap = seen_members.intersection(members)
         if overlap:
             raise RuntimeError(f"slug aparece em múltiplos grupos: {sorted(overlap)[:5]}")
         seen_members.update(members)
+        member_cards += len(members)
+
+    extra_cards = member_cards - len(groups)
+    actual = {
+        "auditedGroups": len(groups),
+        "auditedMemberCards": member_cards,
+        "auditedExtraCards": extra_cards,
+    }
+    expected = {
+        "auditedGroups": audited_groups,
+        "auditedMemberCards": audited_member_cards,
+        "auditedExtraCards": audited_extra_cards,
+    }
+    if actual != expected:
+        raise RuntimeError(
+            "resumo auditado dos reparos legados diverge do registro: "
+            f"atual={actual} esperado={expected}"
+        )
     return groups
 
 

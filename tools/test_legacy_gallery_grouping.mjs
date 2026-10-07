@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { legacyCompositeGalleryVersion, planLegacyGalleryGroups, registeredLegacyGalleryForRow, registeredLegacyGalleryGroups, uniqueLegacyGalleryImages } from '../src/lib/legacyGalleryGrouping.ts'
+import { legacyCompositeGalleryVersion, planLegacyGalleryGroups, registeredLegacyGalleryAuditBaseline, registeredLegacyGalleryForRow, registeredLegacyGalleryGroups, uniqueLegacyGalleryImages } from '../src/lib/legacyGalleryGrouping.ts'
 
 function row(id, slug, overrides = {}) {
   return {
@@ -68,6 +68,25 @@ test('reviewed override is scoped to its exact folder and members', () => {
   assert.deepEqual(partial, [])
 })
 
+test('reviewed numeric pair collapses only through explicit member registry', () => {
+  const mileena = (id, slug) => row(id, slug, {
+    name: 'Mileena',
+    category_slug: 'games',
+    franchise_slug: 'mortal-kombat',
+    folder_path: 'mileena',
+  })
+  const plans = planLegacyGalleryGroups([
+    mileena('base', 'mortal-kombat-mileena'),
+    mileena('04', 'mortal-kombat-mileena-04'),
+    mileena('02', 'mortal-kombat-mileena-02'),
+  ])
+
+  assert.equal(plans.length, 1)
+  assert.equal(plans[0].source, 'reviewed-override')
+  assert.equal(plans[0].canonicalSlug, 'mortal-kombat-mileena')
+  assert.deepEqual(plans[0].memberSlugs, ['mortal-kombat-mileena', 'mortal-kombat-mileena-04'])
+})
+
 test('registered repair is discoverable from a single page member', () => {
   const member = row('side', 'dragon-ball-androide-18-traje-casual-lateral')
   const repair = registeredLegacyGalleryForRow(member)
@@ -92,15 +111,12 @@ test('registered repair debt has no duplicate member slugs', () => {
   }
 })
 
-test('registered legacy duplicate-card debt never grows above audited baseline', () => {
+test('registered legacy duplicate-card debt matches versioned audited baseline', () => {
   const groups = registeredLegacyGalleryGroups()
   const extraCards = groups.reduce((sum, group) => sum + group.memberSlugs.length - 1, 0)
 
   assert.ok(extraCards > 0)
-  assert.ok(
-    extraCards <= 29,
-    `legacy duplicate-card debt increased from audited baseline: ${extraCards} > 29`,
-  )
+  assert.equal(extraCards, registeredLegacyGalleryAuditBaseline())
 })
 
 test('legacy gallery image deduplication keeps first SHA occurrence deterministically', () => {
