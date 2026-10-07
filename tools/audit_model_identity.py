@@ -12,6 +12,10 @@ from typing import Any
 
 from model_identity import candidate_confidence, slug_view_descriptor
 
+DEFAULT_NUMBERED_REVIEW_CONFIG = (
+    Path(__file__).resolve().parents[1] / "config" / "catalog-numbered-sibling-review.json"
+)
+
 
 def load_models(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
@@ -165,6 +169,144 @@ def sibling_suffix_candidates(rows: list[dict[str, Any]]) -> list[dict[str, Any]
             item["baseSlug"],
         ),
     )
+
+
+def load_numbered_sibling_review_registry(
+    path: Path | None = None,
+) -> dict[tuple[str, str, str, str, str], dict[str, Any]]:
+    config_path = path or DEFAULT_NUMBERED_REVIEW_CONFIG
+    if not config_path.is_file():
+        raise RuntimeError(f"fila de revisão numerada ausente: {config_path}")
+    try:
+        payload = json.loads(config_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"fila de revisão numerada inválida: {config_path}: {exc}") from exc
+    if not isinstance(payload, dict) or payload.get("version") != 1:
+        raise RuntimeError(f"versão inválida da fila de revisão numerada: {config_path}")
+    groups = payload.get("groups")
+    if not isinstance(groups, list):
+        raise RuntimeError(f"groups inválido na fila de revisão numerada: {config_path}")
+
+    registry: dict[tuple[str, str, str, str, str], dict[str, Any]] = {}
+    sibling_rows = 0
+    for index, item in enumerate(groups, 1):
+        if not isinstance(item, dict):
+            raise RuntimeError(f"grupo inválido na fila numerada, posição {index}")
+        category = str(item.get("categorySlug") or "").strip()
+        franchise = str(item.get("franchiseSlug") or "").strip()
+        folder = str(item.get("folderPathKey") or "").strip()
+        display_name = str(item.get("displayName") or "").strip()
+        base_id = str(item.get("baseId") or "").strip()
+        base_slug = str(item.get("baseSlug") or "").strip()
+        status = str(item.get("status") or "").strip()
+        reason = str(item.get("reason") or "").strip()
+        siblings = item.get("siblingSlugs")
+        if (
+            not category
+            or not franchise
+            or not display_name
+            or not base_id
+            or not base_slug
+            or status not in {"pending", "distinct"}
+            or not reason
+            or not isinstance(siblings, list)
+            or not siblings
+        ):
+            raise RuntimeError(f"grupo incompleto/inválido na fila numerada: {item!r}")
+        normalized_siblings = [str(slug).strip() for slug in siblings]
+        if (
+            any(not slug for slug in normalized_siblings)
+            or len(set(normalized_siblings)) != len(normalized_siblings)
+            or base_slug in normalized_siblings
+        ):
+            raise RuntimeError(f"slugs inválidos na fila numerada: {base_slug}")
+        key = (category, franchise, folder, display_name.casefold(), base_slug)
+        if key in registry:
+            raise RuntimeError(f"grupo duplicado na fila numerada: {base_slug}")
+        sibling_rows += len(normalized_siblings)
+        registry[key] = {
+            **item,
+            "categorySlug": category,
+            "franchiseSlug": franchise,
+            "folderPathKey": folder,
+            "displayName": display_name,
+            "baseId": base_id,
+            "baseSlug": base_slug,
+            "siblingSlugs": normalized_siblings,
+            "status": status,
+            "reason": reason,
+        }
+
+    expected_groups = payload.get("baselineGroups")
+    expected_rows = payload.get("baselineSiblingRows")
+    if expected_groups != len(registry) or expected_rows != sibling_rows:
+        raise RuntimeError(
+            "baseline da fila numerada diverge do conteúdo: "
+            f"groups={expected_groups}/{len(registry)}, siblings={expected_rows}/{sibling_rows}"
+        )
+    return registry
+
+
+def validate_numbered_sibling_review(
+    rows: list[dict[str, Any]],
+    registry: dict[tuple[str, str, str, str, str], dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    reviewed = registry if registry is not None else load_numbered_sibling_review_registry()
+    candidates = [
+        candidate
+        for candidate in sibling_suffix_candidates(rows)
+        if candidate["kind"] == "numbered-review"
+    ]
+    unregistered: list[str] = []
+    changed: list[str] = []
+    pending = 0
+    distinct = 0
+
+    for candidate in candidates:
+        key = (
+            candidate["categorySlug"],
+            candidate["franchiseSlug"],
+            candidate["folderPathKey"],
+            candidate["displayNameKey"],
+            candidate["baseSlug"],
+        )
+        item = reviewed.get(key)
+        if item is None:
+            unregistered.append(candidate["baseSlug"])
+            continue
+        candidate_siblings = sorted(member["slug"] for member in candidate["siblings"])
+        registered_siblings = sorted(item["siblingSlugs"])
+        if (
+            str(candidate["baseId"]) != str(item["baseId"])
+            or candidate_siblings != registered_siblings
+        ):
+            changed.append(candidate["baseSlug"])
+            continue
+        if item["status"] == "pending":
+            pending += 1
+        elif item["status"] == "distinct":
+            distinct += 1
+
+    if unregistered:
+        raise RuntimeError(
+            "grupo(s) numerado(s) sem revisão registrada: "
+            f"{len(unregistered)}; exemplos={unregistered[:5]}"
+        )
+    if changed:
+        raise RuntimeError(
+            "grupo(s) numerado(s) mudaram desde a revisão registrada: "
+            f"{len(changed)}; exemplos={changed[:5]}"
+        )
+
+    return {
+        "ready": True,
+        "candidateGroups": len(candidates),
+        "candidateSiblingRows": sum(len(item["siblings"]) for item in candidates),
+        "pendingGroups": pending,
+        "distinctGroups": distinct,
+        "registeredBaselineGroups": len(reviewed),
+        "registeredBaselineSiblingRows": sum(len(item["siblingSlugs"]) for item in reviewed.values()),
+    }
 
 
 def cross_model_sha_candidates(rows: list[dict[str, Any]], r2_root: Path) -> list[dict[str, Any]]:
