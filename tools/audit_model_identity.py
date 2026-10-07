@@ -269,6 +269,11 @@ def main() -> int:
     parser.add_argument("--r2-root", type=Path, help="raiz r2 do bundle para detectar SHA exato entre modelos")
     parser.add_argument("--output", type=Path, default=Path(".identity-audit"))
     parser.add_argument("--fail-on-high", action="store_true", help="falha se houver grupo de vistas de alta confiança não consolidado")
+    parser.add_argument(
+        "--fail-on-explicit-copy",
+        action="store_true",
+        help="falha se houver sufixo copy/copia/duplicate com base correspondente no mesmo escopo",
+    )
     args = parser.parse_args()
 
     rows = load_models(args.models)
@@ -279,6 +284,8 @@ def main() -> int:
     print(json.dumps(summary, ensure_ascii=False))
     if args.fail_on_high and summary["highConfidenceGroups"]:
         return 2
+    if args.fail_on_explicit_copy and summary["explicitCopyMarkerGroups"]:
+        return 3
     return 0
 
 
