@@ -44,6 +44,8 @@ jobs:
         run: npm run test:public-gallery-revision
       - name: Test legacy gallery grouping
         run: npm run test:legacy-gallery-grouping
+      - name: Test legacy gallery repair aliases
+        run: npm run test:legacy-gallery-repairs-contract
       - name: Test catalog home display contract
         run: npm run test:catalog-home
       - name: Test gallery grid navigation
