@@ -597,8 +597,8 @@
       "siblingSlugs": [
         "street-fighter-poison-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Poison.jpg e Poison 02.jpg): esculturas, poses, bases e composição são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -611,8 +611,8 @@
         "street-fighter-sagat-02",
         "street-fighter-sagat-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Sagat.jpg, Sagat 02.jpg e Sagat 03.jpg): esculturas, poses e bases são diferentes; manter como produtos distintos. O arquivo não numérico de busto do Sagat não participa do grupo numerado canônico."
     },
     {
       "categorySlug": "games",
@@ -626,8 +626,8 @@
         "street-fighter-sakura-03",
         "street-fighter-sakura-04"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Sakura.jpg e Sakura 02–04): produtos distintos, com esculturas, poses e bases diferentes; Sakura 04 é um diorama/cena de combate, não outro ângulo do mesmo modelo. Sakura - Chibi.jpg já é identidade separada."
     },
     {
       "categorySlug": "games",
