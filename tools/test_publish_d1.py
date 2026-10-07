@@ -73,6 +73,23 @@ class PublishD1Tests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "identityKey vazio ou duplicado"):
                 load_models(path)
 
+    def test_load_rejects_textually_equivalent_identity_keys(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "models.jsonl"
+            rows = [
+                model("mdl-1", "pokemon-a", "TS-1", variant="A"),
+                model("mdl-2", "pokemon-b", "TS-2", variant="B"),
+            ]
+            rows[0]["identityKey"] = "Games / Pokémon / Estátua"
+            rows[1]["identityKey"] = " games / Poke\u0301mon /  Esta\u0301tua "
+            path.write_text(
+                "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "textualmente equivalentes"):
+                load_models(path)
+
     def test_load_rejects_duplicate_public_slug(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "models.jsonl"
