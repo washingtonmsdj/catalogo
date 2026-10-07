@@ -3,7 +3,7 @@ import {
   type GalleryImage,
   type GalleryManifest,
   type GalleryModelState,
-} from './galleryValidation'
+} from './galleryValidation.ts'
 
 export type GallerySourceState = GalleryModelState & {
   position: number
