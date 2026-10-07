@@ -34,6 +34,8 @@ jobs:
         run: npm run test:worker-schema-contract
       - name: Test Worker health contract
         run: npm run test:worker-health-contract
+      - name: Test legacy model aliases
+        run: npm run test:model-aliases
       - name: Test legacy gallery grouping
         run: npm run test:legacy-gallery-grouping
       - name: Test catalog home display contract
