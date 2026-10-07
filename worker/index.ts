@@ -2,6 +2,7 @@ import { createSharedCollection, getSharedCollection } from './sharedCollections
 import { aggregateGallerySources, type GallerySourceState } from './galleryAggregation'
 import { validGalleryManifest, type GalleryModelState } from './galleryValidation'
 import { catalogSchemaStatus } from './schemaContract'
+import { RESOLVED_MODEL_BY_SLUG_CTE, resolvePublicModelIds } from './modelAliases'
 
 type D1Statement = {
   bind(...values: unknown[]): D1Statement
@@ -441,15 +442,19 @@ async function listRecentCatalog(request: Request, env: Env) {
 }
 
 async function getModel(request: Request, slug: string, env: Env) {
-  const model = await env.DB.prepare(`SELECT
+  const model = await env.DB.prepare(`${RESOLVED_MODEL_BY_SLUG_CTE}
+    SELECT
     m.id,m.slug,m.code,m.name,m.collection,m.material,m.height_cm,m.description,m.search_text,
     ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
     ${LOGICAL_GALLERY_VERSION_SQL} AS gallery_version,
     m.cover_storage_key,cf.path AS folder_path,
     f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
-    FROM models m JOIN franchises f ON f.id=m.franchise_id JOIN categories c ON c.id=f.category_id
+    FROM resolved_model resolved
+    JOIN models m ON m.id=resolved.id
+    JOIN franchises f ON f.id=m.franchise_id
+    JOIN categories c ON c.id=f.category_id
     LEFT JOIN catalog_folders cf ON cf.id=m.folder_id
-    WHERE m.slug=? AND m.published=1 LIMIT 1`).bind(slug).first()
+    WHERE m.published=1 LIMIT 1`).bind(slug).first()
   return model
     ? json(request, env, model, {}, 'public, max-age=30, s-maxage=120')
     : json(request, env, { error: 'model_not_found' }, { status: 404 })
@@ -462,9 +467,12 @@ async function listImages(request: Request, slug: string, env: Env) {
   const offset = decodeOffsetCursor(rawCursor)
   if (offset === null) return json(request, env, { error: 'invalid_cursor' }, { status: 400 })
 
-  const model = await env.DB.prepare(
-    'SELECT id,image_count,gallery_manifest_key,gallery_version,cover_storage_key FROM models WHERE slug=? AND published=1',
-  ).bind(slug).first<GalleryModelState>()
+  const model = await env.DB.prepare(`${RESOLVED_MODEL_BY_SLUG_CTE}
+    SELECT m.id,m.image_count,m.gallery_manifest_key,m.gallery_version,m.cover_storage_key
+    FROM resolved_model resolved
+    JOIN models m ON m.id=resolved.id
+    WHERE m.published=1
+    LIMIT 1`).bind(slug).first<GalleryModelState>()
   if (!model) return json(request, env, { error: 'model_not_found' }, { status: 404 })
   if (!model.gallery_manifest_key) return json(request, env, { items: [], total: 0, nextCursor: null, version: model.gallery_version })
 
@@ -556,23 +564,20 @@ async function createQuote(request: Request, env: Env) {
   const notes = typeof body.notes === 'string' ? body.notes.trim() : ''
   const turnstileToken = typeof body.turnstileToken === 'string' ? body.turnstileToken : ''
   const rawIds = Array.isArray(body.modelIds) ? body.modelIds : []
-  const modelIds = Array.from(new Set(rawIds.filter((value): value is string => typeof value === 'string').map((value) => value.trim()).filter(Boolean)))
+  const requestedModelIds = Array.from(new Set(rawIds.filter((value): value is string => typeof value === 'string').map((value) => value.trim()).filter(Boolean)))
 
-  if (!name || name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || notes.length > 4000 || !modelIds.length) {
+  if (!name || name.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || notes.length > 4000 || !requestedModelIds.length) {
     return json(request, env, { error: 'invalid_request' }, { status: 400 })
   }
-  if (modelIds.length > MAX_QUOTE_ITEMS) {
+  if (requestedModelIds.length > MAX_QUOTE_ITEMS) {
     return json(request, env, { error: 'too_many_models', maxItems: MAX_QUOTE_ITEMS }, { status: 400 })
   }
   if (!await validateTurnstile(request, env, turnstileToken)) {
     return json(request, env, { error: 'turnstile_failed' }, { status: 400 })
   }
 
-  const placeholders = modelIds.map(() => '?').join(',')
-  const published = await env.DB.prepare(
-    `SELECT id FROM models WHERE published=1 AND id IN (${placeholders})`,
-  ).bind(...modelIds).all<{ id: string }>()
-  if (published.results.length !== modelIds.length) {
+  const modelIds = await resolvePublicModelIds(env.DB, requestedModelIds)
+  if (!modelIds || !modelIds.length) {
     return json(request, env, { error: 'invalid_models' }, { status: 400 })
   }
 
