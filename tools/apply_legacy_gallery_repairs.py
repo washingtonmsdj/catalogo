@@ -21,7 +21,9 @@ from typing import Any
 from catalog_schema_contract import (
     load_schema_contract,
     schema_migrations_statement,
+    schema_structure_statement,
     validate_applied_migrations,
+    validate_schema_structures,
 )
 
 
@@ -110,14 +112,25 @@ def _chunks(values: list[str], size: int = 50):
 
 def require_schema_ready() -> dict[str, Any]:
     contract = load_schema_contract()
-    result = d1_request([schema_migrations_statement(contract)])
-    rows = result[0].get("results")
-    if not isinstance(rows, list):
+    result = d1_request([
+        schema_migrations_statement(contract),
+        schema_structure_statement(contract),
+    ])
+    if len(result) != 2:
+        raise RuntimeError("preflight de schema retornou quantidade inesperada de resultados")
+    migration_rows = result[0].get("results")
+    structure_rows = result[1].get("results")
+    if not isinstance(migration_rows, list) or not isinstance(structure_rows, list):
         raise RuntimeError("preflight de schema retornou results inválido")
-    return validate_applied_migrations(
+    migrations = validate_applied_migrations(
         contract,
-        [row for row in rows if isinstance(row, dict)],
+        [row for row in migration_rows if isinstance(row, dict)],
     )
+    structures = validate_schema_structures(
+        contract,
+        [row for row in structure_rows if isinstance(row, dict)],
+    )
+    return {**migrations, **structures}
 
 
 def fetch_state(groups: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
