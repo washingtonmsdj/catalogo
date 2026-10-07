@@ -83,14 +83,29 @@ async function readSchemaStatus(db: SchemaDatabase): Promise<SchemaStatus> {
 
   const applied = new Set(result.results.map((row) => row.name))
   const missingMigrations = required.filter((name) => !applied.has(name))
+  if (missingMigrations.length) {
+    const requiredStructures = requiredStructureKeys()
+    return {
+      ready: false,
+      contractVersion: schemaContract.version,
+      latestMigration: schemaContract.latestMigration,
+      requiredMigrations: required.length,
+      appliedMigrations: required.length - missingMigrations.length,
+      missingMigrations,
+      requiredStructures: requiredStructures.length,
+      verifiedStructures: 0,
+      missingStructures: requiredStructures,
+    }
+  }
+
   const structures = await structuralStatus(db)
   return {
-    ready: missingMigrations.length === 0 && structures.missingStructures.length === 0,
+    ready: structures.missingStructures.length === 0,
     contractVersion: schemaContract.version,
     latestMigration: schemaContract.latestMigration,
     requiredMigrations: required.length,
-    appliedMigrations: required.length - missingMigrations.length,
-    missingMigrations,
+    appliedMigrations: required.length,
+    missingMigrations: [],
     ...structures,
   }
 }
