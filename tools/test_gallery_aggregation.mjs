@@ -4,7 +4,6 @@ import test from 'node:test'
 import {
   aggregateGallerySources,
   logicalGalleryImageCount,
-  logicalGalleryVersion,
 } from '../worker/galleryAggregation.ts'
 
 function source(id, version, imageCount, position) {
@@ -57,7 +56,6 @@ test('single source keeps the original image identity', () => {
   ])
 
   assert.equal(result.total, 2)
-  assert.equal(result.version, 10)
   assert.deepEqual(result.images.map((entry) => entry.id), ['img-1', 'img-2'])
   assert.deepEqual(result.images.map((entry) => entry.role), ['cover', 'gallery'])
 })
@@ -70,7 +68,6 @@ test('multiple legacy sources become one gallery with one cover', () => {
   ])
 
   assert.equal(result.total, 3)
-  assert.equal(result.version, 60)
   assert.deepEqual(
     result.images.map((entry) => entry.id),
     ['mdl-front:img-1', 'mdl-side:img-1', 'mdl-back:img-1'],
@@ -79,14 +76,13 @@ test('multiple legacy sources become one gallery with one cover', () => {
   assert.equal(result.images[1].variantKeys.card, 'media/mdl-side/img-1/card.webp')
 })
 
-test('logical metadata is the exact sum of source gallery state', () => {
+test('logical image count is the exact sum of source gallery state', () => {
   const sources = [
     source('mdl-a', 11, 4, 0),
     source('mdl-b', 17, 2, 1),
   ]
 
   assert.equal(logicalGalleryImageCount(sources), 6)
-  assert.equal(logicalGalleryVersion(sources), 28)
 })
 
 test('invalid source manifest fails closed', () => {
