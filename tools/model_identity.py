@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -77,6 +78,35 @@ def slug_view_descriptor(slug: str) -> tuple[str, ViewDescriptor] | None:
             base = normalized[: -len(descriptor.slug_suffix)].strip("-")
             return (base, descriptor) if base else None
     return None
+
+
+def comparison_identity_key(value: str) -> str:
+    """Canonical comparison key that never replaces the persisted identity."""
+    normalized = unicodedata.normalize("NFKC", value)
+    parts = re.split(r"\s*/\s*", normalized)
+    return " / ".join(
+        re.sub(r"\s+", " ", part.strip()).casefold()
+        for part in parts
+    )
+
+
+def validate_identity_comparison_collisions(identity_keys: Iterable[str]) -> None:
+    by_comparison: dict[str, set[str]] = {}
+    for raw in identity_keys:
+        identity = str(raw)
+        by_comparison.setdefault(comparison_identity_key(identity), set()).add(identity)
+
+    collisions = [
+        sorted(values, key=str.casefold)
+        for values in by_comparison.values()
+        if len(values) > 1
+    ]
+    if collisions:
+        sample = " | ".join(collisions[0][:3])
+        raise RuntimeError(
+            "identidades públicas textualmente equivalentes gerariam IDs distintos; "
+            f"normalize/revise o registro antes de publicar: {sample}"
+        )
 
 
 def candidate_confidence(descriptors: Iterable[ViewDescriptor]) -> str:
