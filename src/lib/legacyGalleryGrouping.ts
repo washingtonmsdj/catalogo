@@ -33,6 +33,7 @@ export type LegacyGalleryOverride = {
   family: string
   canonicalSlug: string
   memberSlugs: string[]
+  reason: string
 }
 
 const descriptors = (viewDescriptorConfig.descriptors as Descriptor[])
@@ -43,7 +44,43 @@ const descriptors = (viewDescriptorConfig.descriptors as Descriptor[])
   }))
   .sort((left, right) => right.suffix.length - left.suffix.length || left.priority - right.priority)
 
+function validateReviewedOverrides(groups: LegacyGalleryOverride[]) {
+  if (legacyOverrideConfig.version !== 2) {
+    throw new Error(`legacy gallery override version unsupported: ${legacyOverrideConfig.version}`)
+  }
+
+  const groupKeys = new Set<string>()
+  const memberSlugs = new Set<string>()
+  for (const group of groups) {
+    const groupKey = [group.categorySlug, group.franchiseSlug, group.folderPathKey, group.family].join('|')
+    if (
+      !group.categorySlug
+      || !group.franchiseSlug
+      || !group.folderPathKey
+      || !group.family
+      || !group.canonicalSlug
+      || !group.reason?.trim()
+      || !Array.isArray(group.memberSlugs)
+      || group.memberSlugs.length < 2
+    ) {
+      throw new Error(`invalid legacy gallery group: ${groupKey}`)
+    }
+    if (groupKeys.has(groupKey)) throw new Error(`duplicate legacy gallery group: ${groupKey}`)
+    groupKeys.add(groupKey)
+
+    const local = new Set(group.memberSlugs)
+    if (local.size !== group.memberSlugs.length || !local.has(group.canonicalSlug)) {
+      throw new Error(`invalid legacy gallery members: ${groupKey}`)
+    }
+    for (const slug of group.memberSlugs) {
+      if (memberSlugs.has(slug)) throw new Error(`legacy slug belongs to multiple groups: ${slug}`)
+      memberSlugs.add(slug)
+    }
+  }
+}
+
 const reviewedOverrides = legacyOverrideConfig.groups as LegacyGalleryOverride[]
+validateReviewedOverrides(reviewedOverrides)
 
 function descriptorFor(slug: string) {
   for (const descriptor of descriptors) {
@@ -52,6 +89,15 @@ function descriptorFor(slug: string) {
     if (family) return { family, ...descriptor }
   }
   return null
+}
+
+for (const group of reviewedOverrides) {
+  for (const slug of group.memberSlugs) {
+    const descriptor = descriptorFor(slug)
+    if (!descriptor || descriptor.family !== group.family) {
+      throw new Error(`legacy gallery member does not match declared family: ${slug}`)
+    }
+  }
 }
 
 function groupKey(row: LegacyGalleryRow, family: string) {
