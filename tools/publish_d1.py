@@ -30,7 +30,7 @@ CATEGORY_ORDER = {
     for index, name in enumerate(PUBLIC_TOP_LEVEL_CATEGORIES)
 }
 REQUIRED = {
-    "identityKey", "id", "slug", "code", "displayName", "categoryName", "categorySlug",
+    "identityKey", "id", "slug", "code", "displayName", "variantName", "categoryName", "categorySlug",
     "franchiseName", "franchiseSlug", "collection", "folderPath", "folderPathKey", "searchText",
     "imageCount", "coverStorageKey", "galleryManifestKey", "galleryVersion",
 }
@@ -101,6 +101,9 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
             raise RuntimeError(f"categoria fora do escopo público no modelo {row['id']}: {category_name!r}")
         if not str(row["categorySlug"]).strip() or not str(row["franchiseSlug"]).strip():
             raise RuntimeError(f"taxonomia vazia no modelo {row['id']}")
+        variant_name = row.get("variantName")
+        if not isinstance(variant_name, str) or len(variant_name) > 160:
+            raise RuntimeError(f"variantName inválido no modelo {row['id']}")
         if int(row["imageCount"]) < 1:
             raise RuntimeError(f"modelo sem imagem publicável: {row['id']}")
     folder_entries(rows)
@@ -517,22 +520,22 @@ parent_id=excluded.parent_id,slug=excluded.slug,name=excluded.name,depth=exclude
     for row in sorted(rows, key=lambda item: str(item["id"])):
         statements.append({
             "sql": """INSERT INTO models(
-id,franchise_id,folder_id,slug,code,name,collection,image_count,cover_storage_key,
+id,franchise_id,folder_id,slug,code,name,variant_name,collection,image_count,cover_storage_key,
 gallery_manifest_key,gallery_version,published,search_text,updated_at)
 SELECT ?,f.id,
   CASE WHEN ?='' THEN NULL ELSE (SELECT id FROM catalog_folders WHERE franchise_id=f.id AND path=?) END,
-  ?,?,?,?,?,?,?,?,1,?,CURRENT_TIMESTAMP
+  ?,?,?,?,?,?,?,?,?,1,?,CURRENT_TIMESTAMP
 FROM franchises f JOIN categories c ON c.id=f.category_id
 WHERE c.slug=? AND f.slug=?
 ON CONFLICT(id) DO UPDATE SET
 franchise_id=excluded.franchise_id,folder_id=excluded.folder_id,slug=excluded.slug,code=excluded.code,
-name=excluded.name,collection=excluded.collection,image_count=excluded.image_count,
+name=excluded.name,variant_name=excluded.variant_name,collection=excluded.collection,image_count=excluded.image_count,
 cover_storage_key=excluded.cover_storage_key,gallery_manifest_key=excluded.gallery_manifest_key,
 gallery_version=excluded.gallery_version,published=1,
 search_text=excluded.search_text,updated_at=CURRENT_TIMESTAMP""",
             "params": [
                 str(row["id"]), str(row["folderPathKey"] or ""), str(row["folderPathKey"] or ""), str(row["slug"]), str(row["code"]),
-                str(row["displayName"]), str(row["collection"] or ""),
+                str(row["displayName"]), str(row["variantName"]), str(row["collection"] or ""),
                 str(int(row["imageCount"])), str(row["coverStorageKey"] or ""),
                 str(row["galleryManifestKey"] or ""),
                 str(int(row["galleryVersion"])), str(row["searchText"]),
@@ -559,7 +562,7 @@ def production_lookup_statements(rows: list[dict[str, Any]], chunk_size: int = 2
         placeholders = ",".join("?" for _ in chunk)
         statements.append({
             "sql": f"""SELECT
-m.id,m.slug,m.code,m.name,m.collection,
+m.id,m.slug,m.code,m.name,m.variant_name,m.collection,
 COALESCE(cf.path,'') AS folder_path,
 m.image_count,m.cover_storage_key,m.gallery_manifest_key,m.gallery_version,
 EXISTS(
