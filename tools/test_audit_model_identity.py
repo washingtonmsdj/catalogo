@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from audit_model_identity import cross_model_sha_candidates, sibling_suffix_candidates, split_view_candidates
+from model_identity import canonical_identity_key, load_identity_aliases
 
 
 def model(model_id: str, slug: str, *, folder: str = "androides/androide-18", name: str = "Androide 18") -> dict:
@@ -23,6 +24,69 @@ def model(model_id: str, slug: str, *, folder: str = "androides/androide-18", na
 
 
 class AuditModelIdentityTests(unittest.TestCase):
+    def test_identity_alias_registry_is_explicit_and_cycle_free(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "aliases.json"
+            path.write_text(json.dumps({
+                "version": 1,
+                "aliases": [{
+                    "canonicalIdentityKey": "produto / antigo",
+                    "aliases": ["produto / novo"],
+                    "reason": "renome aprovado",
+                }],
+            }), encoding="utf-8")
+
+            aliases = load_identity_aliases(path)
+
+            self.assertEqual(
+                canonical_identity_key("produto / novo", aliases),
+                "produto / antigo",
+            )
+            self.assertEqual(
+                canonical_identity_key("produto / outro", aliases),
+                "produto / outro",
+            )
+
+            path.write_text(json.dumps({
+                "version": 1,
+                "aliases": [
+                    {
+                        "canonicalIdentityKey": "produto / a",
+                        "aliases": ["produto / b"],
+                        "reason": "primeiro",
+                    },
+                    {
+                        "canonicalIdentityKey": "produto / b",
+                        "aliases": ["produto / c"],
+                        "reason": "cadeia inválida",
+                    },
+                ],
+            }), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "também aparece como alias"):
+                load_identity_aliases(path)
+
+    def test_identity_alias_registry_rejects_ambiguous_alias_owner(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "aliases.json"
+            path.write_text(json.dumps({
+                "version": 1,
+                "aliases": [
+                    {
+                        "canonicalIdentityKey": "produto / a",
+                        "aliases": ["produto / renomeado"],
+                        "reason": "primeiro",
+                    },
+                    {
+                        "canonicalIdentityKey": "produto / b",
+                        "aliases": ["produto / renomeado"],
+                        "reason": "segundo",
+                    },
+                ],
+            }), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "mais de um canônico"):
+                load_identity_aliases(path)
+
     def test_directional_views_form_high_confidence_candidate(self) -> None:
         rows = [
             model("a", "dragon-ball-androide-18-traje-casual-frente"),
