@@ -47,12 +47,12 @@ jobs:
       - name: Dry-run Cloudflare Worker bundle
         run: npx wrangler deploy --dry-run --config .wrangler.deploy.jsonc
       - name: Materialize verified Worker bundle
-        run: npx esbuild worker/index.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=.wrangler-dry-run/worker.js
+        run: npx esbuild worker/index.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=worker-dist/worker.js
       - name: Upload verified Worker bundle
         uses: actions/upload-artifact@v7
         with:
           name: worker-dry-run-${{ github.sha }}
-          path: .wrangler-dry-run/
+          path: worker-dist/
           if-no-files-found: error
           retention-days: 1
       - name: Setup Python
