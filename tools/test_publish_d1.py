@@ -106,7 +106,7 @@ class PublishD1Tests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "textualmente equivalentes"):
                 load_models(path)
 
-    def test_load_rejects_unregistered_numbered_sibling_group(self) -> None:
+    def test_load_keeps_numbered_sibling_as_release_review_concern(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "models.jsonl"
             rows = [
@@ -118,8 +118,7 @@ class PublishD1Tests(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            with self.assertRaisesRegex(RuntimeError, "sem revisão registrada"):
-                load_models(path)
+            self.assertEqual(len(load_models(path)), 2)
 
     def test_load_rejects_duplicate_public_slug(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
