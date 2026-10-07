@@ -90,6 +90,9 @@ def model_variant_name(
         pattern = re.compile(rf"^{re.escape(normalized)}(?:\s*[-_:]\s*|\s+)", re.IGNORECASE)
         label = pattern.sub("", label).strip()
 
+    if label:
+        label = label[:1].upper() + label[1:]
+
     if not label or label.casefold() in {display_name.casefold(), franchise_name.casefold()}:
         return ""
     if re.fullmatch(r"\d{1,6}", label):
