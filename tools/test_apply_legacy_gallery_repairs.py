@@ -3,7 +3,13 @@ from __future__ import annotations
 import unittest
 from unittest.mock import patch
 
-from apply_legacy_gallery_repairs import apply_statement_batches, plan_repairs, verify_applied
+from apply_legacy_gallery_repairs import (
+    apply_statement_batches,
+    count_integrity_statements,
+    plan_repairs,
+    verify_applied,
+    verify_materialized_counts,
+)
 
 
 def group() -> dict:
@@ -115,6 +121,32 @@ class LegacyGalleryRepairTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             apply_statement_batches([], batch_size=251)
+
+    def test_materialized_count_verification_covers_all_public_levels(self) -> None:
+        specs = count_integrity_statements()
+
+        self.assertEqual(
+            [item["name"] for item in specs],
+            ["categories", "franchises", "folders_direct", "folders_subtree"],
+        )
+        self.assertIn("direct_model_count", specs[2]["sql"])
+        self.assertIn("subtree_model_count", specs[3]["sql"])
+        self.assertIn("WITH RECURSIVE tree", specs[3]["sql"])
+
+        zero = [
+            {"success": True, "results": [{"mismatches": 0}]}
+            for _ in specs
+        ]
+        with patch("apply_legacy_gallery_repairs.d1_request", return_value=zero):
+            result = verify_materialized_counts()
+        self.assertTrue(result["ready"])
+        self.assertEqual(result["mismatches"]["categories"], 0)
+
+        bad = list(zero)
+        bad[1] = {"success": True, "results": [{"mismatches": 2}]}
+        with patch("apply_legacy_gallery_repairs.d1_request", return_value=bad):
+            with self.assertRaisesRegex(RuntimeError, "franchises=2"):
+                verify_materialized_counts()
 
     def test_completed_state_verifies_with_zero_pending_relations(self) -> None:
         config = [group()]
