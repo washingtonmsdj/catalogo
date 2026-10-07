@@ -14,6 +14,7 @@ from build_media_bundle import (
     load_taxonomy_config,
     media_build_output_lock,
     model_display_name,
+    model_variant_name,
     save_media_build_state,
     validate_built_model_identifiers,
     validate_built_taxonomy_identifiers,
@@ -39,6 +40,44 @@ class MediaBundleTests(unittest.TestCase):
                 True,
             ),
             "Adao negro e doutor destino",
+        )
+
+    def test_variant_name_separates_character_from_product_variant(self) -> None:
+        self.assertEqual(
+            model_variant_name(
+                "androide-18-traje-casual-frente",
+                "Androide 18",
+                "Dragon Ball",
+                True,
+            ),
+            "Traje casual",
+        )
+        self.assertEqual(
+            model_variant_name(
+                "cammy-02",
+                "Cammy",
+                "Street Fighter",
+                False,
+            ),
+            "Modelo 02",
+        )
+        self.assertEqual(
+            model_variant_name(
+                "cammy",
+                "Cammy",
+                "Street Fighter",
+                False,
+            ),
+            "",
+        )
+        self.assertEqual(
+            model_variant_name(
+                "caitlyn-kiramman-league-of-legends-2",
+                "Caitlyn Kiramman",
+                "League of Legends",
+                False,
+            ),
+            "League of legends 2",
         )
 
     def test_bundle_generates_variants_without_upscaling(self) -> None:
