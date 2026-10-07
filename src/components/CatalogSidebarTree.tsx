@@ -11,6 +11,7 @@ type CatalogSidebarTreeProps = {
   franchise: string
   activeFolder: string
   trail: Array<{ id: string; label: string }>
+  activeFolderCount?: number
   onSelectFolder: (folder: string) => void
 }
 
@@ -25,7 +26,7 @@ function activeBranchPaths(folder: string, trail: Array<{ id: string }>) {
   return Array.from(paths)
 }
 
-export function CatalogSidebarTree({ category, franchise, activeFolder, trail = [], onSelectFolder }: CatalogSidebarTreeProps) {
+export function CatalogSidebarTree({ category, franchise, activeFolder, trail = [], activeFolderCount, onSelectFolder }: CatalogSidebarTreeProps) {
   const [childrenByParent, setChildrenByParent] = useState<Record<string, CatalogFolder[]>>({})
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(activeBranchPaths(activeFolder, trail)))
   const [loadingParents, setLoadingParents] = useState<Set<string>>(new Set())
@@ -134,7 +135,7 @@ export function CatalogSidebarTree({ category, franchise, activeFolder, trail = 
               </button>
             ) : <span className="storefront-tree-leaf" aria-hidden="true">•</span>}
             <button type="button" className="storefront-tree-select" aria-current={isActive ? 'page' : undefined} onClick={() => selectFolder(item)}>
-              <strong>{item.label}</strong><small>{formatter.format(item.count)}</small>
+              <strong>{item.label}</strong><small>{formatter.format(isActive && activeFolderCount !== undefined ? activeFolderCount : item.count)}</small>
             </button>
           </div>
           {item.hasChildren && isExpanded && (
