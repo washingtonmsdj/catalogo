@@ -75,6 +75,8 @@ export function validGalleryManifest(manifest: unknown, model: GalleryModelState
 
   const ids = new Set(candidate.images.map((image) => image.id))
   if (ids.size !== candidate.images.length) return false
+  const sourceHashes = new Set(candidate.images.map((image) => image.sourceSha256))
+  if (sourceHashes.size !== candidate.images.length) return false
   const covers = candidate.images.filter((image) => image.role === 'cover')
   if (covers.length !== 1 || candidate.images[0].role !== 'cover') return false
   if (
