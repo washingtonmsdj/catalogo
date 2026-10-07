@@ -505,6 +505,150 @@ class MediaBundleTests(unittest.TestCase):
             self.assertEqual(back_cover["displayName"], "Kratos")
             self.assertNotEqual(front_cover["coverStorageKey"], back_cover["coverStorageKey"])
 
+    def test_identity_drift_from_same_historical_sha_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "Games" / "Saga" / "Heroi"
+            model_dir.mkdir(parents=True)
+            image_path = model_dir / "modelo.webp"
+            Image.new("RGB", (640, 960), "#334455").save(image_path, "WEBP")
+            hierarchy = "Games / Saga / Heroi"
+            old_identity = f"{hierarchy} / modelo-antigo"
+            new_identity = f"{hierarchy} / modelo-novo"
+            manifest = root / "manifest.jsonl"
+            output = root / "bundle"
+
+            def write(identity: str) -> None:
+                manifest.write_text(json.dumps({
+                    "path": str(image_path.relative_to(source)),
+                    "size": image_path.stat().st_size,
+                    "status": "OK",
+                    "canonical": True,
+                    "sha256": "1" * 64,
+                    "width": 640,
+                    "height": 960,
+                    "quality_score": 90.0,
+                    "model_key": hierarchy,
+                    "public_model_key": identity,
+                    "audit_model_group": identity.rsplit(" / ", 1)[-1],
+                }) + "\n", encoding="utf-8")
+
+            write(old_identity)
+            build_bundle(source, manifest, output, include_original=False)
+
+            write(new_identity)
+            with self.assertRaisesRegex(RuntimeError, "identity drift detectado"):
+                build_bundle(source, manifest, output, include_original=False)
+
+    def test_approved_identity_rename_preserves_technical_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "Games" / "Saga" / "Heroi"
+            model_dir.mkdir(parents=True)
+            image_path = model_dir / "modelo.webp"
+            Image.new("RGB", (640, 960), "#445566").save(image_path, "WEBP")
+            hierarchy = "Games / Saga / Heroi"
+            old_identity = f"{hierarchy} / modelo-antigo"
+            new_identity = f"{hierarchy} / modelo-novo"
+            manifest = root / "manifest.jsonl"
+            output = root / "bundle"
+
+            def row(identity: str) -> dict:
+                return {
+                    "path": str(image_path.relative_to(source)),
+                    "size": image_path.stat().st_size,
+                    "status": "OK",
+                    "canonical": True,
+                    "sha256": "2" * 64,
+                    "width": 640,
+                    "height": 960,
+                    "quality_score": 90.0,
+                    "model_key": hierarchy,
+                    "public_model_key": identity,
+                    "audit_model_group": identity.rsplit(" / ", 1)[-1],
+                }
+
+            manifest.write_text(json.dumps(row(old_identity)) + "\n", encoding="utf-8")
+            build_bundle(source, manifest, output, include_original=False)
+            original = json.loads((output / "models.jsonl").read_text(encoding="utf-8"))
+
+            aliases = root / "identity-aliases.json"
+            aliases.write_text(json.dumps({
+                "version": 1,
+                "aliases": [{
+                    "canonicalIdentityKey": old_identity,
+                    "aliases": [new_identity],
+                    "reason": "renome auditado do mesmo produto",
+                }],
+            }), encoding="utf-8")
+            manifest.write_text(json.dumps(row(new_identity)) + "\n", encoding="utf-8")
+
+            summary = build_bundle(
+                source,
+                manifest,
+                output,
+                include_original=False,
+                identity_alias_config=aliases,
+            )
+            renamed = json.loads((output / "models.jsonl").read_text(encoding="utf-8"))
+
+            self.assertEqual(summary["identityAliasesApplied"], 1)
+            self.assertEqual(renamed["id"], original["id"])
+            self.assertEqual(renamed["code"], original["code"])
+            self.assertEqual(renamed["identityKey"], old_identity)
+            self.assertEqual(renamed["sourceIdentityKey"], new_identity)
+            state = json.loads((output / "media-build-state.json").read_text(encoding="utf-8"))
+            self.assertEqual(state["identityHistory"]["2" * 64], old_identity)
+
+    def test_two_current_identities_cannot_share_one_canonical_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = root / "catalog"
+            model_dir = source / "Games" / "Saga" / "Heroi"
+            model_dir.mkdir(parents=True)
+            hierarchy = "Games / Saga / Heroi"
+            canonical = f"{hierarchy} / modelo-antigo"
+            aliases = [f"{hierarchy} / modelo-novo-a", f"{hierarchy} / modelo-novo-b"]
+            rows = []
+            for index, identity in enumerate(aliases, 1):
+                image_path = model_dir / f"modelo-{index}.webp"
+                Image.new("RGB", (640, 960), f"#{index + 2}45566").save(image_path, "WEBP")
+                rows.append({
+                    "path": str(image_path.relative_to(source)),
+                    "size": image_path.stat().st_size,
+                    "status": "OK",
+                    "canonical": True,
+                    "sha256": str(index + 2) * 64,
+                    "width": 640,
+                    "height": 960,
+                    "quality_score": 80.0,
+                    "model_key": hierarchy,
+                    "public_model_key": identity,
+                    "audit_model_group": identity.rsplit(" / ", 1)[-1],
+                })
+            manifest = root / "manifest.jsonl"
+            manifest.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+            config = root / "identity-aliases.json"
+            config.write_text(json.dumps({
+                "version": 1,
+                "aliases": [{
+                    "canonicalIdentityKey": canonical,
+                    "aliases": aliases,
+                    "reason": "configuração propositalmente inválida para o snapshot atual",
+                }],
+            }), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "duas identidades atuais"):
+                build_bundle(
+                    source,
+                    manifest,
+                    root / "bundle",
+                    include_original=False,
+                    identity_alias_config=config,
+                )
+
     def test_explicit_taxonomy_override_creates_nested_villain_folder(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
