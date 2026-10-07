@@ -442,6 +442,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
                     franchise={item.id}
                     activeFolder={active ? catalog.folder : ''}
                     trail={active ? catalog.folderTrail : []}
+                    activeFolderCount={active && catalog.folder && !catalog.hasPreviousPage && !catalog.hasNextPage ? catalog.models.length : undefined}
                     onSelectFolder={(folder) => selectFranchiseFolder(item, folder)}
                   />
                 )}
