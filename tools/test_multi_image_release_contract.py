@@ -20,6 +20,7 @@ class MultiImageReleaseContractTests(unittest.TestCase):
             "0002_keyset_pagination.sql",
             "0003_catalog_counts.sql",
             "0009_catalog_folders.sql",
+            "0019_model_variant_name.sql",
         ):
             db.executescript((migrations / name).read_text(encoding="utf-8"))
 
