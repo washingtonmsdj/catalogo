@@ -220,6 +220,28 @@ class PublishD1Tests(unittest.TestCase):
         self.assertEqual(result["existingModels"], 1)
         self.assertEqual(result["newModels"], 1)
 
+    def test_production_compatibility_rejects_attached_source_reappearing(self) -> None:
+        candidate = model("mdl-source", "source-view", "TS-SOURCE", variant="Produto")
+        production = [{
+            "id": "mdl-source",
+            "slug": "source-view",
+            "code": "TS-SOURCE",
+            "name": "Produto",
+            "collection": "Androides / Androide 18",
+            "folder_path": "androides/androide-18",
+            "image_count": 1,
+            "cover_storage_key": "media/mdl-source/card.webp",
+            "gallery_manifest_key": "gallery/mdl-source/manifest.json",
+            "gallery_version": 1,
+            "gallery_source_attached": 1,
+            "gallery_canonical_model_id": "mdl-canonical",
+            "category_slug": "animes-desenhos",
+            "franchise_slug": "dragon-ball",
+        }]
+
+        with self.assertRaisesRegex(RuntimeError, "ficha-fonte consolidada reapareceu"):
+            validate_production_compatibility([candidate], production)
+
     def test_production_compatibility_rejects_new_id_with_existing_slug(self) -> None:
         candidate = model("mdl-new", "android-18", "TS-NEW", variant="Androide 18")
         production = [{
@@ -571,6 +593,8 @@ class PublishD1Tests(unittest.TestCase):
         self.assertIn("m.id IN", statements[0]["sql"])
         self.assertIn("m.slug IN", statements[0]["sql"])
         self.assertIn("m.code IN", statements[0]["sql"])
+        self.assertIn("gallery_source_attached", statements[0]["sql"])
+        self.assertIn("gallery_canonical_model_id", statements[0]["sql"])
 
     def test_model_retirement_approval_csv_is_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -620,6 +644,27 @@ class PublishD1Tests(unittest.TestCase):
         self.assertIn("published=0", statements[0]["sql"])
         self.assertEqual(statements[0]["params"], ["mdl-old", "old-slug", "TS-OLD"])
 
+    def test_retirement_plan_rejects_canonical_with_attached_sources(self) -> None:
+        inventory = [{
+            "id": "mdl-canonical",
+            "slug": "canonical",
+            "code": "TS-CAN",
+            "name": "Produto",
+            "published": 1,
+            "gallery_member_count": 2,
+        }]
+        approvals = {
+            "mdl-canonical": {
+                "model_id": "mdl-canonical",
+                "slug": "canonical",
+                "code": "TS-CAN",
+                "reason": "remoção indevida",
+            }
+        }
+
+        with self.assertRaisesRegex(RuntimeError, "canônico com fontes anexadas não pode ser aposentado"):
+            validate_model_retirements([], inventory, approvals)
+
     def test_retirement_plan_rejects_stale_slug_or_code_approval(self) -> None:
         inventory = [
             {"id": "mdl-old", "slug": "current-slug", "code": "TS-CURRENT", "name": "Antigo", "published": 1},
@@ -658,6 +703,7 @@ class PublishD1Tests(unittest.TestCase):
 
         self.assertIn("published=1 AND id>?", statement["sql"])
         self.assertIn("ORDER BY id", statement["sql"])
+        self.assertIn("gallery_member_count", statement["sql"])
         self.assertEqual(statement["params"], ["mdl-100", 1000])
 
         with self.assertRaises(ValueError):
