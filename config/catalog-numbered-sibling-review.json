@@ -467,8 +467,8 @@
         "street-fighter-akuma-04",
         "street-fighter-akuma-05"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Akuma.jpg e Akuma 02–05): esculturas, poses, trajes e bases são diferentes; manter como produtos distintos. O arquivo akuma 2-street-fighter-principal.webp não participa do grupo numérico canônico."
     },
     {
       "categorySlug": "games",
@@ -480,8 +480,8 @@
       "siblingSlugs": [
         "street-fighter-bison-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Bison.jpg e Bison 02.jpg): esculturas, poses, trajes e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -523,8 +523,8 @@
         "street-fighter-dhalsim-02",
         "street-fighter-dhalsim-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Dhalsim.jpg, Dhalsim 02.jpg e Dhalsim 03.jpg): esculturas, poses e bases são diferentes; manter como produtos distintos. Dhalsim - Chibi.jpg já é identidade separada e não participa do grupo numerado."
     },
     {
       "categorySlug": "games",
