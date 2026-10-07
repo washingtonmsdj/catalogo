@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "latestMigration": "0015_gallery_publication_invariant.sql",
   "requiredMigrations": [
     "0001_catalog.sql",
@@ -17,5 +17,35 @@
     "0013_model_image_sources.sql",
     "0014_gallery_member_integrity.sql",
     "0015_gallery_publication_invariant.sql"
-  ]
+  ],
+  "requiredObjects": {
+    "tables": [
+      "model_gallery_members",
+      "model_image_sources"
+    ],
+    "indexes": [
+      "idx_models_folder_published",
+      "idx_models_franchise_published_image_name",
+      "idx_model_gallery_members_canonical",
+      "idx_model_image_sources_sha",
+      "idx_model_image_sources_model_version"
+    ],
+    "triggers": [
+      "trg_folder_counts_after_model_insert",
+      "trg_folder_counts_after_model_delete",
+      "trg_folder_counts_after_model_update",
+      "trg_gallery_members_validate_insert",
+      "trg_gallery_members_validate_update",
+      "trg_gallery_members_require_publishable_models",
+      "trg_gallery_members_retire_source",
+      "trg_gallery_members_identity_immutable",
+      "trg_gallery_source_cannot_republish"
+    ],
+    "columns": {
+      "catalog_folders": [
+        "direct_model_count",
+        "subtree_model_count"
+      ]
+    }
+  }
 }
