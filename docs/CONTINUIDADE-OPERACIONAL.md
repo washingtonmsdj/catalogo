@@ -248,6 +248,21 @@ O hash da imagem não deve ficar consultável apenas dentro de milhares de manif
 
 Esse índice transforma a auditoria de duplicata exata em consulta SQL indexada e evita varrer todo o R2 quando o acervo chegar a centenas de milhares ou milhões de imagens.
 
+Backfill do acervo já publicado:
+
+- `tools/backfill_image_source_index.py` mede cobertura por padrão e só escreve com `--apply`;
+- o escopo inclui modelos publicados **e** fichas-fonte aposentadas que alimentam um canônico publicado;
+- paginação é por chave `id`, sem `OFFSET`;
+- baixa somente os manifests JSON referenciados por `gallery_manifest_key`; **0 binários de imagem**;
+- valida `modelId`, `gallery_version`, `image_count`, capa, IDs e SHA antes de indexar;
+- processa somente modelos sem índice para a versão atual;
+- escrita D1 é dividida em batches limitados e pode ser retomada;
+- após o preenchimento exige cobertura total do escopo efetivamente público;
+- a auditoria de SHA agrupa imagens por `COALESCE(canonical_model_id, source_model_id)`, então vistas aposentadas do mesmo produto não geram falso positivo entre produtos;
+- `workflow_dispatch.backfill_image_source_index` é **false** por padrão. Todo deploy mede cobertura; o backfill real exige opt-in explícito e `VITE_MEDIA_BASE_URL`.
+
+Os 2.596 modelos do baseline atual ainda não possuem esse índice em produção porque a migration 0013 não foi implantada. Não reconstruir SHA a partir dos binários locais para preencher essa tabela: o backfill usa os `sourceSha256` já versionados nos manifests publicados.
+
 ## Política de imagens e qualidade
 
 Ferramenta: `tools/plan_gallery_merge.py`.
