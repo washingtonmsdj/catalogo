@@ -11,6 +11,13 @@ const contract = JSON.parse(
   fs.readFileSync(path.join(root, 'config/catalog-schema-contract.json'), 'utf8'),
 )
 
+function requiredStructureCount() {
+  return contract.requiredObjects.tables.length
+    + contract.requiredObjects.indexes.length
+    + contract.requiredObjects.triggers.length
+    + Object.values(contract.requiredObjects.columns).reduce((sum, entries) => sum + entries.length, 0)
+}
+
 function healthyPayload() {
   return {
     ok: true,
@@ -22,6 +29,9 @@ function healthyPayload() {
       requiredMigrations: contract.requiredMigrations.length,
       appliedMigrations: contract.requiredMigrations.length,
       missingMigrations: [],
+      requiredStructures: requiredStructureCount(),
+      verifiedStructures: requiredStructureCount(),
+      missingStructures: [],
     },
   }
 }
@@ -45,6 +55,14 @@ test('rejects incomplete schema even when worker says ok', () => {
   payload.schema.missingMigrations = [contract.latestMigration]
 
   assert.throws(() => validateWorkerHealth(payload), /schema is not ready/)
+})
+
+test('rejects missing physical schema object', () => {
+  const payload = healthyPayload()
+  payload.schema.verifiedStructures -= 1
+  payload.schema.missingStructures = ['trigger:trg_gallery_members_retire_source']
+
+  assert.throws(() => validateWorkerHealth(payload), /verified structure count mismatch/)
 })
 
 test('rejects stale worker contract', () => {
