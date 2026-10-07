@@ -76,6 +76,16 @@ test('multiple legacy sources become one gallery with one cover', () => {
   assert.equal(result.images[1].variantKeys.card, 'media/mdl-side/img-1/card.webp')
 })
 
+test('rejects exact image repeated across different gallery sources', () => {
+  assert.throws(
+    () => aggregateGallerySources([
+      payload('mdl-front', 10, 0, ['a'.repeat(64)]),
+      payload('mdl-side', 20, 1, ['a'.repeat(64)]),
+    ]),
+    /gallery_duplicate_source_sha/,
+  )
+})
+
 test('logical image count is the exact sum of source gallery state', () => {
   const sources = [
     source('mdl-a', 11, 4, 0),
