@@ -260,6 +260,20 @@ Despublicar uma ficha-vista **não invalida seu ID nem seu slug**. Enquanto exis
 
 `worker/modelAliases.ts` centraliza esse contrato. A limpeza de duplicatas é, portanto, uma **consolidação de identidade**, não uma exclusão destrutiva.
 
+### Auditoria de irmãos numerados e cópias explícitas
+
+Auditoria read-only do D1 em 2026-10-07 acrescentou uma segunda classe de revisão de identidade:
+
+- **114 pares** possuem um modelo-base e outro slug no mesmo personagem/pasta terminado em número (ex.: `modelo` + `modelo-02`);
+- isso **não significa 114 duplicatas**: personagens como Cammy, Goro, Juri etc. possuem várias esculturas/modelos realmente diferentes;
+- esses casos são classificados como `numbered-review` e nunca são mesclados nem bloqueados automaticamente;
+- **0** modelos publicados usam hoje marcador explícito de cópia com base correspondente (`-copy`, `-copia`, `-duplicate`, `-duplicado`);
+- novos marcadores explícitos de cópia com o modelo-base presente no mesmo escopo passam a bloquear `publish_d1.py` até revisão;
+- `audit_model_identity.py` gera `sibling-suffix-candidates.csv` para revisão humana e mantém essa fila separada das galerias fragmentadas por vistas;
+- comparação numérica/cópia é sempre limitada à mesma categoria, franquia, pasta e nome público; nunca cruza personagens ou hierarquias.
+
+Regra operacional: números no fim do slug são **evidência de revisão**, não evidência de duplicata. Somente confirmação visual/identidade pode consolidar esses produtos.
+
 ### Índice de identidade de mídia para escala
 
 O hash da imagem não deve ficar consultável apenas dentro de milhares de manifests no R2. A migration `0013_model_image_sources.sql` materializa no D1 somente os metadados necessários à auditoria:
