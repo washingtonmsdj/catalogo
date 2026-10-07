@@ -156,8 +156,8 @@
       "siblingSlugs": [
         "transformers-bumblebee-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: bumblebee.jpg e bumblebee-03.jpg representam esculturas, designs e bases diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "filmes-series",
@@ -169,8 +169,8 @@
       "siblingSlugs": [
         "transformers-megatron-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: megatron.jpg e megatron-02.jpg representam esculturas e composições diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
