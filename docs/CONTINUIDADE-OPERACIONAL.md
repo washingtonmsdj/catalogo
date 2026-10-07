@@ -199,7 +199,8 @@ Ainda pendentes na produção:
 - `0012_folder_materialized_counts.sql` — contadores materializados `direct_model_count` e `subtree_model_count`;
 - `0013_model_image_sources.sql` — índice consultável de `source_sha256` por imagem/modelo/versão para auditoria exata em escala;
 - `0014_gallery_member_integrity.sql` — bloqueia ciclos, cadeias e relações entre escopos incompatíveis;
-- `0015_gallery_publication_invariant.sql` — ao anexar uma ficha-fonte à galeria canônica, aposenta a fonte no mesmo statement e impede republicação acidental.
+- `0015_gallery_publication_invariant.sql` — ao anexar uma ficha-fonte à galeria canônica, aposenta a fonte no mesmo statement e impede republicação acidental;
+- `0016_public_gallery_revision.sql` — separa versão física do manifest da revisão pública monotônica usada por API/cache.
 
 Por isso `catalog_folders.direct_model_count` e `catalog_folders.subtree_model_count` ainda não existem no D1 público. A migration 0012 já possui triggers para INSERT, DELETE, mudança de pasta e `published: 1↔0`; os testes cobrem inclusive a aposentadoria lógica reduzindo a contagem da pasta e de todos os ancestrais. Não aplicar essas migrations manualmente fora do workflow apenas para contornar a credencial ausente; manter a ordem versionada e a tabela `d1_migrations` coerente.
 
@@ -218,6 +219,19 @@ Por isso `catalog_folders.direct_model_count` e `catalog_folders.subtree_model_c
 - alterar identidade canônico/fonte de uma relação existente é proibido; reestruturação exige operação explícita e auditada.
 
 Não aplicar os 18 reparos antes de 0011–0015 e o Worker correspondente estarem realmente implantados e o health estrutural retornar verde.
+
+### Revisão pública monotônica da galeria
+
+A versão física `models.gallery_version` continua sendo derivada do conteúdo do manifest e serve para validar exatamente aquele JSON do R2. Ela **não** é mais usada como versão pública de uma galeria composta.
+
+A migration `0016_public_gallery_revision.sql` adiciona `models.public_gallery_version`, iniciada em 1 e incrementada quando qualquer conteúdo visível pode mudar:
+
+- imagem/manifest/versão física do canônico muda;
+- imagem/manifest/versão física de uma ficha-fonte anexada muda;
+- uma fonte entra ou sai da galeria;
+- a ordem das fontes muda.
+
+Assim não existe mais o risco de duas composições diferentes produzirem a mesma “versão” apenas porque a soma das versões físicas coincidiu. `/api/catalog`, `/api/recent`, ficha e endpoint de imagens expõem a revisão pública; a validação dos manifests continua usando a versão física individual.
 
 ### Compatibilidade permanente de referências aposentadas
 
