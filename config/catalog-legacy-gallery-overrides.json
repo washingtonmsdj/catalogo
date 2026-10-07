@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "groups": [
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "androides/androide-18",
+      "family": "dragon-ball-androide-18-traje-azul",
+      "canonicalSlug": "dragon-ball-androide-18-traje-azul-corpo-inteiro",
+      "memberSlugs": [
+        "dragon-ball-androide-18-traje-azul-corpo-inteiro",
+        "dragon-ball-androide-18-traje-azul-em-pe"
+      ],
+      "reason": "Duas imagens confirmadas como vistas do mesmo modelo no pente-fino do catálogo."
+    }
+  ]
+}
