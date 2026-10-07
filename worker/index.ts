@@ -288,46 +288,30 @@ async function listFolders(request: Request, env: Env) {
   if (!category || !franchise) return json(request, env, { error: 'folder_scope_required' }, { status: 400 })
   if (parent.length > 240) return json(request, env, { error: 'folder_path_too_long' }, { status: 400 })
 
-  const result = await env.DB.prepare(`WITH RECURSIVE roots AS (
-      SELECT cf.id,cf.path,cf.name
-      FROM catalog_folders cf
-      JOIN franchises f ON f.id=cf.franchise_id
-      JOIN categories c ON c.id=f.category_id
-      WHERE c.slug=? AND f.slug=? AND (
-        (?='' AND cf.parent_id IS NULL) OR
-        (?<>'' AND cf.parent_id=(SELECT p.id FROM catalog_folders p WHERE p.franchise_id=f.id AND p.path=? LIMIT 1))
-      )
-    ), subtree(root_id,id) AS (
-      SELECT id,id FROM roots
-      UNION ALL
-      SELECT subtree.root_id,child.id
-      FROM subtree JOIN catalog_folders child ON child.parent_id=subtree.id
+  const result = await env.DB.prepare(`SELECT
+      cf.path AS id,
+      cf.name AS label,
+      cf.subtree_model_count AS count,
+      EXISTS(SELECT 1 FROM catalog_folders child WHERE child.parent_id=cf.id) AS has_children
+    FROM catalog_folders cf
+    JOIN franchises f ON f.id=cf.franchise_id
+    JOIN categories c ON c.id=f.category_id
+    WHERE c.slug=? AND f.slug=? AND (
+      (?='' AND cf.parent_id IS NULL) OR
+      (?<>'' AND cf.parent_id=(SELECT p.id FROM catalog_folders p WHERE p.franchise_id=f.id AND p.path=? LIMIT 1))
     )
-    SELECT r.path AS id,r.name AS label,COUNT(m.id) AS count,
-      EXISTS(SELECT 1 FROM catalog_folders child WHERE child.parent_id=r.id) AS has_children
-    FROM roots r
-    LEFT JOIN subtree s ON s.root_id=r.id
-    LEFT JOIN models m ON m.folder_id=s.id AND m.published=1
-    GROUP BY r.id,r.path,r.name
-    ORDER BY r.name COLLATE NOCASE,r.id`).bind(category, franchise, parent, parent, parent)
+    ORDER BY cf.name COLLATE NOCASE,cf.id`).bind(category, franchise, parent, parent, parent)
     .all<{ id: string; label: string; count: number; has_children: number }>()
 
-  const current = parent ? await env.DB.prepare(`WITH RECURSIVE current_folder AS (
-      SELECT cf.id,cf.path,cf.name
-      FROM catalog_folders cf
-      JOIN franchises f ON f.id=cf.franchise_id
-      JOIN categories c ON c.id=f.category_id
-      WHERE c.slug=? AND f.slug=? AND cf.path=?
-    ), scope(id) AS (
-      SELECT id FROM current_folder
-      UNION ALL
-      SELECT child.id FROM catalog_folders child JOIN scope ON child.parent_id=scope.id
-    )
-    SELECT current_folder.path AS id,current_folder.name AS label,COUNT(m.id) AS count
-    FROM current_folder
-    LEFT JOIN scope ON 1=1
-    LEFT JOIN models m ON m.folder_id=scope.id AND m.published=1
-    GROUP BY current_folder.id,current_folder.path,current_folder.name`).bind(category, franchise, parent)
+  const current = parent ? await env.DB.prepare(`SELECT
+      cf.path AS id,
+      cf.name AS label,
+      cf.subtree_model_count AS count
+    FROM catalog_folders cf
+    JOIN franchises f ON f.id=cf.franchise_id
+    JOIN categories c ON c.id=f.category_id
+    WHERE c.slug=? AND f.slug=? AND cf.path=?
+    LIMIT 1`).bind(category, franchise, parent)
     .first<{ id: string; label: string; count: number }>() : null
 
   if (parent && !current) {
