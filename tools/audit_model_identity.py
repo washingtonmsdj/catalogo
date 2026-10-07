@@ -259,6 +259,7 @@ def validate_numbered_sibling_review(
     ]
     unregistered: list[str] = []
     changed: list[str] = []
+    matched_keys: set[tuple[str, str, str, str, str]] = set()
     pending = 0
     distinct = 0
 
@@ -274,6 +275,7 @@ def validate_numbered_sibling_review(
         if item is None:
             unregistered.append(candidate["baseSlug"])
             continue
+        matched_keys.add(key)
         candidate_siblings = sorted(member["slug"] for member in candidate["siblings"])
         registered_siblings = sorted(item["siblingSlugs"])
         if (
@@ -296,6 +298,14 @@ def validate_numbered_sibling_review(
         raise RuntimeError(
             "grupo(s) numerado(s) mudaram desde a revisão registrada: "
             f"{len(changed)}; exemplos={changed[:5]}"
+        )
+
+    stale_keys = sorted(set(reviewed).difference(matched_keys))
+    if stale_keys:
+        stale = [key[-1] for key in stale_keys]
+        raise RuntimeError(
+            "fila numerada contém grupo(s) sem candidato atual; remova a dívida resolvida: "
+            f"{len(stale)}; exemplos={stale[:5]}"
         )
 
     return {
