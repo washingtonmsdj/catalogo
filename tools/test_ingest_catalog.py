@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from ingest_catalog import PUBLIC_TOP_LEVEL_CATEGORIES, analyze, clean_folder, discover_catalog_roots, disambiguate_public_model_keys, hamming, iter_images, load_audit_registry, load_public_top_level_categories, mark_duplicates, save_progress_manifest
+from ingest_catalog import PUBLIC_TOP_LEVEL_CATEGORIES, analyze, clean_folder, discover_catalog_roots, disambiguate_public_model_keys, hamming, infer_audited_gallery_groups, iter_images, load_audit_registry, load_public_top_level_categories, mark_duplicates, save_progress_manifest
 
 
 class CatalogIngestTests(unittest.TestCase):
@@ -175,6 +175,64 @@ class CatalogIngestTests(unittest.TestCase):
             self.assertTrue(records[0].public_model_key.endswith("/ AUD-1"))
             self.assertTrue(records[1].public_model_key.endswith("/ AUD-2"))
 
+    def test_legacy_view_suffixes_become_one_gallery_without_merging_distinct_models(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "Animes & Desenhos [7]" / "Dragon Ball [7]" / "Androides [7]" / "Androide 18 [7]"
+            target.mkdir(parents=True)
+            names = [
+                "traje-casual-frente.jpg",
+                "traje-casual-frente-alternativo.jpg",
+                "traje-casual-lateral.jpg",
+                "traje-casual-costas.jpg",
+                "traje-azul-corpo-inteiro.jpg",
+                "traje-azul-em-pe.jpg",
+                "busto-realista.jpg",
+            ]
+            records = []
+            for index, name in enumerate(names, 1):
+                path = target / name
+                Image.new("RGB", (320, 480), (20 * index, 30, 40)).save(path)
+                record = analyze(root, path)
+                record.public_model_key = f"{record.model_key} / {path.stem}"
+                record.audit_code = f"AUD-{index}"
+                records.append(record)
+
+            grouped = infer_audited_gallery_groups(records)
+            disambiguate_public_model_keys(records)
+
+            casual = records[:4]
+            blue = records[4:6]
+            bust = records[6]
+            self.assertEqual(grouped, 6)
+            self.assertEqual({record.audit_model_group for record in casual}, {"traje casual"})
+            self.assertEqual(len({record.public_model_key for record in casual}), 1)
+            self.assertTrue(casual[0].public_model_key.endswith("/ traje casual"))
+            self.assertEqual({record.audit_model_group for record in blue}, {"traje azul"})
+            self.assertEqual(len({record.public_model_key for record in blue}), 1)
+            self.assertTrue(blue[0].public_model_key.endswith("/ traje azul"))
+            self.assertIsNone(bust.audit_model_group)
+            self.assertTrue(bust.public_model_key.endswith("/ busto-realista"))
+
+    def test_explicit_public_model_group_is_never_overridden_by_inference(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "Games [2]" / "Saga [2]" / "Heroi [2]"
+            target.mkdir(parents=True)
+            records = []
+            for index, name in enumerate(("produto-frente.jpg", "produto-costas.jpg"), 1):
+                path = target / name
+                Image.new("RGB", (320, 480), (40 * index, 20, 10)).save(path)
+                record = analyze(root, path)
+                record.audit_model_group = "produto-auditado-07"
+                record.public_model_key = f"{record.model_key} / produto-auditado-07"
+                records.append(record)
+
+            grouped = infer_audited_gallery_groups(records)
+
+            self.assertEqual(grouped, 0)
+            self.assertEqual({record.audit_model_group for record in records}, {"produto-auditado-07"})
+            self.assertEqual(len({record.public_model_key for record in records}), 1)
     def test_intentional_public_model_group_keeps_one_shared_identity(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
