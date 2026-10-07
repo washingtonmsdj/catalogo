@@ -79,9 +79,9 @@ O workflow do Pages exige as Repository Variables de produção para API, mídia
 
 ## Frontend
 
-A URL pública canônica fica em `https://acheguese.com.br/catalogo/`. O repositório Achegue-se faz dois encaminhamentos independentes:
+A URL pública canônica fica em `https://acheguese.com.br/tonecosstudios/`. O repositório Achegue-se faz dois encaminhamentos independentes:
 
-- `/catalogo/*` → origem GitHub Pages do frontend;
+- `/tonecosstudios/*` → origem GitHub Pages do frontend;
 - `/catalogo-api/*` → Worker do Catálogo.
 
 Isso mantém a API first-party no navegador quando o cliente usa o domínio Achegue-se, sem exigir relaxar o CSP do projeto principal. O preview GitHub Pages continua funcional e usa o Worker diretamente.
