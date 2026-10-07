@@ -1,6 +1,6 @@
 {
-  "version": 2,
-  "latestMigration": "0018_gallery_alias_immutability.sql",
+  "version": 3,
+  "latestMigration": "0019_model_variant_name.sql",
   "requiredMigrations": [
     "0001_catalog.sql",
     "0002_keyset_pagination.sql",
@@ -19,7 +19,8 @@
     "0015_gallery_publication_invariant.sql",
     "0016_public_gallery_revision.sql",
     "0017_gallery_lifecycle_integrity.sql",
-    "0018_gallery_alias_immutability.sql"
+    "0018_gallery_alias_immutability.sql",
+    "0019_model_variant_name.sql"
   ],
   "requiredObjects": {
     "tables": [
@@ -60,7 +61,8 @@
         "subtree_model_count"
       ],
       "models": [
-        "public_gallery_version"
+        "public_gallery_version",
+        "variant_name"
       ]
     }
   }
