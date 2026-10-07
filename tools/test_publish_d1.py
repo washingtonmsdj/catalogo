@@ -11,6 +11,7 @@ from publish_d1 import CATEGORY_ORDER, build_statements, load_models, production
 
 def model(model_id: str, slug: str, code: str, *, variant: str) -> dict:
     return {
+        "identityKey": f"test/{model_id}",
         "id": model_id,
         "slug": slug,
         "code": code,
@@ -58,6 +59,19 @@ class PublishD1Tests(unittest.TestCase):
         self.assertEqual(sum("INSERT INTO catalog_folders" in item["sql"] for item in statements), 2)
         self.assertEqual(sum("INSERT INTO models" in item["sql"] for item in statements), 2)
         self.assertFalse(any("DELETE" in item["sql"].upper() for item in statements))
+
+    def test_load_rejects_duplicate_identity_key(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "models.jsonl"
+            rows = [
+                model("mdl-1", "a", "TS-1", variant="A"),
+                model("mdl-2", "b", "TS-2", variant="B"),
+            ]
+            rows[1]["identityKey"] = rows[0]["identityKey"]
+            path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "identityKey vazio ou duplicado"):
+                load_models(path)
 
     def test_load_rejects_duplicate_public_slug(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
