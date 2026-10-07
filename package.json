@@ -15,7 +15,7 @@
     "cloudflare:config": "node tools/render_wrangler_config.mjs",
     "preview": "vite preview",
     "dialog:a11y": "node tools/check_dialog_architecture.mjs",
-    "test:gallery-runtime": "node --experimental-strip-types --test tools/test_gallery_validation.mjs",
+    "test:gallery-runtime": "node --experimental-strip-types --test tools/test_gallery_validation.mjs tools/test_gallery_aggregation.mjs",
     "test:worker-gallery-contract": "node --test tools/test_worker_gallery_contract.mjs",
     "test:catalog-home": "node --experimental-strip-types --test tools/test_catalog_home_view.mjs",
     "test:gallery-grid": "node --experimental-strip-types --test tools/test_gallery_grid_navigation.mjs"
