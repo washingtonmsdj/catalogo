@@ -19,7 +19,7 @@ from publish_r2 import discover as discover_r2
 from publish_r2 import load_state as load_r2_state
 from catalog_scope import PUBLIC_TOP_LEVEL_CATEGORIES, PUBLIC_TOP_LEVEL_KEYS
 from audit_model_identity import sibling_suffix_candidates, split_view_candidates
-from model_identity import validate_identity_comparison_collisions
+from model_identity import validate_identity_comparison_collisions, validate_taxonomy_slug_mappings
 
 CATEGORY_ORDER = {
     name: (index + 1) * 10
@@ -85,6 +85,7 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
         str(row.get("identityKey") or "")
         for row in rows
     )
+    validate_taxonomy_slug_mappings(rows)
     for key in ("identityKey", "id", "slug", "code"):
         counts = Counter(str(row[key]).strip() for row in rows)
         duplicates = sorted(value for value, count in counts.items() if not value or count > 1)
