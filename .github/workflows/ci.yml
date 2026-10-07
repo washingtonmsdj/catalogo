@@ -46,6 +46,13 @@ jobs:
         run: npm run cloudflare:config
       - name: Dry-run Cloudflare Worker bundle
         run: npx wrangler deploy --dry-run --config .wrangler.deploy.jsonc --outdir .wrangler-dry-run
+      - name: Upload verified Worker bundle
+        uses: actions/upload-artifact@v7
+        with:
+          name: worker-dry-run-${{ github.sha }}
+          path: .wrangler-dry-run/
+          if-no-files-found: error
+          retention-days: 1
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
