@@ -25,6 +25,14 @@ class PagesWorkflowConfigTests(unittest.TestCase):
         self.assertIn("publicRuntime.publicSiteUrl", vite)
         self.assertIn("config/public-runtime.json", self.workflow)
 
+    def test_public_domain_documentation_matches_versioned_ssot(self):
+        root = Path(__file__).resolve().parents[1]
+        documentation = (root / "docs" / "DOMINIO-E-URL-PUBLICA.md").read_text(encoding="utf-8")
+        self.assertIn("config/public-runtime.json", documentation)
+        self.assertIn("https://acheguese.com.br/catalogo/", documentation)
+        self.assertIn("src/shared/config/publicExternalApps.config.ts", documentation)
+        self.assertNotIn("Configure a Repository Variable `VITE_PUBLIC_SITE_URL`", documentation)
+
     def test_pages_workflow_has_no_production_endpoint_fallbacks(self):
         forbidden = [
             "tonecos-catalogo-api.ordax-ac1ca1b50d09.workers.dev",
