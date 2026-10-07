@@ -274,6 +274,25 @@ Auditoria read-only do D1 em 2026-10-07 acrescentou uma segunda classe de revis�
 
 Regra operacional: números no fim do slug são **evidência de revisão**, não evidência de duplicata. Somente confirmação visual/identidade pode consolidar esses produtos.
 
+### Continuidade histórica de identidade de produto
+
+O ID técnico de um produto não pode mudar silenciosamente porque um arquivo/pasta foi renomeado, porque a identidade auditada foi corrigida ou porque o bundle foi reconstruído em outra máquina.
+
+Contrato:
+
+- `config/catalog-model-identity-aliases.json` registra **somente renomes aprovados** de identidade;
+- cada entrada exige uma identidade canônica histórica, um ou mais aliases atuais e motivo explícito;
+- alias não pode pertencer a dois canônicos, canônico não pode também ser alias de outro produto e duas identidades atuais não podem resolver para o mesmo canônico no mesmo snapshot;
+- `mdl_*` e `TS-*` continuam derivados da identidade canônica histórica;
+- o bundle grava `identityKey` como identidade canônica e `sourceIdentityKey` como identidade encontrada no snapshot atual;
+- o slug público continua derivado da folha histórica quando houver renome/mudança de hierarquia aprovada, evitando troca de URL por reorganização de pasta;
+- `media-build-state.json` mantém `identityHistory` com `sourceSha256 -> identidade canônica`; esse histórico **não é podado** quando um produto sai temporariamente do snapshot;
+- se uma imagem histórica reaparecer sob outra identidade sem alias aprovado, o build falha com `identity drift detectado`;
+- o preflight de produção repete a prova contra `model_image_sources`: o mesmo SHA não pode aparecer sob outro produto efetivamente publicado, mesmo que o bundle tenha sido gerado em outro computador;
+- o bundle candidato também bloqueia o mesmo SHA exato em dois produtos candidatos diferentes.
+
+Não usar o arquivo de aliases para “forçar” agrupamentos duvidosos. Ele serve para continuidade de **um produto já identificado**, não para decidir se dois produtos são iguais. Essa decisão continua exigindo auditoria de identidade/visual.
+
 ### Índice de identidade de mídia para escala
 
 O hash da imagem não deve ficar consultável apenas dentro de milhares de manifests no R2. A migration `0013_model_image_sources.sql` materializa no D1 somente os metadados necessários à auditoria:
