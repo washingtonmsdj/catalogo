@@ -144,6 +144,27 @@ function reviewedOverride(
   })
 }
 
+export function legacyCompositeGalleryVersion(
+  members: Array<{ slug: string; gallery_version: number }>,
+) {
+  if (!members.length) throw new Error('legacy gallery version requires members')
+  const ordered = [...members].sort((left, right) => left.slug.localeCompare(right.slug, 'en'))
+  let hash = 14695981039346656037n
+  const prime = 1099511628211n
+  for (const member of ordered) {
+    if (!Number.isSafeInteger(member.gallery_version) || member.gallery_version < 1) {
+      throw new Error(`invalid legacy gallery version: ${member.slug}`)
+    }
+    const identity = `${member.slug}:${member.gallery_version}|`
+    for (let index = 0; index < identity.length; index += 1) {
+      hash ^= BigInt(identity.charCodeAt(index))
+      hash = BigInt.asUintN(64, hash * prime)
+    }
+  }
+  const version = Number(hash & BigInt(Number.MAX_SAFE_INTEGER))
+  return version || 1
+}
+
 export function planLegacyGalleryGroups(rows: LegacyGalleryRow[]): LegacyGalleryPlan[] {
   const groups = new Map<string, Array<{
     row: LegacyGalleryRow
