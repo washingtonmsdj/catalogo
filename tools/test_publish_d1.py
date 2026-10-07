@@ -6,7 +6,22 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from publish_d1 import CATEGORY_ORDER, build_image_source_statements, build_statements, exact_cross_model_sha_query, load_models, production_inventory_statement, production_lookup_statements, read_gallery_shrink_approvals, read_model_retirement_approvals, validate_model_retirements, validate_production_compatibility
+from publish_d1 import (
+    CATEGORY_ORDER,
+    build_image_source_statements,
+    build_statements,
+    candidate_image_sources,
+    exact_cross_model_sha_query,
+    load_models,
+    production_inventory_statement,
+    production_lookup_statements,
+    production_sha_lookup_statements,
+    read_gallery_shrink_approvals,
+    read_model_retirement_approvals,
+    validate_model_retirements,
+    validate_production_compatibility,
+    validate_production_image_identity,
+)
 
 
 def model(model_id: str, slug: str, code: str, *, variant: str) -> dict:
@@ -839,6 +854,75 @@ class PublishD1Tests(unittest.TestCase):
 
             with self.assertRaisesRegex(RuntimeError, "SHA-256 duplicado dentro da mesma galeria"):
                 build_image_source_statements(models_path, [row])
+
+    def test_candidate_image_sources_reject_exact_image_across_products(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            models_path = root / "models.jsonl"
+            models_path.write_text("", encoding="utf-8")
+            first = model("mdl-a", "a", "TS-A", variant="A")
+            second = model("mdl-b", "b", "TS-B", variant="B")
+            first["galleryManifestKey"] = "gallery/mdl-a/manifest.json"
+            second["galleryManifestKey"] = "gallery/mdl-b/manifest.json"
+            self._write_gallery_bundle(root, first, ["e" * 64])
+            self._write_gallery_bundle(root, second, ["e" * 64])
+
+            with self.assertRaisesRegex(RuntimeError, "produtos candidatos diferentes"):
+                candidate_image_sources(models_path, [first, second])
+
+    def test_production_sha_lookup_is_effective_model_aware_and_bounded(self) -> None:
+        sources = [
+            {
+                "model_id": "mdl-a",
+                "image_id": "img-a",
+                "position": 0,
+                "role": "cover",
+                "source_sha256": "a" * 64,
+                "gallery_version": 1,
+            },
+            {
+                "model_id": "mdl-b",
+                "image_id": "img-b",
+                "position": 0,
+                "role": "cover",
+                "source_sha256": "b" * 64,
+                "gallery_version": 1,
+            },
+        ]
+
+        statements = production_sha_lookup_statements(sources, chunk_size=1)
+
+        self.assertEqual(len(statements), 2)
+        self.assertIn("COALESCE(member.canonical_model_id,s.model_id)", statements[0]["sql"])
+        self.assertIn("source.gallery_version=s.gallery_version", statements[0]["sql"])
+        self.assertIn("effective.published=1", statements[0]["sql"])
+        self.assertEqual(statements[0]["params"], ["a" * 64])
+        self.assertEqual(statements[1]["params"], ["b" * 64])
+        with self.assertRaises(ValueError):
+            production_sha_lookup_statements(sources, chunk_size=251)
+
+    def test_production_image_identity_blocks_historical_owner_drift(self) -> None:
+        sources = [{
+            "model_id": "mdl-current",
+            "image_id": "img-1",
+            "position": 0,
+            "role": "cover",
+            "source_sha256": "f" * 64,
+            "gallery_version": 1,
+        }]
+
+        ready = validate_production_image_identity(
+            sources,
+            [{"source_sha256": "f" * 64, "effective_model_id": "mdl-current"}],
+        )
+        self.assertTrue(ready["ready"])
+        self.assertEqual(ready["historicalMatches"], 1)
+
+        with self.assertRaisesRegex(RuntimeError, "identity drift de produção"):
+            validate_production_image_identity(
+                sources,
+                [{"source_sha256": "f" * 64, "effective_model_id": "mdl-historical"}],
+            )
 
     def test_image_source_schema_allows_cross_model_reuse_but_blocks_same_gallery_duplicate(self) -> None:
         db = sqlite3.connect(":memory:")
