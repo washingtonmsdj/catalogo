@@ -1,28 +1,50 @@
 # Domínio e URL pública
 
-O frontend usa caminhos relativos (`base: './'`), portanto não depende do subcaminho `/catalogo/` para carregar JS, CSS, favicon ou manifest.
+O Catálogo é publicado como uma aplicação independente, mas a URL pública canônica pertence ao domínio do Achegue-se:
 
-A URL pública usada em SEO e compartilhamento é controlada por:
+`https://acheguese.com.br/catalogo/`
 
-`VITE_PUBLIC_SITE_URL`
+Os repositórios continuam independentes. O Achegue-se é responsável pelo mount público em `/catalogo/` e o Catálogo continua responsável pelo seu frontend, API, mídia, dados e pipeline de publicação.
 
-No deploy oficial, `VITE_PUBLIC_SITE_URL` é obrigatória e vem de Repository Variables.
-O workflow falha antes do build se ela estiver ausente.
+## Fonte única de verdade
 
-O fallback interno do Vite existe somente para builds locais/isolados; produção não depende dele.
+A URL pública usada em SEO e compartilhamento é versionada em:
 
-## Ao conectar domínio próprio
+`config/public-runtime.json`
 
-Configure a Repository Variable `VITE_PUBLIC_SITE_URL` com a origem final, por exemplo:
+Esse arquivo é o SSOT do endereço canônico do Catálogo. O `vite.config.ts` lê `publicRuntime.publicSiteUrl` para gerar automaticamente:
 
-`https://catalogo.tonecosstudios.com.br/`
+- `rel=canonical`;
+- `og:url`;
+- os metadados públicos que dependem da origem canônica.
 
-O build passa a gerar automaticamente:
+Não existe variável `VITE_PUBLIC_SITE_URL` no contrato de produção. Alterar o endereço público exige uma mudança versionada e revisável em `config/public-runtime.json`, evitando divergência silenciosa entre deploy, SEO e documentação.
 
-- `rel=canonical` apontando para o domínio próprio;
-- `og:url` apontando para o domínio próprio;
-- assets continuam portáteis por usarem caminhos relativos.
+## Portabilidade do frontend
 
-O workflow do GitHub Pages testa o canonical depois do deploy. Se a URL configurada não aparecer no HTML publicado, o deploy não termina verde.
+O frontend usa caminhos relativos (`base: './'`). Por isso, JS, CSS, favicon e manifest continuam funcionando quando o build é servido pelo mount `/catalogo/` do Achegue-se, sem copiar o código do Catálogo para o outro repositório.
 
-Não é necessário alterar código nem fazer fork da configuração para trocar entre preview e domínio próprio.
+A API e a mídia permanecem configurações de runtime independentes, fornecidas no deploy por:
+
+- `VITE_API_BASE_URL`;
+- `VITE_MEDIA_BASE_URL`;
+- `VITE_TURNSTILE_SITE_KEY`.
+
+Quando o Catálogo roda sob `acheguese.com.br`, o frontend usa o proxy first-party `/catalogo-api` para a API pública. O upstream real continua pertencendo ao Catálogo.
+
+## Contrato com o Achegue-se
+
+No repositório Achegue-se, o mount público deve preservar esta ordem:
+
+1. `/catalogo` redireciona permanentemente para `/catalogo/`;
+2. `/catalogo/:path*` é encaminhado para a origem publicada do frontend do Catálogo;
+3. `/catalogo-api/:path*` é encaminhado para o Worker público do Catálogo;
+4. somente depois vem o catch-all da SPA principal do Achegue-se.
+
+O owner desse roteamento no Achegue-se é `src/shared/config/publicExternalApps.config.ts`; o `vercel.json` é derivado/validado a partir desse contrato e não deve virar uma segunda fonte de verdade.
+
+## Validação de publicação
+
+O workflow do GitHub Pages lê `config/public-runtime.json` e faz smoke test do HTML publicado. O deploy só fica verde quando o `canonical` gerado corresponde exatamente a `https://acheguese.com.br/catalogo/`.
+
+Assim, preview técnico, origem de hospedagem e URL pública canônica podem ser diferentes sem duplicar configuração nem acoplar os dois projetos.
