@@ -185,8 +185,8 @@
         "assassin-s-creed-ezio-auditore-3",
         "assassin-s-creed-ezio-auditore-4"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: Ezio Auditore base e irmãos 2, 3 e 4 são esculturas distintas, com poses, trajes e bases diferentes."
     },
     {
       "categorySlug": "games",
@@ -198,8 +198,8 @@
       "siblingSlugs": [
         "bloodborne-lady-maria-2"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: Lady Maria base e irmão 2 são esculturas distintas, com pose, composição e base diferentes."
     },
     {
       "categorySlug": "games",
@@ -211,8 +211,8 @@
       "siblingSlugs": [
         "dead-space-isaac-clarke-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: Isaac Clarke base e 02 são esculturas/composições distintas, com pose e base diferentes."
     },
     {
       "categorySlug": "games",
@@ -224,8 +224,8 @@
       "siblingSlugs": [
         "elden-ring-blaidd-elden-ring-2"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: Blaidd base e irmão 2 são esculturas distintas, com pose e base diferentes."
     },
     {
       "categorySlug": "games",
