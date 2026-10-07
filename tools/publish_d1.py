@@ -272,12 +272,13 @@ def validate_r2_ready(models_path: Path, rows: list[dict[str, Any]], state_path:
     }
 
 
-def build_image_source_statements(
+def candidate_image_sources(
     models_path: Path,
     rows: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     r2_root = models_path.resolve().parent / "r2"
-    statements: list[dict[str, Any]] = []
+    sources: list[dict[str, Any]] = []
+    global_sha_owner: dict[str, str] = {}
 
     for row in sorted(rows, key=lambda item: str(item["id"])):
         model_id = str(row["id"])
@@ -301,29 +302,147 @@ def build_image_source_statements(
                     f"SHA-256 duplicado dentro da mesma galeria {model_id}: {source_sha}"
                 )
             seen_sha.add(source_sha)
-            statements.append({
-                "sql": """INSERT INTO model_image_sources(
+            previous_owner = global_sha_owner.get(source_sha)
+            if previous_owner is not None and previous_owner != model_id:
+                raise RuntimeError(
+                    "imagem exata aparece em produtos candidatos diferentes: "
+                    f"{source_sha}: {previous_owner} | {model_id}"
+                )
+            global_sha_owner[source_sha] = model_id
+            sources.append({
+                "model_id": model_id,
+                "image_id": str(image["id"]),
+                "position": position,
+                "role": str(image["role"]),
+                "source_sha256": source_sha,
+                "gallery_version": gallery_version,
+            })
+
+    return sources
+
+
+def build_image_source_statements(
+    models_path: Path,
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    sources = candidate_image_sources(models_path, rows)
+    statements: list[dict[str, Any]] = []
+    versions: dict[str, int] = {}
+
+    for source in sources:
+        model_id = str(source["model_id"])
+        gallery_version = int(source["gallery_version"])
+        versions[model_id] = gallery_version
+        statements.append({
+            "sql": """INSERT INTO model_image_sources(
 model_id,image_id,position,role,source_sha256,gallery_version)
 VALUES(?,?,?,?,?,?)
 ON CONFLICT(model_id,image_id) DO UPDATE SET
 position=excluded.position,role=excluded.role,source_sha256=excluded.source_sha256,
 gallery_version=excluded.gallery_version""",
-                "params": [
-                    model_id,
-                    str(image["id"]),
-                    str(position),
-                    str(image["role"]),
-                    source_sha,
-                    str(gallery_version),
-                ],
-            })
+            "params": [
+                model_id,
+                str(source["image_id"]),
+                str(int(source["position"])),
+                str(source["role"]),
+                str(source["source_sha256"]),
+                str(gallery_version),
+            ],
+        })
 
+    for model_id in sorted(versions):
         statements.append({
             "sql": "DELETE FROM model_image_sources WHERE model_id=? AND gallery_version<>?",
-            "params": [model_id, str(gallery_version)],
+            "params": [model_id, str(versions[model_id])],
         })
 
     return statements
+
+
+def production_sha_lookup_statements(
+    sources: list[dict[str, Any]],
+    chunk_size: int = 100,
+) -> list[dict[str, Any]]:
+    if chunk_size < 1 or chunk_size > 250:
+        raise ValueError("chunk_size SHA deve ficar entre 1 e 250")
+    shas = sorted({str(item["source_sha256"]) for item in sources})
+    statements: list[dict[str, Any]] = []
+    for start in range(0, len(shas), chunk_size):
+        chunk = shas[start:start + chunk_size]
+        placeholders = ",".join("?" for _ in chunk)
+        statements.append({
+            "sql": f"""SELECT
+s.source_sha256,
+COALESCE(member.canonical_model_id,s.model_id) AS effective_model_id
+FROM model_image_sources s
+JOIN models source
+  ON source.id=s.model_id
+ AND source.gallery_version=s.gallery_version
+LEFT JOIN model_gallery_members member ON member.source_model_id=source.id
+JOIN models effective ON effective.id=COALESCE(member.canonical_model_id,source.id)
+WHERE effective.published=1
+  AND s.source_sha256 IN ({placeholders})
+ORDER BY s.source_sha256,effective_model_id""",
+            "params": chunk,
+        })
+    return statements
+
+
+def validate_production_image_identity(
+    sources: list[dict[str, Any]],
+    production_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    candidate_owner = {
+        str(source["source_sha256"]): str(source["model_id"])
+        for source in sources
+    }
+    matches = 0
+    for row in production_rows:
+        sha = str(row.get("source_sha256") or "").strip().lower()
+        effective_model_id = str(row.get("effective_model_id") or "").strip()
+        if not sha or not effective_model_id:
+            raise RuntimeError(f"linha inválida no baseline SHA D1: {row!r}")
+        expected_owner = candidate_owner.get(sha)
+        if expected_owner is None:
+            raise RuntimeError(f"baseline SHA retornou hash não solicitado: {sha}")
+        if effective_model_id != expected_owner:
+            raise RuntimeError(
+                "identity drift de produção: imagem histórica pertence a outro produto efetivo; "
+                f"{sha}: produção={effective_model_id}, candidato={expected_owner}"
+            )
+        matches += 1
+    return {
+        "ready": True,
+        "candidateImages": len(sources),
+        "historicalMatches": matches,
+        "identityDrift": 0,
+    }
+
+
+def fetch_production_sha_matches(
+    account_id: str,
+    database_id: str,
+    token: str,
+    sources: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    statements = production_sha_lookup_statements(sources)
+    if not statements:
+        return []
+    body = request_batch_json(account_id, database_id, token, statements)
+    result = body.get("result")
+    if not isinstance(result, list) or len(result) != len(statements):
+        raise RuntimeError("resposta inesperada ao consultar baseline SHA D1")
+    rows: list[dict[str, Any]] = []
+    for item in result:
+        if not isinstance(item, dict) or item.get("success") is not True:
+            raise RuntimeError(
+                "índice SHA de produção indisponível; aplique o contrato de schema antes de publicar"
+            )
+        found = item.get("results")
+        if not isinstance(found, list):
+            raise RuntimeError("baseline SHA D1 retornou results inválido")
+        rows.extend(row for row in found if isinstance(row, dict))
+    return rows
 
 
 def exact_cross_model_sha_query(limit: int = 50) -> dict[str, Any]:
@@ -983,6 +1102,17 @@ def main() -> int:
             rows,
             production_rows,
             gallery_shrink_approvals,
+        )
+        candidate_sources = candidate_image_sources(args.models, rows)
+        production_sha_rows = fetch_production_sha_matches(
+            account_id,
+            database_id,
+            token,
+            candidate_sources,
+        )
+        summary["imageIdentityContinuity"] = validate_production_image_identity(
+            candidate_sources,
+            production_sha_rows,
         )
 
         retirement_statements: list[dict[str, Any]] = []
