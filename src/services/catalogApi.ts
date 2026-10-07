@@ -369,6 +369,7 @@ export async function getCatalogModel(slug: string, galleryVersion?: number): Pr
       slug: row.slug,
       code: row.code,
       name: row.name,
+      variantName: row.variant_name ?? '',
       franchise: row.franchise,
       franchiseSlug: row.franchise_slug,
       category: row.category_slug,
