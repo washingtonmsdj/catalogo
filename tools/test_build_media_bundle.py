@@ -216,7 +216,7 @@ class MediaBundleTests(unittest.TestCase):
             rows = []
             for index, model_dir in enumerate(paths):
                 model_dir.mkdir(parents=True)
-                image_path = model_dir / "vista.png"
+                image_path = model_dir / ("vista.png" if index == 0 else "vista-alternativa.png")
                 Image.new("RGB", (320, 480), f"#{index + 2}{index + 2}{index + 2}333").save(image_path)
                 model_key = " / ".join(image_path.relative_to(source).parts[:-1])
                 rows.append({
