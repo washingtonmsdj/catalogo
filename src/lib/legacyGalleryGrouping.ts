@@ -49,9 +49,17 @@ function validateReviewedOverrides(groups: LegacyGalleryOverride[]) {
   if (legacyOverrideConfig.version !== 2) {
     throw new Error(`legacy gallery override version unsupported: ${legacyOverrideConfig.version}`)
   }
+  const auditedGroups = Number(legacyOverrideConfig.auditedGroups)
+  const auditedMemberCards = Number(legacyOverrideConfig.auditedMemberCards)
   const auditedExtraCards = Number(legacyOverrideConfig.auditedExtraCards)
-  if (!Number.isSafeInteger(auditedExtraCards) || auditedExtraCards < 0) {
-    throw new Error('legacy gallery auditedExtraCards must be a non-negative safe integer')
+  for (const [label, value] of [
+    ['auditedGroups', auditedGroups],
+    ['auditedMemberCards', auditedMemberCards],
+    ['auditedExtraCards', auditedExtraCards],
+  ] as const) {
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new Error(`legacy gallery ${label} must be a non-negative safe integer`)
+    }
   }
 
   const groupKeys = new Set<string>()
@@ -83,10 +91,18 @@ function validateReviewedOverrides(groups: LegacyGalleryOverride[]) {
     }
   }
 
-  const actualExtraCards = groups.reduce((sum, group) => sum + group.memberSlugs.length - 1, 0)
-  if (actualExtraCards !== auditedExtraCards) {
+  const actualMemberCards = groups.reduce((sum, group) => sum + group.memberSlugs.length, 0)
+  const actualExtraCards = actualMemberCards - groups.length
+  if (
+    groups.length !== auditedGroups
+    || actualMemberCards !== auditedMemberCards
+    || actualExtraCards !== auditedExtraCards
+  ) {
     throw new Error(
-      `legacy gallery audited baseline mismatch: ${actualExtraCards} != ${auditedExtraCards}`,
+      'legacy gallery audited baseline mismatch: '
+      + `groups=${groups.length}/${auditedGroups}, `
+      + `members=${actualMemberCards}/${auditedMemberCards}, `
+      + `extra=${actualExtraCards}/${auditedExtraCards}`,
     )
   }
 }
