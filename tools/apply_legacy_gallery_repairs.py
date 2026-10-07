@@ -293,6 +293,19 @@ WHERE canonical.slug=?""",
     }
 
 
+def apply_statement_batches(
+    statements: list[dict[str, Any]],
+    batch_size: int = 100,
+) -> int:
+    if batch_size < 1 or batch_size > 250:
+        raise ValueError("batch_size deve ficar entre 1 e 250")
+    batches = 0
+    for start in range(0, len(statements), batch_size):
+        d1_request(statements[start:start + batch_size])
+        batches += 1
+    return batches
+
+
 def verify_applied(
     groups: list[dict[str, Any]],
     model_rows: list[dict[str, Any]],
@@ -326,7 +339,10 @@ def main() -> int:
         default=Path(__file__).resolve().parents[1] / "config" / "catalog-legacy-gallery-overrides.json",
     )
     parser.add_argument("--apply", action="store_true", help="aplica as relações pendentes; padrão é somente leitura")
+    parser.add_argument("--batch-size", type=int, default=100)
     args = parser.parse_args()
+    if not 1 <= args.batch_size <= 250:
+        parser.error("--batch-size deve ficar entre 1 e 250")
 
     try:
         groups = load_config(args.config)
@@ -340,11 +356,11 @@ def main() -> int:
             print(json.dumps(public_summary, ensure_ascii=False))
             return 0
 
-        if plan["statements"]:
-            d1_request(plan["statements"])
+        batches = apply_statement_batches(plan["statements"], args.batch_size)
         models, relations = fetch_state(groups)
         result = verify_applied(groups, models, relations)
         result["schema"] = schema
+        result["batches"] = batches
         result["apply"] = True
         print(json.dumps(result, ensure_ascii=False))
         return 0
