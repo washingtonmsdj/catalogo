@@ -33,6 +33,18 @@ class PagesWorkflowConfigTests(unittest.TestCase):
         self.assertIn("src/shared/config/publicExternalApps.config.ts", documentation)
         self.assertNotIn("Configure a Repository Variable `VITE_PUBLIC_SITE_URL`", documentation)
 
+    def test_legacy_catalog_public_url_is_not_canonical_anymore(self):
+        root = Path(__file__).resolve().parents[1]
+        legacy_url = "https://acheguese.com.br/catalogo/"
+        checked = [
+            root / "config" / "public-runtime.json",
+            root / "README.md",
+            root / "docs" / "DOMINIO-E-URL-PUBLICA.md",
+            root / "docs" / "CLOUDFLARE_DEPLOY.md",
+        ]
+        for path in checked:
+            self.assertNotIn(legacy_url, path.read_text(encoding="utf-8"), str(path))
+
     def test_pages_workflow_has_no_production_endpoint_fallbacks(self):
         forbidden = [
             "tonecos-catalogo-api.ordax-ac1ca1b50d09.workers.dev",
