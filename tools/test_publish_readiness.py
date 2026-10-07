@@ -16,6 +16,7 @@ def model() -> dict:
         "slug": "android-18",
         "code": "TS-1",
         "displayName": "Androide 18",
+        "variantName": "",
         "categoryName": "Animes & Desenhos",
         "categorySlug": "animes-desenhos",
         "franchiseName": "Dragon Ball",
