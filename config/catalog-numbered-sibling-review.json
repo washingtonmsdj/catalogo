@@ -508,8 +508,8 @@
         "street-fighter-cammy-17",
         "street-fighter-cammy-18"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Cammy.jpg e Cammy 02–18.jpg): poses, trajes, esculturas e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
