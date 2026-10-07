@@ -28,7 +28,13 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
-from model_identity import validate_identity_comparison_collisions, validate_taxonomy_slug_mappings
+from model_identity import (
+    DEFAULT_IDENTITY_ALIAS_CONFIG,
+    canonical_identity_key,
+    load_identity_aliases,
+    validate_identity_comparison_collisions,
+    validate_taxonomy_slug_mappings,
+)
 
 VARIANTS = {
     "thumb": (360, 80),
@@ -248,9 +254,11 @@ def model_metadata(
     taxonomy: dict,
     audited_public: bool = False,
     grouped_gallery: bool = False,
+    stable_identity_key: str | None = None,
 ) -> dict:
     hierarchy = hierarchy_key.split(" / ")
-    model_id = stable_id("mdl", identity_key)
+    canonical_key = stable_identity_key or identity_key
+    model_id = stable_id("mdl", canonical_key)
     category_name = hierarchy[0] if hierarchy else "Outros"
     franchise_pos = franchise_index(hierarchy, taxonomy)
     franchise_name = hierarchy[franchise_pos] if hierarchy else category_name
@@ -263,7 +271,7 @@ def model_metadata(
     display_name = hierarchy[-1] if grouped_gallery and hierarchy else model_display_name(hierarchy, collection_parts, source_stem, audited_public)
     collection = " / ".join(collection_parts)
 
-    identity_label = public_identity_label(identity_key, hierarchy_key_normalized, source_stem) if audited_public else source_stem
+    identity_label = public_identity_label(canonical_key, hierarchy_key_normalized, source_stem) if audited_public else source_stem
     source_label = humanize_stem(identity_label)
     slug_name = source_label if audited_public else display_name
     clean_parts = [franchise_name, slug_name] if audited_public else [franchise_name, *collection_parts, display_name]
@@ -272,12 +280,13 @@ def model_metadata(
     if slug_collisions[base_slug] > 1:
         model_slug = f"{base_slug}-{model_id.split('_', 1)[1][:10]}"
 
-    code_hash = hashlib.sha256(identity_key.encode("utf-8")).hexdigest()[:12].upper()
+    code_hash = hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:12].upper()
     code = f"TS-{code_hash}"
     search_text = " ".join(dict.fromkeys([*hierarchy, *collection_parts, display_name, source_label, code])).casefold()
 
     return {
-        "identityKey": identity_key,
+        "identityKey": canonical_key,
+        "sourceIdentityKey": identity_key,
         "id": model_id,
         "slug": model_slug,
         "code": code,
@@ -317,6 +326,7 @@ def build_model_bundle(
     slug_collisions: Counter[str],
     taxonomy: dict,
     include_original: bool,
+    stable_identity_key: str | None = None,
 ) -> tuple[dict, int, int]:
     validate_model_group(identity_key, rows)
     rows = sorted(
@@ -337,6 +347,7 @@ def build_model_bundle(
         taxonomy,
         bool(rows[0].get("public_model_key")),
         grouped_gallery,
+        stable_identity_key,
     )
     model_id = metadata["id"]
     gallery_images = []
@@ -430,7 +441,13 @@ def validate_built_taxonomy_identifiers(entries: list[dict]) -> None:
     validate_taxonomy_slug_mappings(entries)
 
 
-def model_build_fingerprint(identity_key: str, rows: list[dict], include_original: bool, taxonomy: dict) -> str:
+def model_build_fingerprint(
+    identity_key: str,
+    rows: list[dict],
+    include_original: bool,
+    taxonomy: dict,
+    stable_identity_key: str | None = None,
+) -> str:
     hierarchy = str(rows[0]["model_key"]).split(" / ")
     franchise_pos = franchise_index(hierarchy, taxonomy)
     category_name = hierarchy[0] if hierarchy else "Outros"
@@ -457,6 +474,7 @@ def model_build_fingerprint(identity_key: str, rows: list[dict], include_origina
         "rendererVersion": MEDIA_RENDERER_VERSION,
         "metadataVersion": MEDIA_METADATA_VERSION,
         "identityKey": identity_key,
+        "stableIdentityKey": stable_identity_key or identity_key,
         "includeOriginal": include_original,
         "variants": VARIANTS,
         "taxonomyRule": relevant_rule,
@@ -599,10 +617,12 @@ def build_bundle(
     output: Path,
     include_original: bool,
     taxonomy_config: Path | None = None,
+    identity_alias_config: Path | None = None,
     workers: int = 4,
     resume: bool = True,
 ) -> dict:
     taxonomy = load_taxonomy_config(taxonomy_config)
+    identity_aliases = load_identity_aliases(identity_alias_config)
     records = [row for row in read_manifest(manifest_path) if row.get("status") == "OK" and row.get("canonical") is True]
     by_model: dict[str, list[dict]] = defaultdict(list)
     for row in records:
@@ -611,6 +631,19 @@ def build_bundle(
 
     model_keys = sorted(by_model, key=str.casefold)
     validate_identity_comparison_collisions(model_keys)
+    stable_keys = {
+        identity_key: canonical_identity_key(identity_key, identity_aliases)
+        for identity_key in model_keys
+    }
+    stable_owners: dict[str, str] = {}
+    for identity_key, stable_key in stable_keys.items():
+        previous = stable_owners.get(stable_key)
+        if previous is not None and previous != identity_key:
+            raise RuntimeError(
+                "duas identidades atuais apontam para o mesmo produto canônico: "
+                f"{stable_key}: {previous} | {identity_key}"
+            )
+        stable_owners[stable_key] = identity_key
     base_slugs = []
     for identity_key in model_keys:
         row = by_model[identity_key][0]
@@ -641,7 +674,13 @@ def build_bundle(
     output.mkdir(parents=True, exist_ok=True)
     state = load_media_build_state(state_path) if resume else {"version": MEDIA_BUILD_STATE_VERSION, "models": {}}
     fingerprints = {
-        identity_key: model_build_fingerprint(identity_key, by_model[identity_key], include_original, taxonomy)
+        identity_key: model_build_fingerprint(
+            identity_key,
+            by_model[identity_key],
+            include_original,
+            taxonomy,
+            stable_keys[identity_key],
+        )
         for identity_key in model_keys
     }
     results: dict[str, tuple[dict, int, int]] = {}
@@ -649,7 +688,7 @@ def build_bundle(
     resumed_models = 0
 
     for identity_key in model_keys:
-        cached = state["models"].get(identity_key)
+        cached = state["models"].get(stable_keys[identity_key])
         if (
             resume
             and isinstance(cached, dict)
@@ -674,6 +713,7 @@ def build_bundle(
             slug_collisions=slug_collisions,
             taxonomy=taxonomy,
             include_original=include_original,
+            stable_identity_key=stable_keys[identity_key],
         )
 
     built_models = 0
@@ -684,7 +724,8 @@ def build_bundle(
             identity_key = futures[future]
             model_entry, image_count, model_variant_files = future.result()
             results[identity_key] = (model_entry, image_count, model_variant_files)
-            state["models"][identity_key] = {
+            state["models"][stable_keys[identity_key]] = {
+                "sourceIdentityKey": identity_key,
                 "fingerprint": fingerprints[identity_key],
                 "modelEntry": model_entry,
                 "imageCount": image_count,
@@ -703,7 +744,10 @@ def build_bundle(
     else:
         executor.shutdown(wait=True)
 
-    state["models"] = {identity_key: state["models"][identity_key] for identity_key in model_keys}
+    state["models"] = {
+        stable_keys[identity_key]: state["models"][stable_keys[identity_key]]
+        for identity_key in model_keys
+    }
     save_media_build_state(state_path, state)
 
     built_entries = [results[identity_key][0] for identity_key in model_keys]
@@ -731,6 +775,7 @@ def build_bundle(
         "builtModels": built_models,
         "r2Root": str(r2_root),
         "mediaBuildState": str(state_path),
+        "identityAliasesApplied": sum(1 for key in model_keys if stable_keys[key] != key),
     }
     (output / "publish-summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
@@ -746,6 +791,12 @@ def main() -> int:
     parser.add_argument("--output", type=Path, default=Path(".publish-bundle"))
     parser.add_argument("--include-original", action="store_true", help="inclui cópia do original no bundle R2")
     parser.add_argument("--taxonomy-config", type=Path, default=DEFAULT_TAXONOMY_CONFIG, help="regras explícitas de pastas públicas")
+    parser.add_argument(
+        "--identity-alias-config",
+        type=Path,
+        default=DEFAULT_IDENTITY_ALIAS_CONFIG,
+        help="registro explícito de renomes de identidade que preservam mdl/code históricos",
+    )
     parser.add_argument("--workers", type=int, default=4, help="modelos processados em paralelo; padrão: 4")
     parser.add_argument("--no-resume", action="store_true", help="ignora o checkpoint de mídia e recompõe todos os modelos")
     args = parser.parse_args()
@@ -755,7 +806,16 @@ def main() -> int:
     if not args.manifest.is_file():
         parser.error(f"manifesto não encontrado: {args.manifest}")
 
-    summary = build_bundle(source_root=args.source.resolve(), manifest_path=args.manifest.resolve(), output=args.output.resolve(), include_original=args.include_original, taxonomy_config=args.taxonomy_config.resolve(), workers=args.workers, resume=not args.no_resume)
+    summary = build_bundle(
+        source_root=args.source.resolve(),
+        manifest_path=args.manifest.resolve(),
+        output=args.output.resolve(),
+        include_original=args.include_original,
+        taxonomy_config=args.taxonomy_config.resolve(),
+        identity_alias_config=args.identity_alias_config.resolve(),
+        workers=args.workers,
+        resume=not args.no_resume,
+    )
     print(json.dumps(summary, ensure_ascii=False))
     return 0
 
