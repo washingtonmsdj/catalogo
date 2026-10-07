@@ -15,6 +15,7 @@ from build_media_bundle import (
     media_build_output_lock,
     model_display_name,
     save_media_build_state,
+    validate_built_model_identifiers,
 )
 
 
@@ -717,6 +718,29 @@ class MediaBundleTests(unittest.TestCase):
 
             with self.assertRaisesRegex(RuntimeError, "textualmente equivalentes"):
                 build_bundle(root / "catalog", manifest, root / "bundle", include_original=False)
+
+    def test_built_model_identifier_collisions_fail_closed(self) -> None:
+        base = {
+            "identityKey": "Games / Saga / Produto A",
+            "id": "mdl-a",
+            "slug": "saga-produto-a",
+            "code": "TS-AAAAAAAAAAAA",
+        }
+        distinct = {
+            "identityKey": "Games / Saga / Produto B",
+            "id": "mdl-b",
+            "slug": "saga-produto-b",
+            "code": "TS-BBBBBBBBBBBB",
+        }
+
+        validate_built_model_identifiers([base, distinct])
+
+        for field in ("id", "slug", "code"):
+            collision = dict(distinct)
+            collision[field] = base[field]
+            with self.subTest(field=field):
+                with self.assertRaisesRegex(RuntimeError, f"colisão de {field}"):
+                    validate_built_model_identifiers([base, collision])
 
     def test_include_original_is_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
