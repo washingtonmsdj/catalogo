@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from publish_d1 import CATEGORY_ORDER, build_statements, load_models, production_inventory_statement, production_lookup_statements, read_gallery_shrink_approvals, read_model_retirement_approvals, validate_model_retirements, validate_production_compatibility
+from publish_d1 import CATEGORY_ORDER, build_image_source_statements, build_statements, exact_cross_model_sha_query, load_models, production_inventory_statement, production_lookup_statements, read_gallery_shrink_approvals, read_model_retirement_approvals, validate_model_retirements, validate_production_compatibility
 
 
 def model(model_id: str, slug: str, code: str, *, variant: str) -> dict:
@@ -662,6 +662,107 @@ class PublishD1Tests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             production_inventory_statement("", 5001)
+
+    def _write_gallery_bundle(self, root: Path, row: dict, shas: list[str]) -> None:
+        manifest_key = Path(row["galleryManifestKey"])
+        manifest_path = root / "r2" / manifest_key
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        images = []
+        for index, sha in enumerate(shas):
+            image_id = f"img-{index + 1}"
+            images.append({
+                "id": image_id,
+                "role": "cover" if index == 0 else "gallery",
+                "width": 900,
+                "height": 1400,
+                "bytes": 1000 + index,
+                "mime": "image/webp",
+                "qualityScore": 90 - index,
+                "sourceSha256": sha,
+                "variantKeys": {
+                    "thumb": f"media/{row['id']}/{image_id}/thumb.webp",
+                    "card": f"media/{row['id']}/{image_id}/card.webp",
+                    "detail": f"media/{row['id']}/{image_id}/detail.webp",
+                },
+            })
+        row["imageCount"] = len(images)
+        row["coverStorageKey"] = images[0]["variantKeys"]["card"]
+        manifest_path.write_text(
+            json.dumps({
+                "version": row["galleryVersion"],
+                "modelId": row["id"],
+                "images": images,
+            }),
+            encoding="utf-8",
+        )
+
+    def test_image_source_statements_materialize_manifest_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            models_path = root / "models.jsonl"
+            models_path.write_text("", encoding="utf-8")
+            row = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+            row["galleryManifestKey"] = "gallery/mdl-1/manifest.json"
+            self._write_gallery_bundle(root, row, ["a" * 64, "b" * 64])
+
+            statements = build_image_source_statements(models_path, [row])
+
+            self.assertEqual(len(statements), 3)
+            self.assertEqual(sum("INSERT INTO model_image_sources" in item["sql"] for item in statements), 2)
+            self.assertIn("gallery_version<>?", statements[-1]["sql"])
+            self.assertEqual(statements[0]["params"][4], "a" * 64)
+
+    def test_image_source_statements_reject_exact_duplicate_inside_gallery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            models_path = root / "models.jsonl"
+            models_path.write_text("", encoding="utf-8")
+            row = model("mdl-1", "android-18", "TS-1", variant="Androide 18")
+            row["galleryManifestKey"] = "gallery/mdl-1/manifest.json"
+            self._write_gallery_bundle(root, row, ["c" * 64, "c" * 64])
+
+            with self.assertRaisesRegex(RuntimeError, "SHA-256 duplicado dentro da mesma galeria"):
+                build_image_source_statements(models_path, [row])
+
+    def test_image_source_schema_allows_cross_model_reuse_but_blocks_same_gallery_duplicate(self) -> None:
+        db = sqlite3.connect(":memory:")
+        migrations = Path(__file__).resolve().parents[1] / "migrations"
+        db.executescript((migrations / "0001_catalog.sql").read_text(encoding="utf-8"))
+        db.executescript((migrations / "0013_model_image_sources.sql").read_text(encoding="utf-8"))
+        db.execute("INSERT INTO categories(slug,name) VALUES('animes-desenhos','Animes')")
+        category_id = db.execute("SELECT id FROM categories WHERE slug='animes-desenhos'").fetchone()[0]
+        db.execute("INSERT INTO franchises(category_id,slug,name) VALUES(?,?,?)", (category_id, "dragon-ball", "Dragon Ball"))
+        franchise_id = db.execute("SELECT id FROM franchises WHERE slug='dragon-ball'").fetchone()[0]
+        for model_id, slug, code in (("mdl-a", "a", "TS-A"), ("mdl-b", "b", "TS-B")):
+            db.execute(
+                "INSERT INTO models(id,franchise_id,slug,code,name,gallery_version,published) VALUES(?,?,?,?,?,1,1)",
+                (model_id, franchise_id, slug, code, slug),
+            )
+
+        sha = "d" * 64
+        db.execute(
+            "INSERT INTO model_image_sources(model_id,image_id,position,role,source_sha256,gallery_version) VALUES(?,?,?,?,?,1)",
+            ("mdl-a", "img-1", 0, "cover", sha),
+        )
+        db.execute(
+            "INSERT INTO model_image_sources(model_id,image_id,position,role,source_sha256,gallery_version) VALUES(?,?,?,?,?,1)",
+            ("mdl-b", "img-1", 0, "cover", sha),
+        )
+        with self.assertRaises(sqlite3.IntegrityError):
+            db.execute(
+                "INSERT INTO model_image_sources(model_id,image_id,position,role,source_sha256,gallery_version) VALUES(?,?,?,?,?,1)",
+                ("mdl-a", "img-2", 1, "gallery", sha),
+            )
+        db.close()
+
+    def test_exact_cross_model_sha_query_is_review_only_and_bounded(self) -> None:
+        statement = exact_cross_model_sha_query(25)
+
+        self.assertIn("COUNT(DISTINCT s.model_id)>1", statement["sql"])
+        self.assertIn("m.gallery_version=s.gallery_version", statement["sql"])
+        self.assertEqual(statement["params"], [25])
+        with self.assertRaises(ValueError):
+            exact_cross_model_sha_query(501)
 
     def test_load_rejects_model_without_publishable_image(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
