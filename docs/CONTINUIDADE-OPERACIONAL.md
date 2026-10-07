@@ -11,7 +11,7 @@
 - Branch autoritativa: `main`.
 - Base funcional do pipeline validada no CI: `35f016bfc6b217e9ca54a4dc9054364203961da4`. Commits posteriores podem ser apenas de documentação; sempre conferir a `main` antes de executar.
 - CI do commit: **verde**.
-- Deploy do preview GitHub Pages: **verde**.\n- URL pública canônica: `https://acheguese.com.br/catalogo/`.\n- Origem/preview independente: `https://washingtonmsdj.github.io/catalogo/`.
+- Deploy do preview GitHub Pages: **verde**.\n- URL pública canônica: `https://acheguese.com.br/tonecosstudios/`.\n- Origem/preview independente: `https://washingtonmsdj.github.io/catalogo/`.
 - O frontend já suporta galeria paginada, lightbox, múltiplas imagens por modelo, navegação por teclado e carregamento separado da mídia.
 - Refresh de frontend validado em 2026-10-06:
   - hero orientado à descoberta, com métricas reais do acervo;
@@ -55,12 +55,12 @@ A publicação web usa **dois repositórios independentes sob um único domínio
 
 - `washingtonmsdj/acheguese` continua dono de `https://acheguese.com.br/`;
 - `washingtonmsdj/catalogo` continua dono do frontend e pipeline do Catálogo;
-- Vercel no Achegue-se normaliza `/catalogo` → `/catalogo/`;
-- `/catalogo/*` é encaminhado para a origem GitHub Pages do Catálogo;
+- Vercel no Achegue-se normaliza `/catalogo` → `/tonecosstudios/`;
+- `/tonecosstudios/*` é encaminhado para a origem GitHub Pages do Catálogo;
 - `/catalogo-api/*` é encaminhado para o Worker do Catálogo;
 - no domínio Achegue-se, o frontend detecta o hostname e usa a API first-party `/catalogo-api`;
 - no GitHub Pages, o preview continua usando o Worker configurado em `VITE_API_BASE_URL`;
-- `config/public-runtime.json` é o SSOT versionado da URL pública canônica: `https://acheguese.com.br/catalogo/`;
+- `config/public-runtime.json` é o SSOT versionado da URL pública canônica: `https://acheguese.com.br/tonecosstudios/`;
 - o widget Turnstile do Catálogo aceita `acheguese.com.br`, `www.acheguese.com.br` e `washingtonmsdj.github.io`.
 
 A raiz `/` do Achegue-se **não redireciona para o Catálogo** e não pertence a este repositório. O projeto Achegue-se mantém sua Home própria e apenas oferece um acesso temporário ao Catálogo.
