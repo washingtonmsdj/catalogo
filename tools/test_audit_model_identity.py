@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from audit_model_identity import cross_model_sha_candidates, split_view_candidates
+from audit_model_identity import cross_model_sha_candidates, sibling_suffix_candidates, split_view_candidates
 
 
 def model(model_id: str, slug: str, *, folder: str = "androides/androide-18", name: str = "Androide 18") -> dict:
@@ -62,6 +62,50 @@ class AuditModelIdentityTests(unittest.TestCase):
         other = model("b", "dragon-ball-heroi-costas")
 
         self.assertEqual(split_view_candidates([row, other]), [])
+
+    def test_explicit_copy_marker_requires_base_in_same_scope(self) -> None:
+        rows = [
+            model("a", "dragon-ball-androide-18-estatua"),
+            model("b", "dragon-ball-androide-18-estatua-copy"),
+            model("c", "dragon-ball-androide-18-outra-copy"),
+        ]
+
+        candidates = sibling_suffix_candidates(rows)
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0]["kind"], "explicit-copy-marker")
+        self.assertEqual(candidates[0]["baseSlug"], "dragon-ball-androide-18-estatua")
+        self.assertEqual(
+            [item["slug"] for item in candidates[0]["siblings"]],
+            ["dragon-ball-androide-18-estatua-copy"],
+        )
+
+    def test_numeric_siblings_are_review_only_and_grouped_by_base(self) -> None:
+        rows = [
+            model("a", "dragon-ball-androide-18-estatua"),
+            model("b", "dragon-ball-androide-18-estatua-01"),
+            model("c", "dragon-ball-androide-18-estatua-02"),
+        ]
+
+        candidates = sibling_suffix_candidates(rows)
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0]["kind"], "numbered-review")
+        self.assertEqual(
+            [item["slug"] for item in candidates[0]["siblings"]],
+            [
+                "dragon-ball-androide-18-estatua-01",
+                "dragon-ball-androide-18-estatua-02",
+            ],
+        )
+
+    def test_numeric_sibling_never_crosses_folder_scope(self) -> None:
+        rows = [
+            model("a", "dragon-ball-estatua", folder="grupo-a"),
+            model("b", "dragon-ball-estatua-01", folder="grupo-b"),
+        ]
+
+        self.assertEqual(sibling_suffix_candidates(rows), [])
 
     def test_cross_model_exact_sha_is_reported_without_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
