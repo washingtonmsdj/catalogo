@@ -1,6 +1,6 @@
 # Deploy Cloudflare
 
-O catálogo usa `acheguese.com.br/catalogo/` como URL pública canônica. O frontend continua publicado no GitHub Pages como origem/preview e é montado sob o domínio Achegue-se por reverse proxy. Cloudflare continua responsável por API, banco, mídia e proteção dos fluxos públicos de gravação.
+O catálogo usa `acheguese.com.br/tonecosstudios/` como URL pública canônica. O frontend continua publicado no GitHub Pages como origem/preview e é montado sob o domínio Achegue-se por reverse proxy. Cloudflare continua responsável por API, banco, mídia e proteção dos fluxos públicos de gravação.
 O deploy normal do backend é automatizado; somente o provisionamento inicial da conta é feito uma vez.
 
 ## Recursos de produção
@@ -79,7 +79,7 @@ O workflow do Pages exige as Repository Variables de produção para API, mídia
 
 ## Frontend
 
-A URL pública canônica fica em `https://acheguese.com.br/tonecosstudios/`. O repositório Achegue-se faz dois encaminhamentos independentes:
+A URL pública canônica fica em `https://acheguese.com.br/tonecosstudios/`. O repositório Achegue-se mantém o Tonecos Studios como superfície pública temporária:
 
 - `/tonecosstudios/*` → origem GitHub Pages do frontend;
 - `/catalogo-api/*` → Worker do Catálogo.
