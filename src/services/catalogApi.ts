@@ -163,6 +163,86 @@ function liveSearchTerm(value?: string) {
   return trimmed
 }
 
+const LEGACY_VIEW_SUFFIXES: Array<{ suffix: string; priority: number }> = [
+  { suffix: '-frente-alternativo', priority: 30 },
+  { suffix: '-frente-alternativa', priority: 30 },
+  { suffix: '-costas-corpo-inteiro', priority: 31 },
+  { suffix: '-costas-close', priority: 32 },
+  { suffix: '-vista-frontal', priority: 2 },
+  { suffix: '-vista-lateral', priority: 11 },
+  { suffix: '-vista-traseira', priority: 22 },
+  { suffix: '-corpo-inteiro', priority: 3 },
+  { suffix: '-em-pe', priority: 4 },
+  { suffix: '-frente', priority: 0 },
+  { suffix: '-frontal', priority: 1 },
+  { suffix: '-lateral', priority: 10 },
+  { suffix: '-perfil', priority: 12 },
+  { suffix: '-costas', priority: 20 },
+  { suffix: '-traseira', priority: 21 },
+  { suffix: '-traseiro', priority: 21 },
+  { suffix: '-close', priority: 40 },
+]
+
+function legacyViewDescriptor(slug: string) {
+  for (const entry of LEGACY_VIEW_SUFFIXES) {
+    if (!slug.endsWith(entry.suffix)) continue
+    const family = slug.slice(0, -entry.suffix.length)
+    if (family) return { family, priority: entry.priority }
+  }
+  return null
+}
+
+export function collapseLegacyViewRows(rows: ApiCatalogRow[]): CatalogModelCard[] {
+  const groups = new Map<string, Array<{ row: ApiCatalogRow; priority: number; index: number }>>()
+
+  rows.forEach((row, index) => {
+    if (row.image_count !== 1) return
+    const descriptor = legacyViewDescriptor(row.slug)
+    if (!descriptor) return
+    const key = [
+      row.category_slug,
+      row.franchise_slug,
+      row.folder_path ?? '',
+      row.name,
+      descriptor.family,
+    ].join('|')
+    const members = groups.get(key) ?? []
+    members.push({ row, priority: descriptor.priority, index })
+    groups.set(key, members)
+  })
+
+  const membership = new Map<string, string>()
+  for (const [key, members] of groups) {
+    if (members.length < 2) continue
+    for (const member of members) membership.set(member.row.id, key)
+  }
+
+  const emitted = new Set<string>()
+  const cards: CatalogModelCard[] = []
+  rows.forEach((row) => {
+    const key = membership.get(row.id)
+    if (!key) {
+      cards.push(toCatalogModelCard(row))
+      return
+    }
+    if (emitted.has(key)) return
+    emitted.add(key)
+
+    const members = [...(groups.get(key) ?? [])].sort(
+      (left, right) => left.priority - right.priority
+        || left.row.slug.localeCompare(right.row.slug, 'pt-BR'),
+    )
+    const canonical = members[0].row
+    const card = toCatalogModelCard(canonical)
+    card.galleryCount = members.reduce((sum, member) => sum + member.row.image_count, 0)
+    card.galleryVersion = members.reduce((sum, member) => sum + member.row.gallery_version, 0)
+    card.gallerySourceSlugs = members.map((member) => member.row.slug)
+    cards.push(card)
+  })
+
+  return cards
+}
+
 function toCatalogModelCard(row: ApiCatalogRow): CatalogModelCard {
   return {
     id: row.id,
@@ -192,7 +272,7 @@ export async function listCatalogModels(query: CatalogListQuery = {}): Promise<C
   }))
 
   return {
-    items: result.items.map(toCatalogModelCard),
+    items: collapseLegacyViewRows(result.items),
     nextCursor: result.nextCursor,
     totalApprox: 0,
   }
@@ -202,7 +282,7 @@ export async function listRecentCatalogModels(limit = 12): Promise<CatalogModelC
   const result = await requestJson<{ items: ApiCatalogRow[] }>(endpoint('/api/recent', {
     limit: Math.max(1, Math.min(24, Math.trunc(limit))),
   }))
-  return result.items.map(toCatalogModelCard)
+  return collapseLegacyViewRows(result.items)
 }
 
 export async function getCatalogModel(slug: string, galleryVersion?: number): Promise<CatalogModel | null> {
