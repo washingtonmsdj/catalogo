@@ -39,7 +39,7 @@ No repositório Achegue-se, o mount público deve preservar esta ordem:
 1. `/catalogo` permanece apenas como caminho legado e redireciona para `/tonecosstudios/`;
 2. `/tonecosstudios/:path*` é encaminhado para a origem publicada do frontend do Catálogo;
 3. `/catalogo-api/:path*` é encaminhado para o Worker público do Catálogo;
-4. somente depois vem o catch-all da SPA principal do Achegue-se.
+4. qualquer outra rota de visitante do Achegue-se é redirecionada para `/tonecosstudios/`; a SPA real permanece intacta atrás dessa camada temporária.
 
 O owner desse roteamento no Achegue-se é `src/shared/config/publicExternalApps.config.ts`; o `vercel.json` é derivado/validado a partir desse contrato e não deve virar uma segunda fonte de verdade.
 
