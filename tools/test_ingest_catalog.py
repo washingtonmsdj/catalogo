@@ -96,6 +96,22 @@ class CatalogIngestTests(unittest.TestCase):
             self.assertEqual(metadata[str(image_path.relative_to(root))]["codigo"], "AUD-1")
             self.assertEqual(metadata[str(image_path.relative_to(root))]["modelo_publico"], "hero-modelo-01")
 
+    def test_audit_registry_rejects_unicode_equivalent_duplicate_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            registry = root / "audit.csv"
+            composed = "Games/Sagá/modelo.png"
+            decomposed = "Games/Saga\u0301/modelo.png"
+            registry.write_text(
+                "sha256,caminho\n"
+                + ("a" * 64) + f",{composed}\n"
+                + ("b" * 64) + f",{decomposed}\n",
+                encoding="utf-8-sig",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "caminho duplicado"):
+                load_audit_registry(root, registry)
+
     def test_audit_registry_rejects_operational_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
