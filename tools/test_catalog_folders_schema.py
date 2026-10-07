@@ -298,6 +298,42 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
             1,
         )
 
+    def test_retired_source_still_contributes_to_logical_gallery(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,1)",
+            (self.franchise_id, "grupo", "Grupo", "grupo"),
+        )
+        folder_id = self.db.execute(
+            "SELECT id FROM catalog_folders WHERE franchise_id=? AND path='grupo'",
+            (self.franchise_id,),
+        ).fetchone()[0]
+        self._insert_gallery_model("mdl-a", folder_id, "a", "TS-A", "Produto")
+        self._insert_gallery_model("mdl-b", folder_id, "b", "TS-B", "Produto")
+        self.db.execute("UPDATE models SET gallery_version=3 WHERE id='mdl-a'")
+        self.db.execute("UPDATE models SET gallery_version=5 WHERE id='mdl-b'")
+
+        self.db.execute(
+            "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
+            ("mdl-a", "mdl-b", 1),
+        )
+
+        logical = self.db.execute(
+            """SELECT
+            canonical.image_count + COALESCE(SUM(source.image_count),0),
+            canonical.gallery_version + COALESCE(SUM(source.gallery_version),0)
+            FROM models canonical
+            LEFT JOIN model_gallery_members member ON member.canonical_model_id=canonical.id
+            LEFT JOIN models source ON source.id=member.source_model_id
+            WHERE canonical.id='mdl-a'
+            GROUP BY canonical.id"""
+        ).fetchone()
+        source_published = self.db.execute(
+            "SELECT published FROM models WHERE id='mdl-b'"
+        ).fetchone()[0]
+
+        self.assertEqual(source_published, 0)
+        self.assertEqual(logical, (2, 8))
+
     def test_attached_gallery_source_cannot_be_republished_or_rebound(self) -> None:
         self.db.execute(
             "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,1)",
