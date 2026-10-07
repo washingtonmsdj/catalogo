@@ -31,7 +31,7 @@ class PagesWorkflowConfigTests(unittest.TestCase):
         self.assertIn("config/public-runtime.json", documentation)
         self.assertIn("https://acheguese.com.br/catalogo/", documentation)
         self.assertIn("src/shared/config/publicExternalApps.config.ts", documentation)
-        self.assertNotIn("VITE_PUBLIC_SITE_URL", documentation)
+        self.assertNotIn("Configure a Repository Variable `VITE_PUBLIC_SITE_URL`", documentation)
 
     def test_pages_workflow_has_no_production_endpoint_fallbacks(self):
         forbidden = [
