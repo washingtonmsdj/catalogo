@@ -18,6 +18,12 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from catalog_schema_contract import (
+    load_schema_contract,
+    schema_migrations_statement,
+    validate_applied_migrations,
+)
+
 
 def load_config(path: Path) -> list[dict[str, Any]]:
     if not path.is_file():
@@ -100,6 +106,18 @@ def d1_request(statements: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _chunks(values: list[str], size: int = 50):
     for start in range(0, len(values), size):
         yield values[start:start + size]
+
+
+def require_schema_ready() -> dict[str, Any]:
+    contract = load_schema_contract()
+    result = d1_request([schema_migrations_statement(contract)])
+    rows = result[0].get("results")
+    if not isinstance(rows, list):
+        raise RuntimeError("preflight de schema retornou results inválido")
+    return validate_applied_migrations(
+        contract,
+        [row for row in rows if isinstance(row, dict)],
+    )
 
 
 def fetch_state(groups: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
@@ -312,9 +330,11 @@ def main() -> int:
 
     try:
         groups = load_config(args.config)
+        schema = require_schema_ready()
         models, relations = fetch_state(groups)
         plan = plan_repairs(groups, models, relations)
         public_summary = {key: value for key, value in plan.items() if key not in {"statements", "expected"}}
+        public_summary["schema"] = schema
         public_summary["apply"] = args.apply
         if not args.apply:
             print(json.dumps(public_summary, ensure_ascii=False))
@@ -324,6 +344,7 @@ def main() -> int:
             d1_request(plan["statements"])
         models, relations = fetch_state(groups)
         result = verify_applied(groups, models, relations)
+        result["schema"] = schema
         result["apply"] = True
         print(json.dumps(result, ensure_ascii=False))
         return 0
