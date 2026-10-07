@@ -5,7 +5,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Mapping
 
 DEFAULT_VIEW_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-view-descriptors.json"
 
@@ -107,6 +107,59 @@ def validate_identity_comparison_collisions(identity_keys: Iterable[str]) -> Non
             "identidades públicas textualmente equivalentes gerariam IDs distintos; "
             f"normalize/revise o registro antes de publicar: {sample}"
         )
+
+
+def taxonomy_name_comparison_key(value: str) -> str:
+    """Normalize typography while preserving semantic distinctions such as accents."""
+    normalized = unicodedata.normalize("NFKC", str(value)).casefold()
+    cleaned = "".join(
+        " " if char.isspace() or char == "_" or unicodedata.category(char)[0] in {"P", "S"} else char
+        for char in normalized
+    )
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
+def validate_taxonomy_slug_mappings(entries: Iterable[Mapping[str, object]]) -> None:
+    """Reject one public slug mapping to genuinely different canonical names.
+
+    Punctuation, whitespace and case variants are accepted because they are
+    typographic. Accents/letters remain significant so a lossy slugification
+    cannot silently merge two distinct taxonomy labels.
+    """
+    category_names: dict[str, str] = {}
+    franchise_names: dict[tuple[str, str], str] = {}
+
+    for entry in entries:
+        category_slug = str(entry.get("categorySlug") or "").strip()
+        category_name = str(entry.get("categoryName") or "").strip()
+        franchise_slug = str(entry.get("franchiseSlug") or "").strip()
+        franchise_name = str(entry.get("franchiseName") or "").strip()
+        if not all((category_slug, category_name, franchise_slug, franchise_name)):
+            raise RuntimeError(f"taxonomia incompleta no modelo: {dict(entry)!r}")
+
+        previous_category = category_names.get(category_slug)
+        if (
+            previous_category is not None
+            and taxonomy_name_comparison_key(previous_category) != taxonomy_name_comparison_key(category_name)
+        ):
+            raise RuntimeError(
+                "slug de categoria representa nomes canônicos diferentes: "
+                f"{category_slug}: {previous_category!r} | {category_name!r}"
+            )
+        category_names.setdefault(category_slug, category_name)
+
+        franchise_key = (category_slug, franchise_slug)
+        previous_franchise = franchise_names.get(franchise_key)
+        if (
+            previous_franchise is not None
+            and taxonomy_name_comparison_key(previous_franchise) != taxonomy_name_comparison_key(franchise_name)
+        ):
+            raise RuntimeError(
+                "slug de franquia representa nomes canônicos diferentes: "
+                f"{category_slug}/{franchise_slug}: "
+                f"{previous_franchise!r} | {franchise_name!r}"
+            )
+        franchise_names.setdefault(franchise_key, franchise_name)
 
 
 def candidate_confidence(descriptors: Iterable[ViewDescriptor]) -> str:
