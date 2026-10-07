@@ -255,8 +255,16 @@ async function collapseLegacyViewRowsAcrossPages(rows: ApiCatalogRow[]): Promise
     if (!canonical || models.length !== group.memberSlugs.length) return
 
     const galleryCount = models.reduce((sum, model) => sum + model.galleryCount, 0)
+    const versionedMembers = models.map((model) => {
+      const version = model.galleryVersion
+      if (version === undefined || !Number.isSafeInteger(version) || version < 1) return null
+      return { slug: model.slug, gallery_version: version }
+    })
+    if (versionedMembers.some((member) => member === null)) return
     const galleryVersion = legacyCompositeGalleryVersion(
-      models.map((model) => ({ slug: model.slug, gallery_version: model.galleryVersion })),
+      versionedMembers.filter(
+        (member): member is { slug: string; gallery_version: number } => member !== null,
+      ),
     )
     if (!Number.isSafeInteger(galleryCount) || galleryCount < 2) return
 
