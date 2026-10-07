@@ -306,6 +306,91 @@ def apply_statement_batches(
     return batches
 
 
+def count_integrity_statements() -> list[dict[str, Any]]:
+    return [
+        {
+            "name": "categories",
+            "sql": """SELECT COUNT(*) AS mismatches
+FROM categories c
+WHERE c.model_count != (
+  SELECT COUNT(*)
+  FROM models m
+  JOIN franchises f ON f.id=m.franchise_id
+  WHERE m.published=1 AND f.category_id=c.id
+)""",
+            "params": [],
+        },
+        {
+            "name": "franchises",
+            "sql": """SELECT COUNT(*) AS mismatches
+FROM franchises f
+WHERE f.model_count != (
+  SELECT COUNT(*)
+  FROM models m
+  WHERE m.published=1 AND m.franchise_id=f.id
+)""",
+            "params": [],
+        },
+        {
+            "name": "folders_direct",
+            "sql": """SELECT COUNT(*) AS mismatches
+FROM catalog_folders cf
+WHERE cf.direct_model_count != (
+  SELECT COUNT(*)
+  FROM models m
+  WHERE m.published=1 AND m.folder_id=cf.id
+)""",
+            "params": [],
+        },
+        {
+            "name": "folders_subtree",
+            "sql": """WITH RECURSIVE tree(root_id,id) AS (
+  SELECT id,id FROM catalog_folders
+  UNION ALL
+  SELECT tree.root_id,child.id
+  FROM tree
+  JOIN catalog_folders child ON child.parent_id=tree.id
+),
+actual AS (
+  SELECT tree.root_id,COUNT(m.id) AS model_count
+  FROM tree
+  LEFT JOIN models m ON m.folder_id=tree.id AND m.published=1
+  GROUP BY tree.root_id
+)
+SELECT COUNT(*) AS mismatches
+FROM catalog_folders cf
+LEFT JOIN actual ON actual.root_id=cf.id
+WHERE cf.subtree_model_count != COALESCE(actual.model_count,0)""",
+            "params": [],
+        },
+    ]
+
+
+def verify_materialized_counts() -> dict[str, Any]:
+    specs = count_integrity_statements()
+    result = d1_request([
+        {"sql": item["sql"], "params": item["params"]}
+        for item in specs
+    ])
+    if len(result) != len(specs):
+        raise RuntimeError("verificação de contadores retornou quantidade inesperada de resultados")
+    summary: dict[str, int] = {}
+    for spec, item in zip(specs, result):
+        rows = item.get("results")
+        if not isinstance(rows, list) or len(rows) != 1:
+            raise RuntimeError(f"verificação de contador inválida: {spec['name']}")
+        mismatches = int(rows[0].get("mismatches") or 0)
+        summary[str(spec["name"])] = mismatches
+        if mismatches:
+            raise RuntimeError(
+                f"contador materializado divergente após reparo: {spec['name']}={mismatches}"
+            )
+    return {
+        "ready": True,
+        "mismatches": summary,
+    }
+
+
 def verify_applied(
     groups: list[dict[str, Any]],
     model_rows: list[dict[str, Any]],
@@ -360,6 +445,7 @@ def main() -> int:
         models, relations = fetch_state(groups)
         result = verify_applied(groups, models, relations)
         result["schema"] = schema
+        result["materializedCounts"] = verify_materialized_counts()
         result["batches"] = batches
         result["apply"] = True
         print(json.dumps(result, ensure_ascii=False))
