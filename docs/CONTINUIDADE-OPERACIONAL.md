@@ -219,6 +219,20 @@ Por isso `catalog_folders.direct_model_count` e `catalog_folders.subtree_model_c
 
 Não aplicar os 18 reparos antes de 0011–0015 e o Worker correspondente estarem realmente implantados e o health estrutural retornar verde.
 
+### Compatibilidade permanente de referências aposentadas
+
+Despublicar uma ficha-vista **não invalida seu ID nem seu slug**. Enquanto existir a relação em `model_gallery_members`:
+
+- `GET /api/models/<slug-antigo>` resolve para a ficha canônica publicada;
+- `GET /api/models/<slug-antigo>/images` abre a galeria canônica;
+- IDs antigos enviados por Favoritos/Minha lista/orçamento são resolvidos para o ID canônico;
+- dois IDs antigos que apontam para o mesmo produto são deduplicados antes de criar orçamento ou coleção;
+- coleções compartilhadas já gravadas com IDs antigos continuam carregando o produto canônico;
+- o modelo-fonte permanece no banco e sua mídia permanece no R2; ele só deixa de ser uma ficha navegável independente;
+- não apagar nem reciclar slug, código ou ID de uma ficha-fonte aposentada.
+
+`worker/modelAliases.ts` centraliza esse contrato. A limpeza de duplicatas é, portanto, uma **consolidação de identidade**, não uma exclusão destrutiva.
+
 ### Índice de identidade de mídia para escala
 
 O hash da imagem não deve ficar consultável apenas dentro de milhares de manifests no R2. A migration `0013_model_image_sources.sql` materializa no D1 somente os metadados necessários à auditoria:
