@@ -28,6 +28,8 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
+from model_identity import validate_identity_comparison_collisions
+
 VARIANTS = {
     "thumb": (360, 80),
     "card": (800, 84),
@@ -45,41 +47,6 @@ def slugify(value: str) -> str:
     ascii_value = normalized.encode("ascii", "ignore").decode("ascii").lower()
     slug = re.sub(r"[^a-z0-9]+", "-", ascii_value).strip("-")
     return slug or "modelo"
-
-
-def comparison_identity_key(value: str) -> str:
-    """Canonical comparison key used only to detect accidental duplicate identities.
-
-    Stable IDs continue hashing the original identity string for backward
-    compatibility. This key never changes an existing ID; it only blocks two
-    raw identities that are textually equivalent after Unicode/case/spacing
-    normalization.
-    """
-    normalized = unicodedata.normalize("NFKC", value)
-    parts = re.split(r"\s*/\s*", normalized)
-    normalized_parts = [
-        re.sub(r"\s+", " ", part.strip()).casefold()
-        for part in parts
-    ]
-    return " / ".join(normalized_parts)
-
-
-def validate_identity_comparison_collisions(identity_keys: list[str]) -> None:
-    by_comparison: dict[str, list[str]] = defaultdict(list)
-    for identity_key in identity_keys:
-        by_comparison[comparison_identity_key(identity_key)].append(identity_key)
-
-    collisions = [
-        sorted(set(raw_values), key=str.casefold)
-        for raw_values in by_comparison.values()
-        if len(set(raw_values)) > 1
-    ]
-    if collisions:
-        sample = " | ".join(collisions[0][:3])
-        raise RuntimeError(
-            "identidades públicas textualmente equivalentes gerariam IDs distintos; "
-            f"normalize/revise o registro antes de publicar: {sample}"
-        )
 
 
 DEFAULT_TAXONOMY_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-taxonomy.json"
