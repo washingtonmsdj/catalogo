@@ -426,6 +426,11 @@ def validate_built_model_identifiers(entries: list[dict]) -> None:
             owners[value] = identity
 
 
+def taxonomy_name_comparison_key(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).casefold()
+    return re.sub(r"[\W_]+", " ", normalized, flags=re.UNICODE).strip()
+
+
 def validate_built_taxonomy_identifiers(entries: list[dict]) -> None:
     category_names: dict[str, str] = {}
     franchise_names: dict[tuple[str, str], str] = {}
@@ -439,22 +444,28 @@ def validate_built_taxonomy_identifiers(entries: list[dict]) -> None:
             raise RuntimeError(f"taxonomia incompleta no modelo construído: {entry!r}")
 
         previous_category = category_names.get(category_slug)
-        if previous_category is not None and previous_category != category_name:
+        if (
+            previous_category is not None
+            and taxonomy_name_comparison_key(previous_category) != taxonomy_name_comparison_key(category_name)
+        ):
             raise RuntimeError(
                 "slug de categoria representa nomes canônicos diferentes: "
                 f"{category_slug}: {previous_category!r} | {category_name!r}"
             )
-        category_names[category_slug] = category_name
+        category_names.setdefault(category_slug, category_name)
 
         franchise_key = (category_slug, franchise_slug)
         previous_franchise = franchise_names.get(franchise_key)
-        if previous_franchise is not None and previous_franchise != franchise_name:
+        if (
+            previous_franchise is not None
+            and taxonomy_name_comparison_key(previous_franchise) != taxonomy_name_comparison_key(franchise_name)
+        ):
             raise RuntimeError(
                 "slug de franquia representa nomes canônicos diferentes: "
                 f"{category_slug}/{franchise_slug}: "
                 f"{previous_franchise!r} | {franchise_name!r}"
             )
-        franchise_names[franchise_key] = franchise_name
+        franchise_names.setdefault(franchise_key, franchise_name)
 
 
 def model_build_fingerprint(identity_key: str, rows: list[dict], include_original: bool, taxonomy: dict) -> str:
