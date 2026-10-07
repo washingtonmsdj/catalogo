@@ -309,7 +309,14 @@ export function useCatalogRuntime(initialSlug = '') {
     if (!card) return
     let cancelled = false
     getCatalogModel(card.slug, card.galleryVersion).then((model) => {
-      if (!cancelled && model) setSelectedDetail(model)
+      if (!cancelled && model) {
+        setSelectedDetail({
+          ...model,
+          galleryCount: card.galleryCount,
+          galleryVersion: card.galleryVersion,
+          gallerySourceSlugs: card.gallerySourceSlugs,
+        })
+      }
     }).catch(() => undefined)
     return () => { cancelled = true }
   }, [mode, selectedId, liveModels])
@@ -471,11 +478,37 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
     let cancelled = false
     setLoading(true)
     setError('')
-    listCatalogImages(selected.slug, {
-      page: requestedPageIndex,
-      limit: GALLERY_PAGE_SIZE,
-      version: selected.galleryVersion,
-    })
+    const legacySources = selected.gallerySourceSlugs?.length && selected.gallerySourceSlugs.length > 1
+      ? selected.gallerySourceSlugs
+      : null
+    const request = legacySources
+      ? Promise.all(legacySources.map((slug) => listCatalogImages(slug, { page: 0, limit: 60 })))
+          .then((pages) => {
+            const allItems = pages.flatMap((page, sourceIndex) =>
+              page.items.map((image) => ({
+                ...toCatalogImage(image),
+                id: `${legacySources[sourceIndex]}:${image.id}`,
+              })),
+            ).map((image, index) => ({
+              ...image,
+              role: index === 0 ? 'cover' as const : 'gallery' as const,
+            }))
+            const start = requestedPageIndex * GALLERY_PAGE_SIZE
+            return {
+              items: allItems.slice(start, start + GALLERY_PAGE_SIZE),
+              total: allItems.length,
+            }
+          })
+      : listCatalogImages(selected.slug, {
+          page: requestedPageIndex,
+          limit: GALLERY_PAGE_SIZE,
+          version: selected.galleryVersion,
+        }).then((page) => ({
+          items: page.items.map(toCatalogImage),
+          total: page.total,
+        }))
+
+    request
       .then((page) => {
         if (cancelled) return
         const totalPages = Math.max(1, Math.ceil(page.total / GALLERY_PAGE_SIZE))
@@ -483,7 +516,7 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
           setRequestedPageIndex(totalPages - 1)
           return
         }
-        setLiveItems(page.items.map(toCatalogImage))
+        setLiveItems(page.items)
         setLiveTotal(page.total)
         setLoadedPageIndex(requestedPageIndex)
       })
@@ -494,7 +527,7 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [mode, open, selected.id, selected.slug, selected.galleryVersion, requestedPageIndex])
+  }, [mode, open, selected.id, selected.slug, selected.galleryVersion, selected.gallerySourceSlugs, requestedPageIndex])
 
   const demoTotal = selected.galleryCount
   const demoStart = requestedPageIndex * GALLERY_PAGE_SIZE
