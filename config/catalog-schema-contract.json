@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "latestMigration": "0014_gallery_member_integrity.sql",
+  "requiredMigrations": [
+    "0001_catalog.sql",
+    "0002_keyset_pagination.sql",
+    "0003_catalog_counts.sql",
+    "0004_search_fts.sql",
+    "0005_franchise_discovery.sql",
+    "0006_franchise_search_fts.sql",
+    "0007_quote_public_reference.sql",
+    "0008_shared_collections.sql",
+    "0009_catalog_folders.sql",
+    "0010_recent_models_index.sql",
+    "0011_model_gallery_members.sql",
+    "0012_folder_materialized_counts.sql",
+    "0013_model_image_sources.sql",
+    "0014_gallery_member_integrity.sql"
+  ]
+}
