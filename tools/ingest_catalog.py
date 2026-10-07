@@ -248,7 +248,52 @@ def audited_view_family(source_stem: str) -> str | None:
     return descriptor[0] if descriptor else None
 
 
-def infer_audited_gallery_groups(records: list[ImageRecord]) -> int:\n    """Group only high-confidence legacy directional views.\n\n    Framing descriptors such as corpo inteiro or em pe are ambiguous and\n    remain distinct unless the audit registry provides an explicit\n    modelo_publico. This keeps heuristic inference fail-closed.\n    """\n    candidates: dict[\n        tuple[str, str],\n        list[tuple[ImageRecord, str, str, str, object]],\n    ] = defaultdict(list)\n    for record in records:\n        if record.status != "OK" or record.audit_model_group:\n            continue\n        source_stem = Path(record.path).stem\n        match = stem_view_descriptor(source_stem)\n        if not match:\n            continue\n        family, descriptor = match\n        candidates[(record.model_key, family.casefold())].append(\n            (record, family, descriptor.stem_suffix, source_stem, descriptor)\n        )\n\n    grouped = 0\n    for members in candidates.values():\n        if len(members) < 2:\n            continue\n        if candidate_confidence(member[4] for member in members) != "high":\n            continue\n        anchor = min(\n            members,\n            key=lambda member: (\n                VIEW_ANCHOR_PRIORITY.get(member[2], 100),\n                member[3].casefold(),\n                member[0].path.casefold(),\n            ),\n        )\n        group_identity = anchor[3]\n        for record, _family, _suffix, _source_stem, _descriptor in members:\n            record.audit_model_group = group_identity\n            record.public_model_key = f"{record.model_key} / {group_identity}"\n            grouped += 1\n    return grouped\ndef disambiguate_public_model_keys(records: list[ImageRecord]) -> None:
+def infer_audited_gallery_groups(records: list[ImageRecord]) -> int:
+    """Group only high-confidence legacy directional views.
+
+    Framing descriptors such as corpo inteiro or em pe are ambiguous and
+    remain distinct unless the audit registry provides an explicit
+    modelo_publico. This keeps heuristic inference fail-closed.
+    """
+    candidates: dict[
+        tuple[str, str],
+        list[tuple[ImageRecord, str, str, str, object]],
+    ] = defaultdict(list)
+    for record in records:
+        if record.status != "OK" or record.audit_model_group:
+            continue
+        source_stem = Path(record.path).stem
+        match = stem_view_descriptor(source_stem)
+        if not match:
+            continue
+        family, descriptor = match
+        candidates[(record.model_key, family.casefold())].append(
+            (record, family, descriptor.stem_suffix, source_stem, descriptor)
+        )
+
+    grouped = 0
+    for members in candidates.values():
+        if len(members) < 2:
+            continue
+        if candidate_confidence(member[4] for member in members) != "high":
+            continue
+        anchor = min(
+            members,
+            key=lambda member: (
+                VIEW_ANCHOR_PRIORITY.get(member[2], 100),
+                member[3].casefold(),
+                member[0].path.casefold(),
+            ),
+        )
+        group_identity = anchor[3]
+        for record, _family, _suffix, _source_stem, _descriptor in members:
+            record.audit_model_group = group_identity
+            record.public_model_key = f"{record.model_key} / {group_identity}"
+            grouped += 1
+    return grouped
+
+
+def disambiguate_public_model_keys(records: list[ImageRecord]) -> None:
     """Keep stable stem-based identities unless audited entries genuinely collide."""
     by_key: dict[str, list[ImageRecord]] = defaultdict(list)
     for record in records:
