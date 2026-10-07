@@ -231,6 +231,53 @@ class AuditModelIdentityTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "sem revisão registrada"):
             validate_numbered_sibling_review(other, registry)
 
+    def test_numbered_review_rejects_stale_registry_debt(self) -> None:
+        rows = [
+            model("base", "dragon-ball-androide-18-estatua"),
+            model("one", "dragon-ball-androide-18-estatua-01"),
+        ]
+        live_key = (
+            "animes-desenhos",
+            "dragon-ball",
+            "androides/androide-18",
+            "androide 18",
+            "dragon-ball-androide-18-estatua",
+        )
+        stale_key = (
+            "animes-desenhos",
+            "dragon-ball",
+            "androides/androide-18",
+            "androide 18",
+            "dragon-ball-antigo",
+        )
+        registry = {
+            live_key: {
+                "categorySlug": live_key[0],
+                "franchiseSlug": live_key[1],
+                "folderPathKey": live_key[2],
+                "displayName": "Androide 18",
+                "baseId": "base",
+                "baseSlug": live_key[4],
+                "siblingSlugs": ["dragon-ball-androide-18-estatua-01"],
+                "status": "pending",
+                "reason": "revisão pendente",
+            },
+            stale_key: {
+                "categorySlug": stale_key[0],
+                "franchiseSlug": stale_key[1],
+                "folderPathKey": stale_key[2],
+                "displayName": "Androide 18",
+                "baseId": "old",
+                "baseSlug": stale_key[4],
+                "siblingSlugs": ["dragon-ball-antigo-01"],
+                "status": "pending",
+                "reason": "dívida antiga",
+            },
+        }
+
+        with self.assertRaisesRegex(RuntimeError, "sem candidato atual"):
+            validate_numbered_sibling_review(rows, registry)
+
     def test_cross_model_exact_sha_is_reported_without_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
