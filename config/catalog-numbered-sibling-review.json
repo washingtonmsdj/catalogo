@@ -380,8 +380,8 @@
       "siblingSlugs": [
         "mortal-kombat-nightwolf-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Nightwolf.jpg e Nightwolf 02.jpg): esculturas, poses e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -393,8 +393,8 @@
       "siblingSlugs": [
         "mortal-kombat-sektor-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Sektor.jpg e Sektor 02.jpg): esculturas, poses, armaduras e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -407,8 +407,8 @@
         "mortal-kombat-shao-kahn-02",
         "mortal-kombat-shao-kahn-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Shao Kahn.jpg, Shao Kahn 02.jpg e Shao Kahn 03.jpg): esculturas, poses e bases são diferentes; manter como produtos distintos. Shao Kahn - Chibi.jpg já é identidade separada e não participa do grupo numerado."
     },
     {
       "categorySlug": "games",
