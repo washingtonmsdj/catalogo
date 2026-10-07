@@ -34,6 +34,8 @@ jobs:
         run: npm run test:worker-gallery-contract
       - name: Test Worker folder count contract
         run: npm run test:worker-folder-counts
+      - name: Test Worker public search contract
+        run: npm run test:worker-search-contract
       - name: Test Worker schema contract
         run: npm run test:worker-schema-contract
       - name: Test Worker health contract
