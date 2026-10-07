@@ -412,6 +412,102 @@ def read_gallery_shrink_approvals(path: Path | None) -> dict[str, dict[str, Any]
     return approvals
 
 
+def read_model_retirement_approvals(path: Path | None) -> dict[str, dict[str, str]]:
+    if path is None:
+        return {}
+    if not path.is_file():
+        raise RuntimeError(f"aprovações de aposentadoria não encontradas: {path}")
+    required = {"model_id", "slug", "code", "reason"}
+    approvals: dict[str, dict[str, str]] = {}
+    with path.open("r", encoding="utf-8-sig", newline="") as handle:
+        reader = csv.DictReader(handle)
+        if not required.issubset(reader.fieldnames or []):
+            raise RuntimeError(
+                f"aprovações de aposentadoria sem colunas obrigatórias {sorted(required)}: {path}"
+            )
+        for line_no, row in enumerate(reader, 2):
+            normalized = {key: str(row.get(key) or "").strip() for key in required}
+            if not all(normalized.values()):
+                raise RuntimeError(f"aprovação de aposentadoria inválida em {path}, linha {line_no}")
+            model_id = normalized["model_id"]
+            if model_id in approvals:
+                raise RuntimeError(f"aprovação de aposentadoria duplicada para modelo: {model_id}")
+            approvals[model_id] = normalized
+    return approvals
+
+
+def production_inventory_statement(after_id: str, limit: int) -> dict[str, Any]:
+    if limit < 1 or limit > 5000:
+        raise ValueError("limite do inventário deve ficar entre 1 e 5000")
+    return {
+        "sql": """SELECT id,slug,code,name,published
+FROM models
+WHERE published=1 AND id>?
+ORDER BY id
+LIMIT ?""",
+        "params": [after_id, limit],
+    }
+
+
+def validate_model_retirements(
+    candidate_rows: list[dict[str, Any]],
+    production_inventory: list[dict[str, Any]],
+    approvals: dict[str, dict[str, str]],
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    candidate_ids = {str(row["id"]).strip() for row in candidate_rows}
+    production_by_id: dict[str, dict[str, Any]] = {}
+    for row in production_inventory:
+        model_id = str(row.get("id") or "").strip()
+        slug = str(row.get("slug") or "").strip()
+        code = str(row.get("code") or "").strip()
+        if not model_id or not slug or not code:
+            raise RuntimeError(f"inventário publicado inválido: {row!r}")
+        previous = production_by_id.get(model_id)
+        if previous is not None and previous != row:
+            raise RuntimeError(f"inventário publicado contém ID duplicado: {model_id}")
+        production_by_id[model_id] = row
+
+    absent_ids = sorted(set(production_by_id).difference(candidate_ids))
+    approval_ids = set(approvals)
+
+    unexpected = sorted(approval_ids.difference(absent_ids))
+    if unexpected:
+        raise RuntimeError(
+            f"aprovações de aposentadoria sem modelo ausente correspondente: {unexpected[:5]}"
+        )
+
+    missing = sorted(set(absent_ids).difference(approval_ids))
+    if missing:
+        raise RuntimeError(
+            f"snapshot não contém {len(absent_ids)} modelo(s) publicado(s), mas faltam "
+            f"{len(missing)} aprovação(ões) de aposentadoria: {missing[:5]}"
+        )
+
+    retirements: list[dict[str, Any]] = []
+    for model_id in absent_ids:
+        current = production_by_id[model_id]
+        approval = approvals[model_id]
+        if approval["slug"] != str(current["slug"]) or approval["code"] != str(current["code"]):
+            raise RuntimeError(
+                f"aprovação de aposentadoria não corresponde ao estado atual de {model_id}: "
+                f"slug/code divergentes"
+            )
+        retirements.append({
+            "sql": """UPDATE models
+SET published=0,updated_at=CURRENT_TIMESTAMP
+WHERE id=? AND slug=? AND code=? AND published=1""",
+            "params": [model_id, approval["slug"], approval["code"]],
+        })
+
+    return {
+        "ready": True,
+        "candidateModels": len(candidate_ids),
+        "publishedInventory": len(production_by_id),
+        "absentPublishedModels": len(absent_ids),
+        "approvedRetirements": len(retirements),
+    }, retirements
+
+
 def validate_production_compatibility(
     rows: list[dict[str, Any]],
     production_rows: list[dict[str, Any]],
@@ -671,6 +767,41 @@ def fetch_production_matches(
     return list(matches.values())
 
 
+def fetch_published_inventory(
+    account_id: str,
+    database_id: str,
+    token: str,
+    page_size: int = 1000,
+) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    after_id = ""
+    while True:
+        statement = production_inventory_statement(after_id, page_size)
+        body = request_batch_json(account_id, database_id, token, [statement])
+        result = body.get("result")
+        if not isinstance(result, list) or len(result) != 1:
+            raise RuntimeError("resposta inesperada ao consultar inventário D1")
+        item = result[0]
+        if not isinstance(item, dict) or item.get("success") is not True:
+            raise RuntimeError(f"consulta do inventário D1 falhou: {item!r}")
+        page = item.get("results")
+        if not isinstance(page, list):
+            raise RuntimeError("inventário D1 retornou results inválido")
+        if not page:
+            break
+        for row in page:
+            if not isinstance(row, dict):
+                raise RuntimeError("linha inválida no inventário D1")
+            rows.append(row)
+        last_id = str(page[-1].get("id") or "").strip()
+        if not last_id or last_id <= after_id:
+            raise RuntimeError("paginação do inventário D1 não avançou")
+        after_id = last_id
+        if len(page) < page_size:
+            break
+    return rows
+
+
 def request_batch(account_id: str, database_id: str, token: str, batch: list[dict[str, Any]]) -> None:
     request_batch_json(account_id, database_id, token, batch)
 
@@ -695,6 +826,14 @@ def main() -> int:
         "--gallery-shrink-approvals",
         type=Path,
         help="CSV de aprovações explícitas para reduções de imageCount em modelos já publicados",
+    )
+    parser.add_argument(
+        "--retire-absent-approvals",
+        type=Path,
+        help=(
+            "CSV model_id,slug,code,reason; quando informado, exige inventário completo "
+            "e aposenta somente fichas publicadas ausentes do snapshot com aprovação exata"
+        ),
     )
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--r2-state", type=Path, help="checkpoint R2; padrão: r2-publish-state.json ao lado de models.jsonl")
@@ -732,6 +871,19 @@ def main() -> int:
             gallery_shrink_approvals,
         )
 
+        retirement_statements: list[dict[str, Any]] = []
+        if args.retire_absent_approvals:
+            retirement_approvals = read_model_retirement_approvals(args.retire_absent_approvals)
+            production_inventory = fetch_published_inventory(account_id, database_id, token)
+            retirement_summary, retirement_statements = validate_model_retirements(
+                rows,
+                production_inventory,
+                retirement_approvals,
+            )
+            summary["retirementPlan"] = retirement_summary
+            summary["destructiveDeletes"] = 0
+            summary["softRetirements"] = len(retirement_statements)
+
         if not args.apply:
             print(json.dumps(summary, ensure_ascii=False))
             return 0
@@ -741,6 +893,9 @@ def main() -> int:
 
         batches = 0
         for batch in chunked(statements, args.batch_size):
+            request_batch(account_id, database_id, token, batch)
+            batches += 1
+        for batch in chunked(retirement_statements, args.batch_size):
             request_batch(account_id, database_id, token, batch)
             batches += 1
         summary["batches"] = batches
