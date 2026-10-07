@@ -9,7 +9,7 @@ on:
         default: false
         type: boolean
       apply_legacy_gallery_repairs:
-        description: Aplicar os 18 reparos de galerias legadas revisados após o deploy saudável
+        description: Aplicar os reparos de galerias legadas registrados e revisados após o deploy saudável
         required: false
         default: false
         type: boolean
