@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { legacyCompositeGalleryVersion, planLegacyGalleryGroups, registeredLegacyGalleryForRow, registeredLegacyGalleryGroups } from '../src/lib/legacyGalleryGrouping.ts'
+import { legacyCompositeGalleryVersion, planLegacyGalleryGroups, registeredLegacyGalleryForRow, registeredLegacyGalleryGroups, uniqueLegacyGalleryImages } from '../src/lib/legacyGalleryGrouping.ts'
 
 function row(id, slug, overrides = {}) {
   return {
@@ -100,6 +100,18 @@ test('registered legacy duplicate-card debt never grows above audited baseline',
   assert.ok(
     extraCards <= 29,
     `legacy duplicate-card debt increased from audited baseline: ${extraCards} > 29`,
+  )
+})
+
+test('legacy gallery image deduplication keeps first SHA occurrence deterministically', () => {
+  const a = { id: 'a', sourceSha256: 'a'.repeat(64) }
+  const duplicateA = { id: 'a-duplicate', sourceSha256: 'a'.repeat(64) }
+  const b = { id: 'b', sourceSha256: 'b'.repeat(64) }
+
+  assert.deepEqual(uniqueLegacyGalleryImages([a, duplicateA, b]), [a, b])
+  assert.throws(
+    () => uniqueLegacyGalleryImages([{ id: 'bad', sourceSha256: 'invalid' }]),
+    /invalid sourceSha256/,
   )
 })
 
