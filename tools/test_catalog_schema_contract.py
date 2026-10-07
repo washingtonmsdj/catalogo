@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -86,6 +87,47 @@ class CatalogSchemaContractTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "estrutura D1 diverge"):
             validate_schema_structures(contract, rows[:-1])
+
+    def test_structure_statement_executes_against_real_sqlite_schema(self) -> None:
+        db = sqlite3.connect(":memory:")
+        db.executescript("""
+        CREATE TABLE models(
+          id TEXT PRIMARY KEY,
+          public_gallery_version INTEGER NOT NULL DEFAULT 1
+        );
+        CREATE TABLE model_gallery_members(
+          canonical_model_id TEXT NOT NULL,
+          source_model_id TEXT NOT NULL
+        );
+        CREATE INDEX idx_gallery ON model_gallery_members(canonical_model_id);
+        CREATE TRIGGER trg_gallery
+        BEFORE INSERT ON model_gallery_members
+        BEGIN
+          SELECT CASE WHEN NEW.canonical_model_id=NEW.source_model_id
+            THEN RAISE(ABORT, 'invalid') END;
+        END;
+        """)
+        contract = {
+            "version": 1,
+            "latestMigration": "0001.sql",
+            "requiredMigrations": ["0001.sql"],
+            "requiredObjects": {
+                "tables": ["model_gallery_members"],
+                "indexes": ["idx_gallery"],
+                "triggers": ["trg_gallery"],
+                "columns": {"models": ["public_gallery_version"]},
+            },
+        }
+
+        statement = schema_structure_statement(contract)
+        rows = [
+            {"structure_key": row[0]}
+            for row in db.execute(statement["sql"], statement["params"]).fetchall()
+        ]
+        ready = validate_schema_structures(contract, rows)
+
+        self.assertEqual(ready["verifiedStructures"], 4)
+        db.close()
 
     def test_applied_migrations_fail_closed_when_any_required_item_is_missing(self) -> None:
         contract = {
