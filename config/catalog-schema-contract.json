@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "latestMigration": "0017_gallery_lifecycle_integrity.sql",
+  "latestMigration": "0018_gallery_alias_immutability.sql",
   "requiredMigrations": [
     "0001_catalog.sql",
     "0002_keyset_pagination.sql",
@@ -18,7 +18,8 @@
     "0014_gallery_member_integrity.sql",
     "0015_gallery_publication_invariant.sql",
     "0016_public_gallery_revision.sql",
-    "0017_gallery_lifecycle_integrity.sql"
+    "0017_gallery_lifecycle_integrity.sql",
+    "0018_gallery_alias_immutability.sql"
   ],
   "requiredObjects": {
     "tables": [
@@ -49,7 +50,9 @@
       "trg_gallery_member_source_must_be_active",
       "trg_gallery_canonical_cannot_retire_with_members",
       "trg_gallery_member_scope_immutable",
-      "trg_gallery_member_model_delete_protected"
+      "trg_gallery_member_model_delete_protected",
+      "trg_gallery_member_public_identity_immutable",
+      "trg_gallery_relation_delete_protected"
     ],
     "columns": {
       "catalog_folders": [
