@@ -185,7 +185,7 @@ Não aumentar esse registro para “resolver” ambiguidades. Casos novos devem 
 - a única mutação permitida é `published=0`; **não há DELETE**;
 - uma ficha ainda presente no snapshot nunca pode ser aposentada por esse CSV.
 
-Esse mecanismo **não deve ser usado ainda nos 29 cards legados**. Primeiro o Worker multi-galeria e as migrations correspondentes precisam estar efetivamente em produção e validados pela API pública.
+Esse mecanismo genérico continua disponível para snapshots futuros, mas **não é o caminho autorizado para os 29 cards legados já revisados**. Para esses 18 grupos existe agora `tools/apply_legacy_gallery_repairs.py`, que só insere relações canônico→fonte; a migration 0015 aposenta cada fonte no mesmo statement, sem DELETE.
 
 ### Estado de migrations da produção
 
@@ -197,9 +197,27 @@ Ainda pendentes na produção:
 
 - `0011_model_gallery_members.sql` — relação canônico → fontes de galeria;
 - `0012_folder_materialized_counts.sql` — contadores materializados `direct_model_count` e `subtree_model_count`;
-- `0013_model_image_sources.sql` — índice consultável de `source_sha256` por imagem/modelo/versão para auditoria exata em escala.
+- `0013_model_image_sources.sql` — índice consultável de `source_sha256` por imagem/modelo/versão para auditoria exata em escala;
+- `0014_gallery_member_integrity.sql` — bloqueia ciclos, cadeias e relações entre escopos incompatíveis;
+- `0015_gallery_publication_invariant.sql` — ao anexar uma ficha-fonte à galeria canônica, aposenta a fonte no mesmo statement e impede republicação acidental.
 
 Por isso `catalog_folders.direct_model_count` e `catalog_folders.subtree_model_count` ainda não existem no D1 público. A migration 0012 já possui triggers para INSERT, DELETE, mudança de pasta e `published: 1↔0`; os testes cobrem inclusive a aposentadoria lógica reduzindo a contagem da pasta e de todos os ancestrais. Não aplicar essas migrations manualmente fora do workflow apenas para contornar a credencial ausente; manter a ordem versionada e a tabela `d1_migrations` coerente.
+
+### Contrato de schema e promoção das galerias legadas
+
+- `config/catalog-schema-contract.json` é a SSOT versionada das migrations exigidas pelo Worker;
+- o CI compara esse contrato com **todos** os arquivos `migrations/NNNN_*.sql`; migration nova sem atualização do contrato quebra o gate;
+- `/api/health` consulta `d1_migrations` e retorna 503 `schema_not_ready` se faltar qualquer migration;
+- estado saudável é cacheado por instância do Worker; estado incompleto **não** é cacheado, permitindo recuperação imediata após a migration;
+- o workflow Cloudflare só prossegue depois de `check_worker_health.mjs` confirmar contrato, última migration e zero pendências;
+- todo deploy saudável executa `apply_legacy_gallery_repairs.py` em modo somente leitura para provar que o D1 ainda corresponde aos 18 grupos revisados;
+- aplicar as relações exige `workflow_dispatch` com `apply_legacy_gallery_repairs=true`; o padrão é **false**;
+- a operação é idempotente: relações já corretas são ignoradas e progresso parcial pode ser retomado;
+- inserir a relação aposenta a fonte automaticamente; contadores de categoria, franquia e pasta são atualizados pelos triggers existentes;
+- uma fonte anexada não pode voltar a `published=1` enquanto a relação existir;
+- alterar identidade canônico/fonte de uma relação existente é proibido; reestruturação exige operação explícita e auditada.
+
+Não aplicar os 18 reparos antes de 0011–0015 e o Worker correspondente estarem realmente implantados e o health estrutural retornar verde.
 
 ### Índice de identidade de mídia para escala
 
