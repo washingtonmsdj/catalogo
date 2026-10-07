@@ -102,6 +102,34 @@ class PublishD1Tests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "slug vazio ou duplicado"):
                 load_models(path)
 
+    def test_load_rejects_semantic_taxonomy_collision_but_allows_typographic_variant(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "models.jsonl"
+            first = model("mdl-1", "produto-a", "TS-1", variant="A")
+            second = model("mdl-2", "produto-b", "TS-2", variant="B")
+            first["franchiseName"] = "Pokémon"
+            first["franchiseSlug"] = "pokemon"
+            second["franchiseName"] = "Pokemon"
+            second["franchiseSlug"] = "pokemon"
+            path.write_text(
+                "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in (first, second)),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "slug de franquia"):
+                load_models(path)
+
+            first["franchiseName"] = "Saga A"
+            first["franchiseSlug"] = "saga-a"
+            second["franchiseName"] = "Saga-A"
+            second["franchiseSlug"] = "saga-a"
+            path.write_text(
+                "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in (first, second)),
+                encoding="utf-8",
+            )
+
+            self.assertEqual(len(load_models(path)), 2)
+
     def test_statements_apply_idempotently_against_catalog_schema(self) -> None:
         db = sqlite3.connect(':memory:')
         migrations = Path(__file__).resolve().parents[1] / 'migrations'
