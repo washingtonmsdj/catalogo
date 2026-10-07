@@ -26,7 +26,7 @@ type Descriptor = {
   class: 'directional' | 'framing'
 }
 
-type Override = {
+export type LegacyGalleryOverride = {
   categorySlug: string
   franchiseSlug: string
   folderPathKey: string
@@ -43,7 +43,7 @@ const descriptors = (viewDescriptorConfig.descriptors as Descriptor[])
   }))
   .sort((left, right) => right.suffix.length - left.suffix.length || left.priority - right.priority)
 
-const reviewedOverrides = legacyOverrideConfig.groups as Override[]
+const reviewedOverrides = legacyOverrideConfig.groups as LegacyGalleryOverride[]
 
 function descriptorFor(slug: string) {
   for (const descriptor of descriptors) {
@@ -64,6 +64,23 @@ function groupKey(row: LegacyGalleryRow, family: string) {
   ].join('|')
 }
 
+function sameOverrideScope(row: LegacyGalleryRow, candidate: LegacyGalleryOverride) {
+  return candidate.categorySlug === row.category_slug
+    && candidate.franchiseSlug === row.franchise_slug
+    && candidate.folderPathKey === (row.folder_path ?? '')
+}
+
+export function registeredLegacyGalleryForRow(row: LegacyGalleryRow): LegacyGalleryOverride | null {
+  if (row.image_count !== 1) return null
+  return reviewedOverrides.find(
+    (candidate) => sameOverrideScope(row, candidate) && candidate.memberSlugs.includes(row.slug),
+  ) ?? null
+}
+
+export function registeredLegacyGalleryGroups(): readonly LegacyGalleryOverride[] {
+  return reviewedOverrides
+}
+
 function reviewedOverride(
   first: LegacyGalleryRow,
   family: string,
@@ -72,9 +89,7 @@ function reviewedOverride(
   const memberSlugs = new Set(members.map(({ row }) => row.slug))
   return reviewedOverrides.find((candidate) => {
     if (
-      candidate.categorySlug !== first.category_slug
-      || candidate.franchiseSlug !== first.franchise_slug
-      || candidate.folderPathKey !== (first.folder_path ?? '')
+      !sameOverrideScope(first, candidate)
       || candidate.family !== family
     ) return false
     const expected = new Set(candidate.memberSlugs)
