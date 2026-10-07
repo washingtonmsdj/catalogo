@@ -96,6 +96,12 @@ def public_identity_label(identity_key: str, hierarchy_key: str, source_stem: st
         value = identity_key[len(prefix):].strip()
         if value:
             return value
+    # Renomes/mudanças de pasta aprovados continuam usando o último segmento
+    # da identidade canônica histórica para preservar o slug público.
+    if " / " in identity_key:
+        historical_leaf = identity_key.rsplit(" / ", 1)[-1].strip()
+        if historical_leaf:
+            return historical_leaf
     return source_stem
 
 
