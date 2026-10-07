@@ -1,6 +1,6 @@
 import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 import { FRANCHISE_SEARCH_MIN_LENGTH, type CatalogListQuery, type CatalogModelCard, type CursorPage, type GalleryQuery } from './catalogRepository'
-import { planLegacyGalleryGroups } from '../lib/legacyGalleryGrouping'
+import { planLegacyGalleryGroups, registeredLegacyGalleryForRow, type LegacyGalleryOverride } from '../lib/legacyGalleryGrouping'
 
 export type CatalogRuntimeMode = 'demo' | 'live'
 
@@ -202,6 +202,91 @@ export function collapseLegacyViewRows(rows: ApiCatalogRow[]): CatalogModelCard[
   return cards
 }
 
+const legacyModelDetailCache = new Map<string, Promise<CatalogModel | null>>()
+
+function loadLegacyModelDetail(slug: string) {
+  const cached = legacyModelDetailCache.get(slug)
+  if (cached) return cached
+  const pending = getCatalogModel(slug).catch((error) => {
+    legacyModelDetailCache.delete(slug)
+    throw error
+  })
+  legacyModelDetailCache.set(slug, pending)
+  return pending
+}
+
+function catalogModelToCard(model: CatalogModel): CatalogModelCard {
+  return {
+    id: model.id,
+    slug: model.slug,
+    code: model.code,
+    name: model.name,
+    franchise: model.franchise,
+    franchiseSlug: model.franchiseSlug,
+    category: model.category,
+    collection: model.collection,
+    folderPath: model.folderPath,
+    galleryCount: model.galleryCount,
+    galleryVersion: model.galleryVersion,
+    accent: model.accent,
+    coverUrl: model.coverUrl,
+  }
+}
+
+async function collapseLegacyViewRowsAcrossPages(rows: ApiCatalogRow[]): Promise<CatalogModelCard[]> {
+  const baseCards = collapseLegacyViewRows(rows)
+  const touched = new Map<string, LegacyGalleryOverride>()
+
+  for (const row of rows) {
+    const group = registeredLegacyGalleryForRow(row)
+    if (group) touched.set(group.canonicalSlug, group)
+  }
+  if (!touched.size) return baseCards
+
+  const hydrated = new Map<string, CatalogModelCard>()
+  await Promise.all(Array.from(touched.values(), async (group) => {
+    const details = await Promise.all(group.memberSlugs.map((slug) => loadLegacyModelDetail(slug)))
+    if (details.some((model) => !model || model.galleryCount !== 1)) return
+
+    const models = details.filter((model): model is CatalogModel => Boolean(model))
+    const canonical = models.find((model) => model.slug === group.canonicalSlug)
+    if (!canonical || models.length !== group.memberSlugs.length) return
+
+    const galleryCount = models.reduce((sum, model) => sum + model.galleryCount, 0)
+    const galleryVersion = models.reduce((sum, model) => sum + (model.galleryVersion ?? 0), 0)
+    if (!Number.isSafeInteger(galleryCount) || galleryCount < 2) return
+    if (!Number.isSafeInteger(galleryVersion) || galleryVersion < 1) return
+
+    hydrated.set(group.canonicalSlug, {
+      ...catalogModelToCard(canonical),
+      galleryCount,
+      galleryVersion,
+      gallerySourceSlugs: group.memberSlugs,
+    })
+  }))
+
+  if (!hydrated.size) return baseCards
+
+  const rowBySlug = new Map(rows.map((row) => [row.slug, row]))
+  const emitted = new Set<string>()
+  const result: CatalogModelCard[] = []
+
+  for (const card of baseCards) {
+    const sourceRow = rowBySlug.get(card.slug)
+    const group = sourceRow ? registeredLegacyGalleryForRow(sourceRow) : null
+    const replacement = group ? hydrated.get(group.canonicalSlug) : undefined
+    if (!replacement) {
+      result.push(card)
+      continue
+    }
+    if (emitted.has(group!.canonicalSlug)) continue
+    emitted.add(group!.canonicalSlug)
+    result.push(replacement)
+  }
+
+  return result
+}
+
 function toCatalogModelCard(row: ApiCatalogRow): CatalogModelCard {
   return {
     id: row.id,
@@ -231,7 +316,7 @@ export async function listCatalogModels(query: CatalogListQuery = {}): Promise<C
   }))
 
   return {
-    items: collapseLegacyViewRows(result.items),
+    items: await collapseLegacyViewRowsAcrossPages(result.items),
     nextCursor: result.nextCursor,
     totalApprox: 0,
   }
@@ -241,7 +326,7 @@ export async function listRecentCatalogModels(limit = 12): Promise<CatalogModelC
   const result = await requestJson<{ items: ApiCatalogRow[] }>(endpoint('/api/recent', {
     limit: Math.max(1, Math.min(24, Math.trunc(limit))),
   }))
-  return collapseLegacyViewRows(result.items)
+  return collapseLegacyViewRowsAcrossPages(result.items)
 }
 
 export async function getCatalogModel(slug: string, galleryVersion?: number): Promise<CatalogModel | null> {
