@@ -50,7 +50,7 @@ def slugify(value: str) -> str:
 DEFAULT_TAXONOMY_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-taxonomy.json"
 MEDIA_BUILD_STATE_VERSION = 1
 MEDIA_RENDERER_VERSION = 1
-MEDIA_METADATA_VERSION = 5
+MEDIA_METADATA_VERSION = 6
 MEDIA_CHECKPOINT_INTERVAL = 10
 MEDIA_STATE_REPLACE_ATTEMPTS = 10
 MEDIA_STATE_REPLACE_DELAY_SECONDS = 0.1
@@ -275,6 +275,7 @@ def model_metadata(
     search_text = " ".join(dict.fromkeys([*hierarchy, *collection_parts, display_name, source_label, code])).casefold()
 
     return {
+        "identityKey": identity_key,
         "id": model_id,
         "slug": model_slug,
         "code": code,
