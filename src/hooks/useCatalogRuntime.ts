@@ -12,6 +12,7 @@ import {
   toCatalogImage,
 } from '../services/catalogApi'
 import { readDiscoveryScope, replaceDiscoveryScope } from '../services/catalogNavigation'
+import { uniqueLegacyGalleryImages } from '../lib/legacyGalleryGrouping'
 import type { CatalogModelCard } from '../services/catalogRepository'
 import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel, ModelRouteStatus } from '../types/catalog'
 
@@ -484,15 +485,17 @@ export function useModelGallery(mode: 'demo' | 'live', selected: CatalogModel, o
     const request = legacySources
       ? Promise.all(legacySources.map((slug) => listCatalogImages(slug, { page: 0, limit: 60 })))
           .then((pages) => {
-            const allItems = pages.flatMap((page, sourceIndex) =>
+            const rawItems = pages.flatMap((page, sourceIndex) =>
               page.items.map((image) => ({
-                ...toCatalogImage(image),
+                ...image,
                 id: `${legacySources[sourceIndex]}:${image.id}`,
               })),
-            ).map((image, index) => ({
-              ...image,
-              role: index === 0 ? 'cover' as const : 'gallery' as const,
-            }))
+            )
+            const allItems = uniqueLegacyGalleryImages(rawItems)
+              .map((image, index) => ({
+                ...toCatalogImage(image),
+                role: index === 0 ? 'cover' as const : 'gallery' as const,
+              }))
             const start = requestedPageIndex * GALLERY_PAGE_SIZE
             return {
               items: allItems.slice(start, start + GALLERY_PAGE_SIZE),
