@@ -253,10 +253,23 @@
       ],
       "matchMode": "explicit-members",
       "reason": "Revisão visual de 2026-10-07: os dois arquivos mostram a mesma escultura em renders diferentes."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "digimon",
+      "folderPathKey": "kari-e-tailmon",
+      "family": "digimon-kari-e-tailmon-modelo",
+      "canonicalSlug": "digimon-kari-e-tailmon",
+      "memberSlugs": [
+        "digimon-kari-e-tailmon",
+        "digimon-kari-e-tailmon-02"
+      ],
+      "matchMode": "explicit-members",
+      "reason": "Revisão visual de 2026-10-07: os dois arquivos mostram a mesma escultura; o segundo é apenas um close/render adicional."
     }
   ],
-  "auditedExtraCards": 31,
+  "auditedExtraCards": 32,
   "auditedAt": "2026-10-07",
-  "auditedGroups": 20,
-  "auditedMemberCards": 51
+  "auditedGroups": 21,
+  "auditedMemberCards": 53
 }
