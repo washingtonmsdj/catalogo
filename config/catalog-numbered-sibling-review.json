@@ -1,0 +1,716 @@
+{
+  "version": 1,
+  "auditedAt": "2026-10-07",
+  "baselinePublishedModels": 2596,
+  "baselineGroups": 49,
+  "baselineSiblingRows": 114,
+  "policy": {
+    "pending": "Não consolidar automaticamente; exige revisão visual/identidade.",
+    "distinct": "Produtos revisados e confirmados como distintos.",
+    "merge": "Não usar aqui; consolidações aprovadas devem migrar para o registro canônico de galeria."
+  },
+  "groups": [
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "as-tartarugas-ninja",
+      "folderPathKey": "viloes/armaggon",
+      "displayName": "Armaggon",
+      "baseId": "mdl_1106bd9d1288190325ae",
+      "baseSlug": "as-tartarugas-ninja-armaggon",
+      "siblingSlugs": [
+        "as-tartarugas-ninja-armaggon-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "digimon",
+      "folderPathKey": "kari-e-tailmon",
+      "displayName": "Kari e tailmon",
+      "baseId": "mdl_391c8d41819ef4162e63",
+      "baseSlug": "digimon-kari-e-tailmon",
+      "siblingSlugs": [
+        "digimon-kari-e-tailmon-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "dioramas/goku-e-piccolo",
+      "displayName": "Goku e piccolo",
+      "baseId": "mdl_7a5d3d0ff0cc7b64f38e",
+      "baseSlug": "dragon-ball-goku-e-piccolo",
+      "siblingSlugs": [
+        "dragon-ball-goku-e-piccolo-2"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "saiyajins/bardock",
+      "displayName": "Bardock",
+      "baseId": "mdl_89fb49c060261bb5d735",
+      "baseSlug": "dragon-ball-bardock",
+      "siblingSlugs": [
+        "dragon-ball-bardock-105776"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "saiyajins/vegeta",
+      "displayName": "Vegeta",
+      "baseId": "mdl_45704ec7eea372f6c3ff",
+      "baseSlug": "dragon-ball-vegeta-ultra-ego",
+      "siblingSlugs": [
+        "dragon-ball-vegeta-ultra-ego-2"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "naruto",
+      "folderPathKey": "akatsuki/pain",
+      "displayName": "Pain",
+      "baseId": "mdl_29a4bbad36d0f1a5499e",
+      "baseSlug": "naruto-pain",
+      "siblingSlugs": [
+        "naruto-pain-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "naruto",
+      "folderPathKey": "hashirama",
+      "displayName": "Hashirama",
+      "baseId": "mdl_a16c7199c24eb55d3eb2",
+      "baseSlug": "naruto-hashirama",
+      "siblingSlugs": [
+        "naruto-hashirama-01"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "filmes-series",
+      "franchiseSlug": "o-senhor-dos-aneis",
+      "folderPathKey": "smaug",
+      "displayName": "Smaug",
+      "baseId": "mdl_80d617d55327c471ac50",
+      "baseSlug": "o-senhor-dos-aneis-smaug",
+      "siblingSlugs": [
+        "o-senhor-dos-aneis-smaug-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "filmes-series",
+      "franchiseSlug": "star-wars",
+      "folderPathKey": "darth-vader",
+      "displayName": "Darth vader",
+      "baseId": "mdl_6ea471e2f0e1f8b0f0b9",
+      "baseSlug": "star-wars-darth-vader",
+      "siblingSlugs": [
+        "star-wars-darth-vader-04",
+        "star-wars-darth-vader-05",
+        "star-wars-darth-vader-06",
+        "star-wars-darth-vader-07",
+        "star-wars-darth-vader-08"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "filmes-series",
+      "franchiseSlug": "stranger-things",
+      "folderPathKey": "demogorgon",
+      "displayName": "Demogorgon",
+      "baseId": "mdl_39f09ec3168a79ef9c88",
+      "baseSlug": "stranger-things-demogorgon",
+      "siblingSlugs": [
+        "stranger-things-demogorgon-02",
+        "stranger-things-demogorgon-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "filmes-series",
+      "franchiseSlug": "transformers",
+      "folderPathKey": "bumblebee",
+      "displayName": "Bumblebee",
+      "baseId": "mdl_9deee0c826314d9a9bf1",
+      "baseSlug": "transformers-bumblebee",
+      "siblingSlugs": [
+        "transformers-bumblebee-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "filmes-series",
+      "franchiseSlug": "transformers",
+      "folderPathKey": "megatron",
+      "displayName": "Megatron",
+      "baseId": "mdl_4dc097f3171e254fdc96",
+      "baseSlug": "transformers-megatron",
+      "siblingSlugs": [
+        "transformers-megatron-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "assassin-s-creed",
+      "folderPathKey": "ezio-auditore",
+      "displayName": "Ezio auditore",
+      "baseId": "mdl_27e7dc87605bf9278fe9",
+      "baseSlug": "assassin-s-creed-ezio-auditore",
+      "siblingSlugs": [
+        "assassin-s-creed-ezio-auditore-2",
+        "assassin-s-creed-ezio-auditore-3",
+        "assassin-s-creed-ezio-auditore-4"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "bloodborne",
+      "folderPathKey": "lady-maria",
+      "displayName": "Lady maria",
+      "baseId": "mdl_d286733b2915a58e57e5",
+      "baseSlug": "bloodborne-lady-maria",
+      "siblingSlugs": [
+        "bloodborne-lady-maria-2"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "dead-space",
+      "folderPathKey": "isaac-clarke",
+      "displayName": "Isaac clarke",
+      "baseId": "mdl_1da97ede704e2c7915c1",
+      "baseSlug": "dead-space-isaac-clarke",
+      "siblingSlugs": [
+        "dead-space-isaac-clarke-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "elden-ring",
+      "folderPathKey": "blaidd",
+      "displayName": "Blaidd",
+      "baseId": "mdl_3b73fe16823e7bcebdc5",
+      "baseSlug": "elden-ring-blaidd-elden-ring",
+      "siblingSlugs": [
+        "elden-ring-blaidd-elden-ring-2"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "league-of-legends",
+      "folderPathKey": "caitlyn-kiramman",
+      "displayName": "Caitlyn Kiramman",
+      "baseId": "mdl_c7e2194db17f8dbcae26",
+      "baseSlug": "league-of-legends-caitlyn-kiramman-league-of-legends",
+      "siblingSlugs": [
+        "league-of-legends-caitlyn-kiramman-league-of-legends-2"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "league-of-legends",
+      "folderPathKey": "jinx",
+      "displayName": "Jinx",
+      "baseId": "mdl_6de813d94eef76b42350",
+      "baseSlug": "league-of-legends-jinx",
+      "siblingSlugs": [
+        "league-of-legends-jinx-01",
+        "league-of-legends-jinx-02",
+        "league-of-legends-jinx-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "league-of-legends",
+      "folderPathKey": "vi",
+      "displayName": "Vi",
+      "baseId": "mdl_88323a039cd3b0ae1131",
+      "baseSlug": "league-of-legends-vi",
+      "siblingSlugs": [
+        "league-of-legends-vi-01",
+        "league-of-legends-vi-02",
+        "league-of-legends-vi-4"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "baraka",
+      "displayName": "Baraka",
+      "baseId": "mdl_6131116a811c618b2467",
+      "baseSlug": "mortal-kombat-baraka",
+      "siblingSlugs": [
+        "mortal-kombat-baraka-02",
+        "mortal-kombat-baraka-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "goro",
+      "displayName": "Goro",
+      "baseId": "mdl_07a011ebbe1d83b5f766",
+      "baseSlug": "mortal-kombat-goro",
+      "siblingSlugs": [
+        "mortal-kombat-goro-02",
+        "mortal-kombat-goro-03",
+        "mortal-kombat-goro-04",
+        "mortal-kombat-goro-05",
+        "mortal-kombat-goro-06"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "kabal",
+      "displayName": "Kabal",
+      "baseId": "mdl_1dfdb586b0a5d497b8bb",
+      "baseSlug": "mortal-kombat-kabal",
+      "siblingSlugs": [
+        "mortal-kombat-kabal-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "kitana",
+      "displayName": "Kitana",
+      "baseId": "mdl_abc1e2d62de6e107d858",
+      "baseSlug": "mortal-kombat-kitana",
+      "siblingSlugs": [
+        "mortal-kombat-kitana-02",
+        "mortal-kombat-kitana-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "liu-kang",
+      "displayName": "Liu Kang",
+      "baseId": "mdl_bd7177eae42645f8c72a",
+      "baseSlug": "mortal-kombat-liu-kang",
+      "siblingSlugs": [
+        "mortal-kombat-liu-kang-02",
+        "mortal-kombat-liu-kang-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "mileena",
+      "displayName": "Mileena",
+      "baseId": "mdl_28ff83a81f31e67b391f",
+      "baseSlug": "mortal-kombat-mileena",
+      "siblingSlugs": [
+        "mortal-kombat-mileena-02",
+        "mortal-kombat-mileena-03",
+        "mortal-kombat-mileena-04",
+        "mortal-kombat-mileena-05"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "motaro",
+      "displayName": "Motaro",
+      "baseId": "mdl_6bb36b1b61821a65f4f4",
+      "baseSlug": "mortal-kombat-motaro",
+      "siblingSlugs": [
+        "mortal-kombat-motaro-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "nightwolf",
+      "displayName": "Nightwolf",
+      "baseId": "mdl_e3ff8619e4601de4fd7a",
+      "baseSlug": "mortal-kombat-nightwolf",
+      "siblingSlugs": [
+        "mortal-kombat-nightwolf-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "sektor",
+      "displayName": "Sektor",
+      "baseId": "mdl_d63a00207fdb3db8639e",
+      "baseSlug": "mortal-kombat-sektor",
+      "siblingSlugs": [
+        "mortal-kombat-sektor-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "shao-kahn",
+      "displayName": "Shao Kahn",
+      "baseId": "mdl_44b3d27b41621b9f551d",
+      "baseSlug": "mortal-kombat-shao-kahn",
+      "siblingSlugs": [
+        "mortal-kombat-shao-kahn-02",
+        "mortal-kombat-shao-kahn-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "mortal-kombat",
+      "folderPathKey": "sonya-blade",
+      "displayName": "Sonya Blade",
+      "baseId": "mdl_fa357f73b4365f31adeb",
+      "baseSlug": "mortal-kombat-sonya-blade",
+      "siblingSlugs": [
+        "mortal-kombat-sonya-blade-02",
+        "mortal-kombat-sonya-blade-03",
+        "mortal-kombat-sonya-blade-04",
+        "mortal-kombat-sonya-blade-05",
+        "mortal-kombat-sonya-blade-06"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "resident-evil",
+      "folderPathKey": "ada-wong",
+      "displayName": "Ada Wong",
+      "baseId": "mdl_a3e008736debaf42c340",
+      "baseSlug": "resident-evil-ada-wong",
+      "siblingSlugs": [
+        "resident-evil-ada-wong-3"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "resident-evil",
+      "folderPathKey": "jill-valentine",
+      "displayName": "Jill Valentine",
+      "baseId": "mdl_278989a41cc8390c18a3",
+      "baseSlug": "resident-evil-jill-valentine",
+      "siblingSlugs": [
+        "resident-evil-jill-valentine-3",
+        "resident-evil-jill-valentine-4"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "akuma",
+      "displayName": "Akuma",
+      "baseId": "mdl_5118eb39de4baef38585",
+      "baseSlug": "street-fighter-akuma",
+      "siblingSlugs": [
+        "street-fighter-akuma-02",
+        "street-fighter-akuma-03",
+        "street-fighter-akuma-04",
+        "street-fighter-akuma-05"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "bison",
+      "displayName": "Bison",
+      "baseId": "mdl_8b322832f4ef044b6dbf",
+      "baseSlug": "street-fighter-bison",
+      "siblingSlugs": [
+        "street-fighter-bison-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "cammy",
+      "displayName": "Cammy",
+      "baseId": "mdl_c8e9d9af0989a1955031",
+      "baseSlug": "street-fighter-cammy",
+      "siblingSlugs": [
+        "street-fighter-cammy-02",
+        "street-fighter-cammy-03",
+        "street-fighter-cammy-04",
+        "street-fighter-cammy-05",
+        "street-fighter-cammy-06",
+        "street-fighter-cammy-07",
+        "street-fighter-cammy-08",
+        "street-fighter-cammy-09",
+        "street-fighter-cammy-10",
+        "street-fighter-cammy-11",
+        "street-fighter-cammy-12",
+        "street-fighter-cammy-13",
+        "street-fighter-cammy-14",
+        "street-fighter-cammy-15",
+        "street-fighter-cammy-16",
+        "street-fighter-cammy-17",
+        "street-fighter-cammy-18"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "dhalsim",
+      "displayName": "Dhalsim",
+      "baseId": "mdl_7a8b8d1d2a64bbfe69bf",
+      "baseSlug": "street-fighter-dhalsim",
+      "siblingSlugs": [
+        "street-fighter-dhalsim-02",
+        "street-fighter-dhalsim-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "honda",
+      "displayName": "Honda",
+      "baseId": "mdl_b2e687ad2df1c23d78fd",
+      "baseSlug": "street-fighter-honda",
+      "siblingSlugs": [
+        "street-fighter-honda-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "juri",
+      "displayName": "Juri",
+      "baseId": "mdl_ae704dd472875555e47a",
+      "baseSlug": "street-fighter-juri",
+      "siblingSlugs": [
+        "street-fighter-juri-02",
+        "street-fighter-juri-03",
+        "street-fighter-juri-04",
+        "street-fighter-juri-05",
+        "street-fighter-juri-06",
+        "street-fighter-juri-07",
+        "street-fighter-juri-08",
+        "street-fighter-juri-09"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "ken",
+      "displayName": "Ken",
+      "baseId": "mdl_12d0374fbfc372fb2ca5",
+      "baseSlug": "street-fighter-ken",
+      "siblingSlugs": [
+        "street-fighter-ken-02",
+        "street-fighter-ken-03",
+        "street-fighter-ken-04"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "luke",
+      "displayName": "Luke",
+      "baseId": "mdl_4f024f7e75a3c729133c",
+      "baseSlug": "street-fighter-luke",
+      "siblingSlugs": [
+        "street-fighter-luke-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "poison",
+      "displayName": "Poison",
+      "baseId": "mdl_715577253bef8a8f319c",
+      "baseSlug": "street-fighter-poison",
+      "siblingSlugs": [
+        "street-fighter-poison-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "sagat",
+      "displayName": "Sagat",
+      "baseId": "mdl_ad405387a3fabfb3f3e9",
+      "baseSlug": "street-fighter-sagat",
+      "siblingSlugs": [
+        "street-fighter-sagat-02",
+        "street-fighter-sagat-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "sakura",
+      "displayName": "Sakura",
+      "baseId": "mdl_ba053a49bc91a224275d",
+      "baseSlug": "street-fighter-sakura",
+      "siblingSlugs": [
+        "street-fighter-sakura-02",
+        "street-fighter-sakura-03",
+        "street-fighter-sakura-04"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "street-fighter",
+      "folderPathKey": "zangief",
+      "displayName": "Zangief",
+      "baseId": "mdl_fac3f533d461667fb129",
+      "baseSlug": "street-fighter-zangief",
+      "siblingSlugs": [
+        "street-fighter-zangief-02",
+        "street-fighter-zangief-03",
+        "street-fighter-zangief-04"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "the-king-of-fighters",
+      "folderPathKey": "athena-asamiya",
+      "displayName": "Athena Asamiya",
+      "baseId": "mdl_ab07d259d7f633d12d87",
+      "baseSlug": "the-king-of-fighters-athena-asamiya",
+      "siblingSlugs": [
+        "the-king-of-fighters-athena-asamiya-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "the-king-of-fighters",
+      "folderPathKey": "blue-mary",
+      "displayName": "Blue Mary",
+      "baseId": "mdl_4cb2836284b173255900",
+      "baseSlug": "the-king-of-fighters-blue-mary",
+      "siblingSlugs": [
+        "the-king-of-fighters-blue-mary-02"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "the-king-of-fighters",
+      "folderPathKey": "mai-shiranui",
+      "displayName": "Mai Shiranui",
+      "baseId": "mdl_91d947e5b38862fdf143",
+      "baseSlug": "the-king-of-fighters-mai-shiranui",
+      "siblingSlugs": [
+        "the-king-of-fighters-mai-shiranui-02",
+        "the-king-of-fighters-mai-shiranui-03"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "the-witcher",
+      "folderPathKey": "ciri",
+      "displayName": "Ciri",
+      "baseId": "mdl_ce5dea093ce200b85a4d",
+      "baseSlug": "the-witcher-ciri-the-witcher",
+      "siblingSlugs": [
+        "the-witcher-ciri-the-witcher-2",
+        "the-witcher-ciri-the-witcher-3",
+        "the-witcher-ciri-the-witcher-4"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "warhammer-40000",
+      "folderPathKey": "demetrian-titus",
+      "displayName": "Demetrian titus",
+      "baseId": "mdl_40bfb147d0f94ae1b122",
+      "baseSlug": "warhammer-40000-demetrian-titus",
+      "siblingSlugs": [
+        "warhammer-40000-demetrian-titus-2",
+        "warhammer-40000-demetrian-titus-3"
+      ],
+      "status": "pending",
+      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+    }
+  ]
+}
