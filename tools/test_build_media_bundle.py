@@ -769,7 +769,7 @@ class MediaBundleTests(unittest.TestCase):
         bad_category = {
             **second,
             "franchiseName": "Pokémon",
-            "categoryName": "GAMES",
+            "categoryName": "Gámes",
         }
         with self.assertRaisesRegex(RuntimeError, "slug de categoria"):
             validate_built_taxonomy_identifiers([first, bad_category])
