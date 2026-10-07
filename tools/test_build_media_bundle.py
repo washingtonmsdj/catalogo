@@ -496,6 +496,7 @@ class MediaBundleTests(unittest.TestCase):
             back_cover = build(70.0, 95.0, "back-cover")
 
             self.assertEqual(front_cover["id"], back_cover["id"])
+            self.assertEqual(front_cover["identityKey"], back_cover["identityKey"])
             self.assertEqual(front_cover["slug"], "god-of-war-kratos-modelo-01")
             self.assertEqual(back_cover["slug"], "god-of-war-kratos-modelo-01")
             self.assertEqual(front_cover["displayName"], "Kratos")
