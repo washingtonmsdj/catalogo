@@ -5,7 +5,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from audit_model_identity import cross_model_sha_candidates, sibling_suffix_candidates, split_view_candidates
+from audit_model_identity import (
+    cross_model_sha_candidates,
+    load_numbered_sibling_review_registry,
+    sibling_suffix_candidates,
+    split_view_candidates,
+    validate_numbered_sibling_review,
+)
 from model_identity import canonical_identity_key, load_identity_aliases
 
 
@@ -170,6 +176,60 @@ class AuditModelIdentityTests(unittest.TestCase):
         ]
 
         self.assertEqual(sibling_suffix_candidates(rows), [])
+
+    def test_numbered_review_registry_cannot_grow_above_audited_baseline(self) -> None:
+        registry = load_numbered_sibling_review_registry()
+
+        self.assertLessEqual(len(registry), 49)
+        self.assertLessEqual(
+            sum(len(item["siblingSlugs"]) for item in registry.values()),
+            114,
+        )
+        self.assertTrue(
+            all(item["status"] in {"pending", "distinct"} for item in registry.values())
+        )
+
+    def test_numbered_review_detects_new_or_changed_sibling_groups(self) -> None:
+        rows = [
+            model("base", "dragon-ball-androide-18-estatua"),
+            model("one", "dragon-ball-androide-18-estatua-01"),
+        ]
+        key = (
+            "animes-desenhos",
+            "dragon-ball",
+            "androides/androide-18",
+            "androide 18",
+            "dragon-ball-androide-18-estatua",
+        )
+        registry = {
+            key: {
+                "categorySlug": key[0],
+                "franchiseSlug": key[1],
+                "folderPathKey": key[2],
+                "displayName": "Androide 18",
+                "baseId": "base",
+                "baseSlug": key[4],
+                "siblingSlugs": ["dragon-ball-androide-18-estatua-01"],
+                "status": "pending",
+                "reason": "revisão visual pendente",
+            }
+        }
+
+        summary = validate_numbered_sibling_review(rows, registry)
+        self.assertEqual(summary["candidateGroups"], 1)
+        self.assertEqual(summary["candidateSiblingRows"], 1)
+        self.assertEqual(summary["pendingGroups"], 1)
+
+        changed = [*rows, model("two", "dragon-ball-androide-18-estatua-02")]
+        with self.assertRaisesRegex(RuntimeError, "mudaram desde a revisão"):
+            validate_numbered_sibling_review(changed, registry)
+
+        other = [
+            model("other-base", "dragon-ball-outro"),
+            model("other-num", "dragon-ball-outro-02"),
+        ]
+        with self.assertRaisesRegex(RuntimeError, "sem revisão registrada"):
+            validate_numbered_sibling_review(other, registry)
 
     def test_cross_model_exact_sha_is_reported_without_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
