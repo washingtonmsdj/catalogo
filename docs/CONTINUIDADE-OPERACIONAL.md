@@ -144,7 +144,7 @@ Compatibilidade pública enquanto o Worker aguarda credencial de deploy:
 - `src/services/catalogApi.ts` consolida somente registros legados com `image_count=1` e sufixos de vista reconhecidos;
 - `src/hooks/useCatalogRuntime.ts` carrega as fontes legadas como uma única galeria;
 - `CatalogSidebarTree` usa o total consolidado na pasta ativa quando o recorte inteiro está carregado;
-- no recorte do print de Android 18, 17 registros brutos passam a representar **13 modelos reais**;
+- no recorte auditado de Android 18, 17 registros brutos passam a representar **11 produtos reais**: traje casual (4→1), modelo cinza (3→1) e traje azul (2→1);
 - essa camada é conservadora e deixa de ser necessária quando a relação canônica de galerias estiver ativa no backend.
 
 Backend preparado, mas **não promovido para produção enquanto o deploy do Worker estiver bloqueado**:
@@ -155,7 +155,50 @@ Backend preparado, mas **não promovido para produção enquanto o deploy do Wor
 - o CI materializa e preserva por 1 dia o bundle verificado do Worker;
 - não aplicar a migration nem despublicar as antigas fichas-vista antes de o Worker correspondente estar efetivamente publicado.
 
-SHA validado da correção frontend: `958f04f6e86a71de0877da367d9476602ece091d`. Nesse SHA, **CI** e **Deploy live preview** concluíram com sucesso.
+SHA validado da correção frontend inicial: `958f04f6e86a71de0877da367d9476602ece091d`. O pente-fino posterior substitui esse checkpoint; sempre usar a `main` atual e exigir CI + preview verdes.
+
+### Dívida legada de identidade medida em produção
+
+Auditoria read-only do D1 em 2026-10-07 confirmou:
+
+- **2.596** modelos publicados e **2.596** imagens; produção ainda possui somente fichas de 1 imagem;
+- **0** colisões de slug e **0** colisões de código;
+- contadores materializados de categorias: **0 divergências** contra `models WHERE published=1`;
+- contadores materializados de franquias: **0 divergências** contra `models WHERE published=1`;
+- agrupar apenas por personagem/pasta seria incorreto: existem **345** grupos de mesmo nome/pasta e a maioria representa esculturas realmente distintas;
+- a auditoria conservadora encontrou **17 grupos de alta confiança** fragmentados por vistas direcionais;
+- somando o par Android 18 / traje azul confirmado visualmente, o registro explícito contém **18 galerias legadas**, **47 slugs** e **29 cards excedentes**;
+- os 47 slugs registrados foram cruzados com o D1: **47/47 encontrados, 0 ausentes, 0 divergências** de categoria, franquia, pasta, publicação ou `image_count=1`;
+- `config/catalog-legacy-gallery-overrides.json` é o registro versionado dessa dívida; o CI bloqueia slug em mais de um grupo, canônico fora dos membros, família incoerente, motivo vazio e crescimento acima do baseline auditado de **29 cards excedentes**;
+- `src/services/catalogApi.ts` consegue hidratar o grupo registrado mesmo quando suas vistas caem em páginas diferentes da API; a camada é transitória e se desativa naturalmente quando o backend passar a entregar a galeria canônica.
+
+Não aumentar esse registro para “resolver” ambiguidades. Casos novos devem primeiro passar por auditoria visual/identidade. O objetivo do número **29** é cair até zero, não crescer.
+
+### Reconciliação segura de fichas obsoletas
+
+`tools/publish_d1.py` continua sem exclusão física. Para evitar acumular cards históricos quando uma galeria é consolidada, existe agora o fluxo explícito `--retire-absent-approvals <csv>`:
+
+- o publicador pagina o inventário completo de modelos publicados por chave, sem `OFFSET`;
+- compara o snapshot candidato com o inventário D1;
+- cada ficha publicada ausente precisa de aprovação exata `model_id,slug,code,reason`;
+- aprovação faltante, sobrando ou com slug/código desatualizado bloqueia a publicação;
+- a única mutação permitida é `published=0`; **não há DELETE**;
+- uma ficha ainda presente no snapshot nunca pode ser aposentada por esse CSV.
+
+Esse mecanismo **não deve ser usado ainda nos 29 cards legados**. Primeiro o Worker multi-galeria e as migrations correspondentes precisam estar efetivamente em produção e validados pela API pública.
+
+### Estado de migrations da produção
+
+O D1 público foi inspecionado diretamente e está aplicado somente até:
+
+- `0001_catalog.sql` … `0010_recent_models_index.sql`.
+
+Ainda pendentes na produção:
+
+- `0011_model_gallery_members.sql` — relação canônico → fontes de galeria;
+- `0012_folder_materialized_counts.sql` — contadores materializados de pasta.
+
+Por isso `catalog_folders.model_count` ainda não existe no D1 público. Não aplicar essas migrations manualmente fora do workflow apenas para contornar a credencial ausente; manter a ordem versionada e a tabela `d1_migrations` coerente.
 
 ## Política de imagens e qualidade
 
