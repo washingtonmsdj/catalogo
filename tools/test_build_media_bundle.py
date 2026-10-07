@@ -19,6 +19,7 @@ from build_media_bundle import (
     save_media_build_state,
     validate_built_model_identifiers,
     validate_built_taxonomy_identifiers,
+    validate_variant_disambiguation,
 )
 
 
@@ -971,6 +972,31 @@ class MediaBundleTests(unittest.TestCase):
         }
         with self.assertRaisesRegex(RuntimeError, "slug de categoria"):
             validate_built_taxonomy_identifiers([first, bad_category])
+
+    def test_variant_disambiguation_blocks_visually_identical_cards(self) -> None:
+        base = {
+            "identityKey": "Games / Street Fighter / Cammy / modelo-a",
+            "categorySlug": "games",
+            "franchiseSlug": "street-fighter",
+            "folderPathKey": "cammy",
+            "displayName": "Cammy",
+            "variantName": "Modelo 01",
+        }
+        distinct = {
+            **base,
+            "identityKey": "Games / Street Fighter / Cammy / modelo-b",
+            "variantName": "Modelo 02",
+        }
+
+        validate_variant_disambiguation([base, distinct])
+
+        no_variant = {**distinct, "variantName": ""}
+        with self.assertRaisesRegex(RuntimeError, "indistinguíveis"):
+            validate_variant_disambiguation([base, no_variant])
+
+        same_variant = {**distinct, "variantName": "  modelo   01  "}
+        with self.assertRaisesRegex(RuntimeError, "mesma variante pública"):
+            validate_variant_disambiguation([base, same_variant])
 
     def test_include_original_is_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
