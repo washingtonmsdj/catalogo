@@ -242,5 +242,8 @@
       "reason": "Revisão visual de 2026-10-07: Mileena.jpg e Mileena 04.jpg mostram a mesma escultura, pose, figurino e base em renders/enquadramentos diferentes; 02, 03 e 05 são produtos distintos."
     }
   ],
-  "auditedExtraCards": 30
+  "auditedExtraCards": 30,
+  "auditedAt": "2026-10-07",
+  "auditedGroups": 19,
+  "auditedMemberCards": 49
 }
