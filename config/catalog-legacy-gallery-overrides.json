@@ -1,6 +1,33 @@
 {
-  "version": 1,
+  "version": 2,
   "groups": [
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "androides/androide-18",
+      "family": "dragon-ball-androide-18-traje-casual",
+      "canonicalSlug": "dragon-ball-androide-18-traje-casual-frente",
+      "memberSlugs": [
+        "dragon-ball-androide-18-traje-casual-frente",
+        "dragon-ball-androide-18-traje-casual-lateral",
+        "dragon-ball-androide-18-traje-casual-costas",
+        "dragon-ball-androide-18-traje-casual-frente-alternativo"
+      ],
+      "reason": "Alta confiança: múltiplas vistas direcionais do mesmo produto detectadas na auditoria de produção."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "androides/androide-18",
+      "family": "dragon-ball-androide-18-modelo-cinza",
+      "canonicalSlug": "dragon-ball-androide-18-modelo-cinza-lateral",
+      "memberSlugs": [
+        "dragon-ball-androide-18-modelo-cinza-lateral",
+        "dragon-ball-androide-18-modelo-cinza-costas-corpo-inteiro",
+        "dragon-ball-androide-18-modelo-cinza-costas-close"
+      ],
+      "reason": "Alta confiança: múltiplas vistas direcionais do mesmo produto detectadas na auditoria de produção."
+    },
     {
       "categorySlug": "animes-desenhos",
       "franchiseSlug": "dragon-ball",
@@ -11,7 +38,195 @@
         "dragon-ball-androide-18-traje-azul-corpo-inteiro",
         "dragon-ball-androide-18-traje-azul-em-pe"
       ],
-      "reason": "Duas imagens confirmadas como vistas do mesmo modelo no pente-fino do catálogo."
+      "reason": "Duas imagens confirmadas pelo usuário como vistas do mesmo modelo no pente-fino do catálogo."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "terraqueos/fazendeiro",
+      "family": "dragon-ball-fazendeiro-chibi",
+      "canonicalSlug": "dragon-ball-fazendeiro-chibi-frente",
+      "memberSlugs": [
+        "dragon-ball-fazendeiro-chibi-frente",
+        "dragon-ball-fazendeiro-chibi-lateral",
+        "dragon-ball-fazendeiro-chibi-costas"
+      ],
+      "reason": "Alta confiança: frente/lateral/costas do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "raca-do-freeza/freeza",
+      "family": "dragon-ball-freeza-forma-com-chifres",
+      "canonicalSlug": "dragon-ball-freeza-forma-com-chifres-frente",
+      "memberSlugs": [
+        "dragon-ball-freeza-forma-com-chifres-frente",
+        "dragon-ball-freeza-forma-com-chifres-lateral",
+        "dragon-ball-freeza-forma-com-chifres-costas"
+      ],
+      "reason": "Alta confiança: frente/lateral/costas do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "raca-do-freeza/freeza",
+      "family": "dragon-ball-freeza-forma-final",
+      "canonicalSlug": "dragon-ball-freeza-forma-final-frente",
+      "memberSlugs": [
+        "dragon-ball-freeza-forma-final-frente",
+        "dragon-ball-freeza-forma-final-lateral",
+        "dragon-ball-freeza-forma-final-costas"
+      ],
+      "reason": "Alta confiança: frente/lateral/costas do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "robos/giru",
+      "family": "dragon-ball-giru",
+      "canonicalSlug": "dragon-ball-giru-vista-frontal",
+      "memberSlugs": [
+        "dragon-ball-giru-vista-frontal",
+        "dragon-ball-giru-vista-lateral",
+        "dragon-ball-giru-vista-traseira"
+      ],
+      "reason": "Alta confiança: vistas frontal/lateral/traseira do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "terraqueos/launch",
+      "family": "dragon-ball-launch-chibi-na-motocicleta",
+      "canonicalSlug": "dragon-ball-launch-chibi-na-motocicleta-frente",
+      "memberSlugs": [
+        "dragon-ball-launch-chibi-na-motocicleta-frente",
+        "dragon-ball-launch-chibi-na-motocicleta-lateral",
+        "dragon-ball-launch-chibi-na-motocicleta-costas"
+      ],
+      "reason": "Alta confiança: frente/lateral/costas do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "terraqueos/mestre-kame",
+      "family": "dragon-ball-mestre-kame-chibi-com-cajado",
+      "canonicalSlug": "dragon-ball-mestre-kame-chibi-com-cajado-frente",
+      "memberSlugs": [
+        "dragon-ball-mestre-kame-chibi-com-cajado-frente",
+        "dragon-ball-mestre-kame-chibi-com-cajado-lateral",
+        "dragon-ball-mestre-kame-chibi-com-cajado-costas"
+      ],
+      "reason": "Alta confiança: frente/lateral/costas do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "tropas-do-freeza/forcas-especiais-ginyu/recoome",
+      "family": "dragon-ball-recoome-busto",
+      "canonicalSlug": "dragon-ball-recoome-busto-frente",
+      "memberSlugs": [
+        "dragon-ball-recoome-busto-frente",
+        "dragon-ball-recoome-busto-lateral",
+        "dragon-ball-recoome-busto-costas"
+      ],
+      "reason": "Alta confiança: frente/lateral/costas do mesmo busto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "tropas-do-freeza/forcas-especiais-ginyu/recoome",
+      "family": "dragon-ball-recoome-corpo-inteiro",
+      "canonicalSlug": "dragon-ball-recoome-corpo-inteiro-frente",
+      "memberSlugs": [
+        "dragon-ball-recoome-corpo-inteiro-frente",
+        "dragon-ball-recoome-corpo-inteiro-lateral",
+        "dragon-ball-recoome-corpo-inteiro-costas"
+      ],
+      "reason": "Alta confiança: frente/lateral/costas do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "tropas-do-freeza/forcas-especiais-ginyu/burter",
+      "family": "dragon-ball-burter-busto",
+      "canonicalSlug": "dragon-ball-burter-busto-frontal",
+      "memberSlugs": [
+        "dragon-ball-burter-busto-frontal",
+        "dragon-ball-burter-busto-costas"
+      ],
+      "reason": "Alta confiança: vistas frontal/costas do mesmo busto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "raca-do-freeza/freeza",
+      "family": "dragon-ball-freeza-primeira-forma-sentado-no-trono",
+      "canonicalSlug": "dragon-ball-freeza-primeira-forma-sentado-no-trono-frente",
+      "memberSlugs": [
+        "dragon-ball-freeza-primeira-forma-sentado-no-trono-frente",
+        "dragon-ball-freeza-primeira-forma-sentado-no-trono-costas"
+      ],
+      "reason": "Alta confiança: frente/costas do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "majins/majin-buu",
+      "family": "dragon-ball-majin-buu-chibi",
+      "canonicalSlug": "dragon-ball-majin-buu-chibi-vista-frontal",
+      "memberSlugs": [
+        "dragon-ball-majin-buu-chibi-vista-frontal",
+        "dragon-ball-majin-buu-chibi-vista-traseira"
+      ],
+      "reason": "Alta confiança: vistas frontal/traseira do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "majins/majin-buu",
+      "family": "dragon-ball-majin-buu-chibi-com-chocolate",
+      "canonicalSlug": "dragon-ball-majin-buu-chibi-com-chocolate-vista-frontal",
+      "memberSlugs": [
+        "dragon-ball-majin-buu-chibi-com-chocolate-vista-frontal",
+        "dragon-ball-majin-buu-chibi-com-chocolate-vista-traseira"
+      ],
+      "reason": "Alta confiança: vistas frontal/traseira do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "viloes/piano",
+      "family": "dragon-ball-piano-busto",
+      "canonicalSlug": "dragon-ball-piano-busto-vista-frontal",
+      "memberSlugs": [
+        "dragon-ball-piano-busto-vista-frontal",
+        "dragon-ball-piano-busto-vista-lateral"
+      ],
+      "reason": "Alta confiança: vistas frontal/lateral do mesmo busto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "namekuseijins/piccolo",
+      "family": "dragon-ball-piccolo-energia",
+      "canonicalSlug": "dragon-ball-piccolo-energia-frente",
+      "memberSlugs": [
+        "dragon-ball-piccolo-energia-frente",
+        "dragon-ball-piccolo-energia-costas"
+      ],
+      "reason": "Alta confiança: frente/costas do mesmo produto."
+    },
+    {
+      "categorySlug": "animes-desenhos",
+      "franchiseSlug": "dragon-ball",
+      "folderPathKey": "criaturas/shenlong",
+      "family": "dragon-ball-shenlong-estatua",
+      "canonicalSlug": "dragon-ball-shenlong-estatua-vista-frontal",
+      "memberSlugs": [
+        "dragon-ball-shenlong-estatua-vista-frontal",
+        "dragon-ball-shenlong-estatua-vista-traseira"
+      ],
+      "reason": "Alta confiança: vistas frontal/traseira da mesma estátua."
     }
   ]
 }
