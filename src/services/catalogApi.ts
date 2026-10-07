@@ -1,5 +1,6 @@
 import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 import { FRANCHISE_SEARCH_MIN_LENGTH, type CatalogListQuery, type CatalogModelCard, type CursorPage, type GalleryQuery } from './catalogRepository'
+import viewDescriptorConfig from '../../config/catalog-view-descriptors.json'
 
 export type CatalogRuntimeMode = 'demo' | 'live'
 
@@ -163,25 +164,14 @@ function liveSearchTerm(value?: string) {
   return trimmed
 }
 
-const LEGACY_VIEW_SUFFIXES: Array<{ suffix: string; priority: number }> = [
-  { suffix: '-frente-alternativo', priority: 30 },
-  { suffix: '-frente-alternativa', priority: 30 },
-  { suffix: '-costas-corpo-inteiro', priority: 31 },
-  { suffix: '-costas-close', priority: 32 },
-  { suffix: '-vista-frontal', priority: 2 },
-  { suffix: '-vista-lateral', priority: 11 },
-  { suffix: '-vista-traseira', priority: 22 },
-  { suffix: '-corpo-inteiro', priority: 3 },
-  { suffix: '-em-pe', priority: 4 },
-  { suffix: '-frente', priority: 0 },
-  { suffix: '-frontal', priority: 1 },
-  { suffix: '-lateral', priority: 10 },
-  { suffix: '-perfil', priority: 12 },
-  { suffix: '-costas', priority: 20 },
-  { suffix: '-traseira', priority: 21 },
-  { suffix: '-traseiro', priority: 21 },
-  { suffix: '-close', priority: 40 },
-]
+type LegacyViewDescriptorConfig = {
+  slugSuffix: string
+  priority: number
+}
+
+const LEGACY_VIEW_SUFFIXES = (viewDescriptorConfig.descriptors as LegacyViewDescriptorConfig[])
+  .map((entry) => ({ suffix: entry.slugSuffix, priority: entry.priority }))
+  .sort((left, right) => right.suffix.length - left.suffix.length || left.priority - right.priority)
 
 function legacyViewDescriptor(slug: string) {
   for (const entry of LEGACY_VIEW_SUFFIXES) {
