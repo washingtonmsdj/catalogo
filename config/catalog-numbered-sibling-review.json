@@ -437,8 +437,8 @@
       "siblingSlugs": [
         "resident-evil-ada-wong-3"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: Ada Wong base e o irmão -3 são esculturas distintas, com pose, arma e base diferentes."
     },
     {
       "categorySlug": "games",
@@ -451,8 +451,8 @@
         "resident-evil-jill-valentine-3",
         "resident-evil-jill-valentine-4"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: Jill Valentine base, 3 e 4 são esculturas distintas, com poses, composições e bases diferentes."
     },
     {
       "categorySlug": "games",
