@@ -266,8 +266,8 @@
         "league-of-legends-vi-02",
         "league-of-legends-vi-4"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: todos os membros numerados do grupo representam produtos distintos."
     },
     {
       "categorySlug": "games",
