@@ -10,6 +10,7 @@ from apply_legacy_gallery_repairs import (
     published_model_count,
     verify_applied,
     verify_materialized_counts,
+    verify_repair_image_sources,
 )
 
 
@@ -110,6 +111,49 @@ class LegacyGalleryRepairTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "divergem de escopo"):
             plan_repairs(config, rows, [])
+
+    def test_repair_sha_preflight_requires_full_unique_coverage(self) -> None:
+        config = [group()]
+        rows = [row(slug) for slug in config[0]["memberSlugs"]]
+        source_rows = [
+            {
+                "slug": slug,
+                "image_count": 1,
+                "gallery_version": 1,
+                "image_id": f"img-{index}",
+                "source_sha256": str(index + 1) * 64,
+            }
+            for index, slug in enumerate(config[0]["memberSlugs"])
+        ]
+
+        result = verify_repair_image_sources(config, rows, source_rows)
+
+        self.assertTrue(result["ready"])
+        self.assertEqual(result["models"], 3)
+        self.assertEqual(result["images"], 3)
+        self.assertEqual(result["duplicateShaWithinRepairGroups"], 0)
+
+    def test_repair_sha_preflight_rejects_missing_index_and_cross_source_duplicate(self) -> None:
+        config = [group()]
+        rows = [row(slug) for slug in config[0]["memberSlugs"]]
+        complete = [
+            {
+                "slug": slug,
+                "image_count": 1,
+                "gallery_version": 1,
+                "image_id": f"img-{index}",
+                "source_sha256": str(index + 1) * 64,
+            }
+            for index, slug in enumerate(config[0]["memberSlugs"])
+        ]
+
+        with self.assertRaisesRegex(RuntimeError, "índice SHA incompleto"):
+            verify_repair_image_sources(config, rows, complete[:-1])
+
+        duplicate = [dict(item) for item in complete]
+        duplicate[1]["source_sha256"] = duplicate[0]["source_sha256"]
+        with self.assertRaisesRegex(RuntimeError, "imagem exata repetida entre fontes"):
+            verify_repair_image_sources(config, rows, duplicate)
 
     def test_apply_batches_are_bounded_and_retriable(self) -> None:
         statements = [{"sql": "SELECT 1", "params": []} for _ in range(205)]
