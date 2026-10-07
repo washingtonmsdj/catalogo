@@ -524,7 +524,7 @@ id,franchise_id,folder_id,slug,code,name,variant_name,collection,image_count,cov
 gallery_manifest_key,gallery_version,published,search_text,updated_at)
 SELECT ?,f.id,
   CASE WHEN ?='' THEN NULL ELSE (SELECT id FROM catalog_folders WHERE franchise_id=f.id AND path=?) END,
-  ?,?,?,?,?,?,?,?,?,1,?,CURRENT_TIMESTAMP
+  ?,?,?,?,?,?,?,?,?,?,1,?,CURRENT_TIMESTAMP
 FROM franchises f JOIN categories c ON c.id=f.category_id
 WHERE c.slug=? AND f.slug=?
 ON CONFLICT(id) DO UPDATE SET
