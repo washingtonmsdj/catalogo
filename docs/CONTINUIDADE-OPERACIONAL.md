@@ -196,9 +196,25 @@ O D1 público foi inspecionado diretamente e está aplicado somente até:
 Ainda pendentes na produção:
 
 - `0011_model_gallery_members.sql` — relação canônico → fontes de galeria;
-- `0012_folder_materialized_counts.sql` — contadores materializados `direct_model_count` e `subtree_model_count`.
+- `0012_folder_materialized_counts.sql` — contadores materializados `direct_model_count` e `subtree_model_count`;
+- `0013_model_image_sources.sql` — índice consultável de `source_sha256` por imagem/modelo/versão para auditoria exata em escala.
 
 Por isso `catalog_folders.direct_model_count` e `catalog_folders.subtree_model_count` ainda não existem no D1 público. A migration 0012 já possui triggers para INSERT, DELETE, mudança de pasta e `published: 1↔0`; os testes cobrem inclusive a aposentadoria lógica reduzindo a contagem da pasta e de todos os ancestrais. Não aplicar essas migrations manualmente fora do workflow apenas para contornar a credencial ausente; manter a ordem versionada e a tabela `d1_migrations` coerente.
+
+### Índice de identidade de mídia para escala
+
+O hash da imagem não deve ficar consultável apenas dentro de milhares de manifests no R2. A migration `0013_model_image_sources.sql` materializa no D1 somente os metadados necessários à auditoria:
+
+- `model_id`, `image_id`, posição, role, `source_sha256` e `gallery_version`;
+- R2 e o manifesto continuam sendo a fonte canônica da galeria; a tabela não armazena imagem;
+- o publicador lê o manifesto já validado e sincroniza o índice somente depois do gate R2;
+- SHA-256 repetido **dentro da mesma galeria** é erro bloqueante;
+- SHA-256 repetido em **modelos diferentes** é permitido, mas aparece em `crossModelExactImageCandidates` para revisão;
+- nunca há merge automático entre produtos apenas por SHA;
+- consultas consideram somente a linha da `gallery_version` atualmente ativa do modelo, portanto metadados antigos não contaminam a auditoria;
+- a limpeza remove somente metadados de versões antigas de `model_image_sources`, nunca mídia R2 nem registros de modelo.
+
+Esse índice transforma a auditoria de duplicata exata em consulta SQL indexada e evita varrer todo o R2 quando o acervo chegar a centenas de milhares ou milhões de imagens.
 
 ## Política de imagens e qualidade
 
