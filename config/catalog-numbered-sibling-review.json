@@ -86,8 +86,8 @@
       "siblingSlugs": [
         "naruto-pain-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: pain.jpg é uma estátua solo; pain-02.jpg é um diorama/composição distinta. Manter como produtos distintos."
     },
     {
       "categorySlug": "animes-desenhos",
@@ -99,8 +99,8 @@
       "siblingSlugs": [
         "naruto-hashirama-01"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: hashirama.webp e hashirama-01.jpg representam esculturas diferentes, com pose, base e composição distintas. Manter como produtos distintos."
     },
     {
       "categorySlug": "filmes-series",
