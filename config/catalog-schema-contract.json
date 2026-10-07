@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "latestMigration": "0014_gallery_member_integrity.sql",
+  "latestMigration": "0015_gallery_publication_invariant.sql",
   "requiredMigrations": [
     "0001_catalog.sql",
     "0002_keyset_pagination.sql",
@@ -15,6 +15,7 @@
     "0011_model_gallery_members.sql",
     "0012_folder_materialized_counts.sql",
     "0013_model_image_sources.sql",
-    "0014_gallery_member_integrity.sql"
+    "0014_gallery_member_integrity.sql",
+    "0015_gallery_publication_invariant.sql"
   ]
 }
