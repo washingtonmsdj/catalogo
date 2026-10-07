@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "descriptors": [
+    {
+      "stemSuffix": "frente alternativo",
+      "slugSuffix": "-frente-alternativo",
+      "priority": 30,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "frente alternativa",
+      "slugSuffix": "-frente-alternativa",
+      "priority": 30,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "costas corpo inteiro",
+      "slugSuffix": "-costas-corpo-inteiro",
+      "priority": 31,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "costas close",
+      "slugSuffix": "-costas-close",
+      "priority": 32,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "vista frontal",
+      "slugSuffix": "-vista-frontal",
+      "priority": 2,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "vista lateral",
+      "slugSuffix": "-vista-lateral",
+      "priority": 11,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "vista traseira",
+      "slugSuffix": "-vista-traseira",
+      "priority": 22,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "corpo inteiro",
+      "slugSuffix": "-corpo-inteiro",
+      "priority": 3,
+      "class": "framing"
+    },
+    {
+      "stemSuffix": "em pe",
+      "slugSuffix": "-em-pe",
+      "priority": 4,
+      "class": "framing"
+    },
+    {
+      "stemSuffix": "em pé",
+      "slugSuffix": "-em-pe",
+      "priority": 4,
+      "class": "framing"
+    },
+    {
+      "stemSuffix": "frente",
+      "slugSuffix": "-frente",
+      "priority": 0,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "frontal",
+      "slugSuffix": "-frontal",
+      "priority": 1,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "lateral",
+      "slugSuffix": "-lateral",
+      "priority": 10,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "perfil",
+      "slugSuffix": "-perfil",
+      "priority": 12,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "costas",
+      "slugSuffix": "-costas",
+      "priority": 20,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "traseira",
+      "slugSuffix": "-traseira",
+      "priority": 21,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "traseiro",
+      "slugSuffix": "-traseiro",
+      "priority": 21,
+      "class": "directional"
+    },
+    {
+      "stemSuffix": "close",
+      "slugSuffix": "-close",
+      "priority": 40,
+      "class": "framing"
+    }
+  ]
+}
