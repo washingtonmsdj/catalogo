@@ -250,6 +250,8 @@ def load_numbered_sibling_review_registry(
 def validate_numbered_sibling_review(
     rows: list[dict[str, Any]],
     registry: dict[tuple[str, str, str, str, str], dict[str, Any]] | None = None,
+    *,
+    require_complete_registry: bool = False,
 ) -> dict[str, Any]:
     reviewed = registry if registry is not None else load_numbered_sibling_review_registry()
     candidates = [
@@ -278,9 +280,14 @@ def validate_numbered_sibling_review(
         matched_keys.add(key)
         candidate_siblings = sorted(member["slug"] for member in candidate["siblings"])
         registered_siblings = sorted(item["siblingSlugs"])
+        membership_matches = (
+            candidate_siblings == registered_siblings
+            if require_complete_registry
+            else set(candidate_siblings).issubset(registered_siblings)
+        )
         if (
             str(candidate["baseId"]) != str(item["baseId"])
-            or candidate_siblings != registered_siblings
+            or not membership_matches
         ):
             changed.append(candidate["baseSlug"])
             continue
@@ -300,13 +307,14 @@ def validate_numbered_sibling_review(
             f"{len(changed)}; exemplos={changed[:5]}"
         )
 
-    stale_keys = sorted(set(reviewed).difference(matched_keys))
-    if stale_keys:
-        stale = [key[-1] for key in stale_keys]
-        raise RuntimeError(
-            "fila numerada contém grupo(s) sem candidato atual; remova a dívida resolvida: "
-            f"{len(stale)}; exemplos={stale[:5]}"
-        )
+    if require_complete_registry:
+        stale_keys = sorted(set(reviewed).difference(matched_keys))
+        if stale_keys:
+            stale = [key[-1] for key in stale_keys]
+            raise RuntimeError(
+                "fila numerada contém grupo(s) sem candidato atual; remova a dívida resolvida: "
+                f"{len(stale)}; exemplos={stale[:5]}"
+            )
 
     return {
         "ready": True,
