@@ -77,7 +77,7 @@ class MediaBundleTests(unittest.TestCase):
                 "League of Legends",
                 False,
             ),
-            "League of legends 2",
+            "Modelo 2",
         )
 
     def test_bundle_generates_variants_without_upscaling(self) -> None:
