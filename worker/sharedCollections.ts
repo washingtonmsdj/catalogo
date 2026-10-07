@@ -1,3 +1,4 @@
+import { resolvePublicModelIds } from './modelAliases'
 type D1Statement = {
   bind(...values: unknown[]): D1Statement
   all<T = unknown>(): Promise<{ results: T[] }>
@@ -81,14 +82,24 @@ function collectionPayload(row: SharedCollectionRow, items: SharedModelRow[], de
 }
 
 async function loadItems(env: SharedEnv, code: string) {
-  const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,f.name AS franchise,c.name AS category,sci.position
+  const result = await env.DB.prepare(`SELECT
+    resolved.id,resolved.slug,resolved.code,resolved.name,
+    f.name AS franchise,c.name AS category,sci.position
     FROM shared_collection_items sci
-    JOIN models m ON m.id=sci.model_id
-    JOIN franchises f ON f.id=m.franchise_id
+    JOIN models requested ON requested.id=sci.model_id
+    LEFT JOIN model_gallery_members member ON member.source_model_id=requested.id
+    JOIN models resolved ON resolved.id=COALESCE(member.canonical_model_id,requested.id)
+    JOIN franchises f ON f.id=resolved.franchise_id
     JOIN categories c ON c.id=f.category_id
-    WHERE sci.collection_code=? AND m.published=1
+    WHERE sci.collection_code=? AND resolved.published=1
     ORDER BY sci.position`).bind(code).all<SharedModelRow>()
-  return result.results
+
+  const seen = new Set<string>()
+  return result.results.filter((item) => {
+    if (seen.has(item.id)) return false
+    seen.add(item.id)
+    return true
+  })
 }
 
 export async function createSharedCollection(request: Request, env: SharedEnv, helpers: Helpers) {
@@ -110,23 +121,20 @@ export async function createSharedCollection(request: Request, env: SharedEnv, h
   const name = typeof body.name === 'string' ? body.name.trim() : ''
   const token = typeof body.turnstileToken === 'string' ? body.turnstileToken : ''
   const rawIds = Array.isArray(body.modelIds) ? body.modelIds : []
-  const modelIds = Array.from(new Set(rawIds.filter((value): value is string => typeof value === 'string').map((value) => value.trim()).filter(Boolean)))
+  const requestedModelIds = Array.from(new Set(rawIds.filter((value): value is string => typeof value === 'string').map((value) => value.trim()).filter(Boolean)))
 
-  if (!name || name.length > MAX_SHARED_NAME || !modelIds.length) {
+  if (!name || name.length > MAX_SHARED_NAME || !requestedModelIds.length) {
     return helpers.json(request, env, { error: 'invalid_request' }, { status: 400 })
   }
-  if (modelIds.length > MAX_SHARED_ITEMS) {
+  if (requestedModelIds.length > MAX_SHARED_ITEMS) {
     return helpers.json(request, env, { error: 'too_many_models', maxItems: MAX_SHARED_ITEMS }, { status: 400 })
   }
   if (!await helpers.validateTurnstile(request, env, token, 'collection-share')) {
     return helpers.json(request, env, { error: 'turnstile_failed' }, { status: 400 })
   }
 
-  const placeholders = modelIds.map(() => '?').join(',')
-  const published = await env.DB.prepare(
-    `SELECT id FROM models WHERE published=1 AND id IN (${placeholders})`,
-  ).bind(...modelIds).all<{ id: string }>()
-  if (published.results.length !== modelIds.length) {
+  const modelIds = await resolvePublicModelIds(env.DB, requestedModelIds)
+  if (!modelIds || !modelIds.length) {
     return helpers.json(request, env, { error: 'invalid_models' }, { status: 400 })
   }
 
