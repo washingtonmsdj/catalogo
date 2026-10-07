@@ -27,6 +27,21 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}", self.workflow)
         self.assertIn("Validate deployment credentials", self.workflow)
 
+    def test_legacy_gallery_repairs_are_explicit_opt_in_after_schema_health(self):
+        self.assertIn("apply_legacy_gallery_repairs:", self.workflow)
+        self.assertIn("default: false", self.workflow)
+        self.assertIn("Verify Worker schema health", self.workflow)
+        self.assertIn("Plan reviewed legacy gallery repairs", self.workflow)
+        self.assertIn("Apply reviewed legacy gallery repairs", self.workflow)
+        self.assertIn(
+            "github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs",
+            self.workflow,
+        )
+        self.assertLess(
+            self.workflow.index("Verify Worker schema health"),
+            self.workflow.index("Apply reviewed legacy gallery repairs"),
+        )
+
     def test_worker_preview_urls_are_explicitly_disabled(self):
         self.assertIs(self.wrangler.get("preview_urls"), False)
 
