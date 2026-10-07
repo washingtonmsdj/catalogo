@@ -32,6 +32,8 @@ jobs:
         run: npm run test:worker-folder-counts
       - name: Test Worker schema contract
         run: npm run test:worker-schema-contract
+      - name: Test Worker health contract
+        run: npm run test:worker-health-contract
       - name: Test legacy gallery grouping
         run: npm run test:legacy-gallery-grouping
       - name: Test catalog home display contract
