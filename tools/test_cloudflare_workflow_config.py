@@ -42,6 +42,18 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             self.workflow.index("Apply reviewed legacy gallery repairs"),
         )
 
+    def test_legacy_repair_apply_is_followed_by_public_alias_smoke(self):
+        self.assertIn("Verify repaired legacy aliases through public API", self.workflow)
+        self.assertIn("node tools/check_legacy_gallery_repairs.mjs", self.workflow)
+        self.assertIn(
+            "inputs.apply_legacy_gallery_repairs && vars.VITE_API_BASE_URL != ''",
+            self.workflow,
+        )
+        self.assertLess(
+            self.workflow.index("Apply reviewed legacy gallery repairs"),
+            self.workflow.index("Verify repaired legacy aliases through public API"),
+        )
+
     def test_sha_backfill_is_explicit_opt_in_and_requires_media_url_only_when_requested(self):
         self.assertIn("backfill_image_source_index:", self.workflow)
         self.assertIn("BACKFILL_SHA:", self.workflow)
@@ -59,6 +71,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             "config/catalog-schema-contract.json",
             "config/catalog-legacy-gallery-overrides.json",
             "tools/check_worker_health.mjs",
+            "tools/check_legacy_gallery_repairs.mjs",
             "tools/apply_legacy_gallery_repairs.py",
             "tools/backfill_image_source_index.py",
         ):
