@@ -116,8 +116,5 @@ BEGIN
     );
 END;
 
-CREATE INDEX IF NOT EXISTS idx_models_published_created_id
-  ON models(published, created_at DESC, id DESC);
-
 CREATE INDEX IF NOT EXISTS idx_models_franchise_published_image_name
   ON models(franchise_id, published, image_count DESC, name COLLATE NOCASE, id);
