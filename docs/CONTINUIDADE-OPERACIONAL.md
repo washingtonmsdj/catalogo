@@ -167,8 +167,8 @@ Auditoria read-only do D1 em 2026-10-07 confirmou:
 - contadores materializados de franquias: **0 divergências** contra `models WHERE published=1`;
 - agrupar apenas por personagem/pasta seria incorreto: existem **345** grupos de mesmo nome/pasta e a maioria representa esculturas realmente distintas;
 - a auditoria conservadora encontrou **17 grupos de alta confiança** fragmentados por vistas direcionais;
-- após a revisão visual de Mileena, o registro explícito contém **19 galerias legadas**, **49 slugs** e **30 cards excedentes**;
-- os 47 slugs do baseline anterior foram cruzados com o D1: **47/47 encontrados, 0 ausentes, 0 divergências**; o novo par `mortal-kombat-mileena` + `mortal-kombat-mileena-04` deve passar pelo mesmo preflight de produção antes de qualquer aplicação;
+- após a revisão visual de Mileena, o registro explícito contém **20 galerias legadas**, **51 slugs** e **31 cards excedentes**;
+- os 47 slugs do baseline anterior foram cruzados com o D1: **47/47 encontrados, 0 ausentes, 0 divergências**; os pares revisados adicionados após esse baseline devem passar pelo mesmo preflight antes de qualquer aplicação;
 - `config/catalog-legacy-gallery-overrides.json` é o registro versionado dessa dívida e contém o resumo auditado (`auditedGroups`, `auditedMemberCards`, `auditedExtraCards`); validações bloqueiam sobreposição de slugs, canônico fora dos membros, modo de correspondência inválido, motivo vazio e divergência entre o resumo e os grupos registrados;
 - `src/services/catalogApi.ts` consegue hidratar o grupo registrado mesmo quando suas vistas caem em páginas diferentes da API; a camada é transitória e se desativa naturalmente quando o backend passar a entregar a galeria canônica.
 

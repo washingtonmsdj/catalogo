@@ -236,8 +236,8 @@
       "siblingSlugs": [
         "league-of-legends-caitlyn-kiramman-league-of-legends-2"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: os dois arquivos do grupo representam produtos diferentes."
     },
     {
       "categorySlug": "games",
@@ -251,8 +251,8 @@
         "league-of-legends-jinx-02",
         "league-of-legends-jinx-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "mixed",
+      "reason": "Revisão visual concluída em 2026-10-07: dois membros do grupo são a mesma escultura em renders diferentes; os demais são produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -266,8 +266,8 @@
         "league-of-legends-vi-02",
         "league-of-legends-vi-4"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: todos os membros numerados do grupo representam produtos distintos."
     },
     {
       "categorySlug": "games",
