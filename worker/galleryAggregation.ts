@@ -45,6 +45,7 @@ export function aggregateGallerySources(payloads: GallerySourcePayload[]): Aggre
   })
 
   const images: GalleryImage[] = []
+  const multipleSources = ordered.length > 1
   for (const { source, manifest } of ordered) {
     if (!validGalleryManifest(manifest, source)) {
       throw new Error(`gallery_source_invalid:${source.id}`)
@@ -53,7 +54,7 @@ export function aggregateGallerySources(payloads: GallerySourcePayload[]): Aggre
     for (const image of (manifest as GalleryManifest).images) {
       images.push({
         ...image,
-        id: `${source.id}:${image.id}`,
+        id: multipleSources ? `${source.id}:${image.id}` : image.id,
         role: images.length === 0 ? 'cover' : 'gallery',
       })
     }
