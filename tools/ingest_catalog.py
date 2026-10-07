@@ -233,6 +233,75 @@ def choose_canonical(records: list[ImageRecord]) -> ImageRecord:
     return max(records, key=lambda item: (item.quality_score or -1, item.width or 0, item.height or 0, item.size))
 
 
+VIEW_SUFFIXES = (
+    "frente alternativo",
+    "frente alternativa",
+    "costas corpo inteiro",
+    "costas close",
+    "vista frontal",
+    "vista lateral",
+    "vista traseira",
+    "corpo inteiro",
+    "em pe",
+    "em pé",
+    "frente",
+    "frontal",
+    "lateral",
+    "perfil",
+    "costas",
+    "traseira",
+    "traseiro",
+    "close",
+)
+
+
+def audited_view_family(source_stem: str) -> str | None:
+    """Infer a product family only from a conservative trailing view descriptor.
+
+    The audited registry may omit modelo_publico for legacy rows. In that
+    case file names such as traje-casual-frente and traje-casual-costas are
+    views of one product, not separate products. We intentionally strip only
+    a small allowlist of photographic/view terms; semantic qualifiers such as
+    realista, chibi or diorama remain part of the product identity.
+    """
+    normalized = re.sub(r"[-_]+", " ", source_stem).strip()
+    lowered = normalized.casefold()
+    for suffix in VIEW_SUFFIXES:
+        suffix_key = suffix.casefold()
+        marker = f" {suffix_key}"
+        if lowered.endswith(marker):
+            base = normalized[: -len(marker)].strip(" -_")
+            return base or None
+    return None
+
+
+def infer_audited_gallery_groups(records: list[ImageRecord]) -> int:
+    """Group legacy audited view files when two or more share one safe family.
+
+    Explicit modelo_publico always wins. A family is promoted only when at
+    least two records in the same source hierarchy resolve to the same base;
+    single files keep their original file-level identity.
+    """
+    candidates: dict[tuple[str, str], list[tuple[ImageRecord, str]]] = defaultdict(list)
+    for record in records:
+        if record.status != "OK" or record.audit_model_group:
+            continue
+        family = audited_view_family(Path(record.path).stem)
+        if not family:
+            continue
+        candidates[(record.model_key, family.casefold())].append((record, family))
+
+    grouped = 0
+    for members in candidates.values():
+        if len(members) < 2:
+            continue
+        group_label = members[0][1]
+        for record, _family in members:
+            record.audit_model_group = group_label
+            record.public_model_key = f"{record.model_key} / {group_label}"
+            grouped += 1
+    return grouped
+
 def disambiguate_public_model_keys(records: list[ImageRecord]) -> None:
     """Keep stable stem-based identities unless audited entries genuinely collide."""
     by_key: dict[str, list[ImageRecord]] = defaultdict(list)
@@ -459,6 +528,9 @@ def main() -> int:
             print(f"CHECKPOINT={len(records)}", flush=True)
 
     if args.audit_registry:
+        inferred_views = infer_audited_gallery_groups(records)
+        if inferred_views:
+            print(f"GALLERY_VIEWS_INFERRED={inferred_views}", flush=True)
         disambiguate_public_model_keys(records)
     groups = mark_duplicates(records, args.visual_threshold)
     write_outputs(args.output, records, groups)
