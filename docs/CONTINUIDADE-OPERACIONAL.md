@@ -264,15 +264,19 @@ Despublicar uma ficha-vista **não invalida seu ID nem seu slug**. Enquanto exis
 
 Auditoria read-only do D1 em 2026-10-07 acrescentou uma segunda classe de revisão de identidade:
 
-- **114 pares** possuem um modelo-base e outro slug no mesmo personagem/pasta terminado em número (ex.: `modelo` + `modelo-02`);
+- a produção contém **49 grupos-base** com **114 modelos irmãos numerados** no mesmo personagem/pasta (ex.: `modelo` + `modelo-02`);
 - isso **não significa 114 duplicatas**: personagens como Cammy, Goro, Juri etc. possuem várias esculturas/modelos realmente diferentes;
-- esses casos são classificados como `numbered-review` e nunca são mesclados nem bloqueados automaticamente;
+- esses casos são classificados como `numbered-review` e nunca são mesclados automaticamente;
+- `config/catalog-numbered-sibling-review.json` registra a fila auditada com `status=pending` ou `distinct`, base, membros e motivo;
+- o baseline versionado começou em **49 grupos / 114 irmãos**; testes permitem reduzir a dívida, mas não aumentá-la silenciosamente acima desse baseline;
+- grupo numerado novo ou mudança na lista de irmãos de um grupo conhecido bloqueia `publish_d1.py` até a fila de revisão ser atualizada conscientemente;
 - **0** modelos publicados usam hoje marcador explícito de cópia com base correspondente (`-copy`, `-copia`, `-duplicate`, `-duplicado`);
-- novos marcadores explícitos de cópia com o modelo-base presente no mesmo escopo passam a bloquear `publish_d1.py` até revisão;
-- `audit_model_identity.py` gera `sibling-suffix-candidates.csv` para revisão humana e mantém essa fila separada das galerias fragmentadas por vistas;
-- comparação numérica/cópia é sempre limitada à mesma categoria, franquia, pasta e nome público; nunca cruza personagens ou hierarquias.
+- novos marcadores explícitos de cópia com o modelo-base presente no mesmo escopo bloqueiam a publicação até revisão;
+- `audit_model_identity.py` gera `sibling-suffix-candidates.csv` e mantém essa fila separada das galerias fragmentadas por vistas;
+- comparação numérica/cópia é sempre limitada à mesma categoria, franquia, pasta e nome público; nunca cruza personagens ou hierarquias;
+- usando o `image_id` determinístico presente em `cover_storage_key`, os **2.596/2.596** modelos publicados foram auditados sem baixar mídia: **0 grupos reutilizam o mesmo image_id entre fichas diferentes**. Portanto não há duplicata binária óbvia escondida nos cards atuais.
 
-Regra operacional: números no fim do slug são **evidência de revisão**, não evidência de duplicata. Somente confirmação visual/identidade pode consolidar esses produtos.
+Regra operacional: números no fim do slug são **evidência de revisão**, não evidência de duplicata. Somente confirmação visual/identidade pode consolidar esses produtos. Se um grupo for confirmado como galeria única, ele sai desta fila e entra no contrato canônico de galeria; se for confirmado como produtos distintos, recebe `status=distinct`.
 
 ### Continuidade histórica de identidade de produto
 
@@ -292,6 +296,23 @@ Contrato:
 - o bundle candidato também bloqueia o mesmo SHA exato em dois produtos candidatos diferentes.
 
 Não usar o arquivo de aliases para “forçar” agrupamentos duvidosos. Ele serve para continuidade de **um produto já identificado**, não para decidir se dois produtos são iguais. Essa decisão continua exigindo auditoria de identidade/visual.
+
+### Auditoria estrutural automatizada do D1
+
+Foi executada auditoria read-only no D1 público atual (ainda em schema 0010) e todos os checks aplicáveis retornaram **zero divergências**:
+
+- raízes, filhos, profundidade e caminhos da árvore de **1.063 pastas**;
+- vínculo modelo → pasta/franquia;
+- coerência coleção ↔ existência de pasta;
+- campos obrigatórios dos modelos publicados;
+- formato de `mdl_*`, `TS-*` e slugs;
+- `models_fts`: **2.596 modelos / 2.596 linhas**, sem ausentes nem órfãos;
+- `franchises_fts`: **250 franquias / 250 linhas**, sem ausentes nem órfãos;
+- nenhum `created_at` ou `updated_at` no futuro.
+
+`tools/audit_d1_integrity.py` transforma essa checagem manual em gate somente leitura para o schema completo. Depois que 0011–0018 estiverem aplicadas, o workflow Cloudflare executará o auditor após o health e novamente depois de qualquer reparo legado. O gate inclui também contadores diretos/subárvore, estado das relações de galeria, ausência de cadeias e drift do índice SHA. Qualquer resultado diferente de zero interrompe a promoção.
+
+A busca FTS pode manter fisicamente entradas de fichas-fonte aposentadas porque o modelo continua no banco para aliases/histórico; o contrato do Worker exige `m.published = 1` em busca, recentes e resolução pública. O CI possui teste específico para impedir que uma refatoração reexponha essas fichas.
 
 ### Índice de identidade de mídia para escala
 
