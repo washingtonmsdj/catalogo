@@ -29,6 +29,7 @@ from catalog_scope import (
     is_public_top_level_category,
     load_public_top_level_categories,
 )
+from model_identity import VIEW_ANCHOR_PRIORITY, stem_view_descriptor
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff", ".avif", ".jfif"}
 CHECKPOINT_INTERVAL = 25
@@ -233,61 +234,13 @@ def choose_canonical(records: list[ImageRecord]) -> ImageRecord:
     return max(records, key=lambda item: (item.quality_score or -1, item.width or 0, item.height or 0, item.size))
 
 
-VIEW_SUFFIXES = (
-    "frente alternativo",
-    "frente alternativa",
-    "costas corpo inteiro",
-    "costas close",
-    "vista frontal",
-    "vista lateral",
-    "vista traseira",
-    "corpo inteiro",
-    "em pe",
-    "em pé",
-    "frente",
-    "frontal",
-    "lateral",
-    "perfil",
-    "costas",
-    "traseira",
-    "traseiro",
-    "close",
-)
-
-
-VIEW_ANCHOR_PRIORITY = {
-    "frente": 0,
-    "frontal": 1,
-    "vista frontal": 2,
-    "corpo inteiro": 3,
-    "em pe": 4,
-    "em pé": 4,
-    "lateral": 10,
-    "vista lateral": 11,
-    "perfil": 12,
-    "costas": 20,
-    "traseira": 21,
-    "traseiro": 21,
-    "vista traseira": 22,
-    "frente alternativo": 30,
-    "frente alternativa": 30,
-    "costas corpo inteiro": 31,
-    "costas close": 32,
-    "close": 40,
-}
-
-
 def audited_view_descriptor(source_stem: str) -> tuple[str, str] | None:
-    """Return the conservative product family and trailing view descriptor."""
-    normalized = re.sub(r"[-_]+", " ", source_stem).strip()
-    lowered = normalized.casefold()
-    for suffix in VIEW_SUFFIXES:
-        suffix_key = suffix.casefold()
-        marker = f" {suffix_key}"
-        if lowered.endswith(marker):
-            base = normalized[: -len(marker)].strip(" -_")
-            return (base, suffix_key) if base else None
-    return None
+    """Return the shared product family and trailing view descriptor."""
+    match = stem_view_descriptor(source_stem)
+    if not match:
+        return None
+    family, descriptor = match
+    return family, descriptor.stem_suffix
 
 
 def audited_view_family(source_stem: str) -> str | None:
@@ -296,12 +249,7 @@ def audited_view_family(source_stem: str) -> str | None:
 
 
 def infer_audited_gallery_groups(records: list[ImageRecord]) -> int:
-    """Group view files while preserving an existing file identity as canonical.
-
-    Explicit modelo_publico always wins. For inferred groups, the canonical
-    public key remains the stem of a real source file (prefer front/full-body
-    views), so an already-published model keeps its stable ID after re-ingest.
-    """
+    """Group legacy view files while preserving one deterministic source identity."""
     candidates: dict[
         tuple[str, str],
         list[tuple[ImageRecord, str, str, str]],
