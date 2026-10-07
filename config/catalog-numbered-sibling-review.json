@@ -423,8 +423,8 @@
         "mortal-kombat-sonya-blade-05",
         "mortal-kombat-sonya-blade-06"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Sonya Blade.jpg e Sonya Blade 02–06.jpg): poses, figurinos, esculturas, bases e composições são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
