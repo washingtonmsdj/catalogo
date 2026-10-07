@@ -185,8 +185,8 @@
         "assassin-s-creed-ezio-auditore-3",
         "assassin-s-creed-ezio-auditore-4"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: todos os membros numerados representam produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -198,8 +198,8 @@
       "siblingSlugs": [
         "bloodborne-lady-maria-2"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: os dois membros representam produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -211,8 +211,8 @@
       "siblingSlugs": [
         "dead-space-isaac-clarke-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: os dois membros representam produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -224,8 +224,8 @@
       "siblingSlugs": [
         "elden-ring-blaidd-elden-ring-2"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: os dois membros representam produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -697,8 +697,8 @@
         "the-witcher-ciri-the-witcher-3",
         "the-witcher-ciri-the-witcher-4"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: todos os membros numerados representam produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -711,8 +711,8 @@
         "warhammer-40000-demetrian-titus-2",
         "warhammer-40000-demetrian-titus-3"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: todos os membros numerados representam produtos distintos."
     }
   ]
 }
