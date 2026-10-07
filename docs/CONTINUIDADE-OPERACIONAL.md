@@ -2,7 +2,7 @@
 
 > **SSOT de continuidade.** Leia este arquivo antes de continuar o projeto em outra conversa, máquina ou sessão.
 >
-> Atualizado em **2026-10-06**. O objetivo é evitar reprocessamento, perda de checkpoints e decisões divergentes.
+> Atualizado em **2026-10-07**. O objetivo é evitar reprocessamento, perda de checkpoints e decisões divergentes.
 
 ## Estado confirmado
 
@@ -119,6 +119,43 @@ O bundle já possui testes garantindo:
 - as chaves R2 de capa, manifesto e variantes precisam pertencer ao mesmo `model_id`;
 - a capa do D1 precisa ser exatamente a variante `card` da primeira imagem/capa do manifesto;
 - o CI possui ensaio integrado que publica um produto sintético com 1 imagem, expande para 3 e prova que ID/slug/código permanecem estáveis e o D1 continua com apenas 1 modelo.
+
+### Correção de vistas legadas — Android 18 (2026-10-07)
+
+Foi reproduzido em produção o erro em que fotografias/ângulos do mesmo produto eram tratados como modelos independentes porque, quando `modelo_publico` estava vazio, a ingestão legada usava o nome do arquivo como identidade.
+
+Contrato corrigido:
+
+- `modelo_publico` explícito continua sendo a autoridade máxima;
+- sem `modelo_publico`, somente sufixos conservadores de vista podem ser removidos para inferir uma galeria: frente, frontal, lateral, perfil, costas/traseira, corpo inteiro, em pé, close e variantes explicitamente reconhecidas;
+- a inferência só agrupa quando **2 ou mais** imagens da mesma hierarquia resolvem para a mesma família;
+- qualificadores semânticos como realista, chibi, diorama etc. **não** são descartados;
+- o arquivo canônico é escolhido deterministicamente, priorizando frente/frontal/corpo inteiro, para preservar o ID público já existente;
+- a ordem de entrada das imagens não pode alterar a identidade canônica.
+
+Caso de regressão protegido no CI:
+
+- Android 18 / traje casual: 4 vistas → **1 modelo com 4 imagens**;
+- Android 18 / traje azul: 2 vistas → **1 modelo com 2 imagens**;
+- bustos e outras esculturas semanticamente diferentes permanecem modelos separados.
+
+Compatibilidade pública enquanto o Worker aguarda credencial de deploy:
+
+- `src/services/catalogApi.ts` consolida somente registros legados com `image_count=1` e sufixos de vista reconhecidos;
+- `src/hooks/useCatalogRuntime.ts` carrega as fontes legadas como uma única galeria;
+- `CatalogSidebarTree` usa o total consolidado na pasta ativa quando o recorte inteiro está carregado;
+- no recorte do print de Android 18, 17 registros brutos passam a representar **13 modelos reais**;
+- essa camada é conservadora e deixa de ser necessária quando a relação canônica de galerias estiver ativa no backend.
+
+Backend preparado, mas **não promovido para produção enquanto o deploy do Worker estiver bloqueado**:
+
+- migration `0011_model_gallery_members.sql`;
+- agregação multi-manifest em `worker/galleryAggregation.ts`;
+- Worker calcula `image_count` e `gallery_version` lógicos;
+- o CI materializa e preserva por 1 dia o bundle verificado do Worker;
+- não aplicar a migration nem despublicar as antigas fichas-vista antes de o Worker correspondente estar efetivamente publicado.
+
+SHA validado da correção frontend: `958f04f6e86a71de0877da367d9476602ece091d`. Nesse SHA, **CI** e **Deploy live preview** concluíram com sucesso.
 
 ## Política de imagens e qualidade
 
