@@ -3,6 +3,7 @@ export type SharedCollectionItem = {
   slug: string
   code: string
   name: string
+  variant_name: string
   franchise: string
   category: string
 }
