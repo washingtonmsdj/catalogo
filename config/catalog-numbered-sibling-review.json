@@ -279,8 +279,8 @@
         "mortal-kombat-baraka-02",
         "mortal-kombat-baraka-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Baraka.jpg, Baraka 02.jpg e Baraka 03.jpg): esculturas, poses, figurinos e bases são diferentes; manter como produtos distintos. O arquivo Baraka - Chibi.jpg já é uma identidade separada e não participa deste grupo numerado."
     },
     {
       "categorySlug": "games",
@@ -323,8 +323,8 @@
         "mortal-kombat-kitana-02",
         "mortal-kombat-kitana-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Kitana.jpg, Kitana 02.jpg e Kitana 03.webp): poses, esculturas, figurinos e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -337,8 +337,8 @@
         "mortal-kombat-liu-kang-02",
         "mortal-kombat-liu-kang-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Liu Kang.jpg, Liu Kang 02.jpg e Liu Kang 03.jpg): poses, esculturas, figurinos e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
