@@ -200,7 +200,8 @@ Ainda pendentes na produção:
 - `0013_model_image_sources.sql` — índice consultável de `source_sha256` por imagem/modelo/versão para auditoria exata em escala;
 - `0014_gallery_member_integrity.sql` — bloqueia ciclos, cadeias e relações entre escopos incompatíveis;
 - `0015_gallery_publication_invariant.sql` — ao anexar uma ficha-fonte à galeria canônica, aposenta a fonte no mesmo statement e impede republicação acidental;
-- `0016_public_gallery_revision.sql` — separa versão física do manifest da revisão pública monotônica usada por API/cache.
+- `0016_public_gallery_revision.sql` — separa versão física do manifest da revisão pública monotônica usada por API/cache;
+- `0017_gallery_lifecycle_integrity.sql` — exige fonte ativa na consolidação e protege canônico/fonte contra aposentadoria, drift de escopo ou exclusão acidental enquanto ligados.
 
 Por isso `catalog_folders.direct_model_count` e `catalog_folders.subtree_model_count` ainda não existem no D1 público. A migration 0012 já possui triggers para INSERT, DELETE, mudança de pasta e `published: 1↔0`; os testes cobrem inclusive a aposentadoria lógica reduzindo a contagem da pasta e de todos os ancestrais. Não aplicar essas migrations manualmente fora do workflow apenas para contornar a credencial ausente; manter a ordem versionada e a tabela `d1_migrations` coerente.
 
@@ -219,6 +220,18 @@ Por isso `catalog_folders.direct_model_count` e `catalog_folders.subtree_model_c
 - alterar identidade canônico/fonte de uma relação existente é proibido; reestruturação exige operação explícita e auditada.
 
 Não aplicar os 18 reparos antes de 0011–0015 e o Worker correspondente estarem realmente implantados e o health estrutural retornar verde.
+
+### Ciclo de vida protegido das galerias consolidadas
+
+A migration `0017_gallery_lifecycle_integrity.sql` fecha mutações que poderiam recriar bagunça depois da consolidação:
+
+- uma ficha-fonte precisa estar `published=1` no momento em que é anexada; a 0015 a aposenta logo em seguida;
+- um canônico com fontes anexadas não pode virar `published=0` por acidente;
+- nome público, franquia e pasta de canônico/fonte ficam imutáveis enquanto a relação existir;
+- canônico e fonte não podem ser fisicamente apagados enquanto ligados;
+- qualquer reorganização exige desmontar explicitamente a relação, executar a mudança auditada e reconstruir a relação de forma consciente.
+
+Isso impede que um script futuro “limpe” o catálogo quebrando aliases, galerias ou referências históricas sem que o banco bloqueie a operação.
 
 ### Revisão pública monotônica da galeria
 
