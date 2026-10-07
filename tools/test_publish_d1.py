@@ -184,7 +184,7 @@ class PublishD1Tests(unittest.TestCase):
     def test_republish_preserves_created_at_for_recent_feed_semantics(self) -> None:
         db = sqlite3.connect(':memory:')
         migrations = Path(__file__).resolve().parents[1] / 'migrations'
-        for name in ('0001_catalog.sql', '0002_keyset_pagination.sql', '0003_catalog_counts.sql', '0009_catalog_folders.sql'):
+        for name in ('0001_catalog.sql', '0002_keyset_pagination.sql', '0003_catalog_counts.sql', '0009_catalog_folders.sql', '0019_model_variant_name.sql'):
             db.executescript((migrations / name).read_text(encoding='utf-8'))
 
         row = model('mdl-1', 'android-18', 'TS-1', variant='Androide 18')
