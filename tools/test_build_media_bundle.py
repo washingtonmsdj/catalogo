@@ -16,6 +16,7 @@ from build_media_bundle import (
     model_display_name,
     save_media_build_state,
     validate_built_model_identifiers,
+    validate_built_taxonomy_identifiers,
 )
 
 
@@ -741,6 +742,37 @@ class MediaBundleTests(unittest.TestCase):
             with self.subTest(field=field):
                 with self.assertRaisesRegex(RuntimeError, f"colisão de {field}"):
                     validate_built_model_identifiers([base, collision])
+
+    def test_taxonomy_slug_collisions_fail_closed(self) -> None:
+        first = {
+            "identityKey": "Games / Pokémon / Pikachu / A",
+            "id": "mdl-a",
+            "slug": "pokemon-pikachu-a",
+            "code": "TS-AAAAAAAAAAAA",
+            "categorySlug": "games",
+            "categoryName": "Games",
+            "franchiseSlug": "pokemon",
+            "franchiseName": "Pokémon",
+        }
+        second = {
+            **first,
+            "identityKey": "Games / Pokemon / Pikachu / B",
+            "id": "mdl-b",
+            "slug": "pokemon-pikachu-b",
+            "code": "TS-BBBBBBBBBBBB",
+            "franchiseName": "Pokemon",
+        }
+
+        with self.assertRaisesRegex(RuntimeError, "slug de franquia"):
+            validate_built_taxonomy_identifiers([first, second])
+
+        bad_category = {
+            **second,
+            "franchiseName": "Pokémon",
+            "categoryName": "GAMES",
+        }
+        with self.assertRaisesRegex(RuntimeError, "slug de categoria"):
+            validate_built_taxonomy_identifiers([first, bad_category])
 
     def test_include_original_is_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
