@@ -30,6 +30,8 @@ jobs:
         run: npm run test:worker-gallery-contract
       - name: Test Worker folder count contract
         run: npm run test:worker-folder-counts
+      - name: Test legacy gallery grouping
+        run: npm run test:legacy-gallery-grouping
       - name: Test catalog home display contract
         run: npm run test:catalog-home
       - name: Test gallery grid navigation
