@@ -536,8 +536,8 @@
       "siblingSlugs": [
         "street-fighter-honda-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte: Honda.jpg é um diorama com Honda + Chun-Li, enquanto Honda 02.jpg é uma escultura solo do Honda; são produtos distintos e não devem ser consolidados."
     },
     {
       "categorySlug": "games",
@@ -571,8 +571,8 @@
         "street-fighter-ken-03",
         "street-fighter-ken-04"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Ken.jpg e Ken 02–04): esculturas, poses e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -584,8 +584,8 @@
       "siblingSlugs": [
         "street-fighter-luke-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Luke.jpg e Luke 02.jpg): esculturas, poses, figurinos e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
