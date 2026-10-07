@@ -92,6 +92,17 @@ test('registered repair debt has no duplicate member slugs', () => {
   }
 })
 
+test('registered legacy duplicate-card debt never grows above audited baseline', () => {
+  const groups = registeredLegacyGalleryGroups()
+  const extraCards = groups.reduce((sum, group) => sum + group.memberSlugs.length - 1, 0)
+
+  assert.ok(extraCards > 0)
+  assert.ok(
+    extraCards <= 29,
+    `legacy duplicate-card debt increased from audited baseline: ${extraCards} > 29`,
+  )
+})
+
 test('multi-image records are never treated as legacy split cards', () => {
   const plans = planLegacyGalleryGroups([
     row('front', 'dragon-ball-androide-18-traje-casual-frente', { image_count: 2 }),
