@@ -20,6 +20,12 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
+from catalog_schema_contract import (
+    load_schema_contract,
+    schema_migrations_statement,
+    validate_applied_migrations,
+)
+
 
 def require_env(name: str) -> str:
     value = os.environ.get(name, "").strip()
@@ -63,6 +69,18 @@ def d1_request(statements: list[dict[str, Any]]) -> list[dict[str, Any]]:
         if not isinstance(item, dict) or item.get("success") is not True:
             raise RuntimeError(f"statement D1 falhou: {item!r}")
     return result
+
+
+def require_schema_ready() -> dict[str, Any]:
+    contract = load_schema_contract()
+    result = d1_request([schema_migrations_statement(contract)])
+    rows = result[0].get("results")
+    if not isinstance(rows, list):
+        raise RuntimeError("preflight de schema retornou results inválido")
+    return validate_applied_migrations(
+        contract,
+        [row for row in rows if isinstance(row, dict)],
+    )
 
 
 def coverage_statement() -> dict[str, Any]:
@@ -305,8 +323,9 @@ def main() -> int:
         parser.error("--workers deve ficar entre 1 e 16")
 
     try:
+        schema = require_schema_ready()
         before = coverage()
-        summary: dict[str, Any] = {"before": before, "apply": args.apply}
+        summary: dict[str, Any] = {"schema": schema, "before": before, "apply": args.apply}
         if not args.apply:
             print(json.dumps(summary, ensure_ascii=False))
             return 0
