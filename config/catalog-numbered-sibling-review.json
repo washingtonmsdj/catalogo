@@ -8,7 +8,8 @@
     "pending": "Não consolidar automaticamente; exige revisão visual/identidade.",
     "distinct": "Produtos revisados e confirmados como distintos.",
     "merge": "Não usar aqui; consolidações aprovadas devem migrar para o registro canônico de galeria.",
-    "mixed": "Grupo totalmente revisado: parte dos irmãos foi consolidada por registro canônico explícito e o restante foi confirmado como produto distinto."
+    "mixed": "Grupo totalmente revisado: parte dos irmãos foi consolidada por registro canônico explícito e o restante foi confirmado como produto distinto.",
+    "gallery": "Grupo totalmente revisado e integralmente consolidado por registro canônico explícito de galeria."
   },
   "groups": [
     {
@@ -34,8 +35,8 @@
       "siblingSlugs": [
         "digimon-kari-e-tailmon-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "gallery",
+      "reason": "Revisão visual concluída em 2026-10-07: kari-e-tailmon.jpg e kari-e-tailmon-02.png mostram a mesma escultura e composição; o segundo arquivo é apenas um close/render adicional e deve compor a mesma galeria."
     },
     {
       "categorySlug": "animes-desenhos",
