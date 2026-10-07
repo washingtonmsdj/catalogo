@@ -83,7 +83,7 @@ function ModelCard({ model, favorite, quoted, active, priority = false, category
         </div>
         <span className="storefront-model-card__copy">
           <strong>{model.name}</strong>
-          <small>{model.franchise || 'Catálogo'}</small>
+          <small>{model.variantName || model.franchise || 'Catálogo'}</small>
           <span className="storefront-model-card__meta"><b>{model.code}</b><i aria-hidden="true" /><span>{imageCountLabel(model.galleryCount)}</span></span>
         </span>
         <span className="storefront-model-card__open" aria-hidden="true"><Icon name="chevron" /></span>
