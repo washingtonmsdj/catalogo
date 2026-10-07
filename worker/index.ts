@@ -1,4 +1,5 @@
 import { createSharedCollection, getSharedCollection } from './sharedCollections'
+import { aggregateGallerySources, type GallerySourceState } from './galleryAggregation'
 import { validGalleryManifest, type GalleryModelState } from './galleryValidation'
 
 type D1Statement = {
@@ -70,6 +71,24 @@ const DEFAULT_ORIGINS = [
 ]
 const MAX_QUOTE_ITEMS = 50
 const QUOTE_DEDUP_MINUTES = 10
+
+const LOGICAL_IMAGE_COUNT_SQL = `(
+  m.image_count + COALESCE((
+    SELECT SUM(source.image_count)
+    FROM model_gallery_members gallery_member
+    JOIN models source ON source.id=gallery_member.source_model_id
+    WHERE gallery_member.canonical_model_id=m.id
+  ), 0)
+)`
+
+const LOGICAL_GALLERY_VERSION_SQL = `(
+  m.gallery_version + COALESCE((
+    SELECT SUM(source.gallery_version)
+    FROM model_gallery_members gallery_member
+    JOIN models source ON source.id=gallery_member.source_model_id
+    WHERE gallery_member.canonical_model_id=m.id
+  ), 0)
+)`
 
 function allowedOrigin(request: Request, env: Env) {
   const origin = request.headers.get('origin')
@@ -393,7 +412,10 @@ async function listCatalog(request: Request, env: Env) {
   }
 
   const searchJoin = query ? 'JOIN models_fts ON models_fts.model_id = m.id' : ''
-  const sql = `${folderCte} SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,m.image_count,m.gallery_version,m.cover_storage_key,
+  const sql = `${folderCte} SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,
+    ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
+    ${LOGICAL_GALLERY_VERSION_SQL} AS gallery_version,
+    m.cover_storage_key,
     f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m
     JOIN franchises f ON f.id=m.franchise_id
@@ -418,7 +440,10 @@ async function listCatalog(request: Request, env: Env) {
 async function listRecentCatalog(request: Request, env: Env) {
   const url = new URL(request.url)
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '12', 10) || 12, 1, 24)
-  const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,m.image_count,m.gallery_version,m.cover_storage_key,
+  const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,
+    ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
+    ${LOGICAL_GALLERY_VERSION_SQL} AS gallery_version,
+    m.cover_storage_key,
     f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m
     JOIN franchises f ON f.id=m.franchise_id
@@ -431,7 +456,12 @@ async function listRecentCatalog(request: Request, env: Env) {
 }
 
 async function getModel(request: Request, slug: string, env: Env) {
-  const model = await env.DB.prepare(`SELECT m.*,cf.path AS folder_path,f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
+  const model = await env.DB.prepare(`SELECT
+    m.id,m.slug,m.code,m.name,m.collection,m.material,m.height_cm,m.description,m.search_text,
+    ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
+    ${LOGICAL_GALLERY_VERSION_SQL} AS gallery_version,
+    m.cover_storage_key,cf.path AS folder_path,
+    f.name AS franchise,f.slug AS franchise_slug,c.name AS category,c.slug AS category_slug
     FROM models m JOIN franchises f ON f.id=m.franchise_id JOIN categories c ON c.id=f.category_id
     LEFT JOIN catalog_folders cf ON cf.id=m.folder_id
     WHERE m.slug=? AND m.published=1 LIMIT 1`).bind(slug).first()
@@ -453,25 +483,46 @@ async function listImages(request: Request, slug: string, env: Env) {
   if (!model) return json(request, env, { error: 'model_not_found' }, { status: 404 })
   if (!model.gallery_manifest_key) return json(request, env, { items: [], total: 0, nextCursor: null, version: model.gallery_version })
 
-  const object = await env.MEDIA.get(model.gallery_manifest_key)
-  if (!object) return json(request, env, { error: 'gallery_manifest_missing' }, { status: 503 })
-  let manifest: unknown
+  const additional = await env.DB.prepare(`SELECT
+      source.id,source.image_count,source.gallery_manifest_key,source.gallery_version,source.cover_storage_key,
+      member.position
+    FROM model_gallery_members member
+    JOIN models source ON source.id=member.source_model_id
+    WHERE member.canonical_model_id=?
+    ORDER BY member.position,source.id`).bind(model.id).all<GallerySourceState>()
+
+  const sources: GallerySourceState[] = [
+    { ...model, position: 0 },
+    ...additional.results,
+  ]
+  const payloads = []
+  for (const source of sources) {
+    if (!source.gallery_manifest_key) {
+      return json(request, env, { error: 'gallery_manifest_missing' }, { status: 503 })
+    }
+    const object = await env.MEDIA.get(source.gallery_manifest_key)
+    if (!object) return json(request, env, { error: 'gallery_manifest_missing' }, { status: 503 })
+    try {
+      payloads.push({ source, manifest: await object.json<unknown>() })
+    } catch {
+      return json(request, env, { error: 'gallery_manifest_invalid' }, { status: 503 })
+    }
+  }
+
+  let gallery
   try {
-    manifest = await object.json<unknown>()
+    gallery = aggregateGallerySources(payloads)
   } catch {
     return json(request, env, { error: 'gallery_manifest_invalid' }, { status: 503 })
   }
-  if (!validGalleryManifest(manifest, model)) {
-    return json(request, env, { error: 'gallery_manifest_invalid' }, { status: 503 })
-  }
 
-  const items = manifest.images.slice(offset, offset + limit)
+  const items = gallery.images.slice(offset, offset + limit)
   const nextOffset = offset + items.length
   return json(request, env, {
     items,
-    total: manifest.images.length,
-    nextCursor: nextOffset < manifest.images.length ? encodeOffsetCursor(nextOffset) : null,
-    version: manifest.version,
+    total: gallery.total,
+    nextCursor: nextOffset < gallery.total ? encodeOffsetCursor(nextOffset) : null,
+    version: gallery.version,
   }, {}, 'public, max-age=300, s-maxage=1800')
 }
 
