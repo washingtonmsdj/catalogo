@@ -10,6 +10,7 @@ from audit_model_identity import (
     load_numbered_sibling_review_registry,
     sibling_suffix_candidates,
     split_view_candidates,
+    sibling_review_priority,
     validate_numbered_sibling_review,
 )
 from model_identity import canonical_identity_key, load_identity_aliases
@@ -176,6 +177,24 @@ class AuditModelIdentityTests(unittest.TestCase):
         ]
 
         self.assertEqual(sibling_suffix_candidates(rows), [])
+
+    def test_sibling_review_priority_focuses_large_groups_without_merging(self) -> None:
+        self.assertEqual(
+            sibling_review_priority({"kind": "explicit-copy-marker", "siblings": [{"slug": "a-copy"}]}),
+            "P0",
+        )
+        self.assertEqual(
+            sibling_review_priority({"kind": "numbered-review", "siblings": [{}] * 12}),
+            "P1",
+        )
+        self.assertEqual(
+            sibling_review_priority({"kind": "numbered-review", "siblings": [{}] * 5}),
+            "P2",
+        )
+        self.assertEqual(
+            sibling_review_priority({"kind": "numbered-review", "siblings": [{}] * 2}),
+            "P3",
+        )
 
     def test_numbered_review_registry_cannot_grow_above_audited_baseline(self) -> None:
         registry = load_numbered_sibling_review_registry()
