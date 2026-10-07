@@ -758,8 +758,13 @@ class PublishD1Tests(unittest.TestCase):
     def test_exact_cross_model_sha_query_is_review_only_and_bounded(self) -> None:
         statement = exact_cross_model_sha_query(25)
 
-        self.assertIn("COUNT(DISTINCT s.model_id)>1", statement["sql"])
-        self.assertIn("m.gallery_version=s.gallery_version", statement["sql"])
+        self.assertIn(
+            "COUNT(DISTINCT COALESCE(member.canonical_model_id,s.model_id))>1",
+            statement["sql"],
+        )
+        self.assertIn("LEFT JOIN model_gallery_members member", statement["sql"])
+        self.assertIn("source.gallery_version=s.gallery_version", statement["sql"])
+        self.assertIn("effective.published=1", statement["sql"])
         self.assertEqual(statement["params"], [25])
         with self.assertRaises(ValueError):
             exact_cross_model_sha_query(501)
