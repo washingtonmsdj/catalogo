@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { planLegacyGalleryGroups, registeredLegacyGalleryForRow, registeredLegacyGalleryGroups } from '../src/lib/legacyGalleryGrouping.ts'
+import { legacyCompositeGalleryVersion, planLegacyGalleryGroups, registeredLegacyGalleryForRow, registeredLegacyGalleryGroups } from '../src/lib/legacyGalleryGrouping.ts'
 
 function row(id, slug, overrides = {}) {
   return {
@@ -100,6 +100,32 @@ test('registered legacy duplicate-card debt never grows above audited baseline',
   assert.ok(
     extraCards <= 29,
     `legacy duplicate-card debt increased from audited baseline: ${extraCards} > 29`,
+  )
+})
+
+test('legacy composite gallery version fingerprints composition instead of summing versions', () => {
+  const first = legacyCompositeGalleryVersion([
+    { slug: 'modelo-frente', gallery_version: 10 },
+    { slug: 'modelo-costas', gallery_version: 20 },
+  ])
+  const sameSumDifferentState = legacyCompositeGalleryVersion([
+    { slug: 'modelo-frente', gallery_version: 11 },
+    { slug: 'modelo-costas', gallery_version: 19 },
+  ])
+  const reversedInput = legacyCompositeGalleryVersion([
+    { slug: 'modelo-costas', gallery_version: 20 },
+    { slug: 'modelo-frente', gallery_version: 10 },
+  ])
+
+  assert.notEqual(first, sameSumDifferentState)
+  assert.equal(first, reversedInput)
+  assert.ok(Number.isSafeInteger(first) && first > 0)
+})
+
+test('legacy composite gallery version rejects invalid physical versions', () => {
+  assert.throws(
+    () => legacyCompositeGalleryVersion([{ slug: 'modelo', gallery_version: 0 }]),
+    /invalid legacy gallery version/,
   )
 })
 
