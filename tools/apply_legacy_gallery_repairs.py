@@ -306,6 +306,17 @@ def apply_statement_batches(
     return batches
 
 
+def published_model_count() -> int:
+    result = d1_request([{
+        "sql": "SELECT COUNT(*) AS total FROM models WHERE published=1",
+        "params": [],
+    }])
+    rows = result[0].get("results")
+    if not isinstance(rows, list) or len(rows) != 1:
+        raise RuntimeError("contagem de modelos públicos retornou formato inválido")
+    return int(rows[0].get("total") or 0)
+
+
 def count_integrity_statements() -> list[dict[str, Any]]:
     return [
         {
@@ -434,8 +445,11 @@ def main() -> int:
         schema = require_schema_ready()
         models, relations = fetch_state(groups)
         plan = plan_repairs(groups, models, relations)
+        public_models_before = published_model_count()
         public_summary = {key: value for key, value in plan.items() if key not in {"statements", "expected"}}
         public_summary["schema"] = schema
+        public_summary["publicModelsBefore"] = public_models_before
+        public_summary["expectedPublicModelsAfter"] = public_models_before - int(plan["sourcesToRetire"])
         public_summary["apply"] = args.apply
         if not args.apply:
             print(json.dumps(public_summary, ensure_ascii=False))
@@ -444,7 +458,18 @@ def main() -> int:
         batches = apply_statement_batches(plan["statements"], args.batch_size)
         models, relations = fetch_state(groups)
         result = verify_applied(groups, models, relations)
+        public_models_after = published_model_count()
+        expected_public_models_after = public_models_before - int(plan["sourcesToRetire"])
+        if public_models_after != expected_public_models_after:
+            raise RuntimeError(
+                "quantidade pública mudou além das fontes aposentadas: "
+                f"{public_models_before} -> {public_models_after}; "
+                f"esperado={expected_public_models_after}"
+            )
         result["schema"] = schema
+        result["publicModelsBefore"] = public_models_before
+        result["publicModelsAfter"] = public_models_after
+        result["expectedPublicModelsAfter"] = expected_public_models_after
         result["materializedCounts"] = verify_materialized_counts()
         result["batches"] = batches
         result["apply"] = True
