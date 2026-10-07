@@ -2,9 +2,9 @@
 
 O Catálogo é publicado como uma aplicação independente, mas a URL pública canônica pertence ao domínio do Achegue-se:
 
-`https://acheguese.com.br/catalogo/`
+`https://acheguese.com.br/tonecosstudios/`
 
-Os repositórios continuam independentes. O Achegue-se é responsável pelo mount público em `/catalogo/` e o Catálogo continua responsável pelo seu frontend, API, mídia, dados e pipeline de publicação.
+Os repositórios continuam independentes. O Achegue-se é responsável pelo mount público em `/tonecosstudios/` e o Catálogo continua responsável pelo seu frontend, API, mídia, dados e pipeline de publicação.
 
 ## Fonte única de verdade
 
@@ -22,7 +22,7 @@ Não existe variável `VITE_PUBLIC_SITE_URL` no contrato de produção. Alterar 
 
 ## Portabilidade do frontend
 
-O frontend usa caminhos relativos (`base: './'`). Por isso, JS, CSS, favicon e manifest continuam funcionando quando o build é servido pelo mount `/catalogo/` do Achegue-se, sem copiar o código do Catálogo para o outro repositório.
+O frontend usa caminhos relativos (`base: './'`). Por isso, JS, CSS, favicon e manifest continuam funcionando quando o build é servido pelo mount `/tonecosstudios/` do Achegue-se, sem copiar o código do Catálogo para o outro repositório.
 
 A API e a mídia permanecem configurações de runtime independentes, fornecidas no deploy por:
 
@@ -36,8 +36,8 @@ Quando o Catálogo roda sob `acheguese.com.br`, o frontend usa o proxy first-par
 
 No repositório Achegue-se, o mount público deve preservar esta ordem:
 
-1. `/catalogo` redireciona permanentemente para `/catalogo/`;
-2. `/catalogo/:path*` é encaminhado para a origem publicada do frontend do Catálogo;
+1. `/catalogo` permanece apenas como caminho legado e redireciona para `/tonecosstudios/`;
+2. `/tonecosstudios/:path*` é encaminhado para a origem publicada do frontend do Catálogo;
 3. `/catalogo-api/:path*` é encaminhado para o Worker público do Catálogo;
 4. somente depois vem o catch-all da SPA principal do Achegue-se.
 
@@ -45,6 +45,6 @@ O owner desse roteamento no Achegue-se é `src/shared/config/publicExternalApps.
 
 ## Validação de publicação
 
-O workflow do GitHub Pages lê `config/public-runtime.json` e faz smoke test do HTML publicado. O deploy só fica verde quando o `canonical` gerado corresponde exatamente a `https://acheguese.com.br/catalogo/`.
+O workflow do GitHub Pages lê `config/public-runtime.json` e faz smoke test do HTML publicado. O deploy só fica verde quando o `canonical` gerado corresponde exatamente a `https://acheguese.com.br/tonecosstudios/`.
 
 Assim, preview técnico, origem de hospedagem e URL pública canônica podem ser diferentes sem duplicar configuração nem acoplar os dois projetos.
