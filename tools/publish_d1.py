@@ -18,7 +18,11 @@ from typing import Any
 from publish_r2 import discover as discover_r2
 from publish_r2 import load_state as load_r2_state
 from catalog_scope import PUBLIC_TOP_LEVEL_CATEGORIES, PUBLIC_TOP_LEVEL_KEYS
-from audit_model_identity import sibling_suffix_candidates, split_view_candidates
+from audit_model_identity import (
+    sibling_suffix_candidates,
+    split_view_candidates,
+    validate_numbered_sibling_review,
+)
 from model_identity import validate_identity_comparison_collisions, validate_taxonomy_slug_mappings
 
 CATEGORY_ORDER = {
@@ -124,6 +128,8 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
             f"marcadores explícitos de cópia detectados em {len(explicit_copy_markers)} grupo(s); "
             f"revise a identidade antes de publicar: {sample}"
         )
+
+    validate_numbered_sibling_review(rows)
 
 
 def safe_storage_key(value: Any, expected_prefix: str, model_id: str) -> str:
