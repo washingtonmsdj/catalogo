@@ -73,8 +73,8 @@
       "siblingSlugs": [
         "dragon-ball-vegeta-ultra-ego-2"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: os dois arquivos Ultra Ego representam esculturas e composições diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "animes-desenhos",
