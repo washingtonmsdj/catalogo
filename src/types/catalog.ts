@@ -40,6 +40,7 @@ export type CatalogModel = {
   slug: string
   code: string
   name: string
+  variantName: string
   franchise: string
   franchiseSlug?: string
   category: string
