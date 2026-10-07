@@ -45,7 +45,9 @@ jobs:
           CLOUDFLARE_D1_DATABASE_ID: 00000000-0000-0000-0000-000000000000
         run: npm run cloudflare:config
       - name: Dry-run Cloudflare Worker bundle
-        run: npx wrangler deploy --dry-run --config .wrangler.deploy.jsonc --outdir .wrangler-dry-run
+        run: npx wrangler deploy --dry-run --config .wrangler.deploy.jsonc
+      - name: Materialize verified Worker bundle
+        run: npx esbuild worker/index.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=.wrangler-dry-run/worker.js
       - name: Upload verified Worker bundle
         uses: actions/upload-artifact@v7
         with:
