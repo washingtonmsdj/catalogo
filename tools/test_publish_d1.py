@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from publish_d1 import CATEGORY_ORDER, build_statements, load_models, production_lookup_statements, read_gallery_shrink_approvals, validate_production_compatibility
+from publish_d1 import CATEGORY_ORDER, build_statements, load_models, production_inventory_statement, production_lookup_statements, read_gallery_shrink_approvals, read_model_retirement_approvals, validate_model_retirements, validate_production_compatibility
 
 
 def model(model_id: str, slug: str, code: str, *, variant: str) -> dict:
@@ -571,6 +571,97 @@ class PublishD1Tests(unittest.TestCase):
         self.assertIn("m.id IN", statements[0]["sql"])
         self.assertIn("m.slug IN", statements[0]["sql"])
         self.assertIn("m.code IN", statements[0]["sql"])
+
+    def test_model_retirement_approval_csv_is_fail_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "retirements.csv"
+            path.write_text(
+                "model_id,slug,code,reason\n"
+                "mdl-old,old-slug,TS-OLD,consolidado em galeria canônica\n",
+                encoding="utf-8",
+            )
+
+            approvals = read_model_retirement_approvals(path)
+
+            self.assertEqual(approvals["mdl-old"]["slug"], "old-slug")
+            self.assertEqual(approvals["mdl-old"]["code"], "TS-OLD")
+
+            path.write_text(
+                "model_id,slug,code,reason\n"
+                "mdl-old,old-slug,TS-OLD,\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(RuntimeError, "aprovação de aposentadoria inválida"):
+                read_model_retirement_approvals(path)
+
+    def test_retirement_plan_requires_exact_approval_for_every_absent_model(self) -> None:
+        candidate = model("mdl-live", "live-slug", "TS-LIVE", variant="Ativo")
+        inventory = [
+            {"id": "mdl-live", "slug": "live-slug", "code": "TS-LIVE", "name": "Ativo", "published": 1},
+            {"id": "mdl-old", "slug": "old-slug", "code": "TS-OLD", "name": "Antigo", "published": 1},
+        ]
+
+        with self.assertRaisesRegex(RuntimeError, "faltam 1 aprovação"):
+            validate_model_retirements([candidate], inventory, {})
+
+        approvals = {
+            "mdl-old": {
+                "model_id": "mdl-old",
+                "slug": "old-slug",
+                "code": "TS-OLD",
+                "reason": "consolidado",
+            }
+        }
+        summary, statements = validate_model_retirements([candidate], inventory, approvals)
+
+        self.assertEqual(summary["absentPublishedModels"], 1)
+        self.assertEqual(summary["approvedRetirements"], 1)
+        self.assertEqual(len(statements), 1)
+        self.assertIn("published=0", statements[0]["sql"])
+        self.assertEqual(statements[0]["params"], ["mdl-old", "old-slug", "TS-OLD"])
+
+    def test_retirement_plan_rejects_stale_slug_or_code_approval(self) -> None:
+        inventory = [
+            {"id": "mdl-old", "slug": "current-slug", "code": "TS-CURRENT", "name": "Antigo", "published": 1},
+        ]
+        approvals = {
+            "mdl-old": {
+                "model_id": "mdl-old",
+                "slug": "stale-slug",
+                "code": "TS-CURRENT",
+                "reason": "aprovação antiga",
+            }
+        }
+
+        with self.assertRaisesRegex(RuntimeError, "estado atual"):
+            validate_model_retirements([], inventory, approvals)
+
+    def test_retirement_plan_rejects_approval_for_model_still_in_snapshot(self) -> None:
+        candidate = model("mdl-live", "live-slug", "TS-LIVE", variant="Ativo")
+        inventory = [
+            {"id": "mdl-live", "slug": "live-slug", "code": "TS-LIVE", "name": "Ativo", "published": 1},
+        ]
+        approvals = {
+            "mdl-live": {
+                "model_id": "mdl-live",
+                "slug": "live-slug",
+                "code": "TS-LIVE",
+                "reason": "não deveria aposentar",
+            }
+        }
+
+        with self.assertRaisesRegex(RuntimeError, "sem modelo ausente correspondente"):
+            validate_model_retirements([candidate], inventory, approvals)
+
+    def test_production_inventory_statement_is_keyset_bounded(self) -> None:
+        statement = production_inventory_statement("mdl-100", 1000)
+
+        self.assertIn("published=1 AND id>?", statement["sql"])
+        self.assertIn("ORDER BY id", statement["sql"])
+        self.assertEqual(statement["params"], ["mdl-100", 1000])
+
+        with self.assertRaises(ValueError):
+            production_inventory_statement("", 5001)
 
     def test_load_rejects_model_without_publishable_image(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
