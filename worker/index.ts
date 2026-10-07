@@ -1,6 +1,7 @@
 import { createSharedCollection, getSharedCollection } from './sharedCollections'
 import { aggregateGallerySources, type GallerySourceState } from './galleryAggregation'
 import { validGalleryManifest, type GalleryModelState } from './galleryValidation'
+import { catalogSchemaStatus } from './schemaContract'
 
 type D1Statement = {
   bind(...values: unknown[]): D1Statement
@@ -604,6 +605,22 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') return options(request, env)
     const url = new URL(request.url)
+
+    if (request.method === 'GET' && url.pathname === '/api/health') {
+      const schema = await catalogSchemaStatus(env.DB)
+      return json(
+        request,
+        env,
+        { ok: schema.ready, service: 'tonecos-catalogo', schema },
+        { status: schema.ready ? 200 : 503 },
+      )
+    }
+
+    const schema = await catalogSchemaStatus(env.DB)
+    if (!schema.ready) {
+      return json(request, env, { error: 'schema_not_ready', schema }, { status: 503 })
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/categories') return listCategories(request, env)
     if (request.method === 'GET' && url.pathname === '/api/franchises') return listFranchises(request, env)
     if (request.method === 'GET' && url.pathname === '/api/folders') return listFolders(request, env)
@@ -621,7 +638,6 @@ export default {
       return getSharedCollection(request, decodeURIComponent(sharedMatch[1]), env, { allowedOrigin, json, validateTurnstile })
     }
     if (request.method === 'POST' && url.pathname === '/api/quotes') return createQuote(request, env)
-    if (request.method === 'GET' && url.pathname === '/api/health') return json(request, env, { ok: true, service: 'tonecos-catalogo' })
     return json(request, env, { error: 'not_found' }, { status: 404 })
   },
 }
