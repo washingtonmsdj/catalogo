@@ -132,6 +132,7 @@ export function ModelDetailDialog({
           <div className="model-detail-title">
             <span>{model.franchise || categoryLabel || 'Catálogo'}</span>
             <h2 id="model-detail-title">{model.name}</h2>
+            {model.variantName && <strong className="model-detail-variant">{model.variantName}</strong>}
             {path && <p>{path}</p>}
           </div>
 
