@@ -11,14 +11,15 @@
     "brand:dist": "node tools/check_generated_brand.mjs",
     "budget:frontend": "node tools/check_frontend_budget.mjs",
     "typecheck:worker": "tsc -p tsconfig.worker.json --noEmit",
-    "check": "npm run brand:source && npm run test:known-cache && npm run test:gallery-runtime && npm run test:worker-gallery-contract && npm run test:catalog-home && npm run test:gallery-grid && npm run dialog:a11y && npm run build && npm run brand:dist && npm run budget:frontend && npm run typecheck:worker",
+    "check": "npm run brand:source && npm run test:known-cache && npm run test:gallery-runtime && npm run test:worker-gallery-contract && npm run test:worker-folder-counts && npm run test:catalog-home && npm run test:gallery-grid && npm run dialog:a11y && npm run build && npm run brand:dist && npm run budget:frontend && npm run typecheck:worker",
     "cloudflare:config": "node tools/render_wrangler_config.mjs",
     "preview": "vite preview",
     "dialog:a11y": "node tools/check_dialog_architecture.mjs",
     "test:gallery-runtime": "node --experimental-strip-types --test tools/test_gallery_validation.mjs tools/test_gallery_aggregation.mjs",
     "test:worker-gallery-contract": "node --test tools/test_worker_gallery_contract.mjs",
     "test:catalog-home": "node --experimental-strip-types --test tools/test_catalog_home_view.mjs",
-    "test:gallery-grid": "node --experimental-strip-types --test tools/test_gallery_grid_navigation.mjs"
+    "test:gallery-grid": "node --experimental-strip-types --test tools/test_gallery_grid_navigation.mjs",
+    "test:worker-folder-counts": "node --test tools/test_worker_folder_counts.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
