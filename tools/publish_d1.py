@@ -25,7 +25,7 @@ CATEGORY_ORDER = {
     for index, name in enumerate(PUBLIC_TOP_LEVEL_CATEGORIES)
 }
 REQUIRED = {
-    "id", "slug", "code", "displayName", "categoryName", "categorySlug",
+    "identityKey", "id", "slug", "code", "displayName", "categoryName", "categorySlug",
     "franchiseName", "franchiseSlug", "collection", "folderPath", "folderPathKey", "searchText",
     "imageCount", "coverStorageKey", "galleryManifestKey", "galleryVersion",
 }
@@ -80,7 +80,7 @@ def load_models(path: Path) -> list[dict[str, Any]]:
 
 
 def validate_models(rows: list[dict[str, Any]]) -> None:
-    for key in ("id", "slug", "code"):
+    for key in ("identityKey", "id", "slug", "code"):
         counts = Counter(str(row[key]).strip() for row in rows)
         duplicates = sorted(value for value, count in counts.items() if not value or count > 1)
         if duplicates:
