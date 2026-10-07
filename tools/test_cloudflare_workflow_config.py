@@ -42,6 +42,16 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             self.workflow.index("Apply reviewed legacy gallery repairs"),
         )
 
+    def test_sha_backfill_precedes_legacy_repair_apply(self):
+        self.assertLess(
+            self.workflow.index("Backfill image SHA index"),
+            self.workflow.index("Apply reviewed legacy gallery repairs"),
+        )
+        self.assertLess(
+            self.workflow.index("Measure image SHA index coverage"),
+            self.workflow.index("Apply reviewed legacy gallery repairs"),
+        )
+
     def test_legacy_repair_apply_is_followed_by_public_alias_smoke(self):
         self.assertIn("Verify repaired legacy aliases through public API", self.workflow)
         self.assertIn("node tools/check_legacy_gallery_repairs.mjs", self.workflow)
