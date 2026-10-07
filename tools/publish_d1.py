@@ -419,6 +419,15 @@ def production_lookup_statements(rows: list[dict[str, Any]], chunk_size: int = 2
 m.id,m.slug,m.code,m.name,m.collection,
 COALESCE(cf.path,'') AS folder_path,
 m.image_count,m.cover_storage_key,m.gallery_manifest_key,m.gallery_version,
+EXISTS(
+  SELECT 1 FROM model_gallery_members member
+  WHERE member.source_model_id=m.id
+) AS gallery_source_attached,
+(
+  SELECT member.canonical_model_id FROM model_gallery_members member
+  WHERE member.source_model_id=m.id
+  LIMIT 1
+) AS gallery_canonical_model_id,
 c.slug AS category_slug,f.slug AS franchise_slug
 FROM models m
 JOIN franchises f ON f.id=m.franchise_id
@@ -515,7 +524,9 @@ def production_inventory_statement(after_id: str, limit: int) -> dict[str, Any]:
     if limit < 1 or limit > 5000:
         raise ValueError("limite do inventário deve ficar entre 1 e 5000")
     return {
-        "sql": """SELECT id,slug,code,name,published
+        "sql": """SELECT
+id,slug,code,name,published,
+(SELECT COUNT(*) FROM model_gallery_members member WHERE member.canonical_model_id=models.id) AS gallery_member_count
 FROM models
 WHERE published=1 AND id>?
 ORDER BY id
@@ -566,6 +577,10 @@ def validate_model_retirements(
             raise RuntimeError(
                 f"aprovação de aposentadoria não corresponde ao estado atual de {model_id}: "
                 f"slug/code divergentes"
+            )
+        if int(current.get("gallery_member_count") or 0) > 0:
+            raise RuntimeError(
+                f"modelo canônico com fontes anexadas não pode ser aposentado: {model_id}"
             )
         retirements.append({
             "sql": """UPDATE models
@@ -637,6 +652,12 @@ def validate_production_compatibility(
             continue
 
         existing += 1
+        if int(current.get("gallery_source_attached") or 0) == 1:
+            canonical_id = str(current.get("gallery_canonical_model_id") or "").strip()
+            raise RuntimeError(
+                f"ficha-fonte consolidada reapareceu no snapshot publicável: {model_id}; "
+                f"canônico={canonical_id or 'desconhecido'}"
+            )
         if str(current["slug"]) != slug:
             raise RuntimeError(
                 f"slug de modelo publicado mudaria para o mesmo ID: {model_id}: "
