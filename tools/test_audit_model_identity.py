@@ -295,7 +295,7 @@ class AuditModelIdentityTests(unittest.TestCase):
         }
 
         with self.assertRaisesRegex(RuntimeError, "sem candidato atual"):
-            validate_numbered_sibling_review(rows, registry)
+            validate_numbered_sibling_review(rows, registry, require_complete_registry=True)
 
     def test_cross_model_exact_sha_is_reported_without_mutation(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
