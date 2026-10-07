@@ -79,7 +79,7 @@ O workflow do Pages exige as Repository Variables de produção para API, mídia
 
 ## Frontend
 
-A URL pública canônica fica em `https://acheguese.com.br/tonecosstudios/`. O repositório Achegue-se mantém o Tonecos Studios como superfície pública temporária:
+A URL pública canônica fica em `https://acheguese.com.br/tonecosstudios/`. O repositório Achegue-se mantém o catálogo como superfície pública temporária:
 
 - `/tonecosstudios/*` → origem GitHub Pages do frontend;
 - `/catalogo-api/*` → Worker do Catálogo.
