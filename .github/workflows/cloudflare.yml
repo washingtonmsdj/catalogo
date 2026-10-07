@@ -8,6 +8,11 @@ on:
         required: false
         default: false
         type: boolean
+      apply_legacy_gallery_repairs:
+        description: Aplicar os 18 reparos de galerias legadas revisados após o deploy saudável
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [main]
     paths:
@@ -90,6 +95,10 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 22
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
       - name: Install
         run: npm ci
       - name: Validate deployment credentials
@@ -130,6 +139,11 @@ jobs:
       - name: Verify Worker schema health
         if: ${{ vars.VITE_API_BASE_URL != '' }}
         run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
+      - name: Plan reviewed legacy gallery repairs
+        run: python tools/apply_legacy_gallery_repairs.py
+      - name: Apply reviewed legacy gallery repairs
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs }}
+        run: python tools/apply_legacy_gallery_repairs.py --apply
       - name: Verify D1 readiness through catalog API
         if: ${{ vars.VITE_API_BASE_URL != '' }}
         shell: bash
