@@ -7,7 +7,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-from ingest_catalog import PUBLIC_TOP_LEVEL_CATEGORIES, analyze, clean_folder, discover_catalog_roots, disambiguate_public_model_keys, hamming, infer_audited_gallery_groups, iter_images, load_audit_registry, load_public_top_level_categories, mark_duplicates, save_progress_manifest
+from ingest_catalog import PUBLIC_TOP_LEVEL_CATEGORIES, analyze, clean_folder, cross_product_visual_candidates, discover_catalog_roots, disambiguate_public_model_keys, hamming, infer_audited_gallery_groups, iter_images, load_audit_registry, load_public_top_level_categories, mark_duplicates, save_progress_manifest
 
 
 class CatalogIngestTests(unittest.TestCase):
@@ -340,6 +340,48 @@ class CatalogIngestTests(unittest.TestCase):
 
             self.assertEqual(groups, [])
             self.assertTrue(all(record.canonical for record in records))
+
+    def test_cross_product_visual_candidates_are_review_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            target = root / "OK - Games [2]" / "OK - Saga [2]" / "OK - Heroi [2]"
+            target.mkdir(parents=True)
+            first = target / "modelo-a.png"
+            second = target / "modelo-b.png"
+            for path, size in ((first, (800, 1000)), (second, (1000, 1250))):
+                image = Image.new("RGB", size, "white")
+                draw = ImageDraw.Draw(image)
+                draw.rectangle((size[0] // 4, size[1] // 5, size[0] * 3 // 4, size[1] * 4 // 5), fill="#34393e")
+                image.save(path)
+
+            left, right = analyze(root, first), analyze(root, second)
+            left.public_model_key = f"{left.model_key} / produto-a"
+            right.public_model_key = f"{right.model_key} / produto-b"
+
+            candidates = cross_product_visual_candidates([left, right], 6)
+
+            self.assertEqual(len(candidates), 1)
+            self.assertEqual(candidates[0]["kind"], "cross_product_visual")
+            self.assertLessEqual(candidates[0]["distance"], 6)
+            self.assertTrue(left.canonical)
+            self.assertTrue(right.canonical)
+
+    def test_cross_product_visual_candidates_never_cross_hierarchies(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_dir = root / "OK - Games [2]" / "OK - Saga [2]" / "OK - Heroi A [1]"
+            second_dir = root / "OK - Games [2]" / "OK - Saga [2]" / "OK - Heroi B [1]"
+            first_dir.mkdir(parents=True)
+            second_dir.mkdir(parents=True)
+            first = first_dir / "modelo-a.png"
+            second = second_dir / "modelo-b.png"
+            Image.new("RGB", (800, 1000), "#334455").save(first)
+            second.write_bytes(first.read_bytes())
+            left, right = analyze(root, first), analyze(root, second)
+            left.public_model_key = f"{left.model_key} / produto"
+            right.public_model_key = f"{right.model_key} / produto"
+
+            self.assertEqual(cross_product_visual_candidates([left, right], 6), [])
 
     def test_visual_candidates_prefer_higher_quality_version(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
