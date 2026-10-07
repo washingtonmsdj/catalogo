@@ -1,6 +1,6 @@
 import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 import { FRANCHISE_SEARCH_MIN_LENGTH, type CatalogListQuery, type CatalogModelCard, type CursorPage, type GalleryQuery } from './catalogRepository'
-import viewDescriptorConfig from '../../config/catalog-view-descriptors.json'
+import { planLegacyGalleryGroups } from '../lib/legacyGalleryGrouping'
 
 export type CatalogRuntimeMode = 'demo' | 'live'
 
@@ -164,71 +164,40 @@ function liveSearchTerm(value?: string) {
   return trimmed
 }
 
-type LegacyViewDescriptorConfig = {
-  slugSuffix: string
-  priority: number
-}
-
-const LEGACY_VIEW_SUFFIXES = (viewDescriptorConfig.descriptors as LegacyViewDescriptorConfig[])
-  .map((entry) => ({ suffix: entry.slugSuffix, priority: entry.priority }))
-  .sort((left, right) => right.suffix.length - left.suffix.length || left.priority - right.priority)
-
-function legacyViewDescriptor(slug: string) {
-  for (const entry of LEGACY_VIEW_SUFFIXES) {
-    if (!slug.endsWith(entry.suffix)) continue
-    const family = slug.slice(0, -entry.suffix.length)
-    if (family) return { family, priority: entry.priority }
-  }
-  return null
-}
-
 export function collapseLegacyViewRows(rows: ApiCatalogRow[]): CatalogModelCard[] {
-  const groups = new Map<string, Array<{ row: ApiCatalogRow; priority: number; index: number }>>()
-
-  rows.forEach((row, index) => {
-    if (row.image_count !== 1) return
-    const descriptor = legacyViewDescriptor(row.slug)
-    if (!descriptor) return
-    const key = [
-      row.category_slug,
-      row.franchise_slug,
-      row.folder_path ?? '',
-      row.name,
-      descriptor.family,
-    ].join('|')
-    const members = groups.get(key) ?? []
-    members.push({ row, priority: descriptor.priority, index })
-    groups.set(key, members)
-  })
-
-  const membership = new Map<string, string>()
-  for (const [key, members] of groups) {
-    if (members.length < 2) continue
-    for (const member of members) membership.set(member.row.id, key)
+  const plans = planLegacyGalleryGroups(rows)
+  const planByMemberId = new Map<string, (typeof plans)[number]>()
+  for (const plan of plans) {
+    for (const memberId of plan.memberIds) planByMemberId.set(memberId, plan)
   }
 
   const emitted = new Set<string>()
+  const bySlug = new Map(rows.map((row) => [row.slug, row]))
+  const byId = new Map(rows.map((row) => [row.id, row]))
   const cards: CatalogModelCard[] = []
-  rows.forEach((row) => {
-    const key = membership.get(row.id)
-    if (!key) {
-      cards.push(toCatalogModelCard(row))
-      return
-    }
-    if (emitted.has(key)) return
-    emitted.add(key)
 
-    const members = [...(groups.get(key) ?? [])].sort(
-      (left, right) => left.priority - right.priority
-        || left.row.slug.localeCompare(right.row.slug, 'pt-BR'),
-    )
-    const canonical = members[0].row
+  for (const row of rows) {
+    const plan = planByMemberId.get(row.id)
+    if (!plan) {
+      cards.push(toCatalogModelCard(row))
+      continue
+    }
+    if (emitted.has(plan.key)) continue
+    emitted.add(plan.key)
+
+    const canonical = bySlug.get(plan.canonicalSlug)
+    const members = plan.memberIds.map((id) => byId.get(id)).filter((item): item is ApiCatalogRow => Boolean(item))
+    if (!canonical || members.length !== plan.memberIds.length) {
+      cards.push(toCatalogModelCard(row))
+      continue
+    }
+
     const card = toCatalogModelCard(canonical)
-    card.galleryCount = members.reduce((sum, member) => sum + member.row.image_count, 0)
-    card.galleryVersion = members.reduce((sum, member) => sum + member.row.gallery_version, 0)
-    card.gallerySourceSlugs = members.map((member) => member.row.slug)
+    card.galleryCount = members.reduce((sum, member) => sum + member.image_count, 0)
+    card.galleryVersion = members.reduce((sum, member) => sum + member.gallery_version, 0)
+    card.gallerySourceSlugs = plan.memberSlugs
     cards.push(card)
-  })
+  }
 
   return cards
 }
