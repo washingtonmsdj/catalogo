@@ -312,13 +312,17 @@ def exact_cross_model_sha_query(limit: int = 50) -> dict[str, Any]:
     if limit < 1 or limit > 500:
         raise ValueError("limite de auditoria SHA deve ficar entre 1 e 500")
     return {
-        "sql": """SELECT s.source_sha256,COUNT(DISTINCT s.model_id) AS model_count,
-GROUP_CONCAT(DISTINCT s.model_id) AS model_ids
+        "sql": """SELECT
+s.source_sha256,
+COUNT(DISTINCT COALESCE(member.canonical_model_id,s.model_id)) AS model_count,
+GROUP_CONCAT(DISTINCT COALESCE(member.canonical_model_id,s.model_id)) AS model_ids
 FROM model_image_sources s
-JOIN models m ON m.id=s.model_id AND m.gallery_version=s.gallery_version
-WHERE m.published=1
+JOIN models source ON source.id=s.model_id AND source.gallery_version=s.gallery_version
+LEFT JOIN model_gallery_members member ON member.source_model_id=source.id
+JOIN models effective ON effective.id=COALESCE(member.canonical_model_id,source.id)
+WHERE effective.published=1
 GROUP BY s.source_sha256
-HAVING COUNT(DISTINCT s.model_id)>1
+HAVING COUNT(DISTINCT COALESCE(member.canonical_model_id,s.model_id))>1
 ORDER BY model_count DESC,s.source_sha256
 LIMIT ?""",
         "params": [limit],
