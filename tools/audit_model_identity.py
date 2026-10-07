@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -93,6 +94,79 @@ def split_view_candidates(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     )
 
 
+def sibling_suffix_candidates(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Find likely file/export suffix siblings without merging anything.
+
+    Explicit copy markers are strong review signals. Pure numeric suffixes are
+    review-only because numbered models are common legitimate products.
+    A candidate exists only when the exact base slug is also present in the
+    same category/franchise/folder/display-name scope.
+    """
+    scopes: dict[tuple[str, str, str, str], dict[str, dict[str, Any]]] = defaultdict(dict)
+    for row in rows:
+        slug = str(row.get("slug") or "").strip()
+        if not slug:
+            continue
+        key = (
+            str(row.get("categorySlug") or "").strip(),
+            str(row.get("franchiseSlug") or "").strip(),
+            str(row.get("folderPathKey") or "").strip(),
+            str(row.get("displayName") or "").strip().casefold(),
+        )
+        scopes[key][slug] = row
+
+    explicit_pattern = re.compile(r"-(?:copy|copia|duplicate|duplicado)(?:-\d+)?$", re.IGNORECASE)
+    numeric_pattern = re.compile(r"-\d{1,6}$")
+    grouped: dict[tuple[tuple[str, str, str, str], str, str], dict[str, Any]] = {}
+
+    for scope, by_slug in scopes.items():
+        for slug, row in by_slug.items():
+            kind = ""
+            match = explicit_pattern.search(slug)
+            if match:
+                kind = "explicit-copy-marker"
+            else:
+                match = numeric_pattern.search(slug)
+                if match:
+                    kind = "numbered-review"
+            if not match:
+                continue
+            base_slug = slug[:match.start()]
+            base = by_slug.get(base_slug)
+            if not base:
+                continue
+            group_key = (scope, base_slug, kind)
+            item = grouped.setdefault(group_key, {
+                "kind": kind,
+                "categorySlug": scope[0],
+                "franchiseSlug": scope[1],
+                "folderPathKey": scope[2],
+                "displayNameKey": scope[3],
+                "baseId": str(base.get("id") or ""),
+                "baseSlug": base_slug,
+                "siblings": [],
+            })
+            item["siblings"].append({
+                "id": str(row.get("id") or ""),
+                "slug": slug,
+                "code": str(row.get("code") or ""),
+            })
+
+    results = list(grouped.values())
+    for item in results:
+        item["siblings"].sort(key=lambda sibling: sibling["slug"])
+    return sorted(
+        results,
+        key=lambda item: (
+            0 if item["kind"] == "explicit-copy-marker" else 1,
+            item["categorySlug"],
+            item["franchiseSlug"],
+            item["folderPathKey"],
+            item["baseSlug"],
+        ),
+    )
+
+
 def cross_model_sha_candidates(rows: list[dict[str, Any]], r2_root: Path) -> list[dict[str, Any]]:
     by_sha: dict[str, list[dict[str, str]]] = defaultdict(list)
     for row in rows:
@@ -135,21 +209,37 @@ def cross_model_sha_candidates(rows: list[dict[str, Any]], r2_root: Path) -> lis
     return sorted(results, key=lambda item: (-item["modelCount"], item["sha256"]))
 
 
-def write_report(output: Path, view_candidates: list[dict[str, Any]], sha_candidates: list[dict[str, Any]]) -> dict[str, Any]:
+def write_report(
+    output: Path,
+    view_candidates: list[dict[str, Any]],
+    sha_candidates: list[dict[str, Any]],
+    sibling_candidates: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     output.mkdir(parents=True, exist_ok=True)
+    sibling_candidates = list(sibling_candidates or [])
+    explicit_copy = [item for item in sibling_candidates if item["kind"] == "explicit-copy-marker"]
+    numbered_review = [item for item in sibling_candidates if item["kind"] == "numbered-review"]
     high = [item for item in view_candidates if item["confidence"] == "high"]
     review = [item for item in view_candidates if item["confidence"] != "high"]
     summary = {
-        "version": 1,
+        "version": 2,
         "splitViewCandidateGroups": len(view_candidates),
         "highConfidenceGroups": len(high),
         "reviewGroups": len(review),
         "splitViewRows": sum(len(item["members"]) for item in view_candidates),
         "potentialExtraCards": sum(len(item["members"]) - 1 for item in view_candidates),
         "crossModelExactShaGroups": len(sha_candidates),
+        "explicitCopyMarkerGroups": len(explicit_copy),
+        "numberedSiblingReviewGroups": len(numbered_review),
+        "numberedSiblingRows": sum(len(item["siblings"]) for item in numbered_review),
     }
     (output / "identity-audit.json").write_text(
-        json.dumps({"summary": summary, "splitViewCandidates": view_candidates, "crossModelShaCandidates": sha_candidates}, ensure_ascii=False, indent=2) + "\n",
+        json.dumps({
+            "summary": summary,
+            "splitViewCandidates": view_candidates,
+            "crossModelShaCandidates": sha_candidates,
+            "siblingSuffixCandidates": sibling_candidates,
+        }, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     with (output / "split-view-candidates.csv").open("w", encoding="utf-8-sig", newline="") as handle:
@@ -160,6 +250,15 @@ def write_report(output: Path, view_candidates: list[dict[str, Any]], sha_candid
                 item["confidence"], item["categorySlug"], item["franchiseSlug"],
                 item["folderPathKey"], item["family"], item["canonicalSlug"],
                 " | ".join(member["slug"] for member in item["members"]),
+            ])
+    with (output / "sibling-suffix-candidates.csv").open("w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["kind", "category", "franchise", "folder", "base_slug", "sibling_slugs"])
+        for item in sibling_candidates:
+            writer.writerow([
+                item["kind"], item["categorySlug"], item["franchiseSlug"],
+                item["folderPathKey"], item["baseSlug"],
+                " | ".join(member["slug"] for member in item["siblings"]),
             ])
     return summary
 
@@ -175,7 +274,8 @@ def main() -> int:
     rows = load_models(args.models)
     view_candidates = split_view_candidates(rows)
     sha_candidates = cross_model_sha_candidates(rows, args.r2_root) if args.r2_root else []
-    summary = write_report(args.output, view_candidates, sha_candidates)
+    sibling_candidates = sibling_suffix_candidates(rows)
+    summary = write_report(args.output, view_candidates, sha_candidates, sibling_candidates)
     print(json.dumps(summary, ensure_ascii=False))
     if args.fail_on_high and summary["highConfidenceGroups"]:
         return 2
