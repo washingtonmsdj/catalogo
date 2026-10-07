@@ -82,8 +82,4 @@ def slug_view_descriptor(slug: str) -> tuple[str, ViewDescriptor] | None:
 def candidate_confidence(descriptors: Iterable[ViewDescriptor]) -> str:
     items = tuple(descriptors)
     directional = {item.stem_suffix for item in items if item.kind == "directional"}
-    if len(directional) >= 2:
-        return "high"
-    if directional and len(items) >= 3:
-        return "high"
-    return "review"
+    return "high" if len(directional) >= 2 else "review"
