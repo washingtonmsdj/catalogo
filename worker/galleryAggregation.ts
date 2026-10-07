@@ -40,6 +40,7 @@ export function aggregateGallerySources(payloads: GallerySourcePayload[]): Aggre
   })
 
   const images: GalleryImage[] = []
+  const sourceHashes = new Set<string>()
   const multipleSources = ordered.length > 1
   for (const { source, manifest } of ordered) {
     if (!validGalleryManifest(manifest, source)) {
@@ -47,6 +48,10 @@ export function aggregateGallerySources(payloads: GallerySourcePayload[]): Aggre
     }
 
     for (const image of (manifest as GalleryManifest).images) {
+      if (sourceHashes.has(image.sourceSha256)) {
+        throw new Error(`gallery_duplicate_source_sha:${image.sourceSha256}`)
+      }
+      sourceHashes.add(image.sourceSha256)
       images.push({
         ...image,
         id: multipleSources ? `${source.id}:${image.id}` : image.id,
