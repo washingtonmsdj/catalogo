@@ -47,8 +47,8 @@
       "siblingSlugs": [
         "dragon-ball-goku-e-piccolo-2"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: os dois arquivos do grupo são dioramas diferentes, com poses, composição e base distintas."
     },
     {
       "categorySlug": "animes-desenhos",
