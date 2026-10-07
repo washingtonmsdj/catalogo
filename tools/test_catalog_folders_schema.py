@@ -9,7 +9,7 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
     def setUp(self) -> None:
         self.db = sqlite3.connect(":memory:")
         migrations = Path(__file__).resolve().parents[1] / "migrations"
-        for name in ("0001_catalog.sql", "0002_keyset_pagination.sql", "0003_catalog_counts.sql", "0009_catalog_folders.sql", "0010_recent_models_index.sql", "0011_model_gallery_members.sql", "0012_folder_materialized_counts.sql", "0013_model_image_sources.sql", "0014_gallery_member_integrity.sql", "0015_gallery_publication_invariant.sql"):
+        for name in ("0001_catalog.sql", "0002_keyset_pagination.sql", "0003_catalog_counts.sql", "0009_catalog_folders.sql", "0010_recent_models_index.sql", "0011_model_gallery_members.sql", "0012_folder_materialized_counts.sql", "0013_model_image_sources.sql", "0014_gallery_member_integrity.sql", "0015_gallery_publication_invariant.sql", "0016_public_gallery_revision.sql"):
             self.db.executescript((migrations / name).read_text(encoding="utf-8"))
         self.db.execute("INSERT INTO categories(slug,name) VALUES('animes-desenhos','Animes & Desenhos')")
         category_id = self.db.execute("SELECT id FROM categories WHERE slug='animes-desenhos'").fetchone()[0]
@@ -333,6 +333,62 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
 
         self.assertEqual(source_published, 0)
         self.assertEqual(logical, (2, 8))
+
+    def test_public_gallery_revision_is_monotonic_for_visible_gallery_changes(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,1)",
+            (self.franchise_id, "grupo", "Grupo", "grupo"),
+        )
+        folder_id = self.db.execute(
+            "SELECT id FROM catalog_folders WHERE franchise_id=? AND path='grupo'",
+            (self.franchise_id,),
+        ).fetchone()[0]
+        self._insert_gallery_model("mdl-a", folder_id, "a", "TS-A", "Produto")
+        self._insert_gallery_model("mdl-b", folder_id, "b", "TS-B", "Produto")
+
+        initial = self.db.execute(
+            "SELECT gallery_version,public_gallery_version FROM models WHERE id='mdl-a'"
+        ).fetchone()
+        self.assertEqual(initial, (1, 1))
+
+        self.db.execute(
+            "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
+            ("mdl-a", "mdl-b", 1),
+        )
+        after_attach = self.db.execute(
+            "SELECT gallery_version,public_gallery_version FROM models WHERE id='mdl-a'"
+        ).fetchone()
+        self.assertEqual(after_attach, (1, 2))
+
+        self.db.execute(
+            """UPDATE models
+            SET gallery_version=2,
+                gallery_manifest_key='gallery/mdl-b/manifest-v2.json'
+            WHERE id='mdl-b'"""
+        )
+        after_source_change = self.db.execute(
+            "SELECT gallery_version,public_gallery_version FROM models WHERE id='mdl-a'"
+        ).fetchone()
+        self.assertEqual(after_source_change, (1, 3))
+
+        self.db.execute(
+            "UPDATE model_gallery_members SET position=2 WHERE canonical_model_id='mdl-a' AND source_model_id='mdl-b'"
+        )
+        after_reorder = self.db.execute(
+            "SELECT gallery_version,public_gallery_version FROM models WHERE id='mdl-a'"
+        ).fetchone()
+        self.assertEqual(after_reorder, (1, 4))
+
+        self.db.execute(
+            """UPDATE models
+            SET gallery_version=2,
+                gallery_manifest_key='gallery/mdl-a/manifest-v2.json'
+            WHERE id='mdl-a'"""
+        )
+        after_canonical_change = self.db.execute(
+            "SELECT gallery_version,public_gallery_version FROM models WHERE id='mdl-a'"
+        ).fetchone()
+        self.assertEqual(after_canonical_change, (2, 5))
 
     def test_attached_gallery_source_cannot_be_republished_or_rebound(self) -> None:
         self.db.execute(
