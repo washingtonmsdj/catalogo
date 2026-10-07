@@ -9,7 +9,7 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
     def setUp(self) -> None:
         self.db = sqlite3.connect(":memory:")
         migrations = Path(__file__).resolve().parents[1] / "migrations"
-        for name in ("0001_catalog.sql", "0002_keyset_pagination.sql", "0003_catalog_counts.sql", "0009_catalog_folders.sql", "0011_model_gallery_members.sql"):
+        for name in ("0001_catalog.sql", "0002_keyset_pagination.sql", "0003_catalog_counts.sql", "0009_catalog_folders.sql", "0010_recent_models_index.sql", "0011_model_gallery_members.sql", "0012_folder_materialized_counts.sql"):
             self.db.executescript((migrations / name).read_text(encoding="utf-8"))
         self.db.execute("INSERT INTO categories(slug,name) VALUES('animes-desenhos','Animes & Desenhos')")
         category_id = self.db.execute("SELECT id FROM categories WHERE slug='animes-desenhos'").fetchone()[0]
@@ -78,6 +78,69 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
             (self.franchise_id,),
         ).fetchone()[0]
         self.assertEqual(count, 2)
+
+    def test_materialized_folder_counts_follow_model_lifecycle(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
+            (self.franchise_id, "viloes", "Vilões", "viloes", 1),
+        )
+        root_id = self.db.execute("SELECT id FROM catalog_folders WHERE path='viloes'").fetchone()[0]
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,parent_id,slug,name,path,depth) VALUES(?,?,?,?,?,2)",
+            (self.franchise_id, root_id, "destruidor", "Destruidor", "viloes/destruidor"),
+        )
+        leaf_id = self.db.execute(
+            "SELECT id FROM catalog_folders WHERE path='viloes/destruidor'"
+        ).fetchone()[0]
+
+        self.db.execute(
+            "INSERT INTO models(id,franchise_id,folder_id,slug,code,name,published) VALUES(?,?,?,?,?,?,1)",
+            ("mdl-counted", self.franchise_id, leaf_id, "destruidor", "TS-COUNTED", "Destruidor"),
+        )
+        counts = self.db.execute(
+            "SELECT path,direct_model_count,subtree_model_count FROM catalog_folders ORDER BY depth,path"
+        ).fetchall()
+        self.assertEqual(counts, [
+            ("viloes", 0, 1),
+            ("viloes/destruidor", 1, 1),
+        ])
+
+        self.db.execute("UPDATE models SET published=0 WHERE id='mdl-counted'")
+        counts = self.db.execute(
+            "SELECT direct_model_count,subtree_model_count FROM catalog_folders ORDER BY depth,path"
+        ).fetchall()
+        self.assertEqual(counts, [(0, 0), (0, 0)])
+
+        self.db.execute("UPDATE models SET published=1 WHERE id='mdl-counted'")
+        counts = self.db.execute(
+            "SELECT direct_model_count,subtree_model_count FROM catalog_folders ORDER BY depth,path"
+        ).fetchall()
+        self.assertEqual(counts, [(0, 1), (1, 1)])
+
+        self.db.execute("DELETE FROM models WHERE id='mdl-counted'")
+        counts = self.db.execute(
+            "SELECT direct_model_count,subtree_model_count FROM catalog_folders ORDER BY depth,path"
+        ).fetchall()
+        self.assertEqual(counts, [(0, 0), (0, 0)])
+
+    def test_materialized_folder_counts_follow_folder_move(self) -> None:
+        for slug in ("a", "b"):
+            self.db.execute(
+                "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,1)",
+                (self.franchise_id, slug, slug.upper(), slug),
+            )
+        a_id = self.db.execute("SELECT id FROM catalog_folders WHERE path='a'").fetchone()[0]
+        b_id = self.db.execute("SELECT id FROM catalog_folders WHERE path='b'").fetchone()[0]
+        self.db.execute(
+            "INSERT INTO models(id,franchise_id,folder_id,slug,code,name,published) VALUES(?,?,?,?,?,?,1)",
+            ("mdl-move", self.franchise_id, a_id, "move", "TS-MOVE", "Move"),
+        )
+        self.db.execute("UPDATE models SET folder_id=? WHERE id='mdl-move'", (b_id,))
+
+        counts = dict(self.db.execute(
+            "SELECT path,subtree_model_count FROM catalog_folders"
+        ).fetchall())
+        self.assertEqual(counts, {"a": 0, "b": 1})
 
     def test_tmnt_root_keeps_hero_and_groups_villain_subtree(self) -> None:
         self.db.execute(
