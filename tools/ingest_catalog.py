@@ -255,15 +255,30 @@ VIEW_SUFFIXES = (
 )
 
 
-def audited_view_family(source_stem: str) -> str | None:
-    """Infer a product family only from a conservative trailing view descriptor.
+VIEW_ANCHOR_PRIORITY = {
+    "frente": 0,
+    "frontal": 1,
+    "vista frontal": 2,
+    "corpo inteiro": 3,
+    "em pe": 4,
+    "em pé": 4,
+    "lateral": 10,
+    "vista lateral": 11,
+    "perfil": 12,
+    "costas": 20,
+    "traseira": 21,
+    "traseiro": 21,
+    "vista traseira": 22,
+    "frente alternativo": 30,
+    "frente alternativa": 30,
+    "costas corpo inteiro": 31,
+    "costas close": 32,
+    "close": 40,
+}
 
-    The audited registry may omit modelo_publico for legacy rows. In that
-    case file names such as traje-casual-frente and traje-casual-costas are
-    views of one product, not separate products. We intentionally strip only
-    a small allowlist of photographic/view terms; semantic qualifiers such as
-    realista, chibi or diorama remain part of the product identity.
-    """
+
+def audited_view_descriptor(source_stem: str) -> tuple[str, str] | None:
+    """Return the conservative product family and trailing view descriptor."""
     normalized = re.sub(r"[-_]+", " ", source_stem).strip()
     lowered = normalized.casefold()
     for suffix in VIEW_SUFFIXES:
@@ -271,34 +286,54 @@ def audited_view_family(source_stem: str) -> str | None:
         marker = f" {suffix_key}"
         if lowered.endswith(marker):
             base = normalized[: -len(marker)].strip(" -_")
-            return base or None
+            return (base, suffix_key) if base else None
     return None
 
 
-def infer_audited_gallery_groups(records: list[ImageRecord]) -> int:
-    """Group legacy audited view files when two or more share one safe family.
+def audited_view_family(source_stem: str) -> str | None:
+    descriptor = audited_view_descriptor(source_stem)
+    return descriptor[0] if descriptor else None
 
-    Explicit modelo_publico always wins. A family is promoted only when at
-    least two records in the same source hierarchy resolve to the same base;
-    single files keep their original file-level identity.
+
+def infer_audited_gallery_groups(records: list[ImageRecord]) -> int:
+    """Group view files while preserving an existing file identity as canonical.
+
+    Explicit modelo_publico always wins. For inferred groups, the canonical
+    public key remains the stem of a real source file (prefer front/full-body
+    views), so an already-published model keeps its stable ID after re-ingest.
     """
-    candidates: dict[tuple[str, str], list[tuple[ImageRecord, str]]] = defaultdict(list)
+    candidates: dict[
+        tuple[str, str],
+        list[tuple[ImageRecord, str, str, str]],
+    ] = defaultdict(list)
     for record in records:
         if record.status != "OK" or record.audit_model_group:
             continue
-        family = audited_view_family(Path(record.path).stem)
-        if not family:
+        source_stem = Path(record.path).stem
+        descriptor = audited_view_descriptor(source_stem)
+        if not descriptor:
             continue
-        candidates[(record.model_key, family.casefold())].append((record, family))
+        family, suffix = descriptor
+        candidates[(record.model_key, family.casefold())].append(
+            (record, family, suffix, source_stem)
+        )
 
     grouped = 0
     for members in candidates.values():
         if len(members) < 2:
             continue
-        group_label = members[0][1]
-        for record, _family in members:
-            record.audit_model_group = group_label
-            record.public_model_key = f"{record.model_key} / {group_label}"
+        anchor = min(
+            members,
+            key=lambda member: (
+                VIEW_ANCHOR_PRIORITY.get(member[2], 100),
+                member[3].casefold(),
+                member[0].path.casefold(),
+            ),
+        )
+        group_identity = anchor[3]
+        for record, _family, _suffix, _source_stem in members:
+            record.audit_model_group = group_identity
+            record.public_model_key = f"{record.model_key} / {group_identity}"
             grouped += 1
     return grouped
 
