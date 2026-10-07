@@ -236,8 +236,8 @@
       "siblingSlugs": [
         "league-of-legends-caitlyn-kiramman-league-of-legends-2"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: os dois arquivos do grupo representam produtos diferentes."
     },
     {
       "categorySlug": "games",
