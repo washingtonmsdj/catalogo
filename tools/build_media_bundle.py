@@ -83,12 +83,17 @@ def model_variant_name(
             raw = match[0]
 
     label = humanize_stem(raw)
-    for prefix in (display_name, franchise_name):
-        normalized = prefix.strip()
-        if not normalized:
-            continue
-        pattern = re.compile(rf"^{re.escape(normalized)}(?:\s*[-_:]\s*|\s+)", re.IGNORECASE)
-        label = pattern.sub("", label).strip()
+    prefixes = [prefix.strip() for prefix in (franchise_name, display_name) if prefix.strip()]
+    # Remove nested public prefixes repeatedly. Example:
+    # "Star Wars Darth Vader 04" -> "Darth Vader 04" -> "04".
+    # This keeps the visible variant concise without changing product identity.
+    for _ in range(len(prefixes) + 1):
+        previous = label
+        for normalized in prefixes:
+            pattern = re.compile(rf"^{re.escape(normalized)}(?:\s*[-_:]\s*|\s+)", re.IGNORECASE)
+            label = pattern.sub("", label).strip()
+        if label == previous:
+            break
 
     if label:
         label = label[:1].upper() + label[1:]
