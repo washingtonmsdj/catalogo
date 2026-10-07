@@ -1,6 +1,6 @@
 import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 import { FRANCHISE_SEARCH_MIN_LENGTH, type CatalogListQuery, type CatalogModelCard, type CursorPage, type GalleryQuery } from './catalogRepository'
-import { legacyCompositeGalleryVersion, planLegacyGalleryGroups, registeredLegacyGalleryForRow, type LegacyGalleryOverride } from '../lib/legacyGalleryGrouping'
+import { legacyCompositeGalleryVersion, planLegacyGalleryGroups, registeredLegacyGalleryForRow, uniqueLegacyGalleryImages, type LegacyGalleryOverride } from '../lib/legacyGalleryGrouping'
 
 export type CatalogRuntimeMode = 'demo' | 'live'
 
@@ -247,33 +247,48 @@ async function collapseLegacyViewRowsAcrossPages(rows: ApiCatalogRow[]): Promise
 
   const hydrated = new Map<string, CatalogModelCard>()
   await Promise.all(Array.from(touched.values(), async (group) => {
-    const details = await Promise.all(group.memberSlugs.map((slug) => loadLegacyModelDetail(slug)))
-    if (details.some((model) => !model || model.galleryCount !== 1)) return
+    try {
+      const details = await Promise.all(group.memberSlugs.map((slug) => loadLegacyModelDetail(slug)))
+      if (details.some((model) => !model || model.galleryCount !== 1)) return
 
-    const models = details.filter((model): model is CatalogModel => Boolean(model))
-    const canonical = models.find((model) => model.slug === group.canonicalSlug)
-    if (!canonical || models.length !== group.memberSlugs.length) return
+      const models = details.filter((model): model is CatalogModel => Boolean(model))
+      const canonical = models.find((model) => model.slug === group.canonicalSlug)
+      if (!canonical || models.length !== group.memberSlugs.length) return
 
-    const galleryCount = models.reduce((sum, model) => sum + model.galleryCount, 0)
-    const versionedMembers = models.map((model) => {
-      const version = model.galleryVersion
-      if (version === undefined || !Number.isSafeInteger(version) || version < 1) return null
-      return { slug: model.slug, gallery_version: version }
-    })
-    if (versionedMembers.some((member) => member === null)) return
-    const galleryVersion = legacyCompositeGalleryVersion(
-      versionedMembers.filter(
-        (member): member is { slug: string; gallery_version: number } => member !== null,
-      ),
-    )
-    if (!Number.isSafeInteger(galleryCount) || galleryCount < 2) return
+      const versionedMembers = models.map((model) => {
+        const version = model.galleryVersion
+        if (version === undefined || !Number.isSafeInteger(version) || version < 1) return null
+        return { slug: model.slug, gallery_version: version }
+      })
+      if (versionedMembers.some((member) => member === null)) return
 
-    hydrated.set(group.canonicalSlug, {
-      ...catalogModelToCard(canonical),
-      galleryCount,
-      galleryVersion,
-      gallerySourceSlugs: group.memberSlugs,
-    })
+      const galleryPages = await Promise.all(models.map((model) =>
+        listCatalogImages(model.slug, {
+          page: 0,
+          limit: 2,
+          version: model.galleryVersion,
+        }),
+      ))
+      if (galleryPages.some((page) => page.total !== 1 || page.items.length !== 1)) return
+      const uniqueImages = uniqueLegacyGalleryImages(galleryPages.flatMap((page) => page.items))
+      if (!uniqueImages.length) return
+
+      const galleryVersion = legacyCompositeGalleryVersion(
+        versionedMembers.filter(
+          (member): member is { slug: string; gallery_version: number } => member !== null,
+        ),
+      )
+
+      hydrated.set(group.canonicalSlug, {
+        ...catalogModelToCard(canonical),
+        galleryCount: uniqueImages.length,
+        galleryVersion,
+        gallerySourceSlugs: group.memberSlugs,
+      })
+    } catch {
+      // Legacy compatibility must never make the primary catalog unavailable.
+      // If enrichment fails, the base cards remain visible and independently usable.
+    }
   }))
 
   if (!hydrated.size) return baseCards
@@ -297,6 +312,7 @@ async function collapseLegacyViewRowsAcrossPages(rows: ApiCatalogRow[]): Promise
 
   return result
 }
+
 
 function toCatalogModelCard(row: ApiCatalogRow): CatalogModelCard {
   return {
