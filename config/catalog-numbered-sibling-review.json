@@ -47,8 +47,8 @@
       "siblingSlugs": [
         "dragon-ball-goku-e-piccolo-2"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: os dois arquivos do grupo são dioramas diferentes, com poses, composição e base distintas."
     },
     {
       "categorySlug": "animes-desenhos",
@@ -60,8 +60,8 @@
       "siblingSlugs": [
         "dragon-ball-bardock-105776"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: os dois arquivos do grupo representam esculturas diferentes, com pose, figurino e base distintos."
     },
     {
       "categorySlug": "animes-desenhos",
@@ -73,8 +73,8 @@
       "siblingSlugs": [
         "dragon-ball-vegeta-ultra-ego-2"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: os dois arquivos Ultra Ego representam esculturas e composições diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "animes-desenhos",
@@ -641,8 +641,8 @@
         "street-fighter-zangief-03",
         "street-fighter-zangief-04"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Zangief.jpg e Zangief 02–04): esculturas, poses, bases e composições são diferentes; manter como produtos distintos. O PNG 04 foi inspecionado por cópia temporária reduzida, sem alterar o arquivo fonte."
     },
     {
       "categorySlug": "games",
@@ -654,8 +654,8 @@
       "siblingSlugs": [
         "the-king-of-fighters-athena-asamiya-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte: os dois arquivos de Athena Asamiya representam esculturas, poses, figurinos e bases diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -667,8 +667,8 @@
       "siblingSlugs": [
         "the-king-of-fighters-blue-mary-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte: os dois arquivos de Blue Mary representam esculturas, poses e bases diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
@@ -681,8 +681,8 @@
         "the-king-of-fighters-mai-shiranui-02",
         "the-king-of-fighters-mai-shiranui-03"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte: os três arquivos de Mai Shiranui representam esculturas, poses e bases diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
