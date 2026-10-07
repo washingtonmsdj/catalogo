@@ -12,7 +12,7 @@ export type CursorPage<T> = {
 
 export type CatalogModelCard = Pick<
   CatalogModel,
-  'id' | 'slug' | 'code' | 'name' | 'franchise' | 'category' | 'collection' | 'folderPath' | 'galleryCount' | 'galleryVersion' | 'gallerySourceSlugs' | 'accent'
+  'id' | 'slug' | 'code' | 'name' | 'variantName' | 'franchise' | 'category' | 'collection' | 'folderPath' | 'galleryCount' | 'galleryVersion' | 'gallerySourceSlugs' | 'accent'
 > & {
   franchiseSlug?: string
   coverUrl?: string
