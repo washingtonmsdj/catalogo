@@ -9,7 +9,7 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
     def setUp(self) -> None:
         self.db = sqlite3.connect(":memory:")
         migrations = Path(__file__).resolve().parents[1] / "migrations"
-        for name in ("0001_catalog.sql", "0002_keyset_pagination.sql", "0003_catalog_counts.sql", "0009_catalog_folders.sql"):
+        for name in ("0001_catalog.sql", "0002_keyset_pagination.sql", "0003_catalog_counts.sql", "0009_catalog_folders.sql", "0011_model_gallery_members.sql"):
             self.db.executescript((migrations / name).read_text(encoding="utf-8"))
         self.db.execute("INSERT INTO categories(slug,name) VALUES('animes-desenhos','Animes & Desenhos')")
         category_id = self.db.execute("SELECT id FROM categories WHERE slug='animes-desenhos'").fetchone()[0]
@@ -171,6 +171,48 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
             self.db.execute(
                 "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
                 (self.franchise_id, "leonardo-2", "Leonardo duplicado", "leonardo", 1),
+            )
+
+
+    def test_gallery_members_are_unique_ordered_aliases(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
+            (self.franchise_id, "androides", "Androides", "androides", 1),
+        )
+        folder_id = self.db.execute(
+            "SELECT id FROM catalog_folders WHERE franchise_id=? AND path='androides'",
+            (self.franchise_id,),
+        ).fetchone()[0]
+        for model_id, slug in (("mdl-front", "front"), ("mdl-side", "side"), ("mdl-back", "back")):
+            self.db.execute(
+                "INSERT INTO models(id,franchise_id,folder_id,slug,code,name,published) VALUES(?,?,?,?,?,?,1)",
+                (model_id, self.franchise_id, folder_id, slug, f"TS-{slug}", "Modelo"),
+            )
+
+        self.db.execute(
+            "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
+            ("mdl-front", "mdl-side", 1),
+        )
+        self.db.execute(
+            "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
+            ("mdl-front", "mdl-back", 2),
+        )
+
+        rows = self.db.execute(
+            "SELECT source_model_id,position FROM model_gallery_members WHERE canonical_model_id=? ORDER BY position",
+            ("mdl-front",),
+        ).fetchall()
+        self.assertEqual(rows, [("mdl-side", 1), ("mdl-back", 2)])
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute(
+                "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
+                ("mdl-side", "mdl-back", 1),
+            )
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute(
+                "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
+                ("mdl-front", "mdl-front", 3),
             )
 
 
