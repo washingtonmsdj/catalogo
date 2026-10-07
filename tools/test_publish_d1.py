@@ -145,6 +145,32 @@ class PublishD1Tests(unittest.TestCase):
         )
         self.assertIn('idx_models_published_created', plan)
 
+    def test_load_rejects_high_confidence_split_view_products(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "models.jsonl"
+            rows = [
+                model("mdl-front", "dragon-ball-recoome-busto-frente", "TS-FRONT", variant="Recoome"),
+                model("mdl-side", "dragon-ball-recoome-busto-lateral", "TS-SIDE", variant="Recoome"),
+                model("mdl-back", "dragon-ball-recoome-busto-costas", "TS-BACK", variant="Recoome"),
+            ]
+            path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "fichas fragmentadas por vista"):
+                load_models(path)
+
+    def test_load_allows_framing_pair_for_explicit_review(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "models.jsonl"
+            rows = [
+                model("mdl-full", "dragon-ball-cell-primeira-forma-corpo-inteiro", "TS-FULL", variant="Cell"),
+                model("mdl-stand", "dragon-ball-cell-primeira-forma-em-pe", "TS-STAND", variant="Cell"),
+            ]
+            path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+            loaded = load_models(path)
+
+            self.assertEqual(len(loaded), 2)
+
     def test_load_rejects_category_outside_public_scope(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "models.jsonl"
