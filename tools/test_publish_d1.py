@@ -24,13 +24,14 @@ from publish_d1 import (
 )
 
 
-def model(model_id: str, slug: str, code: str, *, variant: str) -> dict:
+def model(model_id: str, slug: str, code: str, *, variant: str, variant_name: str = "") -> dict:
     return {
         "identityKey": f"test/{model_id}",
         "id": model_id,
         "slug": slug,
         "code": code,
         "displayName": variant,
+        "variantName": variant_name,
         "categoryName": "Animes & Desenhos",
         "categorySlug": "animes-desenhos",
         "franchiseName": "Dragon Ball",
@@ -163,7 +164,7 @@ class PublishD1Tests(unittest.TestCase):
     def test_statements_apply_idempotently_against_catalog_schema(self) -> None:
         db = sqlite3.connect(':memory:')
         migrations = Path(__file__).resolve().parents[1] / 'migrations'
-        for name in ('0001_catalog.sql', '0002_keyset_pagination.sql', '0003_catalog_counts.sql', '0009_catalog_folders.sql'):
+        for name in ('0001_catalog.sql', '0002_keyset_pagination.sql', '0003_catalog_counts.sql', '0009_catalog_folders.sql', '0019_model_variant_name.sql'):
             db.executescript((migrations / name).read_text(encoding='utf-8'))
         rows = [
             model('mdl-1', 'android-18-a', 'TS-1', variant='Androide 18 A'),
@@ -191,18 +192,29 @@ class PublishD1Tests(unittest.TestCase):
             db.execute(statement['sql'], statement['params'])
         db.execute("UPDATE models SET created_at='2026-01-01 10:00:00' WHERE id='mdl-1'")
 
-        updated = model('mdl-1', 'android-18', 'TS-1', variant='Androide 18 revisada')
+        updated = model(
+            'mdl-1',
+            'android-18',
+            'TS-1',
+            variant='Androide 18 revisada',
+            variant_name='Traje casual',
+        )
         for statement in build_statements([updated]):
             db.execute(statement['sql'], statement['params'])
 
-        created_at, name = db.execute("SELECT created_at,name FROM models WHERE id='mdl-1'").fetchone()
+        created_at, name, variant_name, slug, code = db.execute(
+            "SELECT created_at,name,variant_name,slug,code FROM models WHERE id='mdl-1'"
+        ).fetchone()
         self.assertEqual(created_at, '2026-01-01 10:00:00')
         self.assertEqual(name, 'Androide 18 revisada')
+        self.assertEqual(variant_name, 'Traje casual')
+        self.assertEqual(slug, 'android-18')
+        self.assertEqual(code, 'TS-1')
 
     def test_recent_models_index_orders_only_published_models_deterministically(self) -> None:
         db = sqlite3.connect(':memory:')
         migrations = Path(__file__).resolve().parents[1] / 'migrations'
-        for name in ('0001_catalog.sql', '0002_keyset_pagination.sql', '0003_catalog_counts.sql', '0009_catalog_folders.sql', '0010_recent_models_index.sql'):
+        for name in ('0001_catalog.sql', '0002_keyset_pagination.sql', '0003_catalog_counts.sql', '0009_catalog_folders.sql', '0010_recent_models_index.sql', '0019_model_variant_name.sql'):
             db.executescript((migrations / name).read_text(encoding='utf-8'))
 
         rows = [
