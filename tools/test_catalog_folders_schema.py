@@ -9,7 +9,7 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
     def setUp(self) -> None:
         self.db = sqlite3.connect(":memory:")
         migrations = Path(__file__).resolve().parents[1] / "migrations"
-        for name in ("0001_catalog.sql", "0002_keyset_pagination.sql", "0003_catalog_counts.sql", "0009_catalog_folders.sql", "0010_recent_models_index.sql", "0011_model_gallery_members.sql", "0012_folder_materialized_counts.sql", "0013_model_image_sources.sql", "0014_gallery_member_integrity.sql"):
+        for name in ("0001_catalog.sql", "0002_keyset_pagination.sql", "0003_catalog_counts.sql", "0009_catalog_folders.sql", "0010_recent_models_index.sql", "0011_model_gallery_members.sql", "0012_folder_materialized_counts.sql", "0013_model_image_sources.sql", "0014_gallery_member_integrity.sql", "0015_gallery_publication_invariant.sql"):
             self.db.executescript((migrations / name).read_text(encoding="utf-8"))
         self.db.execute("INSERT INTO categories(slug,name) VALUES('animes-desenhos','Animes & Desenhos')")
         category_id = self.db.execute("SELECT id FROM categories WHERE slug='animes-desenhos'").fetchone()[0]
@@ -23,6 +23,24 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.db.close()
+
+    def _insert_gallery_model(self, model_id: str, folder_id: int, slug: str, code: str, name: str) -> None:
+        self.db.execute(
+            """INSERT INTO models(
+            id,franchise_id,folder_id,slug,code,name,image_count,cover_storage_key,
+            gallery_manifest_key,gallery_version,published)
+            VALUES(?,?,?,?,?,?,1,?,?,1,1)""",
+            (
+                model_id,
+                self.franchise_id,
+                folder_id,
+                slug,
+                code,
+                name,
+                f"media/{model_id}/card.webp",
+                f"gallery/{model_id}/manifest.json",
+            ),
+        )
 
     def test_nested_folders_and_model_assignment(self) -> None:
         self.db.execute(
@@ -237,6 +255,95 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
             )
 
 
+    def test_gallery_relation_retires_source_and_updates_materialized_counts(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,1)",
+            (self.franchise_id, "grupo", "Grupo", "grupo"),
+        )
+        folder_id = self.db.execute(
+            "SELECT id FROM catalog_folders WHERE franchise_id=? AND path='grupo'",
+            (self.franchise_id,),
+        ).fetchone()[0]
+        self._insert_gallery_model("mdl-canonical", folder_id, "canonical", "TS-CAN", "Produto")
+        self._insert_gallery_model("mdl-source", folder_id, "source", "TS-SRC", "Produto")
+
+        self.assertEqual(
+            self.db.execute("SELECT model_count FROM franchises WHERE id=?", (self.franchise_id,)).fetchone()[0],
+            2,
+        )
+        self.assertEqual(
+            self.db.execute(
+                "SELECT subtree_model_count FROM catalog_folders WHERE id=?", (folder_id,)
+            ).fetchone()[0],
+            2,
+        )
+
+        self.db.execute(
+            "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
+            ("mdl-canonical", "mdl-source", 1),
+        )
+
+        self.assertEqual(
+            self.db.execute("SELECT published FROM models WHERE id='mdl-source'").fetchone()[0],
+            0,
+        )
+        self.assertEqual(
+            self.db.execute("SELECT model_count FROM franchises WHERE id=?", (self.franchise_id,)).fetchone()[0],
+            1,
+        )
+        self.assertEqual(
+            self.db.execute(
+                "SELECT subtree_model_count FROM catalog_folders WHERE id=?", (folder_id,)
+            ).fetchone()[0],
+            1,
+        )
+
+    def test_attached_gallery_source_cannot_be_republished_or_rebound(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,1)",
+            (self.franchise_id, "grupo", "Grupo", "grupo"),
+        )
+        folder_id = self.db.execute(
+            "SELECT id FROM catalog_folders WHERE franchise_id=? AND path='grupo'",
+            (self.franchise_id,),
+        ).fetchone()[0]
+        for model_id in ("mdl-a", "mdl-b", "mdl-c"):
+            self._insert_gallery_model(model_id, folder_id, model_id, f"TS-{model_id}", "Produto")
+
+        self.db.execute(
+            "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
+            ("mdl-a", "mdl-b", 1),
+        )
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute("UPDATE models SET published=1 WHERE id='mdl-b'")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute(
+                "UPDATE model_gallery_members SET source_model_id='mdl-c' "
+                "WHERE canonical_model_id='mdl-a' AND source_model_id='mdl-b'"
+            )
+
+    def test_gallery_relation_requires_publishable_manifests(self) -> None:
+        self.db.execute(
+            "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,1)",
+            (self.franchise_id, "grupo", "Grupo", "grupo"),
+        )
+        folder_id = self.db.execute(
+            "SELECT id FROM catalog_folders WHERE franchise_id=? AND path='grupo'",
+            (self.franchise_id,),
+        ).fetchone()[0]
+        self._insert_gallery_model("mdl-a", folder_id, "a", "TS-A", "Produto")
+        self.db.execute(
+            "INSERT INTO models(id,franchise_id,folder_id,slug,code,name,published) VALUES(?,?,?,?,?,?,1)",
+            ("mdl-b", self.franchise_id, folder_id, "b", "TS-B", "Produto"),
+        )
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.db.execute(
+                "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
+                ("mdl-a", "mdl-b", 1),
+            )
+
     def test_gallery_members_reject_chains_and_cycles(self) -> None:
         self.db.execute(
             "INSERT INTO catalog_folders(franchise_id,slug,name,path,depth) VALUES(?,?,?,?,?)",
@@ -247,10 +354,7 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
             (self.franchise_id,),
         ).fetchone()[0]
         for model_id, slug in (("mdl-a", "a"), ("mdl-b", "b"), ("mdl-c", "c")):
-            self.db.execute(
-                "INSERT INTO models(id,franchise_id,folder_id,slug,code,name,published) VALUES(?,?,?,?,?,?,1)",
-                (model_id, self.franchise_id, folder_id, slug, f"TS-{slug}", "Mesmo Produto"),
-            )
+            self._insert_gallery_model(model_id, folder_id, slug, f"TS-{slug}", "Mesmo Produto")
 
         self.db.execute(
             "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
@@ -289,10 +393,7 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
             ("mdl-c", folder_a, "c", "TS-C", "Outro Produto"),
         )
         for model_id, folder_id, slug, code, name in rows:
-            self.db.execute(
-                "INSERT INTO models(id,franchise_id,folder_id,slug,code,name,published) VALUES(?,?,?,?,?,?,1)",
-                (model_id, self.franchise_id, folder_id, slug, code, name),
-            )
+            self._insert_gallery_model(model_id, folder_id, slug, code, name)
 
         with self.assertRaises(sqlite3.IntegrityError):
             self.db.execute(
@@ -315,10 +416,7 @@ class CatalogFoldersSchemaTests(unittest.TestCase):
             (self.franchise_id,),
         ).fetchone()[0]
         for model_id, slug in (("mdl-front", "front"), ("mdl-side", "side"), ("mdl-back", "back")):
-            self.db.execute(
-                "INSERT INTO models(id,franchise_id,folder_id,slug,code,name,published) VALUES(?,?,?,?,?,?,1)",
-                (model_id, self.franchise_id, folder_id, slug, f"TS-{slug}", "Modelo"),
-            )
+            self._insert_gallery_model(model_id, folder_id, slug, f"TS-{slug}", "Modelo")
 
         self.db.execute(
             "INSERT INTO model_gallery_members(canonical_model_id,source_model_id,position) VALUES(?,?,?)",
