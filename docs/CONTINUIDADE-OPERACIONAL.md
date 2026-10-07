@@ -63,7 +63,7 @@ A publicação web usa **dois repositórios independentes sob um único domínio
 - `config/public-runtime.json` é o SSOT versionado da URL pública canônica: `https://acheguese.com.br/tonecosstudios/`;
 - o widget Turnstile do Catálogo aceita `acheguese.com.br`, `www.acheguese.com.br` e `washingtonmsdj.github.io`.
 
-A raiz `/` do Achegue-se **não redireciona para o Catálogo** e não pertence a este repositório. O projeto Achegue-se mantém sua Home própria e apenas oferece um acesso temporário ao Catálogo.
+Temporariamente, a superfície pública do Achegue-se redireciona `/`, `/catalogo` e demais páginas de visitante para `/tonecosstudios/`. O aplicativo Achegue-se permanece intacto atrás desse roteamento de borda; esta medida é reversível e não altera suas páginas, componentes ou conteúdo.
 
 ### Cloudflare
 
