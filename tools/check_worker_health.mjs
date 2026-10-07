@@ -8,6 +8,13 @@ const schemaContract = JSON.parse(
   fs.readFileSync(path.join(root, 'config/catalog-schema-contract.json'), 'utf8'),
 )
 
+function requiredStructureCount() {
+  const objects = schemaContract.requiredObjects
+  const named = objects.tables.length + objects.indexes.length + objects.triggers.length
+  const columns = Object.values(objects.columns).reduce((sum, entries) => sum + entries.length, 0)
+  return named + columns
+}
+
 export function validateWorkerHealth(payload) {
   if (!payload || typeof payload !== 'object') throw new Error('health payload is invalid')
   if (payload.ok !== true) throw new Error('worker reported ok=false')
@@ -31,6 +38,16 @@ export function validateWorkerHealth(payload) {
   if (!Array.isArray(schema.missingMigrations) || schema.missingMigrations.length !== 0) {
     throw new Error('health payload reports missing migrations')
   }
+  const structures = requiredStructureCount()
+  if (schema.requiredStructures !== structures) {
+    throw new Error('required structure count mismatch')
+  }
+  if (schema.verifiedStructures !== structures) {
+    throw new Error('verified structure count mismatch')
+  }
+  if (!Array.isArray(schema.missingStructures) || schema.missingStructures.length !== 0) {
+    throw new Error('health payload reports missing structures')
+  }
 
   return {
     ok: true,
@@ -38,6 +55,7 @@ export function validateWorkerHealth(payload) {
     contractVersion: schema.contractVersion,
     latestMigration: schema.latestMigration,
     appliedMigrations: schema.appliedMigrations,
+    verifiedStructures: schema.verifiedStructures,
   }
 }
 
