@@ -254,6 +254,77 @@ def validate_r2_ready(models_path: Path, rows: list[dict[str, Any]], state_path:
     }
 
 
+def build_image_source_statements(
+    models_path: Path,
+    rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    r2_root = models_path.resolve().parent / "r2"
+    statements: list[dict[str, Any]] = []
+
+    for row in sorted(rows, key=lambda item: str(item["id"])):
+        model_id = str(row["id"])
+        gallery_version = int(row["galleryVersion"])
+        manifest_key = safe_storage_key(row["galleryManifestKey"], "gallery/", model_id)
+        manifest_path = r2_root / PurePosixPath(manifest_key)
+        if not manifest_path.is_file():
+            raise RuntimeError(f"manifesto de galeria ausente no bundle: {manifest_key}")
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise RuntimeError(f"manifesto de galeria inválido: {manifest_key}: {exc}") from exc
+
+        validate_gallery_manifest_contract(manifest, row, manifest_key)
+        images = manifest["images"]
+        seen_sha: set[str] = set()
+        for position, image in enumerate(images):
+            source_sha = str(image["sourceSha256"]).strip().lower()
+            if source_sha in seen_sha:
+                raise RuntimeError(
+                    f"SHA-256 duplicado dentro da mesma galeria {model_id}: {source_sha}"
+                )
+            seen_sha.add(source_sha)
+            statements.append({
+                "sql": """INSERT INTO model_image_sources(
+model_id,image_id,position,role,source_sha256,gallery_version)
+VALUES(?,?,?,?,?,?)
+ON CONFLICT(model_id,image_id) DO UPDATE SET
+position=excluded.position,role=excluded.role,source_sha256=excluded.source_sha256,
+gallery_version=excluded.gallery_version""",
+                "params": [
+                    model_id,
+                    str(image["id"]),
+                    str(position),
+                    str(image["role"]),
+                    source_sha,
+                    str(gallery_version),
+                ],
+            })
+
+        statements.append({
+            "sql": "DELETE FROM model_image_sources WHERE model_id=? AND gallery_version<>?",
+            "params": [model_id, str(gallery_version)],
+        })
+
+    return statements
+
+
+def exact_cross_model_sha_query(limit: int = 50) -> dict[str, Any]:
+    if limit < 1 or limit > 500:
+        raise ValueError("limite de auditoria SHA deve ficar entre 1 e 500")
+    return {
+        "sql": """SELECT s.source_sha256,COUNT(DISTINCT s.model_id) AS model_count,
+GROUP_CONCAT(DISTINCT s.model_id) AS model_ids
+FROM model_image_sources s
+JOIN models m ON m.id=s.model_id AND m.gallery_version=s.gallery_version
+WHERE m.published=1
+GROUP BY s.source_sha256
+HAVING COUNT(DISTINCT s.model_id)>1
+ORDER BY model_count DESC,s.source_sha256
+LIMIT ?""",
+        "params": [limit],
+    }
+
+
 def build_statements(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     statements: list[dict[str, Any]] = []
     categories = {
@@ -890,15 +961,38 @@ def main() -> int:
 
         state_path = args.r2_state.resolve() if args.r2_state else args.models.resolve().parent / "r2-publish-state.json"
         summary["r2Gate"] = validate_r2_ready(args.models, rows, state_path)
+        image_source_statements = build_image_source_statements(args.models, rows)
+        summary["imageSourceStatements"] = len(image_source_statements)
 
         batches = 0
         for batch in chunked(statements, args.batch_size):
+            request_batch(account_id, database_id, token, batch)
+            batches += 1
+        for batch in chunked(image_source_statements, args.batch_size):
             request_batch(account_id, database_id, token, batch)
             batches += 1
         for batch in chunked(retirement_statements, args.batch_size):
             request_batch(account_id, database_id, token, batch)
             batches += 1
         summary["batches"] = batches
+        sha_audit = request_batch_json(
+            account_id,
+            database_id,
+            token,
+            [exact_cross_model_sha_query()],
+        )
+        audit_result = sha_audit.get("result")
+        audit_rows = (
+            audit_result[0].get("results", [])
+            if isinstance(audit_result, list) and audit_result and isinstance(audit_result[0], dict)
+            else []
+        )
+        summary["crossModelExactImageCandidates"] = {
+            "sampleLimit": 50,
+            "groups": len(audit_rows),
+            "samples": audit_rows,
+            "automaticMerge": False,
+        }
         print(json.dumps(summary, ensure_ascii=False))
         return 0
     except RuntimeError as exc:
