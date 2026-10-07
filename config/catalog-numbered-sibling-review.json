@@ -555,8 +555,8 @@
         "street-fighter-juri-08",
         "street-fighter-juri-09"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Juri.jpg e Juri 02–09.jpg): poses, figurinos, esculturas e bases são diferentes; manter como produtos distintos."
     },
     {
       "categorySlug": "games",
