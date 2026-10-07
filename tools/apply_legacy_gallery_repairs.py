@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -181,6 +182,86 @@ ORDER BY canonical.slug,member.position,source.slug""",
         for row in relation_rows
     }
     return model_rows, list(unique_relations.values())
+
+
+def fetch_image_source_state(groups: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    slugs = sorted({slug for group in groups for slug in group["memberSlugs"]})
+    rows: list[dict[str, Any]] = []
+    for chunk in _chunks(slugs):
+        placeholders = ",".join("?" for _ in chunk)
+        result = d1_request([{
+            "sql": f"""SELECT
+m.slug,m.image_count,m.gallery_version,s.image_id,s.source_sha256
+FROM models m
+LEFT JOIN model_image_sources s
+  ON s.model_id=m.id
+ AND s.gallery_version=m.gallery_version
+WHERE m.slug IN ({placeholders})
+ORDER BY m.slug,s.position,s.image_id""",
+            "params": chunk,
+        }])
+        page = result[0].get("results")
+        if not isinstance(page, list):
+            raise RuntimeError("consulta do índice SHA retornou results inválido")
+        rows.extend(row for row in page if isinstance(row, dict))
+    return rows
+
+
+def verify_repair_image_sources(
+    groups: list[dict[str, Any]],
+    model_rows: list[dict[str, Any]],
+    source_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    models = {str(row.get("slug") or ""): row for row in model_rows}
+    by_slug: dict[str, list[str]] = {}
+    for row in source_rows:
+        slug = str(row.get("slug") or "").strip()
+        sha = str(row.get("source_sha256") or "").strip().lower()
+        if not slug:
+            continue
+        if not sha:
+            by_slug.setdefault(slug, [])
+            continue
+        if not re.fullmatch(r"[0-9a-f]{64}", sha):
+            raise RuntimeError(f"SHA-256 inválido no índice de imagem: {slug}")
+        by_slug.setdefault(slug, []).append(sha)
+
+    expected_slugs = {slug for group in groups for slug in group["memberSlugs"]}
+    missing_models = sorted(expected_slugs.difference(models))
+    if missing_models:
+        raise RuntimeError(f"modelos ausentes no preflight SHA: {missing_models[:5]}")
+
+    for slug in sorted(expected_slugs):
+        expected_count = int(models[slug].get("image_count") or 0)
+        shas = by_slug.get(slug, [])
+        if len(shas) != expected_count:
+            raise RuntimeError(
+                f"índice SHA incompleto para {slug}: {len(shas)} != {expected_count}; "
+                "execute o backfill antes de aplicar reparos"
+            )
+        if len(set(shas)) != len(shas):
+            raise RuntimeError(f"SHA repetido dentro da fonte legada: {slug}")
+
+    checked_images = 0
+    for group in groups:
+        seen: dict[str, str] = {}
+        for slug in group["memberSlugs"]:
+            for sha in by_slug.get(slug, []):
+                previous = seen.get(sha)
+                if previous is not None and previous != slug:
+                    raise RuntimeError(
+                        "imagem exata repetida entre fontes da mesma galeria: "
+                        f"{group['family']}: {previous} | {slug}"
+                    )
+                seen[sha] = slug
+                checked_images += 1
+
+    return {
+        "ready": True,
+        "models": len(expected_slugs),
+        "images": checked_images,
+        "duplicateShaWithinRepairGroups": 0,
+    }
 
 
 def plan_repairs(
@@ -468,6 +549,8 @@ def main() -> int:
             print(json.dumps(public_summary, ensure_ascii=False))
             return 0
 
+        image_source_rows = fetch_image_source_state(groups)
+        sha_preflight = verify_repair_image_sources(groups, models, image_source_rows)
         batches = apply_statement_batches(plan["statements"], args.batch_size)
         models, relations = fetch_state(groups)
         result = verify_applied(groups, models, relations)
@@ -480,6 +563,7 @@ def main() -> int:
                 f"esperado={expected_public_models_after}"
             )
         result["schema"] = schema
+        result["imageSourcePreflight"] = sha_preflight
         result["publicModelsBefore"] = public_models_before
         result["publicModelsAfter"] = public_models_after
         result["expectedPublicModelsAfter"] = expected_public_models_after
