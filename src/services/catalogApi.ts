@@ -1,6 +1,6 @@
 import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 import { FRANCHISE_SEARCH_MIN_LENGTH, type CatalogListQuery, type CatalogModelCard, type CursorPage, type GalleryQuery } from './catalogRepository'
-import { planLegacyGalleryGroups, registeredLegacyGalleryForRow, type LegacyGalleryOverride } from '../lib/legacyGalleryGrouping'
+import { legacyCompositeGalleryVersion, planLegacyGalleryGroups, registeredLegacyGalleryForRow, type LegacyGalleryOverride } from '../lib/legacyGalleryGrouping'
 
 export type CatalogRuntimeMode = 'demo' | 'live'
 
@@ -194,7 +194,9 @@ export function collapseLegacyViewRows(rows: ApiCatalogRow[]): CatalogModelCard[
 
     const card = toCatalogModelCard(canonical)
     card.galleryCount = members.reduce((sum, member) => sum + member.image_count, 0)
-    card.galleryVersion = members.reduce((sum, member) => sum + member.gallery_version, 0)
+    card.galleryVersion = legacyCompositeGalleryVersion(
+      members.map((member) => ({ slug: member.slug, gallery_version: member.gallery_version })),
+    )
     card.gallerySourceSlugs = plan.memberSlugs
     cards.push(card)
   }
@@ -253,9 +255,10 @@ async function collapseLegacyViewRowsAcrossPages(rows: ApiCatalogRow[]): Promise
     if (!canonical || models.length !== group.memberSlugs.length) return
 
     const galleryCount = models.reduce((sum, model) => sum + model.galleryCount, 0)
-    const galleryVersion = models.reduce((sum, model) => sum + (model.galleryVersion ?? 0), 0)
+    const galleryVersion = legacyCompositeGalleryVersion(
+      models.map((model) => ({ slug: model.slug, gallery_version: model.galleryVersion })),
+    )
     if (!Number.isSafeInteger(galleryCount) || galleryCount < 2) return
-    if (!Number.isSafeInteger(galleryVersion) || galleryVersion < 1) return
 
     hydrated.set(group.canonicalSlug, {
       ...catalogModelToCard(canonical),
