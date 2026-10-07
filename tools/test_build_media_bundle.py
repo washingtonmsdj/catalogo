@@ -677,6 +677,47 @@ class MediaBundleTests(unittest.TestCase):
                 (output_parallel / "models.jsonl").read_text(encoding="utf-8"),
             )
 
+    def test_bundle_rejects_textually_equivalent_identity_keys_without_changing_id_algorithm(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            manifest = root / "manifest.jsonl"
+            hierarchy = "Games / Pokémon / Pikachu"
+            composed = f"{hierarchy} / Estátua"
+            decomposed = "Games / Poke\u0301mon / Pikachu / Esta\u0301tua"
+            rows = [
+                {
+                    "path": "Games/Pokémon/Pikachu/a.webp",
+                    "size": 1,
+                    "status": "OK",
+                    "canonical": True,
+                    "sha256": "a" * 64,
+                    "width": 640,
+                    "height": 960,
+                    "quality_score": 80.0,
+                    "model_key": hierarchy,
+                    "public_model_key": composed,
+                },
+                {
+                    "path": "Games/Pokémon/Pikachu/b.webp",
+                    "size": 1,
+                    "status": "OK",
+                    "canonical": True,
+                    "sha256": "b" * 64,
+                    "width": 640,
+                    "height": 960,
+                    "quality_score": 79.0,
+                    "model_key": hierarchy,
+                    "public_model_key": decomposed,
+                },
+            ]
+            manifest.write_text(
+                "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "textualmente equivalentes"):
+                build_bundle(root / "catalog", manifest, root / "bundle", include_original=False)
+
     def test_include_original_is_opt_in(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
