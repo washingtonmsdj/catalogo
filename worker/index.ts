@@ -36,6 +36,7 @@ type CatalogRow = {
   slug: string
   code: string
   name: string
+  variant_name: string
   franchise: string
   franchise_slug: string
   category: string
@@ -391,7 +392,7 @@ async function listCatalog(request: Request, env: Env) {
   }
 
   const searchJoin = query ? 'JOIN models_fts ON models_fts.model_id = m.id' : ''
-  const sql = `${folderCte} SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,
+  const sql = `${folderCte} SELECT m.id,m.slug,m.code,m.name,m.variant_name,m.collection,cf.path AS folder_path,
     ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
     ${PUBLIC_GALLERY_VERSION_SQL} AS gallery_version,
     m.cover_storage_key,
@@ -419,7 +420,7 @@ async function listCatalog(request: Request, env: Env) {
 async function listRecentCatalog(request: Request, env: Env) {
   const url = new URL(request.url)
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '12', 10) || 12, 1, 24)
-  const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,m.collection,cf.path AS folder_path,
+  const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,m.variant_name,m.collection,cf.path AS folder_path,
     ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
     ${PUBLIC_GALLERY_VERSION_SQL} AS gallery_version,
     m.cover_storage_key,
@@ -437,7 +438,7 @@ async function listRecentCatalog(request: Request, env: Env) {
 async function getModel(request: Request, slug: string, env: Env) {
   const model = await env.DB.prepare(`${RESOLVED_MODEL_BY_SLUG_CTE}
     SELECT
-    m.id,m.slug,m.code,m.name,m.collection,m.material,m.height_cm,m.description,m.search_text,
+    m.id,m.slug,m.code,m.name,m.variant_name,m.collection,m.material,m.height_cm,m.description,m.search_text,
     ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
     ${PUBLIC_GALLERY_VERSION_SQL} AS gallery_version,
     m.cover_storage_key,cf.path AS folder_path,
