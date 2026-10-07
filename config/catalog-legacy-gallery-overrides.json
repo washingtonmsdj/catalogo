@@ -240,10 +240,23 @@
       ],
       "matchMode": "explicit-members",
       "reason": "Revisão visual de 2026-10-07: Mileena.jpg e Mileena 04.jpg mostram a mesma escultura, pose, figurino e base em renders/enquadramentos diferentes; 02, 03 e 05 são produtos distintos."
+    },
+    {
+      "categorySlug": "games",
+      "franchiseSlug": "league-of-legends",
+      "folderPathKey": "jinx",
+      "family": "league-of-legends-jinx-nomnom-modelo",
+      "canonicalSlug": "league-of-legends-jinx-02",
+      "memberSlugs": [
+        "league-of-legends-jinx-02",
+        "league-of-legends-jinx-03"
+      ],
+      "matchMode": "explicit-members",
+      "reason": "Revisão visual de 2026-10-07: os dois arquivos mostram a mesma escultura em renders diferentes."
     }
   ],
-  "auditedExtraCards": 30,
+  "auditedExtraCards": 31,
   "auditedAt": "2026-10-07",
-  "auditedGroups": 19,
-  "auditedMemberCards": 49
+  "auditedGroups": 20,
+  "auditedMemberCards": 51
 }
