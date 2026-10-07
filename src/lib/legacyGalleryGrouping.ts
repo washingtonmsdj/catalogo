@@ -49,6 +49,10 @@ function validateReviewedOverrides(groups: LegacyGalleryOverride[]) {
   if (legacyOverrideConfig.version !== 2) {
     throw new Error(`legacy gallery override version unsupported: ${legacyOverrideConfig.version}`)
   }
+  const auditedExtraCards = Number(legacyOverrideConfig.auditedExtraCards)
+  if (!Number.isSafeInteger(auditedExtraCards) || auditedExtraCards < 0) {
+    throw new Error('legacy gallery auditedExtraCards must be a non-negative safe integer')
+  }
 
   const groupKeys = new Set<string>()
   const memberSlugs = new Set<string>()
@@ -77,6 +81,13 @@ function validateReviewedOverrides(groups: LegacyGalleryOverride[]) {
       if (memberSlugs.has(slug)) throw new Error(`legacy slug belongs to multiple groups: ${slug}`)
       memberSlugs.add(slug)
     }
+  }
+
+  const actualExtraCards = groups.reduce((sum, group) => sum + group.memberSlugs.length - 1, 0)
+  if (actualExtraCards !== auditedExtraCards) {
+    throw new Error(
+      `legacy gallery audited baseline mismatch: ${actualExtraCards} != ${auditedExtraCards}`,
+    )
   }
 }
 
@@ -131,6 +142,10 @@ export function registeredLegacyGalleryForRow(row: LegacyGalleryRow): LegacyGall
 
 export function registeredLegacyGalleryGroups(): readonly LegacyGalleryOverride[] {
   return reviewedOverrides
+}
+
+export function registeredLegacyGalleryAuditBaseline(): number {
+  return Number(legacyOverrideConfig.auditedExtraCards)
 }
 
 function reviewedOverride(
