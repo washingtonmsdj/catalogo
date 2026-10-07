@@ -207,7 +207,7 @@ def load_numbered_sibling_review_registry(
             or not display_name
             or not base_id
             or not base_slug
-            or status not in {"pending", "distinct", "mixed"}
+            or status not in {"pending", "distinct", "mixed", "gallery"}
             or not reason
             or not isinstance(siblings, list)
             or not siblings
@@ -265,6 +265,7 @@ def validate_numbered_sibling_review(
     pending = 0
     distinct = 0
     mixed = 0
+    gallery = 0
 
     for candidate in candidates:
         key = (
@@ -298,6 +299,8 @@ def validate_numbered_sibling_review(
             distinct += 1
         elif item["status"] == "mixed":
             mixed += 1
+        elif item["status"] == "gallery":
+            gallery += 1
 
     if unregistered:
         raise RuntimeError(
@@ -326,6 +329,7 @@ def validate_numbered_sibling_review(
         "pendingGroups": pending,
         "distinctGroups": distinct,
         "mixedGroups": mixed,
+        "galleryGroups": gallery,
         "registeredBaselineGroups": len(reviewed),
         "registeredBaselineSiblingRows": sum(len(item["siblingSlugs"]) for item in reviewed.values()),
     }

@@ -205,7 +205,7 @@ class AuditModelIdentityTests(unittest.TestCase):
             114,
         )
         self.assertTrue(
-            all(item["status"] in {"pending", "distinct", "mixed"} for item in registry.values())
+            all(item["status"] in {"pending", "distinct", "mixed", "gallery"} for item in registry.values())
         )
 
     def test_numbered_review_detects_new_or_changed_sibling_groups(self) -> None:
@@ -280,6 +280,36 @@ class AuditModelIdentityTests(unittest.TestCase):
         summary = validate_numbered_sibling_review(rows, registry)
         self.assertEqual(summary["pendingGroups"], 0)
         self.assertEqual(summary["mixedGroups"], 1)
+
+    def test_numbered_review_gallery_status_is_counted_as_resolved_review(self) -> None:
+        rows = [
+            model("base", "dragon-ball-androide-18-estatua"),
+            model("one", "dragon-ball-androide-18-estatua-01"),
+        ]
+        key = (
+            "animes-desenhos",
+            "dragon-ball",
+            "androides/androide-18",
+            "androide 18",
+            "dragon-ball-androide-18-estatua",
+        )
+        registry = {
+            key: {
+                "categorySlug": key[0],
+                "franchiseSlug": key[1],
+                "folderPathKey": key[2],
+                "displayName": "Androide 18",
+                "baseId": "base",
+                "baseSlug": key[4],
+                "siblingSlugs": ["dragon-ball-androide-18-estatua-01"],
+                "status": "gallery",
+                "reason": "grupo revisado e consolidado integralmente em galeria",
+            }
+        }
+
+        summary = validate_numbered_sibling_review(rows, registry)
+        self.assertEqual(summary["pendingGroups"], 0)
+        self.assertEqual(summary["galleryGroups"], 1)
 
     def test_numbered_review_rejects_stale_registry_debt(self) -> None:
         rows = [
