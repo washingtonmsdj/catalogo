@@ -34,6 +34,7 @@ from model_identity import (
     load_identity_aliases,
     validate_identity_comparison_collisions,
     validate_taxonomy_slug_mappings,
+    stem_view_descriptor,
 )
 
 VARIANTS = {
@@ -58,7 +59,7 @@ def slugify(value: str) -> str:
 DEFAULT_TAXONOMY_CONFIG = Path(__file__).resolve().parents[1] / "config" / "catalog-taxonomy.json"
 MEDIA_BUILD_STATE_VERSION = 1
 MEDIA_RENDERER_VERSION = 1
-MEDIA_METADATA_VERSION = 6
+MEDIA_METADATA_VERSION = 7
 MEDIA_CHECKPOINT_INTERVAL = 10
 MEDIA_STATE_REPLACE_ATTEMPTS = 10
 MEDIA_STATE_REPLACE_DELAY_SECONDS = 0.1
@@ -67,6 +68,33 @@ MEDIA_STATE_REPLACE_DELAY_SECONDS = 0.1
 def humanize_stem(value: str) -> str:
     text = re.sub(r"[-_]+", " ", value).strip()
     return text[:1].upper() + text[1:] if text else "Modelo"
+
+
+def model_variant_name(
+    identity_label: str,
+    display_name: str,
+    franchise_name: str,
+    grouped_gallery: bool,
+) -> str:
+    raw = identity_label.strip()
+    if grouped_gallery:
+        match = stem_view_descriptor(raw)
+        if match:
+            raw = match[0]
+
+    label = humanize_stem(raw)
+    for prefix in (display_name, franchise_name):
+        normalized = prefix.strip()
+        if not normalized:
+            continue
+        pattern = re.compile(rf"^{re.escape(normalized)}(?:\s*[-_:]\s*|\s+)", re.IGNORECASE)
+        label = pattern.sub("", label).strip()
+
+    if not label or label.casefold() in {display_name.casefold(), franchise_name.casefold()}:
+        return ""
+    if re.fullmatch(r"\d{1,6}", label):
+        return f"Modelo {label}"
+    return label[:160]
 
 
 def model_display_name(hierarchy: list[str], public_collection_parts: list[str], source_stem: str, audited_public: bool) -> str:
@@ -279,6 +307,7 @@ def model_metadata(
 
     identity_label = public_identity_label(canonical_key, hierarchy_key_normalized, source_stem) if audited_public else source_stem
     source_label = humanize_stem(identity_label)
+    variant_name = model_variant_name(identity_label, display_name, franchise_name, grouped_gallery)
     slug_name = source_label if audited_public else display_name
     clean_parts = [franchise_name, slug_name] if audited_public else [franchise_name, *collection_parts, display_name]
     base_slug = slugify(" ".join(clean_parts) or slug_name)
@@ -288,7 +317,7 @@ def model_metadata(
 
     code_hash = hashlib.sha256(canonical_key.encode("utf-8")).hexdigest()[:12].upper()
     code = f"TS-{code_hash}"
-    search_text = " ".join(dict.fromkeys([*hierarchy, *collection_parts, display_name, source_label, code])).casefold()
+    search_text = " ".join(dict.fromkeys([*hierarchy, *collection_parts, display_name, variant_name, source_label, code])).casefold()
 
     return {
         "identityKey": canonical_key,
@@ -302,6 +331,7 @@ def model_metadata(
         "franchiseName": franchise_name,
         "franchiseSlug": franchise_slug,
         "displayName": display_name,
+        "variantName": variant_name,
         "collection": collection,
         "folderPath": collection_parts,
         "folderPathKey": "/".join(slugify(part) for part in collection_parts),
