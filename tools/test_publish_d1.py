@@ -172,6 +172,31 @@ class PublishD1Tests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "fichas fragmentadas por vista"):
                 load_models(path)
 
+    def test_load_rejects_explicit_copy_marker_when_base_exists(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "models.jsonl"
+            rows = [
+                model("mdl-base", "dragon-ball-recoome-busto", "TS-BASE", variant="Recoome"),
+                model("mdl-copy", "dragon-ball-recoome-busto-copy", "TS-COPY", variant="Recoome"),
+            ]
+            path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+            with self.assertRaisesRegex(RuntimeError, "marcadores explícitos de cópia"):
+                load_models(path)
+
+    def test_load_allows_numbered_sibling_for_manual_review(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "models.jsonl"
+            rows = [
+                model("mdl-base", "street-fighter-cammy", "TS-BASE", variant="Cammy"),
+                model("mdl-numbered", "street-fighter-cammy-02", "TS-NUM", variant="Cammy"),
+            ]
+            path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+
+            loaded = load_models(path)
+
+            self.assertEqual(len(loaded), 2)
+
     def test_load_allows_framing_pair_for_explicit_review(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "models.jsonl"
