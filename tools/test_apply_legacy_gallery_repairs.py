@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
 
-from apply_legacy_gallery_repairs import plan_repairs, verify_applied
+from apply_legacy_gallery_repairs import apply_statement_batches, plan_repairs, verify_applied
 
 
 def group() -> dict:
@@ -102,6 +103,18 @@ class LegacyGalleryRepairTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "divergem de escopo"):
             plan_repairs(config, rows, [])
+
+    def test_apply_batches_are_bounded_and_retriable(self) -> None:
+        statements = [{"sql": "SELECT 1", "params": []} for _ in range(205)]
+
+        with patch("apply_legacy_gallery_repairs.d1_request") as request:
+            batches = apply_statement_batches(statements, batch_size=100)
+
+        self.assertEqual(batches, 3)
+        self.assertEqual([len(call.args[0]) for call in request.call_args_list], [100, 100, 5])
+
+        with self.assertRaises(ValueError):
+            apply_statement_batches([], batch_size=251)
 
     def test_completed_state_verifies_with_zero_pending_relations(self) -> None:
         config = [group()]
