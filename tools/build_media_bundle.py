@@ -442,6 +442,23 @@ def build_model_bundle(
 
 
 
+def validate_built_model_identifiers(entries: list[dict]) -> None:
+    for field in ("id", "slug", "code"):
+        owners: dict[str, str] = {}
+        for entry in entries:
+            value = str(entry.get(field) or "").strip()
+            identity = str(entry.get("identityKey") or "").strip()
+            if not value or not identity:
+                raise RuntimeError(f"modelo construído sem {field}/identityKey: {entry!r}")
+            previous = owners.get(value)
+            if previous is not None and previous != identity:
+                raise RuntimeError(
+                    f"colisão de {field} no bundle entre produtos distintos: "
+                    f"{value}: {previous} | {identity}"
+                )
+            owners[value] = identity
+
+
 def model_build_fingerprint(identity_key: str, rows: list[dict], include_original: bool, taxonomy: dict) -> str:
     hierarchy = str(rows[0]["model_key"]).split(" / ")
     franchise_pos = franchise_index(hierarchy, taxonomy)
@@ -717,6 +734,9 @@ def build_bundle(
 
     state["models"] = {identity_key: state["models"][identity_key] for identity_key in model_keys}
     save_media_build_state(state_path, state)
+
+    built_entries = [results[identity_key][0] for identity_key in model_keys]
+    validate_built_model_identifiers(built_entries)
 
     temporary_index = model_index.with_suffix(model_index.suffix + ".tmp")
     published_images = 0
