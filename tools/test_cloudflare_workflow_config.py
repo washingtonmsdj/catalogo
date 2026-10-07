@@ -42,6 +42,28 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             self.workflow.index("Apply reviewed legacy gallery repairs"),
         )
 
+    def test_sha_backfill_is_explicit_opt_in_and_requires_media_url_only_when_requested(self):
+        self.assertIn("backfill_image_source_index:", self.workflow)
+        self.assertIn("BACKFILL_SHA:", self.workflow)
+        self.assertIn("missing+=(VITE_MEDIA_BASE_URL)", self.workflow)
+        self.assertIn("Measure image SHA index coverage", self.workflow)
+        self.assertIn("Backfill image SHA index", self.workflow)
+        self.assertIn(
+            "github.event_name == 'workflow_dispatch' && inputs.backfill_image_source_index",
+            self.workflow,
+        )
+        self.assertIn("python tools/backfill_image_source_index.py --apply", self.workflow)
+
+    def test_deploy_watches_schema_and_repair_contract_files(self):
+        for path in (
+            "config/catalog-schema-contract.json",
+            "config/catalog-legacy-gallery-overrides.json",
+            "tools/check_worker_health.mjs",
+            "tools/apply_legacy_gallery_repairs.py",
+            "tools/backfill_image_source_index.py",
+        ):
+            self.assertIn(path, self.workflow)
+
     def test_worker_preview_urls_are_explicitly_disabled(self):
         self.assertIs(self.wrangler.get("preview_urls"), False)
 
