@@ -64,6 +64,23 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             self.workflow.index("Verify repaired legacy aliases through public API"),
         )
 
+    def test_d1_integrity_audit_runs_before_and_after_legacy_repairs(self):
+        self.assertIn("Audit D1 structural integrity", self.workflow)
+        self.assertIn("Re-audit D1 after legacy repairs", self.workflow)
+        self.assertIn("python tools/audit_d1_integrity.py", self.workflow)
+        self.assertLess(
+            self.workflow.index("Verify Worker schema health"),
+            self.workflow.index("Audit D1 structural integrity"),
+        )
+        self.assertLess(
+            self.workflow.index("Audit D1 structural integrity"),
+            self.workflow.index("Apply reviewed legacy gallery repairs"),
+        )
+        self.assertLess(
+            self.workflow.index("Apply reviewed legacy gallery repairs"),
+            self.workflow.index("Re-audit D1 after legacy repairs"),
+        )
+
     def test_sha_backfill_is_explicit_opt_in_and_requires_media_url_only_when_requested(self):
         self.assertIn("backfill_image_source_index:", self.workflow)
         self.assertIn("BACKFILL_SHA:", self.workflow)
@@ -84,6 +101,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             "tools/check_legacy_gallery_repairs.mjs",
             "tools/apply_legacy_gallery_repairs.py",
             "tools/backfill_image_source_index.py",
+            "tools/audit_d1_integrity.py",
         ):
             self.assertIn(path, self.workflow)
 
