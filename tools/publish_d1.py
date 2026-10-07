@@ -18,6 +18,7 @@ from typing import Any
 from publish_r2 import discover as discover_r2
 from publish_r2 import load_state as load_r2_state
 from catalog_scope import PUBLIC_TOP_LEVEL_CATEGORIES, PUBLIC_TOP_LEVEL_KEYS
+from audit_model_identity import split_view_candidates
 
 CATEGORY_ORDER = {
     name: (index + 1) * 10
@@ -93,6 +94,18 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
         if int(row["imageCount"]) < 1:
             raise RuntimeError(f"modelo sem imagem publicável: {row['id']}")
     folder_entries(rows)
+
+    unresolved = [
+        candidate
+        for candidate in split_view_candidates(rows)
+        if candidate["confidence"] == "high"
+    ]
+    if unresolved:
+        sample = ", ".join(candidate["family"] for candidate in unresolved[:5])
+        raise RuntimeError(
+            f"fichas fragmentadas por vista detectadas: {len(unresolved)} grupo(s) de alta confiança; "
+            f"consolide a identidade do produto antes de publicar: {sample}"
+        )
 
 
 def safe_storage_key(value: Any, expected_prefix: str, model_id: str) -> str:
