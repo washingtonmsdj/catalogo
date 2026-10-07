@@ -11,6 +11,7 @@ from publish_r2 import default_state, discover, save_state
 
 def model() -> dict:
     return {
+        "identityKey": "test/mdl-1",
         "id": "mdl-1",
         "slug": "android-18",
         "code": "TS-1",
