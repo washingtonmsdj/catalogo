@@ -485,6 +485,39 @@ def validate_built_taxonomy_identifiers(entries: list[dict]) -> None:
     validate_taxonomy_slug_mappings(entries)
 
 
+def validate_variant_disambiguation(entries: list[dict]) -> None:
+    groups: dict[tuple[str, str, str, str], list[dict]] = defaultdict(list)
+    for entry in entries:
+        key = (
+            str(entry.get("categorySlug") or "").strip(),
+            str(entry.get("franchiseSlug") or "").strip(),
+            str(entry.get("folderPathKey") or "").strip(),
+            str(entry.get("displayName") or "").strip().casefold(),
+        )
+        groups[key].append(entry)
+
+    for key, members in groups.items():
+        if len(members) < 2:
+            continue
+        owners: dict[str, str] = {}
+        for entry in members:
+            identity = str(entry.get("identityKey") or "").strip()
+            variant = str(entry.get("variantName") or "").strip()
+            normalized_variant = re.sub(r"\s+", " ", variant).casefold()
+            if not normalized_variant:
+                raise RuntimeError(
+                    "produtos distintos ficariam visualmente indistinguíveis sem variante: "
+                    f"{'/'.join(key[:3])} / {entry.get('displayName')!r}; identity={identity}"
+                )
+            previous = owners.get(normalized_variant)
+            if previous is not None and previous != identity:
+                raise RuntimeError(
+                    "produtos distintos possuem a mesma variante pública: "
+                    f"{variant!r}: {previous} | {identity}"
+                )
+            owners[normalized_variant] = identity
+
+
 def model_build_fingerprint(
     identity_key: str,
     rows: list[dict],
@@ -886,6 +919,7 @@ def build_bundle(
     built_entries = [results[identity_key][0] for identity_key in model_keys]
     validate_built_model_identifiers(built_entries)
     validate_built_taxonomy_identifiers(built_entries)
+    validate_variant_disambiguation(built_entries)
 
     temporary_index = model_index.with_suffix(model_index.suffix + ".tmp")
     published_images = 0
