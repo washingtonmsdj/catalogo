@@ -7,6 +7,7 @@ from apply_legacy_gallery_repairs import (
     apply_statement_batches,
     count_integrity_statements,
     plan_repairs,
+    published_model_count,
     verify_applied,
     verify_materialized_counts,
 )
@@ -121,6 +122,15 @@ class LegacyGalleryRepairTests(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             apply_statement_batches([], batch_size=251)
+
+    def test_public_model_count_reads_only_published_cards(self) -> None:
+        response = [{"success": True, "results": [{"total": 2567}]}]
+        with patch("apply_legacy_gallery_repairs.d1_request", return_value=response) as request:
+            total = published_model_count()
+
+        self.assertEqual(total, 2567)
+        sql = request.call_args.args[0][0]["sql"]
+        self.assertIn("WHERE published=1", sql)
 
     def test_materialized_count_verification_covers_all_public_levels(self) -> None:
         specs = count_integrity_statements()
