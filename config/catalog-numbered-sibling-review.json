@@ -641,8 +641,8 @@
         "street-fighter-zangief-03",
         "street-fighter-zangief-04"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07 no acervo fonte (Zangief.jpg e Zangief 02–04): esculturas, poses, bases e composições são diferentes; manter como produtos distintos. O PNG 04 foi inspecionado por cópia temporária reduzida, sem alterar o arquivo fonte."
     },
     {
       "categorySlug": "games",
