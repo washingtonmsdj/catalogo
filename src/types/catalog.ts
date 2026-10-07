@@ -49,6 +49,8 @@ export type CatalogModel = {
   heightCm: number
   galleryCount: number
   galleryVersion?: number
+  /** Slugs legados que representam apenas vistas adicionais deste mesmo produto. */
+  gallerySourceSlugs?: string[]
   description: string
   tags: string[]
   accent: string
