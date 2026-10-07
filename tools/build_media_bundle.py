@@ -459,6 +459,37 @@ def validate_built_model_identifiers(entries: list[dict]) -> None:
             owners[value] = identity
 
 
+def validate_built_taxonomy_identifiers(entries: list[dict]) -> None:
+    category_names: dict[str, str] = {}
+    franchise_names: dict[tuple[str, str], str] = {}
+
+    for entry in entries:
+        category_slug = str(entry.get("categorySlug") or "").strip()
+        category_name = str(entry.get("categoryName") or "").strip()
+        franchise_slug = str(entry.get("franchiseSlug") or "").strip()
+        franchise_name = str(entry.get("franchiseName") or "").strip()
+        if not all((category_slug, category_name, franchise_slug, franchise_name)):
+            raise RuntimeError(f"taxonomia incompleta no modelo construído: {entry!r}")
+
+        previous_category = category_names.get(category_slug)
+        if previous_category is not None and previous_category != category_name:
+            raise RuntimeError(
+                "slug de categoria representa nomes canônicos diferentes: "
+                f"{category_slug}: {previous_category!r} | {category_name!r}"
+            )
+        category_names[category_slug] = category_name
+
+        franchise_key = (category_slug, franchise_slug)
+        previous_franchise = franchise_names.get(franchise_key)
+        if previous_franchise is not None and previous_franchise != franchise_name:
+            raise RuntimeError(
+                "slug de franquia representa nomes canônicos diferentes: "
+                f"{category_slug}/{franchise_slug}: "
+                f"{previous_franchise!r} | {franchise_name!r}"
+            )
+        franchise_names[franchise_key] = franchise_name
+
+
 def model_build_fingerprint(identity_key: str, rows: list[dict], include_original: bool, taxonomy: dict) -> str:
     hierarchy = str(rows[0]["model_key"]).split(" / ")
     franchise_pos = franchise_index(hierarchy, taxonomy)
@@ -737,6 +768,7 @@ def build_bundle(
 
     built_entries = [results[identity_key][0] for identity_key in model_keys]
     validate_built_model_identifiers(built_entries)
+    validate_built_taxonomy_identifiers(built_entries)
 
     temporary_index = model_index.with_suffix(model_index.suffix + ".tmp")
     published_images = 0
