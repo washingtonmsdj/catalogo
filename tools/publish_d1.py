@@ -132,7 +132,8 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
             f"revise a identidade antes de publicar: {sample}"
         )
 
-    validate_numbered_sibling_review(rows)
+    # Sufixos numéricos são revisão de release, não erro estrutural do arquivo.
+    # O snapshot completo é reconciliado em validate_complete_numbered_review().
 
 
 def validate_complete_numbered_review(rows: list[dict[str, Any]]) -> dict[str, Any]:
