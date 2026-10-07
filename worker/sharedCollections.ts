@@ -45,6 +45,7 @@ type SharedModelRow = {
   slug: string
   code: string
   name: string
+  variant_name: string
   franchise: string
   category: string
   position: number
@@ -83,7 +84,7 @@ function collectionPayload(row: SharedCollectionRow, items: SharedModelRow[], de
 
 async function loadItems(env: SharedEnv, code: string) {
   const result = await env.DB.prepare(`SELECT
-    resolved.id,resolved.slug,resolved.code,resolved.name,
+    resolved.id,resolved.slug,resolved.code,resolved.name,resolved.variant_name,
     f.name AS franchise,c.name AS category,sci.position
     FROM shared_collection_items sci
     JOIN models requested ON requested.id=sci.model_id
