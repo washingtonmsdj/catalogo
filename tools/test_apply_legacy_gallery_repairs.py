@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import json
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from apply_legacy_gallery_repairs import (
     apply_statement_batches,
     count_integrity_statements,
+    load_config,
     plan_repairs,
     published_model_count,
     verify_applied,
@@ -48,6 +52,52 @@ def row(slug: str, *, published: int = 1) -> dict:
 
 
 class LegacyGalleryRepairTests(unittest.TestCase):
+    def test_config_contract_validates_audited_summary_and_match_mode(self) -> None:
+        payload = {
+            "version": 2,
+            "auditedAt": "2026-10-07",
+            "auditedGroups": 1,
+            "auditedMemberCards": 3,
+            "auditedExtraCards": 2,
+            "groups": [group()],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "repairs.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            loaded = load_config(path)
+            self.assertEqual(len(loaded), 1)
+
+            bad_mode = json.loads(json.dumps(payload))
+            bad_mode["groups"][0]["matchMode"] = "numeric-heuristic"
+            path.write_text(json.dumps(bad_mode), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "matchMode inválido"):
+                load_config(path)
+
+            bad_summary = json.loads(json.dumps(payload))
+            bad_summary["auditedExtraCards"] = 1
+            path.write_text(json.dumps(bad_summary), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "resumo auditado"):
+                load_config(path)
+
+    def test_explicit_member_group_is_valid_without_numeric_inference(self) -> None:
+        explicit = group()
+        explicit["family"] = "mortal-kombat-mileena-modelo-base"
+        explicit["canonicalSlug"] = "mortal-kombat-mileena"
+        explicit["memberSlugs"] = ["mortal-kombat-mileena", "mortal-kombat-mileena-04"]
+        explicit["matchMode"] = "explicit-members"
+        payload = {
+            "version": 2,
+            "auditedAt": "2026-10-07",
+            "auditedGroups": 1,
+            "auditedMemberCards": 2,
+            "auditedExtraCards": 1,
+            "groups": [explicit],
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "repairs.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            self.assertEqual(load_config(path)[0]["matchMode"], "explicit-members")
+
     def test_clean_state_plans_only_source_relations(self) -> None:
         config = [group()]
         rows = [row(slug) for slug in config[0]["memberSlugs"]]
