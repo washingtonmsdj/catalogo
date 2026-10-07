@@ -372,6 +372,111 @@ def mark_duplicates(records: list[ImageRecord], visual_threshold: int) -> list[d
     return groups
 
 
+class _BKNode:
+    __slots__ = ("value", "records", "children")
+
+    def __init__(self, value: int, record: ImageRecord) -> None:
+        self.value = value
+        self.records = [record]
+        self.children: dict[int, _BKNode] = {}
+
+
+def _bk_add(root: _BKNode, value: int, record: ImageRecord) -> None:
+    node = root
+    while True:
+        distance = (node.value ^ value).bit_count()
+        if distance == 0:
+            node.records.append(record)
+            return
+        child = node.children.get(distance)
+        if child is None:
+            node.children[distance] = _BKNode(value, record)
+            return
+        node = child
+
+
+def _bk_query(root: _BKNode, value: int, threshold: int) -> list[tuple[int, ImageRecord]]:
+    matches: list[tuple[int, ImageRecord]] = []
+    stack = [root]
+    while stack:
+        node = stack.pop()
+        distance = (node.value ^ value).bit_count()
+        if distance <= threshold:
+            matches.extend((distance, record) for record in node.records)
+        lower = max(0, distance - threshold)
+        upper = distance + threshold
+        stack.extend(
+            child
+            for edge, child in node.children.items()
+            if lower <= edge <= upper
+        )
+    return matches
+
+
+def cross_product_visual_candidates(records: list[ImageRecord], visual_threshold: int) -> list[dict]:
+    """Report near-identical images assigned to different product identities.
+
+    This is review-only: it never changes canonical flags. Candidates are scoped
+    to one source hierarchy/personagem, preventing comparisons across unrelated
+    franchises while still catching accidental duplicate product registrations.
+    """
+    by_hierarchy: dict[str, list[ImageRecord]] = defaultdict(list)
+    for record in records:
+        if (
+            record.status == "OK"
+            and record.dhash
+            and record.public_model_key
+            and record.sha256
+        ):
+            by_hierarchy[record.model_key].append(record)
+
+    candidates: list[dict] = []
+    seen_pairs: set[tuple[str, str]] = set()
+    for model_key, members in by_hierarchy.items():
+        root: _BKNode | None = None
+        for record in sorted(members, key=lambda item: item.path.casefold()):
+            value = int(record.dhash or "0", 16)
+            if root is not None:
+                for distance, other in _bk_query(root, value, visual_threshold):
+                    if other.public_model_key == record.public_model_key:
+                        continue
+                    pair = tuple(sorted((other.path, record.path), key=str.casefold))
+                    if pair in seen_pairs:
+                        continue
+                    seen_pairs.add(pair)
+                    candidates.append({
+                        "kind": "cross_product_visual",
+                        "model_key": model_key,
+                        "distance": distance,
+                        "left": {
+                            "path": other.path,
+                            "public_model_key": other.public_model_key,
+                            "audit_code": other.audit_code,
+                            "sha256": other.sha256,
+                        },
+                        "right": {
+                            "path": record.path,
+                            "public_model_key": record.public_model_key,
+                            "audit_code": record.audit_code,
+                            "sha256": record.sha256,
+                        },
+                    })
+            if root is None:
+                root = _BKNode(value, record)
+            else:
+                _bk_add(root, value, record)
+
+    return sorted(
+        candidates,
+        key=lambda item: (
+            item["model_key"].casefold(),
+            item["distance"],
+            item["left"]["path"].casefold(),
+            item["right"]["path"].casefold(),
+        ),
+    )
+
+
 def load_checkpoint(path: Path) -> dict[str, dict]:
     if not path.exists():
         return {}
@@ -398,7 +503,7 @@ def save_progress_manifest(output: Path, records: list[ImageRecord]) -> None:
     os.replace(temporary, manifest)
 
 
-def write_outputs(output: Path, records: list[ImageRecord], groups: list[dict]) -> None:
+def write_outputs(output: Path, records: list[ImageRecord], groups: list[dict], identity_candidates: list[dict] | None = None) -> None:
     output.mkdir(parents=True, exist_ok=True)
     manifest = output / "manifest.jsonl"
     with manifest.open("w", encoding="utf-8") as handle:
@@ -407,6 +512,10 @@ def write_outputs(output: Path, records: list[ImageRecord], groups: list[dict]) 
 
     with (output / "duplicates.json").open("w", encoding="utf-8") as handle:
         json.dump(groups, handle, ensure_ascii=False, indent=2)
+
+    candidates = list(identity_candidates or [])
+    with (output / "identity-candidates.json").open("w", encoding="utf-8") as handle:
+        json.dump(candidates, handle, ensure_ascii=False, indent=2)
 
     fields = ["path", "status", "width", "height", "megapixels", "quality_score", "model_key", "duplicate_group", "canonical", "error"]
     with (output / "manifest.csv").open("w", encoding="utf-8-sig", newline="") as handle:
@@ -424,6 +533,7 @@ def write_outputs(output: Path, records: list[ImageRecord], groups: list[dict]) 
         "duplicate_members": sum(len(group["members"]) for group in groups),
         "canonical_images": sum(record.status == "OK" and record.canonical for record in records),
         "models_detected": len({record.public_model_key or record.model_key for record in records}),
+        "cross_product_visual_candidates": len(identity_candidates or []),
     }
     (output / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary, ensure_ascii=False))
@@ -516,7 +626,8 @@ def main() -> int:
             print(f"GALLERY_VIEWS_INFERRED={inferred_views}", flush=True)
         disambiguate_public_model_keys(records)
     groups = mark_duplicates(records, args.visual_threshold)
-    write_outputs(args.output, records, groups)
+    identity_candidates = cross_product_visual_candidates(records, args.visual_threshold)
+    write_outputs(args.output, records, groups, identity_candidates)
     return 1 if any(record.status != "OK" for record in records) else 0
 
 
