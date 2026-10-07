@@ -369,7 +369,7 @@
         "mortal-kombat-motaro-02"
       ],
       "status": "pending",
-      "reason": "Revisão visual de 2026-10-07 detectou erro de classificação na origem: Motaro 02.jpg é Motaro, mas Motaro.jpg mostra outra escultura (figura humanoide com lobos). Não consolidar nem classificar como distinto até a origem ser corrigida e republicada."
+      "reason": "Origem corrigida em 2026-10-07: o arquivo intruso foi movido para a quarentena oficial, o Motaro correto foi canonizado como Motaro.jpg e a pasta fonte passou a conter 1 modelo. Manter pending somente até o próximo reingest regenerar o registro e remover o falso irmão."
     },
     {
       "categorySlug": "games",
