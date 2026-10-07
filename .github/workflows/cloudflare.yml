@@ -28,6 +28,7 @@ on:
       - 'tools/render_wrangler_config.mjs'
       - 'tools/check_worker_health.mjs'
       - 'tools/check_worker_gallery_contract.mjs'
+      - 'tools/check_legacy_gallery_repairs.mjs'
       - 'tools/apply_legacy_gallery_repairs.py'
       - 'tools/backfill_image_source_index.py'
       - 'config/catalog-schema-contract.json'
@@ -161,6 +162,9 @@ jobs:
       - name: Apply reviewed legacy gallery repairs
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs }}
         run: python tools/apply_legacy_gallery_repairs.py --apply
+      - name: Verify repaired legacy aliases through public API
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs && vars.VITE_API_BASE_URL != '' }}
+        run: node tools/check_legacy_gallery_repairs.mjs "$CATALOG_API_URL"
       - name: Measure image SHA index coverage
         run: python tools/backfill_image_source_index.py
       - name: Backfill image SHA index
