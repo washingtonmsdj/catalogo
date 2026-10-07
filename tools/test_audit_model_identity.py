@@ -1,0 +1,95 @@
+from __future__ import annotations
+
+import json
+import tempfile
+import unittest
+from pathlib import Path
+
+from audit_model_identity import cross_model_sha_candidates, split_view_candidates
+
+
+def model(model_id: str, slug: str, *, folder: str = "androides/androide-18", name: str = "Androide 18") -> dict:
+    return {
+        "id": model_id,
+        "slug": slug,
+        "code": f"TS-{model_id}",
+        "displayName": name,
+        "categorySlug": "animes-desenhos",
+        "franchiseSlug": "dragon-ball",
+        "folderPathKey": folder,
+        "imageCount": 1,
+        "galleryManifestKey": f"gallery/{model_id}/manifest.json",
+    }
+
+
+class AuditModelIdentityTests(unittest.TestCase):
+    def test_directional_views_form_high_confidence_candidate(self) -> None:
+        rows = [
+            model("a", "dragon-ball-androide-18-traje-casual-frente"),
+            model("b", "dragon-ball-androide-18-traje-casual-lateral"),
+            model("c", "dragon-ball-androide-18-traje-casual-costas"),
+        ]
+
+        candidates = split_view_candidates(rows)
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0]["confidence"], "high")
+        self.assertEqual(candidates[0]["canonicalSlug"], rows[0]["slug"])
+        self.assertEqual(len(candidates[0]["members"]), 3)
+
+    def test_framing_only_pair_requires_review(self) -> None:
+        rows = [
+            model("a", "dragon-ball-androide-18-traje-azul-corpo-inteiro"),
+            model("b", "dragon-ball-androide-18-traje-azul-em-pe"),
+        ]
+
+        candidates = split_view_candidates(rows)
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0]["confidence"], "review")
+
+    def test_same_family_in_different_folders_never_merges(self) -> None:
+        rows = [
+            model("a", "dragon-ball-heroi-frente", folder="grupo-a"),
+            model("b", "dragon-ball-heroi-costas", folder="grupo-b"),
+        ]
+
+        self.assertEqual(split_view_candidates(rows), [])
+
+    def test_multi_image_models_are_not_legacy_split_candidates(self) -> None:
+        row = model("a", "dragon-ball-heroi-frente")
+        row["imageCount"] = 2
+        other = model("b", "dragon-ball-heroi-costas")
+
+        self.assertEqual(split_view_candidates([row, other]), [])
+
+    def test_cross_model_exact_sha_is_reported_without_mutation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            sha = "a" * 64
+            rows = [
+                model("mdl-a", "dragon-ball-a"),
+                model("mdl-b", "dragon-ball-b"),
+            ]
+            for row in rows:
+                path = root / row["galleryManifestKey"]
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(
+                    json.dumps({
+                        "images": [{
+                            "id": f"img-{row['id']}",
+                            "sourceSha256": sha,
+                        }]
+                    }),
+                    encoding="utf-8",
+                )
+
+            candidates = cross_model_sha_candidates(rows, root)
+
+            self.assertEqual(len(candidates), 1)
+            self.assertEqual(candidates[0]["sha256"], sha)
+            self.assertEqual(candidates[0]["modelCount"], 2)
+
+
+if __name__ == "__main__":
+    unittest.main()
