@@ -95,6 +95,12 @@ test('rejects duplicate image IDs', () => {
   assert.equal(validGalleryManifest(candidate, model), false)
 })
 
+test('rejects duplicate source SHA-256 inside one gallery', () => {
+  const candidate = manifest()
+  candidate.images[1].sourceSha256 = candidate.images[0].sourceSha256
+  assert.equal(validGalleryManifest(candidate, model), false)
+})
+
 test('rejects D1 cover key different from manifest cover', () => {
   assert.equal(
     validGalleryManifest(manifest(), {
