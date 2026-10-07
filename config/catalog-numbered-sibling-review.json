@@ -21,8 +21,8 @@
       "siblingSlugs": [
         "as-tartarugas-ninja-armaggon-02"
       ],
-      "status": "pending",
-      "reason": "Sufixo numérico detectado no mesmo personagem/pasta; requer revisão visual antes de qualquer consolidação."
+      "status": "distinct",
+      "reason": "Revisão visual concluída em 2026-10-07: armaggon.jpg e armaggon-02.jpg são esculturas completamente diferentes, com pose, caracterização e base distintas."
     },
     {
       "categorySlug": "animes-desenhos",
