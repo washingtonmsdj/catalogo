@@ -8,7 +8,9 @@ from pathlib import Path
 from catalog_schema_contract import (
     load_schema_contract,
     schema_migrations_statement,
+    schema_structure_statement,
     validate_applied_migrations,
+    validate_schema_structures,
 )
 
 
@@ -51,6 +53,39 @@ class CatalogSchemaContractTests(unittest.TestCase):
         self.assertIn("FROM d1_migrations", statement["sql"])
         self.assertEqual(statement["params"], ["0001.sql", "0002.sql"])
         self.assertEqual(statement["sql"].count("?"), 2)
+
+    def test_structure_statement_and_validation_share_contract_objects(self) -> None:
+        contract = {
+            "version": 1,
+            "latestMigration": "0001.sql",
+            "requiredMigrations": ["0001.sql"],
+            "requiredObjects": {
+                "tables": ["model_gallery_members"],
+                "indexes": ["idx_gallery"],
+                "triggers": ["trg_gallery"],
+                "columns": {
+                    "models": ["public_gallery_version"],
+                },
+            },
+        }
+
+        statement = schema_structure_statement(contract)
+
+        self.assertIn("sqlite_schema", statement["sql"])
+        self.assertIn("pragma_table_info('models')", statement["sql"])
+
+        rows = [
+            {"structure_key": "table:model_gallery_members"},
+            {"structure_key": "index:idx_gallery"},
+            {"structure_key": "trigger:trg_gallery"},
+            {"structure_key": "column:models.public_gallery_version"},
+        ]
+        ready = validate_schema_structures(contract, rows)
+        self.assertEqual(ready["requiredStructures"], 4)
+        self.assertEqual(ready["verifiedStructures"], 4)
+
+        with self.assertRaisesRegex(RuntimeError, "estrutura D1 diverge"):
+            validate_schema_structures(contract, rows[:-1])
 
     def test_applied_migrations_fail_closed_when_any_required_item_is_missing(self) -> None:
         contract = {
