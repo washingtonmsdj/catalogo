@@ -25,6 +25,7 @@ const makeImages = (prefix: string, count: number, base: number) =>
 export const models: CatalogModel[] = [
   {
     id: 'mdl-000001', slug: 'sentinela-rubra', code: 'TS-000001', name: 'Sentinela Rubra',
+    variantName: '',
     franchise: 'Crônicas de Ferro', category: 'games', collection: 'Linha Prime', material: 'Resina',
     heightCm: 28, galleryCount: 24, accent: '#d35f42', tags: ['guerreiro', 'espada', 'fantasia'],
     description: 'Guerreiro de elite em pose de combate, com acabamento de armadura envelhecida e base rochosa.',
@@ -32,6 +33,7 @@ export const models: CatalogModel[] = [
   },
   {
     id: 'mdl-000002', slug: 'cacadora-celeste', code: 'TS-000002', name: 'Caçadora Celeste',
+    variantName: '',
     franchise: 'Skybound', category: 'games', collection: 'Art Scale', material: 'Resina',
     heightCm: 31, galleryCount: 18, accent: '#d7b26d', tags: ['arqueira', 'fantasia', 'heroína'],
     description: 'Arqueira aventureira com composição leve, múltiplos detalhes de tecido e base temática.',
@@ -39,6 +41,7 @@ export const models: CatalogModel[] = [
   },
   {
     id: 'mdl-000003', slug: 'guardiao-onix', code: 'TS-000003', name: 'Guardião Ônix',
+    variantName: '',
     franchise: 'Núcleo Ônix', category: 'games', collection: 'Master Collection', material: 'Resina',
     heightCm: 42, galleryCount: 36, accent: '#6383a8', tags: ['armadura', 'energia', 'colosso'],
     description: 'Guardião pesado com placas segmentadas, núcleo energético e presença de escala premium.',
@@ -46,6 +49,7 @@ export const models: CatalogModel[] = [
   },
   {
     id: 'mdl-000004', slug: 'samurai-neon', code: 'TS-000004', name: 'Samurai Neon',
+    variantName: '',
     franchise: 'Neo Edo', category: 'originals', collection: 'Linha Prime', material: 'Resina',
     heightCm: 30, galleryCount: 21, accent: '#9b5344', tags: ['samurai', 'katana', 'cyberpunk'],
     description: 'Samurai futurista com silhueta agressiva, katana tecnológica e visual industrial.',
@@ -53,6 +57,7 @@ export const models: CatalogModel[] = [
   },
   {
     id: 'mdl-000005', slug: 'oraculo-mecanica', code: 'TS-000005', name: 'Oráculo Mecânica',
+    variantName: '',
     franchise: 'Clockwork', category: 'anime', collection: 'Edição Especial', material: 'Resina',
     heightCm: 26, galleryCount: 28, accent: '#cbbca2', tags: ['android', 'steampunk', 'fantasia'],
     description: 'Personagem mecânica de aparência elegante, com aro ornamental e detalhes de alta precisão.',
@@ -60,6 +65,7 @@ export const models: CatalogModel[] = [
   },
   {
     id: 'mdl-000006', slug: 'arcanja-solaris', code: 'TS-000006', name: 'Arcanja Solaris',
+    variantName: '',
     franchise: 'Solaris', category: 'originals', collection: 'Art Scale', material: 'Resina',
     heightCm: 36, galleryCount: 31, accent: '#d6d0bd', tags: ['asas', 'anjo', 'fantasia'],
     description: 'Figura alada com leitura vertical forte, armadura clara e base de apresentação ampla.',
@@ -67,6 +73,7 @@ export const models: CatalogModel[] = [
   },
   {
     id: 'mdl-000007', slug: 'colosso-tirano', code: 'TS-000007', name: 'Colosso Tirano',
+    variantName: '',
     franchise: 'Bestiário', category: 'games', collection: 'Master Collection', material: 'Resina',
     heightCm: 45, galleryCount: 42, accent: '#8c735b', tags: ['monstro', 'armadura', 'besta'],
     description: 'Criatura de grande porte com armadura quebrada, textura orgânica e base de ruínas.',
@@ -74,6 +81,7 @@ export const models: CatalogModel[] = [
   },
   {
     id: 'mdl-000008', slug: 'lobo-das-sombras', code: 'TS-000008', name: 'Lobo das Sombras',
+    variantName: '',
     franchise: 'Nocturne', category: 'games', collection: 'Linha Prime', material: 'Resina',
     heightCm: 33, galleryCount: 27, accent: '#6b5b50', tags: ['caçador', 'lobo', 'sombrio'],
     description: 'Caçador acompanhado por uma fera, composição baixa e larga com atmosfera noturna.',
@@ -81,6 +89,7 @@ export const models: CatalogModel[] = [
   },
   {
     id: 'mdl-000009', slug: 'tita-arcano', code: 'TS-000009', name: 'Titã Arcano',
+    variantName: '',
     franchise: 'Forge Unit', category: 'games', collection: 'Art Scale', material: 'Resina',
     heightCm: 38, galleryCount: 19, accent: '#c28a43', tags: ['mecha', 'robô', 'industrial'],
     description: 'Unidade mecânica robusta com placas de manutenção, pistões e acabamento industrial.',
@@ -88,6 +97,7 @@ export const models: CatalogModel[] = [
   },
   {
     id: 'mdl-000010', slug: 'sereia-do-abismo', code: 'TS-000010', name: 'Sereia do Abismo',
+    variantName: '',
     franchise: 'Abyss', category: 'originals', collection: 'Edição Especial', material: 'Resina',
     heightCm: 29, galleryCount: 33, accent: '#718aa8', tags: ['sereia', 'água', 'fantasia'],
     description: 'Escultura fluida com cabelos em movimento e efeitos aquáticos integrados à base.',
