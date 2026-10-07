@@ -240,6 +240,16 @@ def fetch_manifest(media_base: str, row: dict[str, Any]) -> tuple[dict[str, Any]
     return row, validate_manifest(row, manifest)
 
 
+def apply_statement_batches(statements: list[dict[str, Any]], batch_size: int = 100) -> int:
+    if batch_size < 1 or batch_size > 250:
+        raise ValueError("batch_size deve ficar entre 1 e 250")
+    batches = 0
+    for start in range(0, len(statements), batch_size):
+        d1_request(statements[start:start + batch_size])
+        batches += 1
+    return batches
+
+
 def coverage() -> dict[str, int]:
     result = d1_request([coverage_statement()])
     rows = result[0].get("results")
@@ -305,6 +315,7 @@ def main() -> int:
         after_id = ""
         indexed_now = 0
         pages = 0
+        d1_batches = 0
         while True:
             pending = fetch_missing_page(after_id, args.page_size)
             if not pending:
@@ -316,7 +327,7 @@ def main() -> int:
             for _row, images in resolved:
                 statements.extend(source_statements(images))
                 indexed_now += 1
-            d1_request(statements)
+            d1_batches += apply_statement_batches(statements)
             after_id = str(pending[-1].get("id") or "")
             if not after_id:
                 raise RuntimeError("paginação não avançou")
@@ -328,6 +339,7 @@ def main() -> int:
             "after": after,
             "indexedNow": indexed_now,
             "pages": pages,
+            "d1Batches": d1_batches,
             "exactCrossModelCandidates": duplicate_sha_sample(),
             "automaticMerge": False,
             "imageBinariesDownloaded": 0,
