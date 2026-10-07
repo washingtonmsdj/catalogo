@@ -15,6 +15,7 @@ from build_media_bundle import (
     media_build_output_lock,
     model_display_name,
     model_variant_name,
+    model_variant_name,
     save_media_build_state,
     validate_built_model_identifiers,
     validate_built_taxonomy_identifiers,
@@ -22,6 +23,20 @@ from build_media_bundle import (
 
 
 class MediaBundleTests(unittest.TestCase):
+    def test_variant_name_removes_nested_franchise_and_character_prefixes(self) -> None:
+        self.assertEqual(
+            model_variant_name("Star-Wars-Darth-Vader-04", "Darth Vader", "Star Wars", False),
+            "Modelo 04",
+        )
+        self.assertEqual(
+            model_variant_name("Cammy-Classic-Pose", "Cammy", "Street Fighter", False),
+            "Classic Pose",
+        )
+        self.assertEqual(
+            model_variant_name("Cammy", "Cammy", "Street Fighter", False),
+            "",
+        )
+
     def test_public_display_name_uses_character_leaf_but_not_generic_group(self) -> None:
         self.assertEqual(
             model_display_name(
