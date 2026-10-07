@@ -26,6 +26,7 @@ const loadingModel: CatalogModel = {
   slug: 'loading',
   code: '—',
   name: 'Carregando catálogo',
+  variantName: '',
   franchise: '',
   category: 'all',
   collection: '',
