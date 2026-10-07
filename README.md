@@ -2,7 +2,7 @@
 
 Catálogo web escalável para 100 mil+ modelos/personagens, com navegação inspirada em seletores de personagens de fliperama e interface limpa/industrial.
 
-**URL pública canônica:** https://acheguese.com.br/catalogo/\n\n**Origem/preview independente:** https://washingtonmsdj.github.io/catalogo/
+**URL pública canônica:** https://acheguese.com.br/tonecosstudios/\n\n**Origem/preview independente:** https://washingtonmsdj.github.io/catalogo/
 
 > **Retomando o projeto em outra conversa/sessão?** Leia primeiro [`docs/CONTINUIDADE-OPERACIONAL.md`](docs/CONTINUIDADE-OPERACIONAL.md). Esse arquivo é o SSOT do checkpoint real, bloqueios, decisões já tomadas e ordem dos próximos passos. Não reinicie auditorias ou ingestões antes de conferir esse estado.
 
