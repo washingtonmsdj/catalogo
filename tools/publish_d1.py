@@ -135,6 +135,10 @@ def validate_models(rows: list[dict[str, Any]]) -> None:
     validate_numbered_sibling_review(rows)
 
 
+def validate_complete_numbered_review(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    return validate_numbered_sibling_review(rows, require_complete_registry=True)
+
+
 def safe_storage_key(value: Any, expected_prefix: str, model_id: str) -> str:
     key = str(value or "").strip()
     path = PurePosixPath(key)
@@ -524,7 +528,18 @@ id,franchise_id,folder_id,slug,code,name,variant_name,collection,image_count,cov
 gallery_manifest_key,gallery_version,published,search_text,updated_at)
 SELECT ?,f.id,
   CASE WHEN ?='' THEN NULL ELSE (SELECT id FROM catalog_folders WHERE franchise_id=f.id AND path=?) END,
-  ?,?,?,?,?,?,?,?,?,?,1,?,CURRENT_TIMESTAMP
+  ?,
+  ?,
+  ?,
+  ?,
+  ?,
+  ?,
+  ?,
+  ?,
+  ?,
+  1,
+  ?,
+  CURRENT_TIMESTAMP
 FROM franchises f JOIN categories c ON c.id=f.category_id
 WHERE c.slug=? AND f.slug=?
 ON CONFLICT(id) DO UPDATE SET
@@ -1088,6 +1103,7 @@ def main() -> int:
 
     try:
         rows = load_models(args.models)
+        numbered_review = validate_complete_numbered_review(rows)
         statements = build_statements(rows)
         summary: dict[str, Any] = {
             "models": len(rows),
@@ -1097,6 +1113,7 @@ def main() -> int:
             "statements": len(statements),
             "apply": args.apply,
             "destructiveDeletes": 0,
+            "numberedSiblingReview": numbered_review,
         }
         if not args.apply and not args.check_production:
             print(json.dumps(summary, ensure_ascii=False))
