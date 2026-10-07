@@ -105,6 +105,21 @@ class PublishD1Tests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "textualmente equivalentes"):
                 load_models(path)
 
+    def test_load_rejects_unregistered_numbered_sibling_group(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "models.jsonl"
+            rows = [
+                model("mdl-base", "dragon-ball-teste-unico", "TS-BASE", variant="Teste"),
+                model("mdl-numbered", "dragon-ball-teste-unico-02", "TS-NUM", variant="Teste"),
+            ]
+            path.write_text(
+                "".join(json.dumps(row) + "\n" for row in rows),
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "sem revisão registrada"):
+                load_models(path)
+
     def test_load_rejects_duplicate_public_slug(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "models.jsonl"
