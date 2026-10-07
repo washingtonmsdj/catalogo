@@ -486,14 +486,96 @@ def model_build_fingerprint(
 
 def load_media_build_state(path: Path) -> dict:
     if not path.exists():
-        return {"version": MEDIA_BUILD_STATE_VERSION, "models": {}}
+        return {"version": MEDIA_BUILD_STATE_VERSION, "models": {}, "identityHistory": {}}
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"checkpoint de mídia inválido: {path}: {exc}") from exc
     if state.get("version") != MEDIA_BUILD_STATE_VERSION or not isinstance(state.get("models"), dict):
         raise RuntimeError(f"versão de checkpoint de mídia incompatível: {path}")
+    history = state.get("identityHistory", {})
+    if not isinstance(history, dict):
+        raise RuntimeError(f"histórico de identidade inválido no checkpoint: {path}")
+    normalized_history: dict[str, str] = {}
+    for raw_sha, raw_identity in history.items():
+        sha = str(raw_sha).strip().lower()
+        identity = str(raw_identity).strip()
+        if not re.fullmatch(r"[0-9a-f]{64}", sha) or not identity:
+            raise RuntimeError(f"entrada inválida no histórico de identidade: {raw_sha!r}")
+        normalized_history[sha] = identity
+    state["identityHistory"] = normalized_history
     return state
+
+
+def checkpoint_identity_history(state: dict, r2_root: Path) -> dict[str, str]:
+    history = dict(state.get("identityHistory") or {})
+    for stable_identity, entry in state.get("models", {}).items():
+        if not isinstance(entry, dict):
+            continue
+        model_entry = entry.get("modelEntry")
+        if not isinstance(model_entry, dict):
+            continue
+        manifest_key = str(model_entry.get("galleryManifestKey") or "").strip()
+        if not manifest_key:
+            continue
+        manifest_path = r2_root / manifest_key
+        if not manifest_path.is_file():
+            continue
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        images = manifest.get("images")
+        if not isinstance(images, list):
+            continue
+        for image in images:
+            if not isinstance(image, dict):
+                continue
+            sha = str(image.get("sourceSha256") or "").strip().lower()
+            if not re.fullmatch(r"[0-9a-f]{64}", sha):
+                continue
+            previous = history.get(sha)
+            if previous is not None and previous != stable_identity:
+                raise RuntimeError(
+                    "checkpoint contém SHA histórico atribuído a identidades diferentes: "
+                    f"{sha}: {previous} | {stable_identity}"
+                )
+            history[sha] = stable_identity
+    return history
+
+
+def validate_identity_continuity(
+    by_model: dict[str, list[dict]],
+    stable_keys: dict[str, str],
+    history: dict[str, str],
+) -> None:
+    for identity_key, rows in by_model.items():
+        stable_identity = stable_keys[identity_key]
+        for row in rows:
+            sha = str(row.get("sha256") or "").strip().lower()
+            if not re.fullmatch(r"[0-9a-f]{64}", sha):
+                raise RuntimeError(f"SHA-256 inválido ao validar continuidade: {identity_key}")
+            previous = history.get(sha)
+            if previous is not None and previous != stable_identity:
+                raise RuntimeError(
+                    "identity drift detectado: imagem histórica reapareceu sob outro produto; "
+                    "registre o renome em config/catalog-model-identity-aliases.json antes de publicar: "
+                    f"{sha}: histórico={previous!r}, atual={identity_key!r}"
+                )
+
+
+def update_identity_history(
+    history: dict[str, str],
+    by_model: dict[str, list[dict]],
+    stable_keys: dict[str, str],
+) -> dict[str, str]:
+    updated = dict(history)
+    validate_identity_continuity(by_model, stable_keys, updated)
+    for identity_key, rows in by_model.items():
+        stable_identity = stable_keys[identity_key]
+        for row in rows:
+            updated[str(row["sha256"]).strip().lower()] = stable_identity
+    return updated
 
 
 def save_media_build_state(path: Path, state: dict) -> None:
@@ -672,7 +754,13 @@ def build_bundle(
     model_index = output / "models.jsonl"
     state_path = output / "media-build-state.json"
     output.mkdir(parents=True, exist_ok=True)
-    state = load_media_build_state(state_path) if resume else {"version": MEDIA_BUILD_STATE_VERSION, "models": {}}
+    state = load_media_build_state(state_path) if resume else {
+        "version": MEDIA_BUILD_STATE_VERSION,
+        "models": {},
+        "identityHistory": {},
+    }
+    identity_history = checkpoint_identity_history(state, r2_root)
+    validate_identity_continuity(by_model, stable_keys, identity_history)
     fingerprints = {
         identity_key: model_build_fingerprint(
             identity_key,
@@ -748,6 +836,7 @@ def build_bundle(
         stable_keys[identity_key]: state["models"][stable_keys[identity_key]]
         for identity_key in model_keys
     }
+    state["identityHistory"] = update_identity_history(identity_history, by_model, stable_keys)
     save_media_build_state(state_path, state)
 
     built_entries = [results[identity_key][0] for identity_key in model_keys]
@@ -776,6 +865,7 @@ def build_bundle(
         "r2Root": str(r2_root),
         "mediaBuildState": str(state_path),
         "identityAliasesApplied": sum(1 for key in model_keys if stable_keys[key] != key),
+        "identityHistoryEntries": len(state["identityHistory"]),
     }
     (output / "publish-summary.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
