@@ -196,9 +196,9 @@ O D1 público foi inspecionado diretamente e está aplicado somente até:
 Ainda pendentes na produção:
 
 - `0011_model_gallery_members.sql` — relação canônico → fontes de galeria;
-- `0012_folder_materialized_counts.sql` — contadores materializados de pasta.
+- `0012_folder_materialized_counts.sql` — contadores materializados `direct_model_count` e `subtree_model_count`.
 
-Por isso `catalog_folders.model_count` ainda não existe no D1 público. Não aplicar essas migrations manualmente fora do workflow apenas para contornar a credencial ausente; manter a ordem versionada e a tabela `d1_migrations` coerente.
+Por isso `catalog_folders.direct_model_count` e `catalog_folders.subtree_model_count` ainda não existem no D1 público. A migration 0012 já possui triggers para INSERT, DELETE, mudança de pasta e `published: 1↔0`; os testes cobrem inclusive a aposentadoria lógica reduzindo a contagem da pasta e de todos os ancestrais. Não aplicar essas migrations manualmente fora do workflow apenas para contornar a credencial ausente; manter a ordem versionada e a tabela `d1_migrations` coerente.
 
 ## Política de imagens e qualidade
 
