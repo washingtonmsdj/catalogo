@@ -204,13 +204,14 @@ class CatalogIngestTests(unittest.TestCase):
             casual = records[:4]
             blue = records[4:6]
             bust = records[6]
-            self.assertEqual(grouped, 6)
+            self.assertEqual(grouped, 4)
             self.assertEqual({record.audit_model_group for record in casual}, {"traje-casual-frente"})
             self.assertEqual(len({record.public_model_key for record in casual}), 1)
             self.assertTrue(casual[0].public_model_key.endswith("/ traje-casual-frente"))
-            self.assertEqual({record.audit_model_group for record in blue}, {"traje-azul-corpo-inteiro"})
-            self.assertEqual(len({record.public_model_key for record in blue}), 1)
+            self.assertEqual({record.audit_model_group for record in blue}, {None})
+            self.assertEqual(len({record.public_model_key for record in blue}), 2)
             self.assertTrue(blue[0].public_model_key.endswith("/ traje-azul-corpo-inteiro"))
+            self.assertTrue(blue[1].public_model_key.endswith("/ traje-azul-em-pe"))
             self.assertIsNone(bust.audit_model_group)
             self.assertTrue(bust.public_model_key.endswith("/ busto-realista"))
 
