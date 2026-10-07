@@ -466,10 +466,12 @@ def main() -> int:
     args = parser.parse_args()
 
     rows = load_models(args.models)
+    numbered_review = validate_numbered_sibling_review(rows, require_complete_registry=True)
     view_candidates = split_view_candidates(rows)
     sha_candidates = cross_model_sha_candidates(rows, args.r2_root) if args.r2_root else []
     sibling_candidates = sibling_suffix_candidates(rows)
     summary = write_report(args.output, view_candidates, sha_candidates, sibling_candidates)
+    summary["numberedSiblingReview"] = numbered_review
     print(json.dumps(summary, ensure_ascii=False))
     if args.fail_on_high and summary["highConfidenceGroups"]:
         return 2
