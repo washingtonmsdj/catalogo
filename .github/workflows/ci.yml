@@ -32,6 +32,8 @@ jobs:
         run: npm run test:wrangler-config
       - name: Test Cloudflare deploy-state contract
         run: npm run test:cloudflare-deploy-state
+      - name: Test canonical Worker release smoke
+        run: npm run test:worker-release-smoke
       - name: Test promoted Worker propagation contract
         run: npm run test:promoted-worker
       - name: Test semantic Cloudflare drift gate

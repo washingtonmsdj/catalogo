@@ -25,6 +25,7 @@ on:
       - 'tools/read_wrangler_d1_id.mjs'
       - 'tools/cloudflare_deploy_state.mjs'
       - 'tools/bounded_retry.mjs'
+      - 'tools/worker_release_smoke.mjs'
       - 'tools/check_remote_worker_config.mjs'
       - 'tools/check_staged_worker_version.mjs'
       - 'tools/check_promoted_worker_version.mjs'
@@ -192,33 +193,8 @@ jobs:
           --message "catalogo ${GITHUB_SHA}"
           --yes
           --config .wrangler.deploy.jsonc
-      - name: Verify promoted Worker deployment and schema health
+      - name: Verify promoted Worker deployment and full public release
         run: node tools/check_promoted_worker_version.mjs "$CATALOG_API_URL" "$STAGED_WORKER_VERSION_ID"
-      - name: Verify D1 readiness through catalog API
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors "$CATALOG_API_URL/api/categories" \
-            | node -e "let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (!Array.isArray(data.items)) { console.error('categories response is invalid'); process.exit(1); } console.log('D1 ready:', data.items.length, 'category records'); });"
-      - name: Verify recent catalog route
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors "$CATALOG_API_URL/api/recent?limit=3" \
-            | node -e "let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (!Array.isArray(data.items) || data.items.length < 1 || !data.items[0]?.slug) { console.error('recent catalog response is invalid'); process.exit(1); } console.log('Recent catalog ready:', data.items.length, 'models'); });"
-      - name: Verify gallery contract through catalog API
-        run: node tools/check_worker_gallery_contract.mjs "$CATALOG_API_URL"
-      - name: Verify shared collections route
-        shell: bash
-        run: |
-          set -euo pipefail
-          body_file="$(mktemp)"
-          trap 'rm -f "$body_file"' EXIT
-          status="$(curl --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors \
-            --output "$body_file" --write-out '%{http_code}' \
-            "$CATALOG_API_URL/api/shared-collections/TCL-AAAAAAAAAAAAAAAA")"
-          test "$status" = '404'
-          node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); if (data.error !== 'shared_collection_not_found') { console.error(data); process.exit(1); }" "$body_file"
       - name: Restore previous Worker after failed staged or production smoke
         if: ${{ failure() && steps.stage_deployment.outcome == 'success' }}
         run: >-
