@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 import { setTimeout as sleep } from 'node:timers/promises'
 import { runBoundedRetry } from './bounded_retry.mjs'
-import { verifyWorkerGalleryContract } from './check_worker_gallery_contract.mjs'
-import { verifyWorkerHealth } from './check_worker_health.mjs'
 import { versionOverrideHeaderValue } from './cloudflare_deploy_state.mjs'
 import { canonicalWorkerName, loadWranglerConfig } from './wrangler_config_contract.mjs'
+import { verifyWorkerReleaseContract } from './worker_release_smoke.mjs'
 
 const DEFAULT_ATTEMPTS = 5
 const DEFAULT_DELAY_MS = 2_000
@@ -17,17 +16,6 @@ export function fetchWithVersionOverride(fetchImpl, overrideValue) {
   }
 }
 
-async function fetchJson(fetchImpl, url, label) {
-  const response = await fetchImpl(url, {
-    headers: {
-      accept: 'application/json',
-      'user-agent': 'tonecos-catalog-staged-smoke/1',
-    },
-  })
-  if (!response?.ok) throw new Error(`${label} failed with HTTP ${response?.status ?? 'unknown'}`)
-  return response.json()
-}
-
 export async function verifyStagedWorkerVersion({ apiBase, versionId, fetchImpl = fetch } = {}) {
   const base = String(apiBase ?? '').trim().replace(/\/$/, '')
   if (!/^https?:\/\//.test(base)) throw new Error('API base must be http(s)')
@@ -36,42 +24,12 @@ export async function verifyStagedWorkerVersion({ apiBase, versionId, fetchImpl 
   const workerName = canonicalWorkerName(config)
   const overrideValue = versionOverrideHeaderValue(workerName, versionId)
   const stagedFetch = fetchWithVersionOverride(fetchImpl, overrideValue)
-
-  const health = await verifyWorkerHealth(base, stagedFetch)
-
-  const categories = await fetchJson(stagedFetch, `${base}/api/categories`, 'categories probe')
-  if (!Array.isArray(categories?.items)) throw new Error('categories probe returned an invalid payload')
-
-  const recent = await fetchJson(stagedFetch, `${base}/api/recent?limit=1`, 'recent probe')
-  if (!Array.isArray(recent?.items) || recent.items.length < 1 || !recent.items[0]?.slug) {
-    throw new Error('recent probe returned no published model')
-  }
-
-  const gallery = await verifyWorkerGalleryContract(base, stagedFetch)
-
-  const shared = await stagedFetch(`${base}/api/shared-collections/TCL-AAAAAAAAAAAAAAAA`, {
-    headers: {
-      accept: 'application/json',
-      'user-agent': 'tonecos-catalog-staged-smoke/1',
-    },
-  })
-  if (shared?.status !== 404) {
-    throw new Error(`shared collections probe expected HTTP 404, got ${shared?.status ?? 'unknown'}`)
-  }
-  const sharedPayload = await shared.json()
-  if (sharedPayload?.error !== 'shared_collection_not_found') {
-    throw new Error('shared collections probe returned an unexpected error contract')
-  }
+  const release = await verifyWorkerReleaseContract(base, stagedFetch)
 
   return {
-    ok: true,
+    ...release,
     workerName,
     versionId,
-    health,
-    categories: categories.items.length,
-    recent: recent.items.length,
-    gallery,
-    sharedCollections: true,
   }
 }
 
