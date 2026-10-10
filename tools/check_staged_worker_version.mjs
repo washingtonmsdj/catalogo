@@ -1,8 +1,12 @@
 #!/usr/bin/env node
+import { setTimeout as sleep } from 'node:timers/promises'
 import { verifyWorkerGalleryContract } from './check_worker_gallery_contract.mjs'
 import { verifyWorkerHealth } from './check_worker_health.mjs'
 import { versionOverrideHeaderValue } from './cloudflare_deploy_state.mjs'
 import { canonicalWorkerName, loadWranglerConfig } from './wrangler_config_contract.mjs'
+
+const DEFAULT_ATTEMPTS = 5
+const DEFAULT_DELAY_MS = 2_000
 
 export function fetchWithVersionOverride(fetchImpl, overrideValue) {
   return (url, init = {}) => {
@@ -70,12 +74,47 @@ export async function verifyStagedWorkerVersion({ apiBase, versionId, fetchImpl 
   }
 }
 
+export async function verifyStagedWorkerVersionWithRetry({
+  apiBase,
+  versionId,
+  fetchImpl = fetch,
+  attempts = DEFAULT_ATTEMPTS,
+  delayMs = DEFAULT_DELAY_MS,
+  sleepImpl = sleep,
+} = {}) {
+  if (!Number.isInteger(attempts) || attempts < 1 || attempts > 10) {
+    throw new Error('attempts must be an integer between 1 and 10')
+  }
+  if (!Number.isInteger(delayMs) || delayMs < 0 || delayMs > 30_000) {
+    throw new Error('delayMs must be an integer between 0 and 30000')
+  }
+
+  let lastError
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await verifyStagedWorkerVersion({ apiBase, versionId, fetchImpl })
+    } catch (error) {
+      lastError = error
+      if (attempt === attempts) break
+      console.error(
+        `Staged Worker smoke attempt ${attempt}/${attempts} failed: ${error instanceof Error ? error.message : String(error)}. Retrying after ${delayMs}ms.`,
+      )
+      await sleepImpl(delayMs)
+    }
+  }
+
+  throw new Error(
+    `Staged Worker smoke failed after ${attempts} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+    { cause: lastError instanceof Error ? lastError : undefined },
+  )
+}
+
 async function main() {
   const apiBase = process.argv[2] || process.env.CATALOG_API_URL || process.env.VITE_API_BASE_URL
   const versionId = process.argv[3] || process.env.STAGED_WORKER_VERSION_ID
   if (!apiBase) throw new Error('API base is required')
   if (!versionId) throw new Error('STAGED_WORKER_VERSION_ID is required')
-  process.stdout.write(JSON.stringify(await verifyStagedWorkerVersion({ apiBase, versionId })) + '\n')
+  process.stdout.write(JSON.stringify(await verifyStagedWorkerVersionWithRetry({ apiBase, versionId })) + '\n')
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
