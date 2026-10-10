@@ -128,6 +128,19 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("--yes", self.workflow)
         self.assertNotIn("npx wrangler deploy --config .wrangler.deploy.jsonc", self.workflow)
 
+    def test_promoted_worker_convergence_is_proved_before_other_public_smokes(self):
+        gate = "Verify promoted Worker deployment and schema health"
+        self.assertIn(gate, self.workflow)
+        self.assertIn("check_promoted_worker_version.mjs", self.workflow)
+        self.assertLess(self.workflow.index("Promote staged Worker version"), self.workflow.index(gate))
+        for smoke in (
+            "Verify D1 readiness through catalog API",
+            "Verify recent catalog route",
+            "Verify gallery contract through catalog API",
+            "Verify shared collections route",
+        ):
+            self.assertLess(self.workflow.index(gate), self.workflow.index(smoke))
+
     def test_failed_staged_or_post_promotion_smoke_restores_explicit_previous_version(self):
         self.assertIn("Restore previous Worker after failed staged or production smoke", self.workflow)
         self.assertIn("failure() && steps.stage_deployment.outcome == 'success'", self.workflow)
@@ -135,7 +148,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         restore = self.workflow.index("Restore previous Worker after failed staged or production smoke")
         self.assertLess(self.workflow.index("Smoke staged Worker version before promotion"), restore)
         for smoke in (
-            "Verify Worker schema health",
+            "Verify promoted Worker deployment and schema health",
             "Verify D1 readiness through catalog API",
             "Verify recent catalog route",
             "Verify gallery contract through catalog API",
@@ -150,13 +163,14 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertLess(self.workflow.index("Validate migration-first compatibility"), self.workflow.index("Apply D1 migrations"))
 
     def test_legacy_gallery_repairs_are_explicit_opt_in_after_schema_health(self):
+        gate = "Verify promoted Worker deployment and schema health"
         self.assertIn("apply_legacy_gallery_repairs:", self.workflow)
         self.assertIn("default: false", self.workflow)
-        self.assertIn("Verify Worker schema health", self.workflow)
+        self.assertIn(gate, self.workflow)
         self.assertIn("Plan reviewed legacy gallery repairs", self.workflow)
         self.assertIn("Apply reviewed legacy gallery repairs", self.workflow)
         self.assertIn("github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs", self.workflow)
-        self.assertLess(self.workflow.index("Verify Worker schema health"), self.workflow.index("Apply reviewed legacy gallery repairs"))
+        self.assertLess(self.workflow.index(gate), self.workflow.index("Apply reviewed legacy gallery repairs"))
 
     def test_sha_backfill_precedes_legacy_repair_apply(self):
         self.assertLess(self.workflow.index("Backfill image SHA index"), self.workflow.index("Apply reviewed legacy gallery repairs"))
@@ -169,10 +183,11 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertLess(self.workflow.index("Apply reviewed legacy gallery repairs"), self.workflow.index("Verify repaired legacy aliases through public API"))
 
     def test_d1_integrity_audit_runs_before_and_after_legacy_repairs(self):
+        gate = "Verify promoted Worker deployment and schema health"
         self.assertIn("Audit D1 structural integrity", self.workflow)
         self.assertIn("Re-audit D1 after legacy repairs", self.workflow)
         self.assertIn("python tools/audit_d1_integrity.py", self.workflow)
-        self.assertLess(self.workflow.index("Verify Worker schema health"), self.workflow.index("Audit D1 structural integrity"))
+        self.assertLess(self.workflow.index(gate), self.workflow.index("Audit D1 structural integrity"))
         self.assertLess(self.workflow.index("Audit D1 structural integrity"), self.workflow.index("Apply reviewed legacy gallery repairs"))
         self.assertLess(self.workflow.index("Apply reviewed legacy gallery repairs"), self.workflow.index("Re-audit D1 after legacy repairs"))
 
@@ -193,8 +208,10 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             "tools/wrangler_config_contract.mjs",
             "tools/read_wrangler_d1_id.mjs",
             "tools/cloudflare_deploy_state.mjs",
+            "tools/bounded_retry.mjs",
             "tools/check_remote_worker_config.mjs",
             "tools/check_staged_worker_version.mjs",
+            "tools/check_promoted_worker_version.mjs",
             "tools/check_migration_deploy_policy.py",
             "tools/check_worker_health.mjs",
             "tools/check_legacy_gallery_repairs.mjs",
