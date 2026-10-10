@@ -1,0 +1,96 @@
+name: Maintain Catalog Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Operação de manutenção canônica a executar
+        required: true
+        default: audit
+        type: choice
+        options:
+          - audit
+          - backfill-image-sha
+          - apply-legacy-gallery-repairs
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-api
+  cancel-in-progress: false
+
+jobs:
+  maintain:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CATALOG_API_URL: ${{ vars.VITE_API_BASE_URL }}
+      CATALOG_MEDIA_URL: ${{ vars.VITE_MEDIA_BASE_URL }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.13'
+      - name: Install
+        run: npm ci
+      - name: Validate maintenance credentials
+        shell: bash
+        env:
+          OPERATION: ${{ inputs.operation }}
+        run: |
+          set -euo pipefail
+          missing=()
+          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing+=(CLOUDFLARE_ACCOUNT_ID)
+          [ -n "$CLOUDFLARE_API_TOKEN" ] || missing+=(CLOUDFLARE_API_TOKEN)
+          [ -n "$CATALOG_API_URL" ] || missing+=(VITE_API_BASE_URL)
+          if [ "$OPERATION" = 'backfill-image-sha' ] && [ -z "$CATALOG_MEDIA_URL" ]; then
+            missing+=(VITE_MEDIA_BASE_URL)
+          fi
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Manutenção do Catálogo bloqueada: faltam credenciais/configurações: ${missing[*]}"
+            exit 1
+          fi
+      - name: Export canonical D1 binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          database_id="$(node tools/read_wrangler_d1_id.mjs)"
+          echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
+      - name: Validate active Worker health and schema
+        run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
+
+      - name: Audit D1 structural integrity
+        if: ${{ inputs.operation == 'audit' }}
+        run: python tools/audit_d1_integrity.py
+      - name: Plan reviewed legacy gallery repairs
+        if: ${{ inputs.operation == 'audit' || inputs.operation == 'apply-legacy-gallery-repairs' }}
+        run: python tools/apply_legacy_gallery_repairs.py
+      - name: Measure image SHA index coverage
+        if: ${{ inputs.operation == 'audit' || inputs.operation == 'backfill-image-sha' }}
+        run: python tools/backfill_image_source_index.py
+
+      - name: Backfill image SHA index
+        if: ${{ inputs.operation == 'backfill-image-sha' }}
+        run: python tools/backfill_image_source_index.py --apply
+      - name: Verify image SHA index coverage after backfill
+        if: ${{ inputs.operation == 'backfill-image-sha' }}
+        run: python tools/backfill_image_source_index.py
+
+      - name: Apply reviewed legacy gallery repairs
+        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' }}
+        run: python tools/apply_legacy_gallery_repairs.py --apply
+      - name: Verify repaired legacy aliases through public API
+        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' }}
+        run: node tools/check_legacy_gallery_repairs.mjs "$CATALOG_API_URL"
+      - name: Re-audit D1 after legacy repairs
+        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' }}
+        run: python tools/audit_d1_integrity.py
