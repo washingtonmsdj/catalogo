@@ -28,6 +28,8 @@ jobs:
         run: npm audit --omit=dev --audit-level=high
       - name: Test bounded browser metadata cache
         run: npm run test:known-cache
+      - name: Test canonical Wrangler config
+        run: npm run test:wrangler-config
       - name: Test gallery runtime validation
         run: npm run test:gallery-runtime
       - name: Test Worker gallery smoke contract
@@ -61,8 +63,6 @@ jobs:
       - name: Typecheck Cloudflare Worker
         run: npm run typecheck:worker
       - name: Render deployment config
-        env:
-          CLOUDFLARE_D1_DATABASE_ID: 00000000-0000-0000-0000-000000000000
         run: npm run cloudflare:config
       - name: Dry-run Cloudflare Worker bundle
         run: npx wrangler deploy --dry-run --config .wrangler.deploy.jsonc
