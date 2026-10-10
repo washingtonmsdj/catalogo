@@ -29,7 +29,7 @@ No workflow de produção, `tools/read_wrangler_d1_id.mjs` deriva o mesmo valor 
 5. Criar um API Token Cloudflare com somente as permissões necessárias para Worker, D1 e R2.
 6. Configurar no GitHub as variáveis e secrets descritos abaixo.
 
-`preview_urls` fica explicitamente desabilitado no `wrangler.jsonc`. O endpoint estável em `workers.dev` permanece ativo, mas versões de preview não são expostas por default implícito do Wrangler.
+`preview_urls` fica explicitamente desabilitado no `wrangler.jsonc`. O endpoint estável em `workers.dev` permanece ativo; o staged smoke usa Version Overrides no deployment ativo e não depende de Preview URL pública.
 
 `wrangler.jsonc` também declara `TURNSTILE_SECRET_KEY` em `secrets.required`. No CI, o valor vem exclusivamente de GitHub Secrets e é anexado à versão staged com `wrangler versions upload --secrets-file`; ele não é gravado no repositório, em artifact ou em output do workflow.
 
@@ -53,7 +53,7 @@ O CORS do Worker também é versionado em `wrangler.jsonc`; não existe fallback
 
 O token de CI deve ser dedicado ao Catálogo e restrito à conta Tonecos. Para o workflow atual, o menor conjunto conhecido é:
 
-- **Workers Editor** no Worker existente `tonecos-catalogo-api` — necessário para consultar deployments, enviar/promover versões e executar rollback explícito;
+- **Workers Editor** no Worker existente `tonecos-catalogo-api` — necessário para consultar deployments, enviar versões, criar o deployment 100%/0%, promover e executar rollback explícito;
 - **D1 Edit** — necessário para aplicar migrations e executar as auditorias/queries D1 do pipeline;
 - **Workers R2 Storage Read** — necessário para `wrangler r2 bucket info`, sem conceder escrita no bucket.
 
@@ -70,7 +70,7 @@ Se a UI da Cloudflare permitir escopo por recurso, preferir o Worker individual 
 
 Ao alterar `worker/`, `migrations/`, `wrangler.jsonc` ou os contratos/ferramentas de deploy Cloudflare na `main`, o workflow `Deploy Cloudflare API` executa primeiro um **preflight sempre visível**.
 
-O preflight verifica `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `TURNSTILE_SECRET_KEY` e `VITE_API_BASE_URL`. Se qualquer item estiver ausente, o workflow registra no resumo exatamente o que falta e **falha fechado**. `VITE_MEDIA_BASE_URL` é exigida adicionalmente apenas quando o backfill R2 for solicitado. Em `main`, um deploy pulado por falta de credencial não pode aparecer como sucesso.
+O preflight verifica `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `TURNSTILE_SECRET_KEY` e `VITE_API_BASE_URL`. Se qualquer item estiver ausente, o workflow registra no resumo exatamente o que falta e **falha fechado**. `VITE_MEDIA_BASE_URL` é exigida adicionalmente apenas quando o backfill R2 for solicitado. Em `main`, um deploy bloqueado por falta de credencial não pode aparecer como sucesso.
 
 O binding D1 não é lido de variável do GitHub no preflight. Depois do checkout, o job valida o UUID diretamente do SSOT versionado e exporta o valor derivado para as ferramentas de runtime.
 
@@ -85,11 +85,13 @@ Quando o bootstrap está disponível, o job de produção:
 7. envia código + segredo com `wrangler versions upload --strict --secrets-file`, sem direcionar tráfego. O output estruturado oficial do Wrangler é capturado em NDJSON e dele é extraído o Version ID staged;
 8. executa `tools/check_migration_deploy_policy.py` e exige que a estratégia `migrate-before-worker` continue expand/backward-compatible;
 9. aplica somente as migrations D1 ainda não aplicadas;
-10. executa `tools/check_staged_worker_version.mjs` contra a versão staged usando `Cloudflare-Workers-Version-Overrides`. Health/schema, categorias, recentes, galeria e shared collections precisam passar **antes** de qualquer promoção;
-11. promove a versão staged para 100% do tráfego com `wrangler versions deploy --version-tag ...@100% --yes`;
-12. repete os gates públicos essenciais sem override, provando que o deployment ativo responde corretamente;
-13. se qualquer gate público pós-promoção falhar, executa `wrangler rollback <PREVIOUS_WORKER_VERSION_ID>` para a versão capturada antes do deploy;
-14. somente após o smoke público saudável executa auditorias e tarefas opcionais de manutenção, como backfill SHA e reparos de galerias legadas.
+10. cria explicitamente o deployment gradual com a versão anterior em **100%** e a versão staged em **0%**. A versão nova passa a pertencer ao deployment atual sem receber tráfego normal;
+11. executa `tools/check_staged_worker_version.mjs` usando `Cloudflare-Workers-Version-Overrides`. Health/schema, categorias, recentes, galeria e shared collections precisam passar antes da promoção;
+12. o staged smoke tolera somente a pequena janela de propagação do deployment com retry bounded: 5 tentativas, 2 segundos entre elas. Nenhuma migration, upload, deployment ou outra mutação é repetida;
+13. promove a versão staged para 100% do tráfego com `wrangler versions deploy --version-tag ...@100% --yes`;
+14. repete os gates públicos essenciais sem override, provando que o deployment ativo responde corretamente;
+15. se o staged smoke falhar após a criação do deployment 100%/0% **ou** se qualquer gate público pós-promoção falhar, executa `wrangler rollback <PREVIOUS_WORKER_VERSION_ID>` para restaurar explicitamente o Worker anterior;
+16. somente após o smoke público saudável executa auditorias e tarefas opcionais de manutenção, como backfill SHA e reparos de galerias legadas.
 
 ### Por que o segredo não usa `wrangler secret put`
 
@@ -97,9 +99,13 @@ Quando o bootstrap está disponível, o job de produção:
 
 ### Smoke staged e rollback
 
-O smoke staged usa o mecanismo oficial de Version Overrides da Cloudflare. A versão nova consulta o D1 já expandido, mas usuários continuam na versão anterior enquanto health, schema e rotas públicas são validados.
+Version Override só é aplicado a versões que pertencem ao deployment atual. Por isso o pipeline não tenta usar override logo após `versions upload`: primeiro registra `previous@100% + staged@0%`, e somente depois executa o staged smoke.
 
-O rollback é deliberadamente explícito: `tools/cloudflare_deploy_state.mjs` consulta os deployments da Cloudflare, ordena por `created_on`, exige que o deployment ativo seja uma única versão a 100% e salva esse Version ID. Não usamos `wrangler rollback` sem ID, porque “a versão enviada anteriormente” pode não ser a mesma versão que estava efetivamente servindo produção.
+O staged smoke usa o endpoint estável do Worker e envia `Cloudflare-Workers-Version-Overrides` em todas as requisições. A versão nova consulta o D1 já expandido, enquanto usuários continuam integralmente na versão anterior. O checker exige o schema contract da nova branch; se o override não for aplicado e a versão antiga responder, o smoke falha em vez de produzir falso-verde.
+
+A Cloudflare pode levar alguns segundos para propagar um deployment recém-criado. O retry é deliberadamente curto e limitado. Ele repete apenas as leituras do staged smoke; falha real continua encerrando o workflow e aciona a restauração do Worker anterior.
+
+O rollback é deliberadamente explícito: `tools/cloudflare_deploy_state.mjs` consulta os deployments da Cloudflare, ordena por `created_on`, exige que o deployment inicial seja uma única versão a 100% e salva esse Version ID. Não usamos `wrangler rollback` sem ID, porque “a versão enviada anteriormente” pode não ser a mesma versão que estava efetivamente servindo produção.
 
 Rollback restaura **o Worker**, não o schema D1. Isso é intencional e só é seguro porque `config/migration-deploy-policy.json` bloqueia migrations destrutivas no fluxo migration-first. A versão antiga precisa continuar compatível com o schema expandido.
 
@@ -108,11 +114,12 @@ Essa ordem reduz o raio de falha:
 - falha de credencial, R2 ou configuração ocorre antes de D1;
 - falha de upload deixa produção e D1 intactos;
 - falha de migration deixa apenas uma versão staged e o Worker anterior continua servindo;
-- falha do staged smoke impede promoção;
-- falha imediatamente após promoção aciona rollback explícito do Worker;
+- falha ao criar o deployment 100%/0% não promove a versão nova;
+- falha do staged smoke restaura explicitamente o Worker anterior;
+- falha imediatamente após promoção também aciona rollback explícito;
 - tarefas opcionais de manutenção só começam depois que o deployment público já provou saúde.
 
-O CI usa `wrangler versions upload --dry-run --strict` para validar o mesmo caminho de empacotamento usado em produção e possui testes contratuais que proíbem reintroduzir `wrangler secret put`, promoção antes do staged smoke ou rollback implícito.
+O CI executa `wrangler versions upload --dry-run --strict --secrets-file` com um segredo **sintético** temporário para validar o mesmo caminho de empacotamento/binding usado em produção, sem consumir segredo real em PR. Testes contratuais proíbem reintroduzir `wrangler secret put`, usar Version Override sem `new@0%`, promover antes do staged smoke, retry de mutações ou rollback implícito.
 
 ### Regra migration-first
 
