@@ -90,6 +90,28 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Detect D1 schema change scope
+        id: d1_scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          run_d1_schema=false
+
+          if [ "$GITHUB_EVENT_NAME" = 'workflow_dispatch' ]; then
+            run_d1_schema=true
+          else
+            before="${{ github.event.before }}"
+            if [ -z "$before" ] || [ "$before" = '0000000000000000000000000000000000000000' ]; then
+              run_d1_schema=true
+            elif ! git diff --quiet "$before" "$GITHUB_SHA" -- migrations config/catalog-schema-contract.json; then
+              run_d1_schema=true
+            fi
+          fi
+
+          echo "run_d1_schema=$run_d1_schema" >> "$GITHUB_OUTPUT"
+          echo "D1 schema work enabled: $run_d1_schema"
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
@@ -150,6 +172,7 @@ jobs:
       - name: Validate migration-first compatibility
         run: python tools/check_migration_deploy_policy.py
       - name: Apply D1 migrations
+        if: ${{ steps.d1_scope.outputs.run_d1_schema == 'true' }}
         run: npx wrangler d1 migrations apply DB --remote --config .wrangler.deploy.jsonc
       - name: Register staged Worker at zero traffic
         id: stage_deployment
@@ -179,4 +202,5 @@ jobs:
           --message "automatic restore after failed deploy validation ${GITHUB_SHA}"
           --config .wrangler.deploy.jsonc
       - name: Audit D1 structural integrity
+        if: ${{ steps.d1_scope.outputs.run_d1_schema == 'true' }}
         run: python tools/audit_d1_integrity.py
