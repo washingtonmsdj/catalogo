@@ -3,11 +3,6 @@ name: Deploy Cloudflare API
 on:
   workflow_dispatch:
     inputs:
-      force_turnstile_secret_sync:
-        description: Reenviar o segredo do Turnstile para o Worker (use em rotação de chave)
-        required: false
-        default: false
-        type: boolean
       apply_legacy_gallery_repairs:
         description: Aplicar os reparos de galerias legadas registrados e revisados após o deploy saudável
         required: false
@@ -28,6 +23,8 @@ on:
       - 'tools/render_wrangler_config.mjs'
       - 'tools/wrangler_config_contract.mjs'
       - 'tools/read_wrangler_d1_id.mjs'
+      - 'tools/cloudflare_deploy_state.mjs'
+      - 'tools/check_staged_worker_version.mjs'
       - 'tools/check_migration_deploy_policy.py'
       - 'tools/check_worker_health.mjs'
       - 'tools/check_worker_gallery_contract.mjs'
@@ -69,6 +66,7 @@ jobs:
           [ -n "$ACCOUNT_ID" ] || missing+=(CLOUDFLARE_ACCOUNT_ID)
           [ -n "$API_TOKEN" ] || missing+=(CLOUDFLARE_API_TOKEN)
           [ -n "$TURNSTILE_SECRET" ] || missing+=(TURNSTILE_SECRET_KEY)
+          [ -n "$API_URL" ] || missing+=(VITE_API_BASE_URL)
           if [ "$BACKFILL_SHA" = 'true' ] && [ -z "$MEDIA_URL" ]; then
             missing+=(VITE_MEDIA_BASE_URL)
           fi
@@ -93,7 +91,7 @@ jobs:
             echo
             echo '- Account ID: configurado'
             echo '- D1 database ID: versionado no wrangler.jsonc e validado no job de deploy'
-            if [ -n "$API_URL" ]; then echo '- API pública: configurada'; else echo '- API pública: não configurada; smoke HTTP será omitido'; fi
+            echo '- API pública: configurada e obrigatória para smoke staged/pós-promoção'
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
@@ -125,14 +123,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo '::error::CLOUDFLARE_API_TOKEN não está configurado.'
-            exit 1
-          fi
-          if [ -z "$TURNSTILE_SECRET_KEY" ]; then
-            echo '::error::TURNSTILE_SECRET_KEY não está configurado.'
-            exit 1
-          fi
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::CLOUDFLARE_API_TOKEN não está configurado.'; exit 1; }
+          test -n "$TURNSTILE_SECRET_KEY" || { echo '::error::TURNSTILE_SECRET_KEY não está configurado.'; exit 1; }
+          test -n "$CATALOG_API_URL" || { echo '::error::VITE_API_BASE_URL não está configurado.'; exit 1; }
       - name: Validate Worker
         run: npm run typecheck:worker
       - name: Export canonical D1 binding
@@ -143,33 +136,43 @@ jobs:
           echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
       - name: Render production config
         run: npm run cloudflare:config
-      - name: Verify R2 bucket
-        run: npx wrangler r2 bucket info tonecos-catalogo-media --json
-      - name: Ensure required Turnstile Worker secret
+      - name: Capture current production Worker version
         shell: bash
-        env:
-          FORCE_SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.force_turnstile_secret_sync || false }}
         run: |
           set -euo pipefail
-          SECRET_LIST="$(npx wrangler secret list --config .wrangler.deploy.jsonc --format json)"
-          if [ "$FORCE_SYNC" = 'true' ] || ! printf '%s' "$SECRET_LIST" | grep -q '"TURNSTILE_SECRET_KEY"'; then
-            printf '%s' "$TURNSTILE_SECRET_KEY" | npx wrangler secret put TURNSTILE_SECRET_KEY --config .wrangler.deploy.jsonc
-          else
-            echo 'TURNSTILE_SECRET_KEY já configurado no Worker.'
-          fi
-          npx wrangler secret list --config .wrangler.deploy.jsonc --format json | grep -q '"TURNSTILE_SECRET_KEY"'
-      - name: Upload Worker version without traffic
-        run: >-
-          npx wrangler versions upload
-          --tag "$WORKER_VERSION_TAG"
-          --message "catalogo ${GITHUB_SHA}"
-          --strict
-          --config .wrangler.deploy.jsonc
+          previous_version="$(node tools/cloudflare_deploy_state.mjs active-version)"
+          echo "PREVIOUS_WORKER_VERSION_ID=$previous_version" >> "$GITHUB_ENV"
+      - name: Verify R2 bucket
+        run: npx wrangler r2 bucket info tonecos-catalogo-media --json
+      - name: Upload Worker version with required secret and no traffic
+        shell: bash
+        env:
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/wrangler-version-upload.ndjson
+        run: |
+          set -euo pipefail
+          secrets_file="${RUNNER_TEMP}/tonecos-worker-secrets.json"
+          trap 'rm -f "$secrets_file"' EXIT
+          node -e "const fs=require('fs'); fs.writeFileSync(process.argv[1], JSON.stringify({TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY}), {mode:0o600})" "$secrets_file"
+          npx wrangler versions upload \
+            --tag "$WORKER_VERSION_TAG" \
+            --message "catalogo ${GITHUB_SHA}" \
+            --strict \
+            --secrets-file "$secrets_file" \
+            --config .wrangler.deploy.jsonc
+      - name: Capture staged Worker version
+        shell: bash
+        run: |
+          set -euo pipefail
+          staged_version="$(node tools/cloudflare_deploy_state.mjs uploaded-version "${RUNNER_TEMP}/wrangler-version-upload.ndjson")"
+          echo "STAGED_WORKER_VERSION_ID=$staged_version" >> "$GITHUB_ENV"
       - name: Validate migration-first compatibility
         run: python tools/check_migration_deploy_policy.py
       - name: Apply D1 migrations
         run: npx wrangler d1 migrations apply DB --remote --config .wrangler.deploy.jsonc
+      - name: Smoke staged Worker version before promotion
+        run: node tools/check_staged_worker_version.mjs "$CATALOG_API_URL" "$STAGED_WORKER_VERSION_ID"
       - name: Promote staged Worker version
+        id: promote
         run: >-
           npx wrangler versions deploy
           --version-tag "${WORKER_VERSION_TAG}@100%"
@@ -177,8 +180,38 @@ jobs:
           --yes
           --config .wrangler.deploy.jsonc
       - name: Verify Worker schema health
-        if: ${{ vars.VITE_API_BASE_URL != '' }}
         run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
+      - name: Verify D1 readiness through catalog API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors "$CATALOG_API_URL/api/categories" \
+            | node -e "let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (!Array.isArray(data.items)) { console.error('categories response is invalid'); process.exit(1); } console.log('D1 ready:', data.items.length, 'category records'); });"
+      - name: Verify recent catalog route
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors "$CATALOG_API_URL/api/recent?limit=3" \
+            | node -e "let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (!Array.isArray(data.items) || data.items.length < 1 || !data.items[0]?.slug) { console.error('recent catalog response is invalid'); process.exit(1); } console.log('Recent catalog ready:', data.items.length, 'models'); });"
+      - name: Verify gallery contract through catalog API
+        run: node tools/check_worker_gallery_contract.mjs "$CATALOG_API_URL"
+      - name: Verify shared collections route
+        shell: bash
+        run: |
+          set -euo pipefail
+          body_file="$(mktemp)"
+          trap 'rm -f "$body_file"' EXIT
+          status="$(curl --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors \
+            --output "$body_file" --write-out '%{http_code}' \
+            "$CATALOG_API_URL/api/shared-collections/TCL-AAAAAAAAAAAAAAAA")"
+          test "$status" = '404'
+          node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); if (data.error !== 'shared_collection_not_found') { console.error(data); process.exit(1); }" "$body_file"
+      - name: Roll back Worker after failed production smoke
+        if: ${{ failure() && steps.promote.outcome == 'success' }}
+        run: >-
+          npx wrangler rollback "$PREVIOUS_WORKER_VERSION_ID"
+          --message "automatic rollback after failed production smoke ${GITHUB_SHA}"
+          --config .wrangler.deploy.jsonc
       - name: Audit D1 structural integrity
         run: python tools/audit_d1_integrity.py
       - name: Plan reviewed legacy gallery repairs
@@ -192,38 +225,8 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs }}
         run: python tools/apply_legacy_gallery_repairs.py --apply
       - name: Verify repaired legacy aliases through public API
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs && vars.VITE_API_BASE_URL != '' }}
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs }}
         run: node tools/check_legacy_gallery_repairs.mjs "$CATALOG_API_URL"
       - name: Re-audit D1 after legacy repairs
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs }}
         run: python tools/audit_d1_integrity.py
-      - name: Verify D1 readiness through catalog API
-        if: ${{ vars.VITE_API_BASE_URL != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors "$CATALOG_API_URL/api/categories" \
-            | node -e "let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (!Array.isArray(data.items)) { console.error('categories response is invalid'); process.exit(1); } console.log('D1 ready:', data.items.length, 'category records'); });"
-      - name: Verify recent catalog route
-        if: ${{ vars.VITE_API_BASE_URL != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors "$CATALOG_API_URL/api/recent?limit=3" \
-            | node -e "let body=''; process.stdin.on('data', c => body += c).on('end', () => { const data = JSON.parse(body); if (!Array.isArray(data.items) || data.items.length < 1 || !data.items[0]?.slug) { console.error('recent catalog response is invalid'); process.exit(1); } console.log('Recent catalog ready:', data.items.length, 'models'); });"
-      - name: Verify gallery contract through catalog API
-        if: ${{ vars.VITE_API_BASE_URL != '' }}
-        run: node tools/check_worker_gallery_contract.mjs "$CATALOG_API_URL"
-      - name: Verify shared collections route
-        if: ${{ vars.VITE_API_BASE_URL != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          body_file="$(mktemp)"
-          status="$(curl --silent --show-error --retry 4 --retry-delay 3 --retry-all-errors \
-            --output "$body_file" --write-out '%{http_code}' \
-            "$CATALOG_API_URL/api/shared-collections/TCL-AAAAAAAAAAAAAAAA")"
-          test "$status" = '404'
-          node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); if (data.error !== 'shared_collection_not_found') { console.error(data); process.exit(1); }" "$body_file"
-          rm -f "$body_file"
-
