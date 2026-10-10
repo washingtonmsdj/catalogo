@@ -64,8 +64,8 @@ jobs:
         run: npm run typecheck:worker
       - name: Render deployment config
         run: npm run cloudflare:config
-      - name: Dry-run Cloudflare Worker bundle
-        run: npx wrangler deploy --dry-run --config .wrangler.deploy.jsonc
+      - name: Dry-run staged Worker upload
+        run: npx wrangler versions upload --dry-run --strict --config .wrangler.deploy.jsonc
       - name: Materialize verified Worker bundle
         run: npx esbuild worker/index.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=worker-dist/worker.js
       - name: Upload verified Worker bundle
