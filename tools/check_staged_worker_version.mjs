@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { setTimeout as sleep } from 'node:timers/promises'
+import { runBoundedRetry } from './bounded_retry.mjs'
 import { verifyWorkerGalleryContract } from './check_worker_gallery_contract.mjs'
 import { verifyWorkerHealth } from './check_worker_health.mjs'
 import { versionOverrideHeaderValue } from './cloudflare_deploy_state.mjs'
@@ -72,38 +73,6 @@ export async function verifyStagedWorkerVersion({ apiBase, versionId, fetchImpl 
     gallery,
     sharedCollections: true,
   }
-}
-
-export async function runBoundedRetry(operation, {
-  attempts = DEFAULT_ATTEMPTS,
-  delayMs = DEFAULT_DELAY_MS,
-  sleepImpl = sleep,
-  onRetry = () => {},
-} = {}) {
-  if (typeof operation !== 'function') throw new Error('operation must be a function')
-  if (!Number.isInteger(attempts) || attempts < 1 || attempts > 10) {
-    throw new Error('attempts must be an integer between 1 and 10')
-  }
-  if (!Number.isInteger(delayMs) || delayMs < 0 || delayMs > 30_000) {
-    throw new Error('delayMs must be an integer between 0 and 30000')
-  }
-
-  let lastError
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await operation(attempt)
-    } catch (error) {
-      lastError = error
-      if (attempt === attempts) break
-      onRetry({ attempt, attempts, delayMs, error })
-      await sleepImpl(delayMs)
-    }
-  }
-
-  throw new Error(
-    `Operation failed after ${attempts} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
-    { cause: lastError instanceof Error ? lastError : undefined },
-  )
 }
 
 export async function verifyStagedWorkerVersionWithRetry({

@@ -24,8 +24,10 @@ on:
       - 'tools/wrangler_config_contract.mjs'
       - 'tools/read_wrangler_d1_id.mjs'
       - 'tools/cloudflare_deploy_state.mjs'
+      - 'tools/bounded_retry.mjs'
       - 'tools/check_remote_worker_config.mjs'
       - 'tools/check_staged_worker_version.mjs'
+      - 'tools/check_promoted_worker_version.mjs'
       - 'tools/check_migration_deploy_policy.py'
       - 'tools/check_worker_health.mjs'
       - 'tools/check_worker_gallery_contract.mjs'
@@ -190,8 +192,8 @@ jobs:
           --message "catalogo ${GITHUB_SHA}"
           --yes
           --config .wrangler.deploy.jsonc
-      - name: Verify Worker schema health
-        run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
+      - name: Verify promoted Worker deployment and schema health
+        run: node tools/check_promoted_worker_version.mjs "$CATALOG_API_URL" "$STAGED_WORKER_VERSION_ID"
       - name: Verify D1 readiness through catalog API
         shell: bash
         run: |

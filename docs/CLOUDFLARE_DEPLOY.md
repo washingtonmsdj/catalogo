@@ -96,13 +96,27 @@ Esse dry-run valida localmente schema/configuração, empacotamento e secret bin
 11. aplicação somente das migrations D1 ainda pendentes;
 12. deployment explícito `previous@100% + staged@0%`;
 13. smoke da versão staged via `Cloudflare-Workers-Version-Overrides`;
-14. retry bounded somente do smoke: 5 tentativas, 2 segundos; nenhuma mutação é repetida;
+14. retry bounded somente desse smoke enquanto o deployment 0% propaga; nenhuma mutação é repetida;
 15. promoção explícita de `staged@100%`;
-16. health/schema, categorias, recentes, galeria e shared collections sem override;
-17. se falhar após o deployment 100/0 e antes de concluir os smokes públicos, `wrangler rollback <PREVIOUS_WORKER_VERSION_ID>`;
-18. somente depois do Worker público saudável: auditoria D1 e manutenções opcionais.
+16. confirmação bounded, via API Cloudflare, de que o deployment ativo é exatamente o Version ID staged em 100%;
+17. health/schema público com retry bounded para absorver propagação de edge após a promoção;
+18. categorias, recentes, galeria e shared collections sem override;
+19. se qualquer gate falhar depois do deployment 100/0 e antes de concluir os smokes públicos, `wrangler rollback <PREVIOUS_WORKER_VERSION_ID>`;
+20. somente depois do Worker público saudável: auditoria D1 e manutenções opcionais.
 
 A versão anterior continua atendendo usuários durante o staged smoke. A versão nova recebe 0% de tráfego normal até passar pelos gates.
+
+## Retry bounded: somente leitura
+
+`tools/bounded_retry.mjs` centraliza a política de retry. Ela é usada apenas em verificações read-only:
+
+- smoke staged por Version Override;
+- confirmação do Version ID ativo após promoção;
+- health/schema público após promoção.
+
+Upload, migrations, criação de deployment, promoção, rollback e qualquer outra mutação **não** são repetidos automaticamente.
+
+O rollout real de 2026-10-10 mostrou por que esse gate é necessário: a Cloudflare confirmou a promoção da versão nova para 100%, mas um health normal iniciado cerca de 0,18 s depois ainda recebeu o contrato da versão anterior em um edge. O rollback explícito funcionou. A correção não adiciona `sleep` cego; ela primeiro prova o estado do plano de controle e depois espera, por janela limitada, a superfície pública convergir.
 
 ## Segredo Turnstile
 
@@ -125,6 +139,13 @@ Rollback restaura o Worker, não o D1. Por isso uma migration destrutiva futura 
 Version Override só pode selecionar versões que pertencem ao deployment atual. Por isso o workflow registra primeiro `previous@100% + staged@0%` e só então envia o header de override.
 
 O checker staged exige o schema contract da versão nova. Se o override for ignorado e a versão antiga responder, o gate falha em vez de aceitar um falso-verde.
+
+Após a promoção, `tools/check_promoted_worker_version.mjs` combina duas provas independentes:
+
+1. o plano de controle da Cloudflare precisa reportar o Version ID staged como deployment ativo em 100%;
+2. o endpoint público `/api/health` precisa convergir para o contrato de schema esperado.
+
+O staged smoke já provou diretamente a versão específica via override. Portanto não é necessário adicionar um binding de version metadata só para o health público; mantemos o runtime enxuto e usamos o plano de controle como autoridade da promoção.
 
 O rollback usa sempre o Version ID capturado antes de qualquer write. Não usa “versão anterior por ordem de upload”, pois upload recente não implica que aquela versão era a que atendia produção.
 
