@@ -54,6 +54,30 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             self.workflow.index("Apply D1 migrations"),
         )
 
+    def test_worker_write_is_proved_before_d1_mutation_and_promoted_after(self):
+        self.assertIn("WORKER_VERSION_TAG: ci-${{ github.run_id }}-${{ github.run_attempt }}", self.workflow)
+        self.assertIn("Upload Worker version without traffic", self.workflow)
+        self.assertIn("npx wrangler versions upload", self.workflow)
+        self.assertIn('--tag "$WORKER_VERSION_TAG"', self.workflow)
+        self.assertIn("--strict", self.workflow)
+        self.assertIn("Promote staged Worker version", self.workflow)
+        self.assertIn("npx wrangler versions deploy", self.workflow)
+        self.assertIn('--version-tag "${WORKER_VERSION_TAG}@100%"', self.workflow)
+        self.assertIn("--yes", self.workflow)
+        self.assertNotIn("npx wrangler deploy --config .wrangler.deploy.jsonc", self.workflow)
+        self.assertLess(
+            self.workflow.index("Upload Worker version without traffic"),
+            self.workflow.index("Validate migration-first compatibility"),
+        )
+        self.assertLess(
+            self.workflow.index("Upload Worker version without traffic"),
+            self.workflow.index("Apply D1 migrations"),
+        )
+        self.assertLess(
+            self.workflow.index("Apply D1 migrations"),
+            self.workflow.index("Promote staged Worker version"),
+        )
+
     def test_migration_policy_gate_runs_before_remote_migrations(self):
         self.assertIn("Validate migration-first compatibility", self.workflow)
         self.assertIn("python tools/check_migration_deploy_policy.py", self.workflow)
