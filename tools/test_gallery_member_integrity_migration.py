@@ -8,6 +8,12 @@ ROOT = Path(__file__).resolve().parents[1]
 MIGRATION = ROOT / "migrations" / "0014_gallery_member_integrity.sql"
 
 
+def executable_sql(sql: str) -> str:
+    return "\n".join(
+        line for line in sql.splitlines() if not line.lstrip().startswith("--")
+    )
+
+
 class GalleryMemberIntegrityMigrationTests(unittest.TestCase):
     def setUp(self):
         self.sql = MIGRATION.read_text(encoding="utf-8")
@@ -45,9 +51,10 @@ class GalleryMemberIntegrityMigrationTests(unittest.TestCase):
         self.db.close()
 
     def test_trigger_source_is_safe_for_d1_migration_segmentation(self):
-        self.assertNotIn("SELECT CASE", self.sql.upper())
-        self.assertEqual(2, len(re.findall(r"(?mi)^\s*END;\s*$", self.sql)))
-        self.assertEqual(6, self.sql.upper().count("SELECT RAISE(ABORT"))
+        sql = executable_sql(self.sql).upper()
+        self.assertNotIn("SELECT CASE", sql)
+        self.assertEqual(2, len(re.findall(r"(?mi)^\s*END;\s*$", sql)))
+        self.assertEqual(6, sql.count("SELECT RAISE(ABORT"))
 
     def test_migration_creates_both_integrity_triggers(self):
         names = {
