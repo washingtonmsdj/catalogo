@@ -31,6 +31,8 @@ No workflow de produção, `tools/read_wrangler_d1_id.mjs` deriva o mesmo valor 
 
 `preview_urls` fica explicitamente desabilitado no `wrangler.jsonc`. O endpoint estável em `workers.dev` permanece ativo, mas versões de preview não são expostas por default implícito do Wrangler.
 
+`wrangler.jsonc` também declara `TURNSTILE_SECRET_KEY` em `secrets.required`. Assim `wrangler versions upload` recusa uma versão cujo Worker não tenha esse segredo configurado.
+
 ## GitHub Repository Variables
 
 - `CLOUDFLARE_ACCOUNT_ID`
@@ -45,6 +47,23 @@ No workflow de produção, `tools/read_wrangler_d1_id.mjs` deriva o mesmo valor 
 
 - `CLOUDFLARE_API_TOKEN`
 - `TURNSTILE_SECRET_KEY` — segredo privado do widget Turnstile; nunca vai para o bundle do navegador
+
+## Escopo mínimo do token Cloudflare
+
+O token de CI deve ser dedicado ao Catálogo e restrito à conta Tonecos. Para o workflow atual, o menor conjunto conhecido é:
+
+- **Workers Editor** no Worker existente `tonecos-catalogo-api` — necessário para listar/alterar o segredo do Worker, enviar uma versão e promovê-la;
+- **D1 Edit** — necessário para aplicar migrations e executar as auditorias/queries D1 do pipeline;
+- **Workers R2 Storage Read** — necessário para `wrangler r2 bucket info`, sem conceder escrita no bucket.
+
+Não conceder por conveniência:
+
+- Workers Admin — o Worker já existe e o pipeline não precisa criá-lo nem apagá-lo;
+- Workers Routes Write — o workflow não cria nem altera rota ou domínio customizado;
+- Workers R2 Storage Write — o workflow de deploy não publica objetos no R2;
+- permissões de API Tokens, Billing ou administração geral da conta.
+
+Se a UI da Cloudflare permitir escopo por recurso, preferir o Worker individual em vez de todos os Workers. D1/R2 devem permanecer no menor escopo suportado pelo painel para os recursos usados pelo Catálogo.
 
 ## Fluxo automático
 
@@ -61,23 +80,30 @@ Quando o bootstrap está disponível, o job de produção:
 3. valida/lê o binding D1 canônico de `wrangler.jsonc` e exporta o ID derivado para o processo;
 4. gera `.wrangler.deploy.jsonc` sem substituir o binding D1;
 5. confirma que o bucket R2 existe;
-6. executa `tools/check_migration_deploy_policy.py` e exige que a estratégia `migrate-before-worker` continue expand/backward-compatible;
-7. aplica somente as migrações D1 ainda não aplicadas;
-8. publica o Worker;
-9. verifica se `TURNSTILE_SECRET_KEY` já existe no Worker e envia o GitHub Secret somente quando necessário;
-10. confirma novamente que o nome do secret está ativo;
-11. consulta `/api/health` para provar que o Worker está respondendo;
+6. confirma/sincroniza `TURNSTILE_SECRET_KEY` **antes** de qualquer alteração no D1; em rotação explícita, o segredo é atualizado enquanto o código antigo ainda está servindo;
+7. envia uma nova versão com `wrangler versions upload --strict`, marcada por uma tag única do run, **sem direcionar tráfego**; esse passo prova permissão de escrita no Worker, configuração e segredo obrigatório antes de qualquer migration;
+8. executa `tools/check_migration_deploy_policy.py` e exige que a estratégia `migrate-before-worker` continue expand/backward-compatible;
+9. aplica somente as migrações D1 ainda não aplicadas;
+10. promove a versão previamente enviada para 100% do tráfego com `wrangler versions deploy --version-tag ...@100% --yes`;
+11. consulta `/api/health` para provar que o Worker promovido está respondendo;
 12. audita a integridade estrutural do D1;
 13. consulta `/api/categories` e valida a estrutura JSON para provar que binding e schema estão acessíveis;
 14. consulta `/api/recent` para provar que a rota de novidades retorna modelos publicados;
 15. executa `tools/check_worker_gallery_contract.mjs`: o primeiro modelo precisa expor `gallery_version`, e `/api/models/:slug/images` deve retornar `total == image_count`, versão idêntica e capa na primeira posição;
 16. consulta uma coleção pública inexistente e exige `404 shared_collection_not_found`, provando que a rota `/api/shared-collections/:code` está realmente presente no Worker publicado.
 
-O R2 é validado antes do deploy via Wrangler. Assim, Worker, D1 e bucket precisam estar operacionais para o pipeline de produção terminar com sucesso.
+Essa ordem reduz o raio de falha:
+
+- falha de credencial, R2, segredo, configuração ou Workers Editor ocorre antes do D1;
+- falha de upload deixa produção e D1 intactos;
+- falha de migration deixa apenas uma versão não promovida e o Worker antigo continua servindo;
+- falha de promoção pode deixar o D1 expandido, mas o gate garante que as migrations sejam compatíveis com o Worker antigo.
+
+O CI usa `wrangler versions upload --dry-run --strict` para validar o mesmo caminho de empacotamento usado em produção, em vez de testar um comando de deploy diferente.
 
 ### Regra migration-first
 
-A produção aplica migrations antes do Worker novo. Essa ordem só pode continuar enquanto as migrations posteriores ao baseline forem do tipo **expand** e toleradas pelo Worker atualmente publicado.
+A produção aplica migrations antes de promover o Worker novo. Essa ordem só pode continuar enquanto as migrations posteriores ao baseline forem do tipo **expand** e toleradas pelo Worker atualmente publicado.
 
 - `config/migration-deploy-policy.json` é o SSOT dessa política;
 - o baseline de produção permanece registrado até `0010_recent_models_index.sql` enquanto a primeira promoção automática não ocorrer;
@@ -87,7 +113,7 @@ A produção aplica migrations antes do Worker novo. Essa ordem só pode continu
 
 Quando `CLOUDFLARE_API_TOKEN` for configurado pela primeira vez ou restaurado, execute manualmente **Deploy Cloudflare API** pela ação `workflow_dispatch`; não é necessário criar commit artificial. Mantenha `force_turnstile_secret_sync=false` nesse caso.
 
-Na rotação da chave Turnstile, execute manualmente o workflow com `force_turnstile_secret_sync=true`. O valor do segredo continua mascarado pelo GitHub e é enviado ao Wrangler por stdin.
+Na rotação da chave Turnstile, execute manualmente o workflow com `force_turnstile_secret_sync=true`. O valor do segredo continua mascarado pelo GitHub e é enviado ao Wrangler por stdin **antes** do staging da nova versão.
 
 ## Estado de produção
 
