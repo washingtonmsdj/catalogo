@@ -22,7 +22,7 @@ type R2Bucket = {
 type SharedEnv = {
   DB: D1Database
   MEDIA: R2Bucket
-  CORS_ORIGINS?: string
+  CORS_ORIGINS: string
   TURNSTILE_SECRET_KEY?: string
 }
 

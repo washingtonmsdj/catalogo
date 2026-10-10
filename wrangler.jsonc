@@ -5,11 +5,17 @@
   "compatibility_date": "2026-09-30",
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": false,
+  "vars": {
+    "CORS_ORIGINS": "https://washingtonmsdj.github.io,https://acheguese.com.br,https://www.acheguese.com.br,http://localhost:5173,http://127.0.0.1:5173"
+  },
+  "secrets": {
+    "required": ["TURNSTILE_SECRET_KEY"]
+  },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "tonecos-catalogo",
-      "database_id": "REPLACE_AFTER_D1_CREATE",
+      "database_id": "87006366-60f3-4937-af73-2ef5a5f901fb",
       "migrations_dir": "migrations"
     }
   ],
