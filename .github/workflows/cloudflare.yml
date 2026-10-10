@@ -169,13 +169,22 @@ jobs:
         run: python tools/check_migration_deploy_policy.py
       - name: Apply D1 migrations
         run: npx wrangler d1 migrations apply DB --remote --config .wrangler.deploy.jsonc
+      - name: Register staged Worker at zero traffic
+        id: stage_deployment
+        run: >-
+          npx wrangler versions deploy
+          "${PREVIOUS_WORKER_VERSION_ID}@100%"
+          "${STAGED_WORKER_VERSION_ID}@0%"
+          --message "staged smoke ${GITHUB_SHA}"
+          --yes
+          --config .wrangler.deploy.jsonc
       - name: Smoke staged Worker version before promotion
         run: node tools/check_staged_worker_version.mjs "$CATALOG_API_URL" "$STAGED_WORKER_VERSION_ID"
       - name: Promote staged Worker version
         id: promote
         run: >-
           npx wrangler versions deploy
-          --version-tag "${WORKER_VERSION_TAG}@100%"
+          "${STAGED_WORKER_VERSION_ID}@100%"
           --message "catalogo ${GITHUB_SHA}"
           --yes
           --config .wrangler.deploy.jsonc
@@ -206,11 +215,11 @@ jobs:
             "$CATALOG_API_URL/api/shared-collections/TCL-AAAAAAAAAAAAAAAA")"
           test "$status" = '404'
           node -e "const fs=require('fs'); const data=JSON.parse(fs.readFileSync(process.argv[1],'utf8')); if (data.error !== 'shared_collection_not_found') { console.error(data); process.exit(1); }" "$body_file"
-      - name: Roll back Worker after failed production smoke
-        if: ${{ failure() && steps.promote.outcome == 'success' }}
+      - name: Restore previous Worker after failed staged or production smoke
+        if: ${{ failure() && steps.stage_deployment.outcome == 'success' }}
         run: >-
           npx wrangler rollback "$PREVIOUS_WORKER_VERSION_ID"
-          --message "automatic rollback after failed production smoke ${GITHUB_SHA}"
+          --message "automatic restore after failed deploy validation ${GITHUB_SHA}"
           --config .wrangler.deploy.jsonc
       - name: Audit D1 structural integrity
         run: python tools/audit_d1_integrity.py
