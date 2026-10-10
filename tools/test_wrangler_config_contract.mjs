@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
 import test from 'node:test'
 
 import { canonicalD1DatabaseId, loadWranglerConfig } from './wrangler_config_contract.mjs'
@@ -42,4 +43,14 @@ test('canonical D1 binding rejects loose UUID-like strings', () => {
     }),
     /canonical Cloudflare database UUID/,
   )
+})
+
+test('renderer rejects a divergent runtime D1 assertion', () => {
+  const result = spawnSync(process.execPath, ['tools/render_wrangler_config.mjs'], {
+    cwd: process.cwd(),
+    env: { ...process.env, CLOUDFLARE_D1_DATABASE_ID: SYNTHETIC_ID },
+    encoding: 'utf8',
+  })
+  assert.notEqual(result.status, 0)
+  assert.match(`${result.stdout}\n${result.stderr}`, /diverges from wrangler\.jsonc/)
 })
