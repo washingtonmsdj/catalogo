@@ -54,6 +54,7 @@ class CloudflareD1ScopeContractTests(unittest.TestCase):
         self.assertIn(cache_gate, self.workflow)
         cache_block = step_block(self.workflow, cache_gate)
         self.assertIn("check_worker_cache_hit.mjs", cache_block)
+        self.assertGreaterEqual(self.workflow.count("tools/check_worker_cache_hit.mjs"), 2)
         self.assertLess(self.workflow.index(release_gate), self.workflow.index(cache_gate))
         self.assertLess(self.workflow.index(cache_gate), self.workflow.index(restore))
 
