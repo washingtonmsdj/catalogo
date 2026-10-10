@@ -1,218 +1,176 @@
 # Deploy Cloudflare
 
-O catálogo usa `acheguese.com.br/tonecosstudios/` como URL pública canônica. O frontend continua publicado no GitHub Pages como origem/preview e é montado sob o domínio Achegue-se por reverse proxy. Cloudflare continua responsável por API, banco, mídia e proteção dos fluxos públicos de gravação.
-O deploy normal do backend é automatizado; somente o provisionamento inicial da conta é feito uma vez.
+O Catálogo usa `https://acheguese.com.br/tonecosstudios/` como URL pública canônica. O frontend é publicado no GitHub Pages e montado sob o Achegue-se por reverse proxy. A Cloudflare é responsável pela API, D1, R2 e Turnstile.
 
-## Recursos de produção
+## Recursos canônicos de produção
+
+Conta: **Tonecos Studio**.
 
 - Worker: `tonecos-catalogo-api`
 - D1: `tonecos-catalogo`
+- D1 ID: `87006366-60f3-4937-af73-2ef5a5f901fb`
 - R2: `tonecos-catalogo-media`
-- Turnstile: widget Managed usado no orçamento e no compartilhamento de coleções
-- Binding D1: `DB`
-- Binding R2: `MEDIA`
+- binding D1: `DB`
+- binding R2: `MEDIA`
+- segredo obrigatório: `TURNSTILE_SECRET_KEY`
 
-## SSOT do binding D1 e Worker
+`wrangler.jsonc` é a SSOT versionada para nome do Worker, D1, R2, CORS, compatibility, observability e contrato de segredo. O UUID do D1 é configuração de infraestrutura, não segredo, e não deve ser duplicado como Repository Variable de produção.
 
-`wrangler.jsonc` é a fonte versionada da identidade do Worker e do binding D1 de produção. O UUID do banco é um identificador de recurso, não um segredo; por isso ele fica associado ao binding `DB` no arquivo canônico em vez de ser duplicado em Repository Variable.
+O CORS de produção contém somente origens públicas autorizadas:
 
-`tools/wrangler_config_contract.mjs` valida o nome canônico do Worker e exige exatamente um binding `DB` com UUID canônico. `tools/render_wrangler_config.mjs` lê esse valor e nunca o substitui por configuração paralela. Se `CLOUDFLARE_D1_DATABASE_ID` for fornecido manualmente, ele funciona somente como **asserção**: divergência contra `wrangler.jsonc` falha fechado.
+- `https://washingtonmsdj.github.io`
+- `https://acheguese.com.br`
+- `https://www.acheguese.com.br`
 
-No workflow de produção, `tools/read_wrangler_d1_id.mjs` deriva o mesmo valor e o exporta para `CLOUDFLARE_D1_DATABASE_ID` apenas como variável de runtime para scripts Python que chamam a API D1 diretamente. Essa variável derivada não é outra fonte de verdade.
+`localhost` e `127.0.0.1` não pertencem ao SSOT de produção; desenvolvimento local deve usar configuração de desenvolvimento separada.
 
-## Bootstrap único
+## GitHub
 
-1. Criar o banco D1 `tonecos-catalogo` e registrar seu UUID no binding `DB` de `wrangler.jsonc`.
-2. Criar o bucket R2 `tonecos-catalogo-media`.
-3. Configurar uma origem pública/CDN para os objetos web do R2.
-4. Criar um widget Cloudflare Turnstile em modo Managed. Autorizar `washingtonmsdj.github.io`, `acheguese.com.br` e `www.acheguese.com.br`.
-5. Criar um API Token Cloudflare com somente as permissões necessárias para Worker, D1 e R2.
-6. Configurar no GitHub as variáveis e secrets descritos abaixo.
-
-`preview_urls` fica explicitamente desabilitado no `wrangler.jsonc`. O endpoint estável em `workers.dev` permanece ativo; o staged smoke usa Version Overrides no deployment ativo e não depende de Preview URL pública.
-
-`wrangler.jsonc` também declara `TURNSTILE_SECRET_KEY` em `secrets.required`. No CI, o valor vem exclusivamente de GitHub Secrets e é anexado à versão staged com `wrangler versions upload --secrets-file`; ele não é gravado no repositório, em artifact ou em output do workflow.
-
-## GitHub Repository Variables
+### Repository Variables
 
 - `CLOUDFLARE_ACCOUNT_ID`
-- `VITE_API_BASE_URL` — origem pública do Worker, sem barra final; obrigatória para smoke staged e pós-promoção
-- `VITE_MEDIA_BASE_URL` — origem pública/CDN do R2, sem barra final
-- `VITE_TURNSTILE_SITE_KEY` — chave pública do widget Turnstile
+- `VITE_API_BASE_URL`
+- `VITE_MEDIA_BASE_URL`
+- `VITE_TURNSTILE_SITE_KEY`
 
-`CLOUDFLARE_D1_DATABASE_ID` **não é Repository Variable de produção**. O workflow deriva o ID do `wrangler.jsonc` e o exporta somente para o processo em execução.
-
-O CORS do Worker também é versionado em `wrangler.jsonc`; não existe fallback paralelo hardcoded no runtime nem Repository Variable concorrente para a allowlist de produção.
-
-## GitHub Repository Secrets
+### Repository Secrets
 
 - `CLOUDFLARE_API_TOKEN`
-- `TURNSTILE_SECRET_KEY` — segredo privado do widget Turnstile; nunca vai para o bundle do navegador
+- `TURNSTILE_SECRET_KEY`
 
-## Escopo mínimo do token Cloudflare
+O workflow deriva `CLOUDFLARE_D1_DATABASE_ID` do `wrangler.jsonc` somente para o processo em execução. Esse valor derivado não é outra fonte de verdade.
 
-O token de CI deve ser dedicado ao Catálogo e restrito à conta Tonecos. Para o workflow atual, o menor conjunto conhecido é:
+## Token Cloudflare
 
-- **Workers Editor** no Worker existente `tonecos-catalogo-api` — necessário para consultar deployments, enviar versões, criar o deployment 100%/0%, promover e executar rollback explícito;
-- **D1 Edit** — necessário para aplicar migrations e executar as auditorias/queries D1 do pipeline;
-- **Workers R2 Storage Read** — necessário para `wrangler r2 bucket info`, sem conceder escrita no bucket.
+O token de CI deve ser dedicado ao Catálogo, restrito à conta Tonecos e usar o menor privilégio suportado:
 
-Não conceder por conveniência:
+- Workers Editor no Worker `tonecos-catalogo-api`;
+- D1 Edit;
+- Workers R2 Storage Read.
 
-- Workers Admin — o Worker já existe e o pipeline não precisa criá-lo nem apagá-lo;
-- Workers Routes Write — o workflow não cria nem altera rota ou domínio customizado;
-- Workers R2 Storage Write — o workflow de deploy não publica objetos no R2;
-- permissões de API Tokens, Billing ou administração geral da conta.
+Não conceder Workers Admin, Workers Routes Write, R2 Write, Billing ou administração de API Tokens apenas por conveniência.
 
-Se a UI da Cloudflare permitir escopo por recurso, preferir o Worker individual em vez de todos os Workers. D1/R2 devem permanecer no menor escopo suportado pelo painel para os recursos usados pelo Catálogo.
+## Gate de drift remoto
 
-## Fluxo automático
+Antes de qualquer write no Worker, `tools/check_remote_worker_config.mjs` consulta a configuração remota da Cloudflare e compara somente propriedades que existem e são semanticamente gerenciadas pelo SSOT:
 
-Ao alterar `worker/`, `migrations/`, `wrangler.jsonc` ou os contratos/ferramentas de deploy Cloudflare na `main`, o workflow `Deploy Cloudflare API` executa primeiro um **preflight sempre visível**.
+- `compatibility_date`;
+- `compatibility_flags`;
+- `observability.enabled`;
+- conjunto exato de bindings esperados;
+- `CORS_ORIGINS`;
+- ID físico do D1;
+- bucket R2;
+- presença do binding secreto `TURNSTILE_SECRET_KEY`.
 
-O preflight verifica `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `TURNSTILE_SECRET_KEY` e `VITE_API_BASE_URL`. Se qualquer item estiver ausente, o workflow registra no resumo exatamente o que falta e **falha fechado**. `VITE_MEDIA_BASE_URL` é exigida adicionalmente apenas quando o backfill R2 for solicitado. Em `main`, um deploy bloqueado por falta de credencial não pode aparecer como sucesso.
+Qualquer divergência falha fechado antes do upload.
 
-O binding D1 não é lido de variável do GitHub no preflight. Depois do checkout, o job valida o UUID diretamente do SSOT versionado e exporta o valor derivado para as ferramentas de runtime.
+### Por que o upload remoto não usa `wrangler --strict`
 
-Quando o bootstrap está disponível, o job de produção:
+No primeiro deploy automatizado pós-cutover, Wrangler `4.147.0` bloqueou `versions upload --strict` embora os recursos físicos estivessem corretos. A comparação remota tratou metadados locais do binding D1 — como `database_name` e `migrations_dir` — como conflito, embora esses campos não façam parte do binding remoto retornado pela API. O mesmo run também revelou `localhost` no CORS local de produção, que foi removido do SSOT.
 
-1. valida credenciais e a URL pública usada nos smokes;
-2. valida o Worker e o binding D1 canônico;
-3. gera `.wrangler.deploy.jsonc` sem substituir o binding D1;
-4. consulta a API Cloudflare e captura o **Version ID que está efetivamente servindo 100% do tráfego** antes de qualquer write; esse ID é o rollback target explícito;
-5. confirma que o bucket R2 existe;
-6. cria em `$RUNNER_TEMP` um JSON com `TURNSTILE_SECRET_KEY`, modo `0600`, e registra `trap` para apagá-lo ao sair do step;
-7. envia código + segredo com `wrangler versions upload --strict --secrets-file`, sem direcionar tráfego. O output estruturado oficial do Wrangler é capturado em NDJSON e dele é extraído o Version ID staged;
-8. executa `tools/check_migration_deploy_policy.py` e exige que a estratégia `migrate-before-worker` continue expand/backward-compatible;
-9. aplica somente as migrations D1 ainda não aplicadas;
-10. cria explicitamente o deployment gradual com a versão anterior em **100%** e a versão staged em **0%**. A versão nova passa a pertencer ao deployment atual sem receber tráfego normal;
-11. executa `tools/check_staged_worker_version.mjs` usando `Cloudflare-Workers-Version-Overrides`. Health/schema, categorias, recentes, galeria e shared collections precisam passar antes da promoção;
-12. o staged smoke tolera somente a pequena janela de propagação do deployment com retry bounded: 5 tentativas, 2 segundos entre elas. Nenhuma migration, upload, deployment ou outra mutação é repetida;
-13. promove a versão staged para 100% do tráfego com `wrangler versions deploy --version-tag ...@100% --yes`;
-14. repete os gates públicos essenciais sem override, provando que o deployment ativo responde corretamente;
-15. se o staged smoke falhar após a criação do deployment 100%/0% **ou** se qualquer gate público pós-promoção falhar, executa `wrangler rollback <PREVIOUS_WORKER_VERSION_ID>` para restaurar explicitamente o Worker anterior;
-16. somente após o smoke público saudável executa auditorias e tarefas opcionais de manutenção, como backfill SHA e reparos de galerias legadas.
+Não removemos a proteção contra drift. O `--strict` remoto foi substituído pelo gate semântico acima, que compara explicitamente o estado que a Cloudflare realmente persiste. Isso evita tanto falso positivo quanto upload sobre drift real.
 
-### Por que o segredo não usa `wrangler secret put`
+O CI de PR **continua** executando:
 
-`wrangler secret put` cria uma nova versão **e a implanta imediatamente**. Portanto ele não pode fazer parte deste pipeline antes do migration gate e do staged smoke. O deploy usa `--secrets-file` em `wrangler versions upload`, que associa o segredo à nova versão sem enviar tráfego para ela. O arquivo temporário existe somente no runner e é removido pelo próprio step.
+```text
+wrangler versions upload --dry-run --strict --secrets-file <segredo-sintetico>
+```
 
-### Smoke staged e rollback
+Esse dry-run valida localmente schema/configuração, empacotamento e secret binding sem acessar ou alterar produção.
 
-Version Override só é aplicado a versões que pertencem ao deployment atual. Por isso o pipeline não tenta usar override logo após `versions upload`: primeiro registra `previous@100% + staged@0%`, e somente depois executa o staged smoke.
+## Fluxo de produção
 
-O staged smoke usa o endpoint estável do Worker e envia `Cloudflare-Workers-Version-Overrides` em todas as requisições. A versão nova consulta o D1 já expandido, enquanto usuários continuam integralmente na versão anterior. O checker exige o schema contract da nova branch; se o override não for aplicado e a versão antiga responder, o smoke falha em vez de produzir falso-verde.
+`Deploy Cloudflare API` é fail-closed. A ordem é obrigatória:
 
-A Cloudflare pode levar alguns segundos para propagar um deployment recém-criado. O retry é deliberadamente curto e limitado. Ele repete apenas as leituras do staged smoke; falha real continua encerrando o workflow e aciona a restauração do Worker anterior.
+1. preflight de `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `TURNSTILE_SECRET_KEY` e `VITE_API_BASE_URL`;
+2. typecheck do Worker;
+3. derivação do D1 ID canônico e render da configuração de deploy;
+4. gate semântico contra a configuração remota do Worker;
+5. captura do Version ID que está efetivamente servindo 100% do tráfego;
+6. validação read-only do bucket R2;
+7. criação de arquivo efêmero `0600` em `$RUNNER_TEMP` com `TURNSTILE_SECRET_KEY`, removido por `trap`;
+8. `wrangler versions upload --secrets-file`, criando uma versão sem tráfego;
+9. captura do Version ID staged pelo output NDJSON oficial do Wrangler;
+10. gate `tools/check_migration_deploy_policy.py`;
+11. aplicação somente das migrations D1 ainda pendentes;
+12. deployment explícito `previous@100% + staged@0%`;
+13. smoke da versão staged via `Cloudflare-Workers-Version-Overrides`;
+14. retry bounded somente do smoke: 5 tentativas, 2 segundos; nenhuma mutação é repetida;
+15. promoção explícita de `staged@100%`;
+16. health/schema, categorias, recentes, galeria e shared collections sem override;
+17. se falhar após o deployment 100/0 e antes de concluir os smokes públicos, `wrangler rollback <PREVIOUS_WORKER_VERSION_ID>`;
+18. somente depois do Worker público saudável: auditoria D1 e manutenções opcionais.
 
-O rollback é deliberadamente explícito: `tools/cloudflare_deploy_state.mjs` consulta os deployments da Cloudflare, ordena por `created_on`, exige que o deployment inicial seja uma única versão a 100% e salva esse Version ID. Não usamos `wrangler rollback` sem ID, porque “a versão enviada anteriormente” pode não ser a mesma versão que estava efetivamente servindo produção.
+A versão anterior continua atendendo usuários durante o staged smoke. A versão nova recebe 0% de tráfego normal até passar pelos gates.
 
-Rollback restaura **o Worker**, não o schema D1. Isso é intencional e só é seguro porque `config/migration-deploy-policy.json` bloqueia migrations destrutivas no fluxo migration-first. A versão antiga precisa continuar compatível com o schema expandido.
+## Segredo Turnstile
 
-Essa ordem reduz o raio de falha:
+`wrangler secret put` é proibido no pipeline. Esse comando cria uma versão e pode implantá-la imediatamente, antecipando uma mutação antes dos gates.
 
-- falha de credencial, R2 ou configuração ocorre antes de D1;
-- falha de upload deixa produção e D1 intactos;
-- falha de migration deixa apenas uma versão staged e o Worker anterior continua servindo;
-- falha ao criar o deployment 100%/0% não promove a versão nova;
-- falha do staged smoke restaura explicitamente o Worker anterior;
-- falha imediatamente após promoção também aciona rollback explícito;
-- tarefas opcionais de manutenção só começam depois que o deployment público já provou saúde.
+Código + `TURNSTILE_SECRET_KEY` entram juntos na versão staged através de `--secrets-file`. O arquivo efêmero nunca é artifact, commit ou output do workflow.
 
-O CI executa `wrangler versions upload --dry-run --strict --secrets-file` com um segredo **sintético** temporário para validar o mesmo caminho de empacotamento/binding usado em produção, sem consumir segredo real em PR. Testes contratuais proíbem reintroduzir `wrangler secret put`, usar Version Override sem `new@0%`, promover antes do staged smoke, retry de mutações ou rollback implícito.
+## Migration-first
 
-### Regra migration-first
+O schema D1 pode avançar antes da promoção do Worker somente enquanto as migrations pendentes forem **expand/backward-compatible**.
 
-A produção aplica migrations antes de promover o Worker novo. Essa ordem só pode continuar enquanto as migrations posteriores ao baseline forem do tipo **expand** e toleradas pelo Worker atualmente publicado.
+- `config/catalog-schema-contract.json` define as migrations exigidas pelo Worker;
+- `config/migration-deploy-policy.json` define a estratégia permitida;
+- `tools/check_migration_deploy_policy.py` exige cobertura exata e rejeita padrões destrutivos no fluxo migration-first.
 
-- `config/migration-deploy-policy.json` é o SSOT dessa política;
-- o baseline de produção permanece registrado até `0010_recent_models_index.sql` enquanto a primeira promoção automática não ocorrer;
-- `tools/check_migration_deploy_policy.py` exige cobertura exata das migrations requeridas pelo schema contract;
-- migrations `expand` não podem introduzir padrões destrutivos como `DROP`, `ALTER ... RENAME/DROP`, `DELETE FROM`, `REPLACE`, `TRUNCATE` ou `PRAGMA writable_schema`;
-- uma futura migration de contrato/limpeza exige mudança explícita da estratégia de deploy, não exceção silenciosa.
+Rollback restaura o Worker, não o D1. Por isso uma migration destrutiva futura exige estratégia própria; não pode ser incluída silenciosamente neste pipeline.
 
-Quando `CLOUDFLARE_API_TOKEN` for configurado pela primeira vez ou restaurado, execute manualmente **Deploy Cloudflare API** pela ação `workflow_dispatch`; não é necessário criar commit artificial. O mesmo deploy staged envia o valor atual de `TURNSTILE_SECRET_KEY` junto da versão sem promover nada antes dos gates.
+## Staged smoke e rollback
 
-## Estado de produção
+Version Override só pode selecionar versões que pertencem ao deployment atual. Por isso o workflow registra primeiro `previous@100% + staged@0%` e só então envia o header de override.
 
-O bootstrap inicial foi executado em 2026-09-30/2026-10-01 e a infraestrutura canônica foi posteriormente migrada para a conta Tonecos Studio:
+O checker staged exige o schema contract da versão nova. Se o override for ignorado e a versão antiga responder, o gate falha em vez de aceitar um falso-verde.
 
-- Worker `tonecos-catalogo-api` publicado em `workers.dev`;
-- D1 `tonecos-catalogo` com as migrations `0001`–`0010` aplicadas e reconciliadas na tabela `d1_migrations`;
-- R2 `tonecos-catalogo-media` com endpoint público `r2.dev` para as variantes web;
-- widget Turnstile Managed próprio do catálogo, autorizado para `washingtonmsdj.github.io`, `acheguese.com.br` e `www.acheguese.com.br`.
+O rollback usa sempre o Version ID capturado antes de qualquer write. Não usa “versão anterior por ordem de upload”, pois upload recente não implica que aquela versão era a que atendia produção.
 
-O workflow do Pages exige as Repository Variables de produção para API, mídia, site key do Turnstile e URL pública. Ele não contém endpoints ou chaves públicas de produção como fallback: configuração ausente falha explicitamente antes do build. Segredos privados continuam fora do Git.
+## R2 e conteúdo
 
-## Frontend
+O workflow de deploy do Worker só precisa de leitura do bucket para provar que o recurso canônico existe. Publicação de mídia é outro pipeline e não é motivo para conceder R2 Write ao token do deploy da API.
 
-A URL pública canônica fica em `https://acheguese.com.br/tonecosstudios/`. O repositório Achegue-se mantém o catálogo como superfície pública temporária:
+## Frontend e proxy público
 
-- `/tonecosstudios/*` → origem GitHub Pages do frontend;
-- `/catalogo-api/*` → Worker do Catálogo.
+- `/tonecosstudios/*` → origem GitHub Pages do Catálogo;
+- `/catalogo-api/*` → Worker do Catálogo na Tonecos;
+- no domínio Achegue-se a API é first-party;
+- no GitHub Pages o preview usa `VITE_API_BASE_URL`.
 
-Isso mantém a API first-party no navegador quando o cliente usa o domínio Achegue-se, sem exigir relaxar o CSP do projeto principal. O preview GitHub Pages continua funcional e usa o Worker diretamente.
-
-O workflow do GitHub Pages injeta durante o build:
+O frontend recebe no build apenas valores públicos:
 
 - `VITE_API_BASE_URL`
 - `VITE_MEDIA_BASE_URL`
 - `VITE_TURNSTILE_SITE_KEY`
 
-Assim que API/mídia estiverem configuradas, o mesmo frontend muda de DEMO para LIVE sem alteração de código. A site key do Turnstile é pública por definição; o secret nunca é exposto ao frontend.
-
-Após cada publicação, o workflow do Pages executa um smoke test HTTP no endereço publicado, confirma a presença da identidade definida em `config/brand.json` no HTML e valida o `site.webmanifest`. O workflow só termina com sucesso se a versão publicada estiver realmente acessível.
+O secret Turnstile nunca vai para o navegador.
 
 ## Verificação pública
 
-O verificador oficial possui dois níveis. O modo padrão é rápido e valida health, pelo menos um modelo publicado e uma capa real servida pela origem pública de mídia:
+Smoke rápido:
 
 ```powershell
 python tools/verify_public_catalog.py --api-base https://<worker> --media-base https://<origem-publica-r2>
 ```
 
-Para auditorias completas após publicação, use `--exhaustive`:
+Auditoria completa:
 
 ```powershell
 python tools/verify_public_catalog.py --api-base https://<worker> --media-base https://<origem-publica-r2> --exhaustive
 ```
 
-Para validar também galerias com múltiplas imagens, há dois modos adicionais. Uma amostra determinística dos modelos com maior `image_count`:
-
-```powershell
-python tools/verify_public_catalog.py --api-base https://<worker> --media-base https://<origem-publica-r2> --exhaustive --gallery-sample 20
-```
-
-Após uma integração de galerias, o gate final recomendado é auditar **todas** as fichas multi-imagem:
+Após integração de galerias, validar todas as galerias multi-imagem:
 
 ```powershell
 python tools/verify_public_catalog.py --api-base https://<worker> --media-base https://<origem-publica-r2> --exhaustive --all-galleries
 ```
 
-Esse modo confere `total == image_count`, `version == gallery_version`, paginação sem ciclo, IDs de imagens únicos e uma única capa na primeira posição.
-
-O modo exaustivo percorre todas as páginas do catálogo e falha se encontrar total divergente, paginação cíclica, ID/slug/código duplicado, modelo sem capa, modelo sem imagem, categoria desconhecida ou contagem por categoria incompatível com `/api/categories`. Ele não baixa todas as imagens; o smoke inicial continua provando que a origem pública de mídia serve uma capa real.
-
-## Turnstile
-
-O mesmo widget Managed pode proteger mais de um fluxo porque o servidor exige a `action` esperada para cada operação:
-
-- orçamento: `quote`;
-- criação de link de coleção: `collection-share`.
-
-Em LIVE, o Worker trabalha em modo fail-closed:
-
-- sem `TURNSTILE_SECRET_KEY`, não grava solicitação nem coleção compartilhada;
-- token Turnstile é validado server-side via Siteverify;
-- a action precisa corresponder ao fluxo;
-- IDs enviados pelo navegador são conferidos contra modelos publicados no D1;
-- Origin fora da allowlist é recusada;
-- o navegador mantém os dados locais se a operação remota falhar.
-
-O Turnstile usa `appearance: interaction-only`, mantendo a interface limpa para a maioria dos clientes.
-
 ## Segurança
 
-Segredos ficam somente em GitHub Secrets/Cloudflare. Nunca colocar token Cloudflare, Turnstile secret, segredo de API ou credenciais em `.env.example`, `wrangler.jsonc`, commits ou arquivos do catálogo.
-
-O UUID do D1 **não é segredo**; ele é configuração de infraestrutura versionada. Para evitar duas fontes concorrentes, o binding `DB` de `wrangler.jsonc` é sua autoridade de produção. Operações locais que definirem `CLOUDFLARE_D1_DATABASE_ID` o fazem de forma explícita para outro contexto e nunca substituem silenciosamente o SSOT do deploy.
+- Segredos ficam somente em GitHub Secrets/Cloudflare.
+- Nunca colocar token Cloudflare, Turnstile secret ou credencial em Git, chat, `.env.example` ou `wrangler.jsonc`.
+- Não criar fallback de autenticação.
+- Não enfraquecer gates para “fazer o deploy passar”.
+- Divergência entre dashboard e SSOT deve ser reconciliada conscientemente; não deve ser ocultada por upload forçado.

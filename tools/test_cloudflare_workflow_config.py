@@ -46,12 +46,34 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertNotIn("vars.CLOUDFLARE_D1_DATABASE_ID", self.workflow)
         self.assertNotIn("missing+=(CLOUDFLARE_D1_DATABASE_ID)", self.workflow)
 
+    def test_production_cors_contains_only_public_origins(self):
+        origins = self.wrangler.get("vars", {}).get("CORS_ORIGINS", "")
+        self.assertEqual(
+            "https://washingtonmsdj.github.io,https://acheguese.com.br,https://www.acheguese.com.br",
+            origins,
+        )
+        self.assertNotIn("localhost", origins)
+        self.assertNotIn("127.0.0.1", origins)
+
     def test_deploy_exports_canonical_d1_binding_before_render_and_migrations(self):
         self.assertIn("Export canonical D1 binding", self.workflow)
         self.assertIn("node tools/read_wrangler_d1_id.mjs", self.workflow)
         self.assertIn('CLOUDFLARE_D1_DATABASE_ID=$database_id', self.workflow)
         self.assertLess(self.workflow.index("Export canonical D1 binding"), self.workflow.index("Render production config"))
         self.assertLess(self.workflow.index("Export canonical D1 binding"), self.workflow.index("Apply D1 migrations"))
+
+    def test_remote_worker_semantic_drift_is_checked_before_worker_write(self):
+        self.assertIn("Validate remote Worker config against canonical SSOT", self.workflow)
+        self.assertIn("node tools/check_remote_worker_config.mjs", self.workflow)
+        self.assertLess(
+            self.workflow.index("Validate remote Worker config against canonical SSOT"),
+            self.workflow.index("Capture current production Worker version"),
+        )
+        self.assertLess(
+            self.workflow.index("Validate remote Worker config against canonical SSOT"),
+            self.workflow.index("Upload Worker version with required secret and no traffic"),
+        )
+        self.assertNotIn("--strict", self.workflow)
 
     def test_turnstile_secret_is_staged_atomically_without_implicit_deploy(self):
         self.assertNotIn("npx wrangler secret put", self.workflow)
@@ -100,7 +122,6 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("WORKER_VERSION_TAG: ci-${{ github.run_id }}-${{ github.run_attempt }}", self.workflow)
         self.assertIn("npx wrangler versions upload", self.workflow)
         self.assertIn('--tag "$WORKER_VERSION_TAG"', self.workflow)
-        self.assertIn("--strict", self.workflow)
         self.assertIn("Promote staged Worker version", self.workflow)
         self.assertIn("id: promote", self.workflow)
         self.assertIn('"${STAGED_WORKER_VERSION_ID}@100%"', self.workflow)
@@ -172,6 +193,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             "tools/wrangler_config_contract.mjs",
             "tools/read_wrangler_d1_id.mjs",
             "tools/cloudflare_deploy_state.mjs",
+            "tools/check_remote_worker_config.mjs",
             "tools/check_staged_worker_version.mjs",
             "tools/check_migration_deploy_policy.py",
             "tools/check_worker_health.mjs",

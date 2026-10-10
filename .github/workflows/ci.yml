@@ -32,6 +32,8 @@ jobs:
         run: npm run test:wrangler-config
       - name: Test Cloudflare deploy-state contract
         run: npm run test:cloudflare-deploy-state
+      - name: Test semantic Cloudflare drift gate
+        run: npm run test:remote-worker-config
       - name: Test gallery runtime validation
         run: npm run test:gallery-runtime
       - name: Test Worker gallery smoke contract

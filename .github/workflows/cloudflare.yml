@@ -24,6 +24,7 @@ on:
       - 'tools/wrangler_config_contract.mjs'
       - 'tools/read_wrangler_d1_id.mjs'
       - 'tools/cloudflare_deploy_state.mjs'
+      - 'tools/check_remote_worker_config.mjs'
       - 'tools/check_staged_worker_version.mjs'
       - 'tools/check_migration_deploy_policy.py'
       - 'tools/check_worker_health.mjs'
@@ -136,6 +137,8 @@ jobs:
           echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
       - name: Render production config
         run: npm run cloudflare:config
+      - name: Validate remote Worker config against canonical SSOT
+        run: node tools/check_remote_worker_config.mjs
       - name: Capture current production Worker version
         shell: bash
         run: |
@@ -156,7 +159,6 @@ jobs:
           npx wrangler versions upload \
             --tag "$WORKER_VERSION_TAG" \
             --message "catalogo ${GITHUB_SHA}" \
-            --strict \
             --secrets-file "$secrets_file" \
             --config .wrangler.deploy.jsonc
       - name: Capture staged Worker version
