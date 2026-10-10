@@ -81,6 +81,14 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             self.workflow.index("Capture staged Worker version"),
         )
 
+    def test_zero_traffic_deployment_registers_staged_version_before_override_smoke(self):
+        self.assertIn("Register staged Worker at zero traffic", self.workflow)
+        self.assertIn("id: stage_deployment", self.workflow)
+        self.assertIn('"${PREVIOUS_WORKER_VERSION_ID}@100%"', self.workflow)
+        self.assertIn('"${STAGED_WORKER_VERSION_ID}@0%"', self.workflow)
+        self.assertLess(self.workflow.index("Apply D1 migrations"), self.workflow.index("Register staged Worker at zero traffic"))
+        self.assertLess(self.workflow.index("Register staged Worker at zero traffic"), self.workflow.index("Smoke staged Worker version before promotion"))
+
     def test_staged_smoke_runs_after_expand_migrations_and_before_promotion(self):
         self.assertIn("Smoke staged Worker version before promotion", self.workflow)
         self.assertIn("check_staged_worker_version.mjs", self.workflow)
@@ -95,16 +103,16 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("--strict", self.workflow)
         self.assertIn("Promote staged Worker version", self.workflow)
         self.assertIn("id: promote", self.workflow)
-        self.assertIn("npx wrangler versions deploy", self.workflow)
-        self.assertIn('--version-tag "${WORKER_VERSION_TAG}@100%"', self.workflow)
+        self.assertIn('"${STAGED_WORKER_VERSION_ID}@100%"', self.workflow)
         self.assertIn("--yes", self.workflow)
         self.assertNotIn("npx wrangler deploy --config .wrangler.deploy.jsonc", self.workflow)
 
-    def test_failed_post_promotion_smoke_rolls_back_explicit_previous_version(self):
-        self.assertIn("Roll back Worker after failed production smoke", self.workflow)
-        self.assertIn("failure() && steps.promote.outcome == 'success'", self.workflow)
+    def test_failed_staged_or_post_promotion_smoke_restores_explicit_previous_version(self):
+        self.assertIn("Restore previous Worker after failed staged or production smoke", self.workflow)
+        self.assertIn("failure() && steps.stage_deployment.outcome == 'success'", self.workflow)
         self.assertIn('npx wrangler rollback "$PREVIOUS_WORKER_VERSION_ID"', self.workflow)
-        rollback = self.workflow.index("Roll back Worker after failed production smoke")
+        restore = self.workflow.index("Restore previous Worker after failed staged or production smoke")
+        self.assertLess(self.workflow.index("Smoke staged Worker version before promotion"), restore)
         for smoke in (
             "Verify Worker schema health",
             "Verify D1 readiness through catalog API",
@@ -112,8 +120,8 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             "Verify gallery contract through catalog API",
             "Verify shared collections route",
         ):
-            self.assertLess(self.workflow.index(smoke), rollback)
-        self.assertLess(rollback, self.workflow.index("Audit D1 structural integrity"))
+            self.assertLess(self.workflow.index(smoke), restore)
+        self.assertLess(restore, self.workflow.index("Audit D1 structural integrity"))
 
     def test_migration_policy_gate_runs_before_remote_migrations(self):
         self.assertIn("Validate migration-first compatibility", self.workflow)
