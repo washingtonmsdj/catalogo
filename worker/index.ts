@@ -27,7 +27,7 @@ type R2Bucket = {
 type Env = {
   DB: D1Database
   MEDIA: R2Bucket
-  CORS_ORIGINS?: string
+  CORS_ORIGINS: string
   TURNSTILE_SECRET_KEY?: string
 }
 
@@ -65,13 +65,6 @@ type QuoteRecord = {
   reference: string | null
 }
 
-const DEFAULT_ORIGINS = [
-  'https://washingtonmsdj.github.io',
-  'https://acheguese.com.br',
-  'https://www.acheguese.com.br',
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-]
 const MAX_QUOTE_ITEMS = 50
 const QUOTE_DEDUP_MINUTES = 10
 
@@ -89,8 +82,8 @@ const PUBLIC_GALLERY_VERSION_SQL = 'm.public_gallery_version'
 function allowedOrigin(request: Request, env: Env) {
   const origin = request.headers.get('origin')
   if (!origin) return null
-  const configured = (env.CORS_ORIGINS ?? '').split(',').map((value) => value.trim()).filter(Boolean)
-  return [...DEFAULT_ORIGINS, ...configured].includes(origin) ? origin : null
+  const configured = env.CORS_ORIGINS.split(',').map((value) => value.trim()).filter(Boolean)
+  return configured.includes(origin) ? origin : null
 }
 
 function corsHeaders(request: Request, env: Env): Record<string, string> {
