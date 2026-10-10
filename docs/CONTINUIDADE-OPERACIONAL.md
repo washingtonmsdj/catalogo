@@ -2,7 +2,7 @@
 
 > **SSOT de continuidade.** Leia este arquivo antes de continuar o projeto em outra conversa, máquina ou sessão.
 >
-> Atualizado em **2026-10-07**. O objetivo é evitar reprocessamento, perda de checkpoints e decisões divergentes.
+> Atualizado em **2026-10-09**. O objetivo é evitar reprocessamento, perda de checkpoints e decisões divergentes.
 
 ## Estado confirmado
 
@@ -67,12 +67,23 @@ Temporariamente, a superfície pública do Achegue-se redireciona `/`, `/catalog
 
 ### Cloudflare
 
-Recursos confirmados na conta conectada:
+Recursos canônicos confirmados na conta **Tonecos Studio**:
 
+- Account ID: `8827c547d6def5ee5b9ca550fdd5680a`;
 - Worker: `tonecos-catalogo-api`;
-- API pública atual: `https://tonecos-catalogo-api.ordax-ac1ca1b50d09.workers.dev`;
-- D1: `tonecos-catalogo`;
-- R2: `tonecos-catalogo-media`.
+- API pública atual: `https://tonecos-catalogo-api.tonecosstudio.workers.dev`;
+- D1: `tonecos-catalogo` (`87006366-60f3-4937-af73-2ef5a5f901fb`);
+- R2: `tonecos-catalogo-media`;
+- mídia pública: `https://pub-bc7ed3247d8d4391946761221e77e6b9.r2.dev`;
+- Turnstile sitekey: `0x4AAAAAAFSpOhaAFp6Gsjqd`.
+
+O cutover público para a conta Tonecos Studio foi concluído e validado:
+
+- o GitHub Pages foi recompilado com API, mídia e sitekey Tonecos;
+- `acheguese.com.br/catalogo-api/*` aponta para o Worker Tonecos;
+- `/api/health`, `/api/recent?limit=3`, busca por `naruto` e `/tonecosstudios/` responderam `200` após o corte;
+- Workers e Workflows temporários de migração foram removidos;
+- a infraestrutura antiga da conta Washington permanece preservada apenas como rollback e não deve ser apagada até o encerramento formal da janela de reversão.
 
 Baseline online confirmado:
 
@@ -90,13 +101,15 @@ Baseline online confirmado:
 - FTS cobre 2.596 modelos e 250 franquias.
 - baseline revalidado após a preparação do pipeline de galerias: produção permaneceu em **2.596 modelos / 2.596 imagens**, `max_images=1`, sem publicação prematura.
 
-O deploy automático do backend continua fail-closed enquanto o GitHub Actions não possuir o secret `CLOUDFLARE_API_TOKEN`. O preflight mais recente confirmou que Account ID, D1 Database ID, API pública e `TURNSTILE_SECRET_KEY` estão configurados; **somente `CLOUDFLARE_API_TOKEN` está ausente**. O conector GitHub disponível não oferece escrita de Actions Secrets e a busca de plugins não encontrou alternativa específica para esse endpoint. Não criar fallback de autenticação, não gerar token sem destino seguro e não colocar token em chat, código, arquivo ou commit.
+O deploy automático do backend continua fail-closed enquanto o GitHub Actions não possuir o secret `CLOUDFLARE_API_TOKEN`. Um probe isolado pós-cutover confirmou que `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID` e `TURNSTILE_SECRET_KEY` estão presentes; **somente `CLOUDFLARE_API_TOKEN` está ausente**. As conexões OAuth Cloudflare disponíveis recusam tanto `/accounts/{account_id}/tokens` quanto `/user/tokens` com `9109 Unauthorized`, e o conector GitHub não expõe escrita de Actions Secrets. Não criar fallback de autenticação, não colocar token em chat, código, arquivo ou commit.
 
-Consequência operacional: alterações recentes em `worker/` ficam validadas por CI/dry-run, porém o Worker público permanece na versão anteriormente implantada até esse secret ser configurado e o workflow Cloudflare terminar verde.
+Consequência operacional: a produção atual na Tonecos continua saudável e independente desse gate, mas novos deploys automáticos de `worker/` não devem ser considerados disponíveis até o secret existir e o workflow **Deploy Cloudflare API** concluir verde.
 
-Depois que `CLOUDFLARE_API_TOKEN` for configurado em GitHub Actions Secrets, executar manualmente o workflow **Deploy Cloudflare API** por `workflow_dispatch`. Não criar commit artificial só para disparar deploy. Deixar `force_turnstile_secret_sync=false` salvo rotação real do segredo Turnstile.
+Até esse gate fechar, o `wrangler.jsonc` versionado na `main` permanece com o placeholder `REPLACE_AFTER_D1_CREATE`; o deploy real continua usando configuração renderizada a partir das Repository Variables. A troca versionada para o D1 Tonecos deve entrar em PR separada somente quando o token de CI estiver disponível, para não transformar a `main` em um deploy deliberadamente vermelho.
 
-O domínio comercial ainda não deve ser forçado no código sem a zona/DNS corretos na conta Cloudflare responsável.
+Depois que `CLOUDFLARE_API_TOKEN` for configurado em GitHub Actions Secrets, executar o workflow **Deploy Cloudflare API** por `workflow_dispatch` para provar o pipeline CI/CD completo. Não criar commit artificial só para disparar deploy. Deixar `force_turnstile_secret_sync=false` salvo rotação real do segredo Turnstile.
+
+Não mover zona/DNS do domínio comercial nem hardcodar domínio alternativo apenas para substituir `workers.dev`/`r2.dev`; eventual domínio customizado deve ser uma mudança independente, com DNS e rollback próprios.
 
 ## Regra de identidade: modelo não é imagem
 

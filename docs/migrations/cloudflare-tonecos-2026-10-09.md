@@ -4,7 +4,7 @@
 
 Mover a infraestrutura do Catálogo da conta Cloudflare Washington para a conta Tonecos Studio sem alterar a identidade lógica dos recursos, sem perda de dados e mantendo rollback disponível até o fechamento do cutover.
 
-## Destino canônico preparado
+## Destino canônico ativo
 
 - Conta Cloudflare: Tonecos Studio
 - Account ID: `8827c547d6def5ee5b9ca550fdd5680a`
@@ -45,17 +45,27 @@ O D1 confirmou novamente as contagens canônicas de 2.596 modelos, 1.063 pastas,
 
 ## Estado do cutover
 
-A origem Washington permanece preservada como rollback até a validação pública final. Nenhum recurso antigo deve ser apagado enquanto o proxy first-party do Achegue-se, o preview GitHub Pages e a mídia pública Tonecos não estiverem confirmados.
+O cutover público foi concluído.
 
-As Repository Variables do frontend devem apontar para a conta Tonecos. O deploy do Worker via GitHub Actions permanece fail-closed até existir um `CLOUDFLARE_API_TOKEN` válido da conta Tonecos e o `TURNSTILE_SECRET_KEY` correspondente no Actions Secrets. Não adicionar credenciais ao repositório.
+- Repository Variables do `washingtonmsdj/catalogo` apontam para Account ID, D1, API, mídia e Turnstile da Tonecos Studio;
+- o GitHub Pages foi recompilado e o bundle publicado foi conferido com os endpoints/sitekey Tonecos;
+- a PR `washingtonmsdj/acheguese#661` foi mergeada, movendo o proxy first-party `/catalogo-api` para `tonecos-catalogo-api.tonecosstudio.workers.dev`;
+- o deploy Vercel correspondente ficou `READY` nos aliases `acheguese.com.br` e `www.acheguese.com.br`;
+- health, recentes, busca e a superfície `/tonecosstudios/` responderam `200` depois do corte;
+- os Workers/Workflows temporários de migração foram removidos;
+- a conta Washington preserva a infraestrutura antiga do Catálogo somente como rollback.
 
-## Regra operacional
+O runtime público não depende mais da conta Washington. O rollback antigo não deve ser apagado até o encerramento formal da janela de reversão.
 
-O corte deve ocorrer em etapas verificáveis:
+O CI/CD do Worker permanece deliberadamente fail-closed: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID` e `TURNSTILE_SECRET_KEY` já estão configurados no GitHub Actions, mas `CLOUDFLARE_API_TOKEN` ainda está ausente. As conexões OAuth disponíveis não têm autorização para criar API Tokens na Cloudflare. Nenhuma credencial deve ser adicionada ao repositório.
 
-1. rebuild do frontend com os endpoints públicos Tonecos;
-2. validação do preview publicado;
-3. troca do proxy `/catalogo-api` no Achegue-se;
-4. validação do domínio público;
-5. somente depois, limpeza dos Workers/Workflows temporários de migração;
-6. manter a infraestrutura Washington intacta até o encerramento formal do rollback window.
+O `wrangler.jsonc` da `main` ainda mantém `REPLACE_AFTER_D1_CREATE` de propósito enquanto esse gate está aberto. A alteração para o D1 `87006366-60f3-4937-af73-2ef5a5f901fb` deve permanecer isolada em PR de deploy e só ser mergeada quando o token de CI estiver configurado e puder ser validado sem deixar o workflow de produção vermelho.
+
+## Regra operacional pós-cutover
+
+1. manter D1, R2, Worker e Turnstile da Tonecos como SSOT de produção;
+2. manter a infraestrutura Washington somente para rollback até a janela ser encerrada formalmente;
+3. configurar `CLOUDFLARE_API_TOKEN` como Actions Secret por canal seguro, com escopo mínimo para a conta Tonecos;
+4. executar **Deploy Cloudflare API** por `workflow_dispatch` e exigir todos os gates verdes;
+5. somente depois declarar o CI/CD Cloudflare totalmente fechado;
+6. qualquer domínio customizado para API/mídia deve ser tratado separadamente, sem hardcode ou mudança de DNS oportunista.
