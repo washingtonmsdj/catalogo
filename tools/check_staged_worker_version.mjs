@@ -74,14 +74,13 @@ export async function verifyStagedWorkerVersion({ apiBase, versionId, fetchImpl 
   }
 }
 
-export async function verifyStagedWorkerVersionWithRetry({
-  apiBase,
-  versionId,
-  fetchImpl = fetch,
+export async function runBoundedRetry(operation, {
   attempts = DEFAULT_ATTEMPTS,
   delayMs = DEFAULT_DELAY_MS,
   sleepImpl = sleep,
+  onRetry = () => {},
 } = {}) {
+  if (typeof operation !== 'function') throw new Error('operation must be a function')
   if (!Number.isInteger(attempts) || attempts < 1 || attempts > 10) {
     throw new Error('attempts must be an integer between 1 and 10')
   }
@@ -92,21 +91,50 @@ export async function verifyStagedWorkerVersionWithRetry({
   let lastError
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
-      return await verifyStagedWorkerVersion({ apiBase, versionId, fetchImpl })
+      return await operation(attempt)
     } catch (error) {
       lastError = error
       if (attempt === attempts) break
-      console.error(
-        `Staged Worker smoke attempt ${attempt}/${attempts} failed: ${error instanceof Error ? error.message : String(error)}. Retrying after ${delayMs}ms.`,
-      )
+      onRetry({ attempt, attempts, delayMs, error })
       await sleepImpl(delayMs)
     }
   }
 
   throw new Error(
-    `Staged Worker smoke failed after ${attempts} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+    `Operation failed after ${attempts} attempts: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
     { cause: lastError instanceof Error ? lastError : undefined },
   )
+}
+
+export async function verifyStagedWorkerVersionWithRetry({
+  apiBase,
+  versionId,
+  fetchImpl = fetch,
+  attempts = DEFAULT_ATTEMPTS,
+  delayMs = DEFAULT_DELAY_MS,
+  sleepImpl = sleep,
+} = {}) {
+  try {
+    return await runBoundedRetry(
+      () => verifyStagedWorkerVersion({ apiBase, versionId, fetchImpl }),
+      {
+        attempts,
+        delayMs,
+        sleepImpl,
+        onRetry: ({ attempt, attempts: total, delayMs: delay, error }) => {
+          console.error(
+            `Staged Worker smoke attempt ${attempt}/${total} failed: ${error instanceof Error ? error.message : String(error)}. Retrying after ${delay}ms.`,
+          )
+        },
+      },
+    )
+  } catch (error) {
+    const cause = error instanceof Error && error.cause instanceof Error ? error.cause : error
+    throw new Error(
+      `Staged Worker smoke failed after ${attempts} attempts: ${cause instanceof Error ? cause.message : String(cause)}`,
+      { cause: cause instanceof Error ? cause : undefined },
+    )
+  }
 }
 
 async function main() {
