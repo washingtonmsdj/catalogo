@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - audit
+          - verify-legacy-gallery-repairs
           - backfill-image-sha
           - apply-legacy-gallery-repairs
 
@@ -89,8 +90,8 @@ jobs:
         if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' }}
         run: python tools/apply_legacy_gallery_repairs.py --apply
       - name: Verify repaired legacy aliases through public API
-        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' }}
+        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' || inputs.operation == 'verify-legacy-gallery-repairs' }}
         run: node tools/check_legacy_gallery_repairs.mjs "$CATALOG_API_URL"
-      - name: Re-audit D1 after legacy repairs
-        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' }}
+      - name: Re-audit D1 after legacy gallery verification
+        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' || inputs.operation == 'verify-legacy-gallery-repairs' }}
         run: python tools/audit_d1_integrity.py

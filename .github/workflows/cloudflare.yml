@@ -23,7 +23,6 @@ on:
       - 'tools/audit_d1_integrity.py'
       - 'config/catalog-schema-contract.json'
       - 'config/migration-deploy-policy.json'
-      - '.github/workflows/cloudflare.yml'
 
 permissions:
   contents: read
