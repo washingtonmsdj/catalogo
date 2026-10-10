@@ -4,6 +4,7 @@ export const WRANGLER_SOURCE_URL = new URL('../wrangler.jsonc', import.meta.url)
 export const CANONICAL_D1_BINDING = 'DB'
 
 const D1_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const WORKER_NAME_PATTERN = /^[a-z0-9][a-z0-9-]*$/
 
 export async function loadWranglerConfig(sourceUrl = WRANGLER_SOURCE_URL) {
   const raw = await readFile(sourceUrl, 'utf8')
@@ -17,6 +18,14 @@ export async function loadWranglerConfig(sourceUrl = WRANGLER_SOURCE_URL) {
     throw new Error('wrangler.jsonc must contain one configuration object')
   }
   return config
+}
+
+export function canonicalWorkerName(config) {
+  const name = String(config?.name ?? '').trim()
+  if (!WORKER_NAME_PATTERN.test(name)) {
+    throw new Error('wrangler.jsonc must declare one canonical lowercase Worker name')
+  }
+  return name
 }
 
 export function canonicalD1DatabaseId(config, binding = CANONICAL_D1_BINDING) {
