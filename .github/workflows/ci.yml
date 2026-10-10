@@ -24,8 +24,8 @@ jobs:
           node-version: 22
       - name: Install frontend and tooling
         run: npm ci
-      - name: Audit runtime dependencies
-        run: npm audit --omit=dev --audit-level=high
+      - name: Audit dependencies
+        run: npm audit --audit-level=high
       - name: Test bounded browser metadata cache
         run: npm run test:known-cache
       - name: Test canonical Wrangler config
