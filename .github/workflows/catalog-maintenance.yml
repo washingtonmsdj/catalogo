@@ -73,7 +73,7 @@ jobs:
         if: ${{ inputs.operation == 'audit' }}
         run: python tools/audit_d1_integrity.py
       - name: Plan reviewed legacy gallery repairs
-        if: ${{ inputs.operation == 'audit' }}
+        if: ${{ inputs.operation == 'audit' || inputs.operation == 'apply-legacy-gallery-repairs' }}
         run: python tools/apply_legacy_gallery_repairs.py
       - name: Measure image SHA index coverage
         if: ${{ inputs.operation == 'audit' || inputs.operation == 'backfill-image-sha' }}
@@ -95,3 +95,6 @@ jobs:
       - name: Verify repaired legacy aliases through public API
         if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' || inputs.operation == 'verify-legacy-gallery-repairs' }}
         run: node tools/check_legacy_gallery_repairs.mjs "$CATALOG_API_URL"
+      - name: Re-audit D1 after legacy gallery verification (targeted repair scope)
+        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' || inputs.operation == 'verify-legacy-gallery-repairs' }}
+        run: python tools/apply_legacy_gallery_repairs.py
