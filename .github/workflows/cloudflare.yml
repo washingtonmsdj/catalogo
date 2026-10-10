@@ -2,17 +2,6 @@ name: Deploy Cloudflare API
 
 on:
   workflow_dispatch:
-    inputs:
-      apply_legacy_gallery_repairs:
-        description: Aplicar os reparos de galerias legadas registrados e revisados após o deploy saudável
-        required: false
-        default: false
-        type: boolean
-      backfill_image_source_index:
-        description: Preencher o índice SHA ausente lendo somente manifests JSON do R2
-        required: false
-        default: false
-        type: boolean
   push:
     branches: [main]
     paths:
@@ -31,14 +20,9 @@ on:
       - 'tools/check_promoted_worker_version.mjs'
       - 'tools/check_migration_deploy_policy.py'
       - 'tools/check_worker_health.mjs'
-      - 'tools/check_worker_gallery_contract.mjs'
-      - 'tools/check_legacy_gallery_repairs.mjs'
-      - 'tools/apply_legacy_gallery_repairs.py'
-      - 'tools/backfill_image_source_index.py'
       - 'tools/audit_d1_integrity.py'
       - 'config/catalog-schema-contract.json'
       - 'config/migration-deploy-policy.json'
-      - 'config/catalog-legacy-gallery-overrides.json'
       - '.github/workflows/cloudflare.yml'
 
 permissions:
@@ -60,10 +44,8 @@ jobs:
         env:
           ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           API_URL: ${{ vars.VITE_API_BASE_URL }}
-          MEDIA_URL: ${{ vars.VITE_MEDIA_BASE_URL }}
           API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           TURNSTILE_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
-          BACKFILL_SHA: ${{ github.event_name == 'workflow_dispatch' && inputs.backfill_image_source_index || false }}
         run: |
           set -euo pipefail
           missing=()
@@ -71,9 +53,6 @@ jobs:
           [ -n "$API_TOKEN" ] || missing+=(CLOUDFLARE_API_TOKEN)
           [ -n "$TURNSTILE_SECRET" ] || missing+=(TURNSTILE_SECRET_KEY)
           [ -n "$API_URL" ] || missing+=(VITE_API_BASE_URL)
-          if [ "$BACKFILL_SHA" = 'true' ] && [ -z "$MEDIA_URL" ]; then
-            missing+=(VITE_MEDIA_BASE_URL)
-          fi
 
           if [ "${#missing[@]}" -gt 0 ]; then
             echo 'ready=false' >> "$GITHUB_OUTPUT"
@@ -107,7 +86,6 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CATALOG_API_URL: ${{ vars.VITE_API_BASE_URL }}
-      CATALOG_MEDIA_URL: ${{ vars.VITE_MEDIA_BASE_URL }}
       TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
       WORKER_VERSION_TAG: ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
@@ -202,20 +180,4 @@ jobs:
           --message "automatic restore after failed deploy validation ${GITHUB_SHA}"
           --config .wrangler.deploy.jsonc
       - name: Audit D1 structural integrity
-        run: python tools/audit_d1_integrity.py
-      - name: Plan reviewed legacy gallery repairs
-        run: python tools/apply_legacy_gallery_repairs.py
-      - name: Measure image SHA index coverage
-        run: python tools/backfill_image_source_index.py
-      - name: Backfill image SHA index
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.backfill_image_source_index }}
-        run: python tools/backfill_image_source_index.py --apply
-      - name: Apply reviewed legacy gallery repairs
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs }}
-        run: python tools/apply_legacy_gallery_repairs.py --apply
-      - name: Verify repaired legacy aliases through public API
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs }}
-        run: node tools/check_legacy_gallery_repairs.mjs "$CATALOG_API_URL"
-      - name: Re-audit D1 after legacy repairs
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs }}
         run: python tools/audit_d1_integrity.py
