@@ -5,6 +5,9 @@
   "compatibility_date": "2026-09-30",
   "compatibility_flags": ["nodejs_compat"],
   "preview_urls": false,
+  "vars": {
+    "CORS_ORIGINS": "https://washingtonmsdj.github.io,https://acheguese.com.br,https://www.acheguese.com.br,http://localhost:5173,http://127.0.0.1:5173"
+  },
   "secrets": {
     "required": ["TURNSTILE_SECRET_KEY"]
   },
