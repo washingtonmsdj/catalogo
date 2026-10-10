@@ -146,6 +146,19 @@ jobs:
         run: npm run cloudflare:config
       - name: Verify R2 bucket
         run: npx wrangler r2 bucket info tonecos-catalogo-media --json
+      - name: Ensure required Turnstile Worker secret
+        shell: bash
+        env:
+          FORCE_SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.force_turnstile_secret_sync || false }}
+        run: |
+          set -euo pipefail
+          SECRET_LIST="$(npx wrangler secret list --config .wrangler.deploy.jsonc --format json)"
+          if [ "$FORCE_SYNC" = 'true' ] || ! printf '%s' "$SECRET_LIST" | grep -q '"TURNSTILE_SECRET_KEY"'; then
+            printf '%s' "$TURNSTILE_SECRET_KEY" | npx wrangler secret put TURNSTILE_SECRET_KEY --config .wrangler.deploy.jsonc
+          else
+            echo 'TURNSTILE_SECRET_KEY já configurado no Worker.'
+          fi
+          npx wrangler secret list --config .wrangler.deploy.jsonc --format json | grep -q '"TURNSTILE_SECRET_KEY"'
       - name: Upload Worker version without traffic
         run: >-
           npx wrangler versions upload
@@ -164,19 +177,6 @@ jobs:
           --message "catalogo ${GITHUB_SHA}"
           --yes
           --config .wrangler.deploy.jsonc
-      - name: Ensure Turnstile Worker secret
-        shell: bash
-        env:
-          FORCE_SYNC: ${{ github.event_name == 'workflow_dispatch' && inputs.force_turnstile_secret_sync || false }}
-        run: |
-          set -euo pipefail
-          SECRET_LIST="$(npx wrangler secret list --config .wrangler.deploy.jsonc --format json)"
-          if [ "$FORCE_SYNC" = 'true' ] || ! printf '%s' "$SECRET_LIST" | grep -q '"TURNSTILE_SECRET_KEY"'; then
-            printf '%s' "$TURNSTILE_SECRET_KEY" | npx wrangler secret put TURNSTILE_SECRET_KEY --config .wrangler.deploy.jsonc
-          else
-            echo 'TURNSTILE_SECRET_KEY já configurado no Worker.'
-          fi
-          npx wrangler secret list --config .wrangler.deploy.jsonc --format json | grep -q '"TURNSTILE_SECRET_KEY"'
       - name: Verify Worker schema health
         if: ${{ vars.VITE_API_BASE_URL != '' }}
         run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
