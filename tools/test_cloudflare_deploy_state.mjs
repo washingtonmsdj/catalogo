@@ -10,12 +10,17 @@ import { fetchWithVersionOverride } from './check_staged_worker_version.mjs'
 const OLD_VERSION = '11111111-2222-4333-8444-555555555555'
 const NEW_VERSION = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
 
-test('reads the single 100% active production version', () => {
+test('reads the newest single 100% active production version deterministically', () => {
   assert.equal(
     activeVersionIdFromDeployments({
       result: {
         deployments: [
           {
+            created_on: '2026-10-09T21:00:00.000Z',
+            versions: [{ version_id: NEW_VERSION, percentage: 100 }],
+          },
+          {
+            created_on: '2026-10-09T22:15:05.550Z',
             versions: [{ version_id: OLD_VERSION, percentage: 100 }],
           },
         ],
@@ -32,6 +37,7 @@ test('rejects split production state as ambiguous rollback target', () => {
         result: {
           deployments: [
             {
+              created_on: '2026-10-09T22:15:05.550Z',
               versions: [
                 { version_id: OLD_VERSION, percentage: 90 },
                 { version_id: NEW_VERSION, percentage: 10 },
