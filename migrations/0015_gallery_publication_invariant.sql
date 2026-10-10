@@ -3,31 +3,31 @@ PRAGMA foreign_keys = ON;
 -- A relação canônico -> fonte é também a autoridade de publicação:
 -- ao anexar uma ficha-vista à galeria canônica, a ficha-fonte deixa de ser
 -- navegável no mesmo statement. Não há DELETE e a mídia histórica é preservada.
+-- O guard usa SELECT RAISE(...) WHERE ... para evitar END; interno de CASE
+-- dentro do body do trigger no runner de migrations D1.
 CREATE TRIGGER IF NOT EXISTS trg_gallery_members_require_publishable_models
 BEFORE INSERT ON model_gallery_members
 BEGIN
-  SELECT CASE
-    WHEN NOT EXISTS (
-      SELECT 1
-      FROM models canonical
-      JOIN models source ON source.id = NEW.source_model_id
-      WHERE canonical.id = NEW.canonical_model_id
-        AND canonical.published = 1
-        AND canonical.image_count > 0
-        AND canonical.gallery_version >= 1
-        AND canonical.gallery_manifest_key IS NOT NULL
-        AND canonical.gallery_manifest_key <> ''
-        AND canonical.cover_storage_key IS NOT NULL
-        AND canonical.cover_storage_key <> ''
-        AND source.image_count > 0
-        AND source.gallery_version >= 1
-        AND source.gallery_manifest_key IS NOT NULL
-        AND source.gallery_manifest_key <> ''
-        AND source.cover_storage_key IS NOT NULL
-        AND source.cover_storage_key <> ''
-    )
-    THEN RAISE(ABORT, 'gallery members require publishable canonical and source manifests')
-  END;
+  SELECT RAISE(ABORT, 'gallery members require publishable canonical and source manifests')
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM models canonical
+    JOIN models source ON source.id = NEW.source_model_id
+    WHERE canonical.id = NEW.canonical_model_id
+      AND canonical.published = 1
+      AND canonical.image_count > 0
+      AND canonical.gallery_version >= 1
+      AND canonical.gallery_manifest_key IS NOT NULL
+      AND canonical.gallery_manifest_key <> ''
+      AND canonical.cover_storage_key IS NOT NULL
+      AND canonical.cover_storage_key <> ''
+      AND source.image_count > 0
+      AND source.gallery_version >= 1
+      AND source.gallery_manifest_key IS NOT NULL
+      AND source.gallery_manifest_key <> ''
+      AND source.cover_storage_key IS NOT NULL
+      AND source.cover_storage_key <> ''
+  );
 END;
 
 CREATE TRIGGER IF NOT EXISTS trg_gallery_members_retire_source
