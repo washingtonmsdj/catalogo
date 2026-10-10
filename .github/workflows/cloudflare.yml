@@ -108,6 +108,7 @@ jobs:
       CATALOG_API_URL: ${{ vars.VITE_API_BASE_URL }}
       CATALOG_MEDIA_URL: ${{ vars.VITE_MEDIA_BASE_URL }}
       TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+      WORKER_VERSION_TAG: ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -145,12 +146,24 @@ jobs:
         run: npm run cloudflare:config
       - name: Verify R2 bucket
         run: npx wrangler r2 bucket info tonecos-catalogo-media --json
+      - name: Upload Worker version without traffic
+        run: >-
+          npx wrangler versions upload
+          --tag "$WORKER_VERSION_TAG"
+          --message "catalogo ${GITHUB_SHA}"
+          --strict
+          --config .wrangler.deploy.jsonc
       - name: Validate migration-first compatibility
         run: python tools/check_migration_deploy_policy.py
       - name: Apply D1 migrations
         run: npx wrangler d1 migrations apply DB --remote --config .wrangler.deploy.jsonc
-      - name: Deploy Worker
-        run: npx wrangler deploy --config .wrangler.deploy.jsonc
+      - name: Promote staged Worker version
+        run: >-
+          npx wrangler versions deploy
+          --version-tag "${WORKER_VERSION_TAG}@100%"
+          --message "catalogo ${GITHUB_SHA}"
+          --yes
+          --config .wrangler.deploy.jsonc
       - name: Ensure Turnstile Worker secret
         shell: bash
         env:
