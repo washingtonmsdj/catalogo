@@ -26,6 +26,10 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}", self.workflow)
         self.assertIn("TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}", self.workflow)
         self.assertIn("Validate deployment credentials", self.workflow)
+        self.assertEqual(
+            ["TURNSTILE_SECRET_KEY"],
+            self.wrangler.get("secrets", {}).get("required"),
+        )
 
     def test_d1_database_id_is_versioned_ssot_not_repository_variable(self):
         databases = self.wrangler.get("d1_databases")
@@ -51,6 +55,19 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         )
         self.assertLess(
             self.workflow.index("Export canonical D1 binding"),
+            self.workflow.index("Apply D1 migrations"),
+        )
+
+    def test_required_secret_is_ready_before_staged_worker_upload(self):
+        self.assertIn("Ensure required Turnstile Worker secret", self.workflow)
+        self.assertIn("npx wrangler secret list", self.workflow)
+        self.assertIn("npx wrangler secret put TURNSTILE_SECRET_KEY", self.workflow)
+        self.assertLess(
+            self.workflow.index("Ensure required Turnstile Worker secret"),
+            self.workflow.index("Upload Worker version without traffic"),
+        )
+        self.assertLess(
+            self.workflow.index("Ensure required Turnstile Worker secret"),
             self.workflow.index("Apply D1 migrations"),
         )
 
