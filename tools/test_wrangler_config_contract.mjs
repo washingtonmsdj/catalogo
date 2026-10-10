@@ -13,6 +13,11 @@ test('repository wrangler config exposes one canonical DB binding', async () => 
   assert.notEqual(databaseId, 'REPLACE_AFTER_D1_CREATE')
 })
 
+test('repository wrangler config declares the required production secret', async () => {
+  const config = await loadWranglerConfig()
+  assert.deepEqual(config.secrets?.required, ['TURNSTILE_SECRET_KEY'])
+})
+
 test('canonical D1 binding rejects missing, duplicate and placeholder ids', () => {
   assert.throws(() => canonicalD1DatabaseId({}), /must declare d1_databases/)
   assert.throws(
