@@ -66,8 +66,19 @@ jobs:
         run: npm run typecheck:worker
       - name: Render deployment config
         run: npm run cloudflare:config
-      - name: Dry-run staged Worker upload
-        run: npx wrangler versions upload --dry-run --strict --config .wrangler.deploy.jsonc
+      - name: Dry-run staged Worker upload with secret binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          secrets_file="${RUNNER_TEMP}/tonecos-worker-secrets-ci.json"
+          trap 'rm -f "$secrets_file"' EXIT
+          printf '%s\n' '{"TURNSTILE_SECRET_KEY":"ci-contract-placeholder"}' > "$secrets_file"
+          chmod 600 "$secrets_file"
+          npx wrangler versions upload \
+            --dry-run \
+            --strict \
+            --secrets-file "$secrets_file" \
+            --config .wrangler.deploy.jsonc
       - name: Materialize verified Worker bundle
         run: npx esbuild worker/index.ts --bundle --format=esm --platform=browser --target=es2022 --outfile=worker-dist/worker.js
       - name: Upload verified Worker bundle
