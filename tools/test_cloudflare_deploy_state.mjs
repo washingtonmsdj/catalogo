@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { runBoundedRetry } from './bounded_retry.mjs'
 import {
   activeVersionIdFromDeployments,
   uploadedVersionIdFromWranglerNdjson,
   versionOverrideHeaderValue,
 } from './cloudflare_deploy_state.mjs'
-import { fetchWithVersionOverride, runBoundedRetry } from './check_staged_worker_version.mjs'
+import { fetchWithVersionOverride } from './check_staged_worker_version.mjs'
 
 const OLD_VERSION = '11111111-2222-4333-8444-555555555555'
 const NEW_VERSION = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
@@ -169,7 +170,7 @@ test('bounded retry rejects invalid limits before invoking the operation', async
     runBoundedRetry(async () => {
       calls += 1
     }, { attempts: 0 }),
-    /attempts must be an integer between 1 and 10/,
+    /attempts must be an integer between 1 and 20/,
   )
   assert.equal(calls, 0)
 })
