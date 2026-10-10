@@ -143,6 +143,10 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertNotIn("tools/apply_legacy_gallery_repairs.py", self.workflow)
         self.assertNotIn("tools/backfill_image_source_index.py", self.workflow)
 
+    def test_deploy_workflow_does_not_self_trigger_on_orchestration_only_changes(self):
+        self.assertNotIn(".github/workflows/cloudflare.yml", self.workflow)
+        self.assertNotIn(".github/workflows/catalog-maintenance.yml", self.workflow)
+
     def test_deploy_watches_only_deploy_runtime_contracts(self):
         for path in (
             "config/catalog-schema-contract.json",
@@ -175,6 +179,7 @@ class CatalogMaintenanceWorkflowConfigTests(unittest.TestCase):
         self.assertIn("operation:", self.workflow)
         self.assertIn("type: choice", self.workflow)
         self.assertIn("- audit", self.workflow)
+        self.assertIn("- verify-legacy-gallery-repairs", self.workflow)
         self.assertIn("- backfill-image-sha", self.workflow)
         self.assertIn("- apply-legacy-gallery-repairs", self.workflow)
         self.assertNotIn("push:", self.workflow)
@@ -213,13 +218,26 @@ class CatalogMaintenanceWorkflowConfigTests(unittest.TestCase):
         plan = "Plan reviewed legacy gallery repairs"
         apply_step = "Apply reviewed legacy gallery repairs"
         public_smoke = "Verify repaired legacy aliases through public API"
-        reaudit = "Re-audit D1 after legacy repairs"
+        reaudit = "Re-audit D1 after legacy gallery verification"
         self.assertIn("inputs.operation == 'apply-legacy-gallery-repairs'", self.workflow)
         self.assertIn("python tools/apply_legacy_gallery_repairs.py --apply", self.workflow)
         self.assertIn("node tools/check_legacy_gallery_repairs.mjs", self.workflow)
         self.assertLess(self.workflow.index(plan), self.workflow.index(apply_step))
         self.assertLess(self.workflow.index(apply_step), self.workflow.index(public_smoke))
         self.assertLess(self.workflow.index(public_smoke), self.workflow.index(reaudit))
+
+    def test_legacy_gallery_verification_is_read_only_and_reaudits_after_public_smoke(self):
+        public_smoke = "Verify repaired legacy aliases through public API"
+        reaudit = "Re-audit D1 after legacy gallery verification"
+        self.assertIn("inputs.operation == 'verify-legacy-gallery-repairs'", self.workflow)
+        self.assertIn("inputs.operation == 'apply-legacy-gallery-repairs' || inputs.operation == 'verify-legacy-gallery-repairs'", self.workflow)
+        self.assertLess(self.workflow.index(public_smoke), self.workflow.index(reaudit))
+        verify_clause = "inputs.operation == 'verify-legacy-gallery-repairs'"
+        apply_clause = "inputs.operation == 'apply-legacy-gallery-repairs'"
+        self.assertIn(verify_clause, self.workflow)
+        self.assertIn(apply_clause, self.workflow)
+        self.assertNotIn("verify-legacy-gallery-repairs' }}\n        run: python tools/apply_legacy_gallery_repairs.py --apply", self.workflow)
+        self.assertNotIn("verify-legacy-gallery-repairs' }}\n        run: python tools/backfill_image_source_index.py --apply", self.workflow)
 
     def test_media_url_is_required_only_for_sha_backfill(self):
         self.assertIn("CATALOG_MEDIA_URL: ${{ vars.VITE_MEDIA_BASE_URL }}", self.workflow)
