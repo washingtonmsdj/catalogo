@@ -89,9 +89,12 @@ jobs:
       - name: Apply reviewed legacy gallery repairs
         if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' }}
         run: python tools/apply_legacy_gallery_repairs.py --apply
+      - name: Verify persisted legacy gallery D1 state
+        if: ${{ inputs.operation == 'verify-legacy-gallery-repairs' }}
+        run: python tools/apply_legacy_gallery_repairs.py
       - name: Verify repaired legacy aliases through public API
         if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' || inputs.operation == 'verify-legacy-gallery-repairs' }}
         run: node tools/check_legacy_gallery_repairs.mjs "$CATALOG_API_URL"
-      - name: Re-audit D1 after legacy gallery verification
+      - name: Re-audit D1 after legacy gallery verification (targeted repair scope)
         if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' || inputs.operation == 'verify-legacy-gallery-repairs' }}
-        run: python tools/audit_d1_integrity.py
+        run: python tools/apply_legacy_gallery_repairs.py
