@@ -27,6 +27,41 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}", self.workflow)
         self.assertIn("Validate deployment credentials", self.workflow)
 
+    def test_d1_database_id_is_versioned_ssot_not_repository_variable(self):
+        databases = self.wrangler.get("d1_databases")
+        self.assertIsInstance(databases, list)
+        self.assertEqual(1, len(databases))
+        self.assertEqual("DB", databases[0].get("binding"))
+        database_id = str(databases[0].get("database_id") or "")
+        self.assertNotEqual("REPLACE_AFTER_D1_CREATE", database_id)
+        self.assertRegex(
+            database_id,
+            r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        )
+        self.assertNotIn("vars.CLOUDFLARE_D1_DATABASE_ID", self.workflow)
+        self.assertNotIn("missing+=(CLOUDFLARE_D1_DATABASE_ID)", self.workflow)
+
+    def test_deploy_exports_canonical_d1_binding_before_render_and_migrations(self):
+        self.assertIn("Export canonical D1 binding", self.workflow)
+        self.assertIn("node tools/read_wrangler_d1_id.mjs", self.workflow)
+        self.assertIn('CLOUDFLARE_D1_DATABASE_ID=$database_id', self.workflow)
+        self.assertLess(
+            self.workflow.index("Export canonical D1 binding"),
+            self.workflow.index("Render production config"),
+        )
+        self.assertLess(
+            self.workflow.index("Export canonical D1 binding"),
+            self.workflow.index("Apply D1 migrations"),
+        )
+
+    def test_migration_policy_gate_runs_before_remote_migrations(self):
+        self.assertIn("Validate migration-first compatibility", self.workflow)
+        self.assertIn("python tools/check_migration_deploy_policy.py", self.workflow)
+        self.assertLess(
+            self.workflow.index("Validate migration-first compatibility"),
+            self.workflow.index("Apply D1 migrations"),
+        )
+
     def test_legacy_gallery_repairs_are_explicit_opt_in_after_schema_health(self):
         self.assertIn("apply_legacy_gallery_repairs:", self.workflow)
         self.assertIn("default: false", self.workflow)
@@ -93,10 +128,14 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         )
         self.assertIn("python tools/backfill_image_source_index.py --apply", self.workflow)
 
-    def test_deploy_watches_schema_and_repair_contract_files(self):
+    def test_deploy_watches_schema_and_runtime_contract_files(self):
         for path in (
             "config/catalog-schema-contract.json",
+            "config/migration-deploy-policy.json",
             "config/catalog-legacy-gallery-overrides.json",
+            "tools/wrangler_config_contract.mjs",
+            "tools/read_wrangler_d1_id.mjs",
+            "tools/check_migration_deploy_policy.py",
             "tools/check_worker_health.mjs",
             "tools/check_legacy_gallery_repairs.mjs",
             "tools/apply_legacy_gallery_repairs.py",
