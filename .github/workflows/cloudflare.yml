@@ -138,6 +138,8 @@ jobs:
         run: npm run cloudflare:config
       - name: Verify R2 bucket
         run: npx wrangler r2 bucket info tonecos-catalogo-media --json
+      - name: Validate migration-first compatibility
+        run: python tools/check_migration_deploy_policy.py
       - name: Apply D1 migrations
         run: npx wrangler d1 migrations apply DB --remote --config .wrangler.deploy.jsonc
       - name: Deploy Worker
