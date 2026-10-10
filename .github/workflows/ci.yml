@@ -30,6 +30,8 @@ jobs:
         run: npm run test:known-cache
       - name: Test canonical Wrangler config
         run: npm run test:wrangler-config
+      - name: Test Cloudflare deploy-state contract
+        run: npm run test:cloudflare-deploy-state
       - name: Test gallery runtime validation
         run: npm run test:gallery-runtime
       - name: Test Worker gallery smoke contract
