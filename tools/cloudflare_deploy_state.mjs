@@ -18,7 +18,15 @@ export function activeVersionIdFromDeployments(payload) {
     throw new Error('Cloudflare returned no Worker deployments')
   }
 
-  const current = deployments[0]
+  const current = [...deployments].sort((a, b) => {
+    const left = Date.parse(a?.created_on ?? '')
+    const right = Date.parse(b?.created_on ?? '')
+    if (!Number.isFinite(left) || !Number.isFinite(right)) {
+      throw new Error('Worker deployment is missing a valid created_on timestamp')
+    }
+    return right - left
+  })[0]
+
   if (!Array.isArray(current?.versions) || current.versions.length !== 1) {
     throw new Error('Current production deployment must contain exactly one Worker version')
   }
