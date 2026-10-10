@@ -8,13 +8,14 @@
 
 - Repositório: `washingtonmsdj/catalogo`.
 - Branch autoritativa de produção: `main`.
-- PR de fechamento do CI/CD Cloudflare: **#144 — `infra/tonecos-d1-binding-ci`**.
-- #144 permanece **draft, aberta e mergeável** enquanto `CLOUDFLARE_API_TOKEN` não estiver configurado com segurança no GitHub Actions.
-- Último gate de código totalmente verde antes desta reconciliação documental: **CI #948**, commit `6a5ce5667efd4aff2e2e4ab69711801660f77470`.
-- Não marcar #144 ready nem mergear enquanto o token de CI não existir e o novo head não estiver verde.
-- Produção pública Tonecos permanece intacta enquanto a PR está em draft.
+- Cutover Cloudflare para **Tonecos Studio** concluído; a infraestrutura Washington permanece apenas como rollback.
+- A PR **#144** foi mergeada e o gate externo do token foi encerrado; a issue **#103** está fechada como concluída.
+- O deploy canônico validado em produção é **Deploy Cloudflare API #109**, com staged smoke, promoção 100%, auditoria D1 e rollback não acionado.
+- As PRs **#150** e **#151** separaram manutenção de dados do deploy e eliminaram o auto-trigger de deploy por mudanças apenas de orquestração.
+- `main` no checkpoint desta reconciliação: `08d3f523868c257e267745a06a3a864405b35b79`.
+- A PR **#152** está aberta apenas para atualizar o Wrangler/toolchain; não deve ser mergeada enquanto a cota diária de leitura do D1 Free estiver saturada, porque `package.json` é gatilho intencional de deploy.
 
-Sempre conferir `main`, a cabeça da #144 e os workflows atuais antes de executar. Se este arquivo divergir do estado medido no repositório/produção, corrigir este SSOT no mesmo trabalho; não criar documento paralelo.
+Sempre conferir `main`, workflows e estado Cloudflare antes de executar. Se este arquivo divergir do estado medido no repositório/produção, corrigir este SSOT no mesmo trabalho; não criar documento paralelo.
 
 ## Superfície pública
 
@@ -49,40 +50,46 @@ Não mover zona/DNS comercial nem criar domínio alternativo hardcoded apenas pa
 
 ## Baseline público atual
 
-Último baseline medido antes da promoção das novas migrations:
+Baseline medido após a consolidação revisada das galerias legadas:
 
-- **2.596 modelos publicados**;
-- **2.596 imagens publicadas nas fichas**;
-- todos os modelos públicos ainda possuem exatamente **1 imagem**;
+- **2.564 modelos publicados**;
+- **2.596 imagens públicas** preservadas nas galerias lógicas;
+- **21 galerias canônicas consolidadas**, agregando logicamente 53 imagens/fichas físicas revisadas;
+- **32 fichas-fonte aposentadas** por relação canônico→fonte, sem DELETE;
+- os **2.564 rows publicados** continuam com `image_count=1` físico; nos 21 canônicos revisados, a API compõe a galeria pública a partir do canônico + fontes relacionadas;
 - 6 categorias;
 - 250 franquias;
 - 1.063 pastas;
-- 0 modelos sem capa;
-- 0 modelos sem galeria;
-- 0 modelos sem imagem;
-- 0 slugs duplicados;
-- 0 códigos duplicados;
-- `models_fts`: 2.596/2.596;
+- `model_image_sources`: **2.596/2.596** modelos indexados por SHA;
+- 0 grupos de SHA compartilhado entre modelos;
+- 0 fontes duplicadas em relações de galeria;
+- 0 autorrelações;
+- 0 canônicos aposentados;
+- 0 fontes relacionadas ainda publicadas;
+- `models_fts`: **2.596 rows físicos**; a busca pública continua filtrando `published=1`, portanto fontes aposentadas não reaparecem como cards;
 - `franchises_fts`: 250/250.
 
-Não substituir esses números por expectativa de branch. Eles só mudam depois de mutação real + auditoria pública.
+Os 32 modelos aposentados continuam no D1 como fontes históricas/aliases e sua mídia continua no R2. Não interpretar a redução 2.596→2.564 como exclusão de produto ou perda de imagem.
 
-## Gate externo ainda aberto
+Não substituir esses números por expectativa de branch. Eles só mudam depois de mutação real + auditoria.
 
-O deploy automático do backend continua fail-closed porque falta o GitHub Actions Secret:
+## Gate operacional temporário
 
-- `CLOUDFLARE_API_TOKEN`.
+O gate externo de credencial foi **fechado**:
 
-Já existem/configuram-se separadamente `CLOUDFLARE_ACCOUNT_ID`, `TURNSTILE_SECRET_KEY`, URLs públicas e o binding D1 canônico. O UUID do D1 **não é segredo** e agora pertence exclusivamente ao `wrangler.jsonc`; `CLOUDFLARE_D1_DATABASE_ID` não é Repository Variable de produção.
+- `CLOUDFLARE_API_TOKEN` está configurado como GitHub Actions Secret e foi provado pelo pipeline real contra Worker, D1 e R2;
+- `TURNSTILE_SECRET_KEY` permanece segredo obrigatório e não é exposto pelo repositório;
+- `CLOUDFLARE_ACCOUNT_ID` aponta para Tonecos Studio;
+- o UUID D1 pertence ao `wrangler.jsonc` e não é Repository Variable concorrente.
 
-As conexões OAuth Cloudflare disponíveis não criam o token de CI e o conector GitHub não expõe escrita de Actions Secrets. Portanto:
+O bloqueio operacional temporário deste checkpoint é outro: a conta D1 Free esgotou o limite diário de **row reads** durante backfill/auditorias. Isso pode fazer endpoints públicos retornarem `D1_ERROR` até o reset de cota e **não deve ser tratado como falha de schema, Worker ou reparo de galeria**.
 
-- não colocar token em chat, commit, comentário, `.env.example`, arquivo temporário do projeto ou `wrangler.jsonc`;
-- não criar fallback de autenticação;
-- não ampliar permissões por conveniência;
-- quando o token existir, restringi-lo à conta Tonecos e ao menor privilégio suportado para Worker/D1/R2.
+Enquanto a cota estiver saturada:
 
-A produção atual continua saudável e independente desse gate. O que está bloqueado é **novo deploy automático do Worker**.
+- não repetir deploy, migration, backfill ou reparo apenas para obter um run verde;
+- não criar cache/bypass/gambiarra para esconder o limite;
+- não reaplicar as 32 relações de galeria;
+- após o reset, usar somente a operação read-only `verify-legacy-gallery-repairs` do workflow `Maintain Catalog Data` para fechar o smoke público pendente.
 
 ## SSOT de deploy Cloudflare
 
@@ -97,7 +104,7 @@ A produção atual continua saudável e independente desse gate. O que está blo
 
 `tools/render_wrangler_config.mjs` não substitui silenciosamente o D1. Se `CLOUDFLARE_D1_DATABASE_ID` for fornecido em contexto manual, funciona somente como asserção e divergência falha fechado.
 
-O fluxo da #144 é:
+O fluxo canônico de `.github/workflows/cloudflare.yml` é:
 
 1. preflight fail-closed de credenciais/configuração;
 2. capturar a versão que está efetivamente servindo 100% antes de qualquer write;
@@ -112,7 +119,7 @@ O fluxo da #144 é:
 11. promover staged para 100% somente após smoke verde;
 12. repetir gates públicos sem override;
 13. falha depois do deployment 100/0 ou após promoção restaura explicitamente `PREVIOUS_WORKER_VERSION_ID`;
-14. auditorias/manutenções opcionais só rodam depois do deployment público saudável.
+14. a auditoria estrutural pós-release fecha o deploy; manutenção de dados pertence exclusivamente a `.github/workflows/catalog-maintenance.yml`.
 
 `wrangler secret put` é proibido nesse pipeline porque cria uma nova versão e a implanta imediatamente. O segredo é materializado apenas em arquivo efêmero `0600` dentro de `$RUNNER_TEMP`, removido por `trap`.
 
@@ -122,11 +129,13 @@ Runbook detalhado: `docs/CLOUDFLARE_DEPLOY.md`.
 
 ## Migrations e schema
 
-Produção medida continua aplicada somente até:
+Produção medida está aplicada até:
 
-- `0001_catalog.sql` … `0010_recent_models_index.sql`.
+- `0001_catalog.sql` … **`0019_model_variant_name.sql`**.
 
-`config/catalog-schema-contract.json` está em **version 3** e exige até:
+`config/catalog-schema-contract.json` está em **version 3** e o health público validado exige 19 migrations e 30 estruturas físicas verificadas.
+
+As migrations 0011–0019 já estão em produção:
 
 - `0011_model_gallery_members.sql` — canônico → fontes de galeria;
 - `0012_folder_materialized_counts.sql` — `direct_model_count`/`subtree_model_count`;
@@ -138,9 +147,7 @@ Produção medida continua aplicada somente até:
 - `0018_gallery_alias_immutability.sql` — protege identidade/alias enquanto a relação existe;
 - `0019_model_variant_name.sql` — variante pública explícita do modelo.
 
-`config/migration-deploy-policy.json` classifica as migrations posteriores ao baseline usadas por este rollout como **expand/backward-compatible**. `tools/check_migration_deploy_policy.py` exige cobertura exata e bloqueia padrões destrutivos no fluxo migration-first.
-
-Não aplicar 0011–0019 manualmente apenas para contornar a credencial ausente. A tabela `d1_migrations`, o Worker correspondente e o contrato de health devem avançar pelo mesmo workflow.
+`config/migration-deploy-policy.json` continua classificando migrations migration-first e bloqueando operações destrutivas. Novas migrations devem avançar pelo workflow de deploy canônico; não aplicar manualmente para contornar gate ou quota.
 
 ## Identidade: modelo não é imagem
 
@@ -164,23 +171,33 @@ O pipeline já protege:
 
 ## Galerias legadas
 
-A dívida legada medida continua explícita, não heurística:
+A dívida revisada foi aplicada de forma não destrutiva:
 
-- auditoria conservadora encontrou grupos de vistas fragmentadas;
-- `config/catalog-legacy-gallery-overrides.json` é o registro canônico dos grupos revisados;
-- baseline registrado: **21 galerias legadas, 53 slugs e 32 cards excedentes**;
-- sobreposição de slugs, canônico fora dos membros, motivo vazio ou resumo divergente bloqueiam o gate;
-- casos novos só entram depois de auditoria visual/identidade conclusiva.
+- `config/catalog-legacy-gallery-overrides.json` continua sendo o registro canônico dos **21 grupos** revisados;
+- eram 53 slugs/fichas físicas e 32 cards excedentes;
+- foram criadas **32 relações** canônico→fonte;
+- **21 canônicos** permanecem publicados;
+- **32 fontes** foram aposentadas pelas invariantes do banco;
+- **0 DELETEs** foram executados;
+- o preflight SHA verificou 53/53 membros e encontrou 0 SHA duplicado dentro dos grupos;
+- contadores materializados ficaram sem divergência após a aplicação.
 
-Para os grupos já revisados, `tools/apply_legacy_gallery_repairs.py` é o caminho autorizado. Ele insere relações canônico→fonte; as invariantes do banco aposentam a fonte sem DELETE.
+`tools/apply_legacy_gallery_repairs.py` continua sendo o único caminho de write autorizado e é idempotente/fail-closed, mas **não deve ser reaplicado** para fechar o smoke deste checkpoint.
 
-Aplicar reparos exige `workflow_dispatch` com `apply_legacy_gallery_repairs=true`; o padrão é **false**. A operação é idempotente e só deve ocorrer depois das migrations necessárias, health verde e preflight completo.
+A manutenção agora é separada do deploy em `.github/workflows/catalog-maintenance.yml`, manual-only, com uma operação explícita por execução:
+
+- `audit` — somente leitura;
+- `backfill-image-sha` — backfill SHA controlado;
+- `apply-legacy-gallery-repairs` — write explícito para grupos revisados;
+- `verify-legacy-gallery-repairs` — verificação pós-reparo estritamente read-only.
+
+O apply real concluiu; a única verificação pendente é repetir `verify-legacy-gallery-repairs` após o reset da cota D1. O run anterior falhou no endpoint de imagens exclusivamente por limite diário de row reads, confirmado pela observabilidade Cloudflare.
 
 ### Android 18
 
-O bug de vistas separadas foi reproduzido e protegido por regressão. A inferência conservadora só remove sufixos reconhecidos de vista e só agrupa quando 2+ imagens da mesma hierarquia resolvem para a mesma família. Qualificadores semânticos como `realista`, `chibi`, `diorama` etc. não são descartados.
+O bug de vistas separadas permanece protegido por regressão. A inferência conservadora só remove sufixos reconhecidos de vista e só agrupa quando 2+ imagens da mesma hierarquia resolvem para a mesma família. Qualificadores semânticos como `realista`, `chibi`, `diorama` etc. não são descartados.
 
-No recorte auditado, 17 registros brutos representam 11 produtos reais. A camada de compatibilidade frontend é transitória e deve deixar de ser necessária quando o backend canônico estiver publicado.
+No recorte auditado, 17 registros brutos representam 11 produtos reais. A compatibilidade de aliases permanece para URLs/IDs históricos; não recriar cards aposentados.
 
 ## Referências aposentadas continuam válidas
 
@@ -223,17 +240,25 @@ Baseline auditado:
 
 `0013_model_image_sources.sql` materializa somente metadados de auditoria (`model_id`, `image_id`, posição, role, `source_sha256`, `gallery_version`). R2/manifest continuam sendo a fonte canônica da galeria.
 
-`tools/backfill_image_source_index.py`:
+O backfill inicial está **concluído**:
 
-- mede cobertura por padrão;
-- só escreve com `--apply`;
-- baixa apenas manifests JSON, nunca binários;
-- pagina sem `OFFSET`;
-- valida model/version/count/capa/IDs/SHA;
-- processa apenas versões sem índice;
-- exige cobertura total do escopo público ao concluir.
+- escopo: 2.596 modelos físicos;
+- indexados: **2.596/2.596**;
+- pendentes: 0;
+- colisões SHA exatas entre modelos: 0;
+- binários baixados pelo backfill: 0;
+- deletes destrutivos: 0.
 
-O backfill real exige `workflow_dispatch.backfill_image_source_index=true`; padrão **false**. Não reconstruir SHA lendo binários locais para preencher essa tabela.
+`tools/backfill_image_source_index.py` continua:
+
+- medindo cobertura por padrão;
+- escrevendo somente com `--apply`;
+- lendo apenas manifests JSON, nunca binários;
+- validando model/version/count/capa/IDs/SHA;
+- processando somente versões sem índice;
+- exigindo cobertura total ao concluir.
+
+Novos backfills devem ser disparados somente pela operação `backfill-image-sha` do workflow `Maintain Catalog Data`, quando houver nova versão de modelo sem índice. Não reconstruir SHA lendo binários locais e não rerodar o backfill concluído por rotina.
 
 ## Política de imagens
 
