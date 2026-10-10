@@ -26,6 +26,9 @@ on:
       - 'wrangler.jsonc'
       - 'package.json'
       - 'tools/render_wrangler_config.mjs'
+      - 'tools/wrangler_config_contract.mjs'
+      - 'tools/read_wrangler_d1_id.mjs'
+      - 'tools/check_migration_deploy_policy.py'
       - 'tools/check_worker_health.mjs'
       - 'tools/check_worker_gallery_contract.mjs'
       - 'tools/check_legacy_gallery_repairs.mjs'
@@ -33,6 +36,7 @@ on:
       - 'tools/backfill_image_source_index.py'
       - 'tools/audit_d1_integrity.py'
       - 'config/catalog-schema-contract.json'
+      - 'config/migration-deploy-policy.json'
       - 'config/catalog-legacy-gallery-overrides.json'
       - '.github/workflows/cloudflare.yml'
 
@@ -54,7 +58,6 @@ jobs:
         shell: bash
         env:
           ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
           API_URL: ${{ vars.VITE_API_BASE_URL }}
           MEDIA_URL: ${{ vars.VITE_MEDIA_BASE_URL }}
           API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -64,7 +67,6 @@ jobs:
           set -euo pipefail
           missing=()
           [ -n "$ACCOUNT_ID" ] || missing+=(CLOUDFLARE_ACCOUNT_ID)
-          [ -n "$D1_DATABASE_ID" ] || missing+=(CLOUDFLARE_D1_DATABASE_ID)
           [ -n "$API_TOKEN" ] || missing+=(CLOUDFLARE_API_TOKEN)
           [ -n "$TURNSTILE_SECRET" ] || missing+=(TURNSTILE_SECRET_KEY)
           if [ "$BACKFILL_SHA" = 'true' ] && [ -z "$MEDIA_URL" ]; then
@@ -90,7 +92,7 @@ jobs:
             echo '## Cloudflare API — bootstrap disponível'
             echo
             echo '- Account ID: configurado'
-            echo '- D1 database ID: configurado'
+            echo '- D1 database ID: versionado no wrangler.jsonc e validado no job de deploy'
             if [ -n "$API_URL" ]; then echo '- API pública: configurada'; else echo '- API pública: não configurada; smoke HTTP será omitido'; fi
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -102,7 +104,6 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_D1_DATABASE_ID: ${{ vars.CLOUDFLARE_D1_DATABASE_ID }}
       CATALOG_CORS_ORIGINS: ${{ vars.CATALOG_CORS_ORIGINS }}
       CATALOG_API_URL: ${{ vars.VITE_API_BASE_URL }}
       CATALOG_MEDIA_URL: ${{ vars.VITE_MEDIA_BASE_URL }}
@@ -134,6 +135,12 @@ jobs:
           fi
       - name: Validate Worker
         run: npm run typecheck:worker
+      - name: Export canonical D1 binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          database_id="$(node tools/read_wrangler_d1_id.mjs)"
+          echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
       - name: Render production config
         run: npm run cloudflare:config
       - name: Verify R2 bucket
