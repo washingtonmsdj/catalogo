@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "deploymentStrategy": "migrate-before-worker",
+  "baselineThrough": "0010_recent_models_index.sql",
+  "migrations": {
+    "0001_catalog.sql": "baseline",
+    "0002_keyset_pagination.sql": "baseline",
+    "0003_catalog_counts.sql": "baseline",
+    "0004_search_fts.sql": "baseline",
+    "0005_franchise_discovery.sql": "baseline",
+    "0006_franchise_search_fts.sql": "baseline",
+    "0007_quote_public_reference.sql": "baseline",
+    "0008_shared_collections.sql": "baseline",
+    "0009_catalog_folders.sql": "baseline",
+    "0010_recent_models_index.sql": "baseline",
+    "0011_model_gallery_members.sql": "expand",
+    "0012_folder_materialized_counts.sql": "expand",
+    "0013_model_image_sources.sql": "expand",
+    "0014_gallery_member_integrity.sql": "expand",
+    "0015_gallery_publication_invariant.sql": "expand",
+    "0016_public_gallery_revision.sql": "expand",
+    "0017_gallery_lifecycle_integrity.sql": "expand",
+    "0018_gallery_alias_immutability.sql": "expand",
+    "0019_model_variant_name.sql": "expand"
+  }
+}
