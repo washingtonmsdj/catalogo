@@ -10,6 +10,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.workflow = (ROOT / ".github" / "workflows" / "cloudflare.yml").read_text(encoding="utf-8")
+        cls.maintenance = (ROOT / ".github" / "workflows" / "catalog-maintenance.yml").read_text(encoding="utf-8")
         cls.wrangler = json.loads((ROOT / "wrangler.jsonc").read_text(encoding="utf-8"))
 
     def test_preflight_fails_closed_when_deployment_credentials_are_missing(self):
@@ -39,6 +40,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertRegex(database_id, r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
         self.assertNotIn("vars.CLOUDFLARE_D1_DATABASE_ID", self.workflow)
         self.assertNotIn("missing+=(CLOUDFLARE_D1_DATABASE_ID)", self.workflow)
+        self.assertNotIn("vars.CLOUDFLARE_D1_DATABASE_ID", self.maintenance)
 
     def test_production_cors_contains_only_public_origins(self):
         origins = self.wrangler.get("vars", {}).get("CORS_ORIGINS", "")
@@ -65,7 +67,6 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
 
     def test_turnstile_secret_is_staged_atomically_without_implicit_deploy(self):
         self.assertNotIn("npx wrangler secret put", self.workflow)
-        self.assertNotIn("force_turnstile_secret_sync", self.workflow)
         self.assertIn("tonecos-worker-secrets.json", self.workflow)
         self.assertIn("--secrets-file \"$secrets_file\"", self.workflow)
         self.assertIn("trap 'rm -f \"$secrets_file\"' EXIT", self.workflow)
@@ -115,10 +116,6 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn(gate, self.workflow)
         self.assertIn("check_promoted_worker_version.mjs", self.workflow)
         self.assertLess(self.workflow.index("Promote staged Worker version"), self.workflow.index(gate))
-        self.assertNotIn("Verify D1 readiness through catalog API", self.workflow)
-        self.assertNotIn("Verify recent catalog route", self.workflow)
-        self.assertNotIn("Verify gallery contract through catalog API", self.workflow)
-        self.assertNotIn("Verify shared collections route", self.workflow)
 
     def test_failed_staged_or_promoted_release_restores_explicit_previous_version(self):
         gate = "Verify promoted Worker deployment and full public release"
@@ -136,49 +133,20 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("python tools/check_migration_deploy_policy.py", self.workflow)
         self.assertLess(self.workflow.index("Validate migration-first compatibility"), self.workflow.index("Apply D1 migrations"))
 
-    def test_legacy_gallery_repairs_are_explicit_opt_in_after_release_gate(self):
-        gate = "Verify promoted Worker deployment and full public release"
-        self.assertIn("apply_legacy_gallery_repairs:", self.workflow)
-        self.assertIn("default: false", self.workflow)
-        self.assertIn(gate, self.workflow)
-        self.assertIn("Plan reviewed legacy gallery repairs", self.workflow)
-        self.assertIn("Apply reviewed legacy gallery repairs", self.workflow)
-        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.apply_legacy_gallery_repairs", self.workflow)
-        self.assertLess(self.workflow.index(gate), self.workflow.index("Apply reviewed legacy gallery repairs"))
+    def test_deploy_does_not_own_catalog_data_maintenance(self):
+        self.assertNotIn("apply_legacy_gallery_repairs:", self.workflow)
+        self.assertNotIn("backfill_image_source_index:", self.workflow)
+        self.assertNotIn("Apply reviewed legacy gallery repairs", self.workflow)
+        self.assertNotIn("Backfill image SHA index", self.workflow)
+        self.assertNotIn("Verify repaired legacy aliases through public API", self.workflow)
+        self.assertNotIn("config/catalog-legacy-gallery-overrides.json", self.workflow)
+        self.assertNotIn("tools/apply_legacy_gallery_repairs.py", self.workflow)
+        self.assertNotIn("tools/backfill_image_source_index.py", self.workflow)
 
-    def test_sha_backfill_precedes_legacy_repair_apply(self):
-        self.assertLess(self.workflow.index("Backfill image SHA index"), self.workflow.index("Apply reviewed legacy gallery repairs"))
-        self.assertLess(self.workflow.index("Measure image SHA index coverage"), self.workflow.index("Apply reviewed legacy gallery repairs"))
-
-    def test_legacy_repair_apply_is_followed_by_public_alias_smoke(self):
-        self.assertIn("Verify repaired legacy aliases through public API", self.workflow)
-        self.assertIn("node tools/check_legacy_gallery_repairs.mjs", self.workflow)
-        self.assertIn("inputs.apply_legacy_gallery_repairs", self.workflow)
-        self.assertLess(self.workflow.index("Apply reviewed legacy gallery repairs"), self.workflow.index("Verify repaired legacy aliases through public API"))
-
-    def test_d1_integrity_audit_runs_before_and_after_legacy_repairs(self):
-        gate = "Verify promoted Worker deployment and full public release"
-        self.assertIn("Audit D1 structural integrity", self.workflow)
-        self.assertIn("Re-audit D1 after legacy repairs", self.workflow)
-        self.assertIn("python tools/audit_d1_integrity.py", self.workflow)
-        self.assertLess(self.workflow.index(gate), self.workflow.index("Audit D1 structural integrity"))
-        self.assertLess(self.workflow.index("Audit D1 structural integrity"), self.workflow.index("Apply reviewed legacy gallery repairs"))
-        self.assertLess(self.workflow.index("Apply reviewed legacy gallery repairs"), self.workflow.index("Re-audit D1 after legacy repairs"))
-
-    def test_sha_backfill_is_explicit_opt_in_and_requires_media_url_only_when_requested(self):
-        self.assertIn("backfill_image_source_index:", self.workflow)
-        self.assertIn("BACKFILL_SHA:", self.workflow)
-        self.assertIn("missing+=(VITE_MEDIA_BASE_URL)", self.workflow)
-        self.assertIn("Measure image SHA index coverage", self.workflow)
-        self.assertIn("Backfill image SHA index", self.workflow)
-        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.backfill_image_source_index", self.workflow)
-        self.assertIn("python tools/backfill_image_source_index.py --apply", self.workflow)
-
-    def test_deploy_watches_schema_and_runtime_contract_files(self):
+    def test_deploy_watches_only_deploy_runtime_contracts(self):
         for path in (
             "config/catalog-schema-contract.json",
             "config/migration-deploy-policy.json",
-            "config/catalog-legacy-gallery-overrides.json",
             "tools/wrangler_config_contract.mjs",
             "tools/read_wrangler_d1_id.mjs",
             "tools/cloudflare_deploy_state.mjs",
@@ -189,15 +157,74 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             "tools/check_promoted_worker_version.mjs",
             "tools/check_migration_deploy_policy.py",
             "tools/check_worker_health.mjs",
-            "tools/check_legacy_gallery_repairs.mjs",
-            "tools/apply_legacy_gallery_repairs.py",
-            "tools/backfill_image_source_index.py",
             "tools/audit_d1_integrity.py",
         ):
             self.assertIn(path, self.workflow)
 
     def test_worker_preview_urls_are_explicitly_disabled(self):
         self.assertIs(self.wrangler.get("preview_urls"), False)
+
+
+class CatalogMaintenanceWorkflowConfigTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.workflow = (ROOT / ".github" / "workflows" / "catalog-maintenance.yml").read_text(encoding="utf-8")
+
+    def test_maintenance_is_manual_and_one_operation_per_run(self):
+        self.assertIn("workflow_dispatch:", self.workflow)
+        self.assertIn("operation:", self.workflow)
+        self.assertIn("type: choice", self.workflow)
+        self.assertIn("- audit", self.workflow)
+        self.assertIn("- backfill-image-sha", self.workflow)
+        self.assertIn("- apply-legacy-gallery-repairs", self.workflow)
+        self.assertNotIn("push:", self.workflow)
+
+    def test_maintenance_serializes_with_production_deploy(self):
+        self.assertIn("group: cloudflare-api", self.workflow)
+        self.assertIn("cancel-in-progress: false", self.workflow)
+        self.assertIn("environment: production", self.workflow)
+
+    def test_maintenance_never_uploads_or_promotes_worker_or_runs_migrations(self):
+        self.assertNotIn("wrangler versions upload", self.workflow)
+        self.assertNotIn("wrangler versions deploy", self.workflow)
+        self.assertNotIn("wrangler rollback", self.workflow)
+        self.assertNotIn("d1 migrations apply", self.workflow)
+        self.assertNotIn("TURNSTILE_SECRET_KEY", self.workflow)
+
+    def test_maintenance_uses_canonical_d1_binding_and_worker_health_before_write(self):
+        health = "Validate active Worker health and schema"
+        self.assertIn("node tools/read_wrangler_d1_id.mjs", self.workflow)
+        self.assertIn('CLOUDFLARE_D1_DATABASE_ID=$database_id', self.workflow)
+        self.assertIn(health, self.workflow)
+        self.assertIn("node tools/check_worker_health.mjs", self.workflow)
+        self.assertLess(self.workflow.index(health), self.workflow.index("Backfill image SHA index"))
+        self.assertLess(self.workflow.index(health), self.workflow.index("Apply reviewed legacy gallery repairs"))
+
+    def test_backfill_is_bounded_by_coverage_checks(self):
+        before = "Measure image SHA index coverage"
+        apply_step = "Backfill image SHA index"
+        after = "Verify image SHA index coverage after backfill"
+        self.assertIn("inputs.operation == 'backfill-image-sha'", self.workflow)
+        self.assertIn("python tools/backfill_image_source_index.py --apply", self.workflow)
+        self.assertLess(self.workflow.index(before), self.workflow.index(apply_step))
+        self.assertLess(self.workflow.index(apply_step), self.workflow.index(after))
+
+    def test_gallery_repair_verifies_public_api_before_expensive_reaudit(self):
+        plan = "Plan reviewed legacy gallery repairs"
+        apply_step = "Apply reviewed legacy gallery repairs"
+        public_smoke = "Verify repaired legacy aliases through public API"
+        reaudit = "Re-audit D1 after legacy repairs"
+        self.assertIn("inputs.operation == 'apply-legacy-gallery-repairs'", self.workflow)
+        self.assertIn("python tools/apply_legacy_gallery_repairs.py --apply", self.workflow)
+        self.assertIn("node tools/check_legacy_gallery_repairs.mjs", self.workflow)
+        self.assertLess(self.workflow.index(plan), self.workflow.index(apply_step))
+        self.assertLess(self.workflow.index(apply_step), self.workflow.index(public_smoke))
+        self.assertLess(self.workflow.index(public_smoke), self.workflow.index(reaudit))
+
+    def test_media_url_is_required_only_for_sha_backfill(self):
+        self.assertIn("CATALOG_MEDIA_URL: ${{ vars.VITE_MEDIA_BASE_URL }}", self.workflow)
+        self.assertIn("if [ \"$OPERATION\" = 'backfill-image-sha' ]", self.workflow)
+        self.assertIn("missing+=(VITE_MEDIA_BASE_URL)", self.workflow)
 
 
 if __name__ == "__main__":
