@@ -105,6 +105,8 @@ O deploy automático do backend continua fail-closed enquanto o GitHub Actions n
 
 Consequência operacional: a produção atual na Tonecos continua saudável e independente desse gate, mas novos deploys automáticos de `worker/` não devem ser considerados disponíveis até o secret existir e o workflow **Deploy Cloudflare API** concluir verde.
 
+Até esse gate fechar, o `wrangler.jsonc` versionado na `main` permanece com o placeholder `REPLACE_AFTER_D1_CREATE`; o deploy real continua usando configuração renderizada a partir das Repository Variables. A troca versionada para o D1 Tonecos deve entrar em PR separada somente quando o token de CI estiver disponível, para não transformar a `main` em um deploy deliberadamente vermelho.
+
 Depois que `CLOUDFLARE_API_TOKEN` for configurado em GitHub Actions Secrets, executar o workflow **Deploy Cloudflare API** por `workflow_dispatch` para provar o pipeline CI/CD completo. Não criar commit artificial só para disparar deploy. Deixar `force_turnstile_secret_sync=false` salvo rotação real do segredo Turnstile.
 
 Não mover zona/DNS do domínio comercial nem hardcodar domínio alternativo apenas para substituir `workers.dev`/`r2.dev`; eventual domínio customizado deve ser uma mudança independente, com DNS e rollback próprios.

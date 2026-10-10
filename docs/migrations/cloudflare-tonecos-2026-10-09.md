@@ -59,6 +59,8 @@ O runtime público não depende mais da conta Washington. O rollback antigo não
 
 O CI/CD do Worker permanece deliberadamente fail-closed: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID` e `TURNSTILE_SECRET_KEY` já estão configurados no GitHub Actions, mas `CLOUDFLARE_API_TOKEN` ainda está ausente. As conexões OAuth disponíveis não têm autorização para criar API Tokens na Cloudflare. Nenhuma credencial deve ser adicionada ao repositório.
 
+O `wrangler.jsonc` da `main` ainda mantém `REPLACE_AFTER_D1_CREATE` de propósito enquanto esse gate está aberto. A alteração para o D1 `87006366-60f3-4937-af73-2ef5a5f901fb` deve permanecer isolada em PR de deploy e só ser mergeada quando o token de CI estiver configurado e puder ser validado sem deixar o workflow de produção vermelho.
+
 ## Regra operacional pós-cutover
 
 1. manter D1, R2, Worker e Turnstile da Tonecos como SSOT de produção;

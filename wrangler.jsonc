@@ -9,7 +9,7 @@
     {
       "binding": "DB",
       "database_name": "tonecos-catalogo",
-      "database_id": "87006366-60f3-4937-af73-2ef5a5f901fb",
+      "database_id": "REPLACE_AFTER_D1_CREATE",
       "migrations_dir": "migrations"
     }
   ],
