@@ -16,6 +16,8 @@ Mover a infraestrutura do Catálogo da conta Cloudflare Washington para a conta 
 - Mídia pública: `https://pub-bc7ed3247d8d4391946761221e77e6b9.r2.dev`
 - Turnstile sitekey: `0x4AAAAAAFSpOhaAFp6Gsjqd`
 
+Este documento registra evidência histórica da migração. Para configuração operacional corrente, o binding D1 de produção tem `wrangler.jsonc` como SSOT; não criar uma segunda autoridade em Repository Variable.
+
 ## Evidências de integridade
 
 Migração de dados concluída e validada antes do cutover público:
@@ -43,11 +45,14 @@ Após o reset diário do D1 Free em 2026-10-10 00:00 UTC, foi executado smoke in
 
 O D1 confirmou novamente as contagens canônicas de 2.596 modelos, 1.063 pastas, 250 franquias e 6 categorias.
 
+Uma revalidação read-only posterior confirmou também 2.596 imagens lógicas e que a produção permanece em `0010_recent_models_index.sql` enquanto o primeiro deploy automatizado pós-cutover aguarda a credencial de CI.
+
 ## Estado do cutover
 
 O cutover público foi concluído.
 
-- Repository Variables do `washingtonmsdj/catalogo` apontam para Account ID, D1, API, mídia e Turnstile da Tonecos Studio;
+- Repository Variables do `washingtonmsdj/catalogo` apontam para Account ID, API, mídia e Turnstile da Tonecos Studio;
+- o binding D1 de produção é versionado no `wrangler.jsonc` e derivado pelo workflow, sem Repository Variable concorrente;
 - o GitHub Pages foi recompilado e o bundle publicado foi conferido com os endpoints/sitekey Tonecos;
 - a PR `washingtonmsdj/acheguese#661` foi mergeada, movendo o proxy first-party `/catalogo-api` para `tonecos-catalogo-api.tonecosstudio.workers.dev`;
 - o deploy Vercel correspondente ficou `READY` nos aliases `acheguese.com.br` e `www.acheguese.com.br`;
@@ -57,15 +62,17 @@ O cutover público foi concluído.
 
 O runtime público não depende mais da conta Washington. O rollback antigo não deve ser apagado até o encerramento formal da janela de reversão.
 
-O CI/CD do Worker permanece deliberadamente fail-closed: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_DATABASE_ID` e `TURNSTILE_SECRET_KEY` já estão configurados no GitHub Actions, mas `CLOUDFLARE_API_TOKEN` ainda está ausente. As conexões OAuth disponíveis não têm autorização para criar API Tokens na Cloudflare. Nenhuma credencial deve ser adicionada ao repositório.
+O CI/CD do Worker permanece deliberadamente fail-closed: `CLOUDFLARE_ACCOUNT_ID` e `TURNSTILE_SECRET_KEY` estão configurados, mas `CLOUDFLARE_API_TOKEN` continua sendo o gate externo restante. As conexões OAuth disponíveis não têm autorização para criar API Tokens na Cloudflare. Nenhuma credencial deve ser adicionada ao repositório.
 
-O `wrangler.jsonc` da `main` ainda mantém `REPLACE_AFTER_D1_CREATE` de propósito enquanto esse gate está aberto. A alteração para o D1 `87006366-60f3-4937-af73-2ef5a5f901fb` deve permanecer isolada em PR de deploy e só ser mergeada quando o token de CI estiver configurado e puder ser validado sem deixar o workflow de produção vermelho.
+A PR #145 já integrou à `main` a política `migrate-before-worker` e o gate que classifica `0011`–`0019` como migrations `expand` e rejeita operações destrutivas antes da promoção. A PR #144 concentra a promoção final: binding D1 canônico, derivação do ID a partir do Wrangler SSOT e execução desse gate imediatamente antes das migrations remotas. Ela deve permanecer draft enquanto o token de CI não puder ser provado.
 
 ## Regra operacional pós-cutover
 
-1. manter D1, R2, Worker e Turnstile da Tonecos como SSOT de produção;
-2. manter a infraestrutura Washington somente para rollback até a janela ser encerrada formalmente;
-3. configurar `CLOUDFLARE_API_TOKEN` como Actions Secret por canal seguro, com escopo mínimo para a conta Tonecos;
-4. executar **Deploy Cloudflare API** por `workflow_dispatch` e exigir todos os gates verdes;
-5. somente depois declarar o CI/CD Cloudflare totalmente fechado;
-6. qualquer domínio customizado para API/mídia deve ser tratado separadamente, sem hardcode ou mudança de DNS oportunista.
+1. manter D1, R2, Worker e Turnstile da Tonecos como produção canônica;
+2. manter `wrangler.jsonc` como única autoridade versionada do binding D1;
+3. manter a infraestrutura Washington somente para rollback até a janela ser encerrada formalmente;
+4. configurar `CLOUDFLARE_API_TOKEN` como Actions Secret por canal seguro, com escopo mínimo para a conta Tonecos;
+5. promover a #144 somente após o secret existir e o CI permanecer verde;
+6. exigir **Deploy Cloudflare API** verde, migrations protegidas pelo gate migration-first e smoke público pós-deploy;
+7. somente depois declarar o CI/CD Cloudflare totalmente fechado;
+8. qualquer domínio customizado para API/mídia deve ser tratado separadamente, sem hardcode ou mudança de DNS oportunista.
