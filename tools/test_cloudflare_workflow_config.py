@@ -27,10 +27,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}", self.workflow)
         self.assertIn("TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}", self.workflow)
         self.assertIn("Validate deployment credentials", self.workflow)
-        self.assertEqual(
-            ["TURNSTILE_SECRET_KEY"],
-            self.wrangler.get("secrets", {}).get("required"),
-        )
+        self.assertEqual(["TURNSTILE_SECRET_KEY"], self.wrangler.get("secrets", {}).get("required"))
 
     def test_d1_database_id_is_versioned_ssot_not_repository_variable(self):
         databases = self.wrangler.get("d1_databases")
@@ -39,10 +36,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertEqual("DB", databases[0].get("binding"))
         database_id = str(databases[0].get("database_id") or "")
         self.assertNotEqual("REPLACE_AFTER_D1_CREATE", database_id)
-        self.assertRegex(
-            database_id,
-            r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
-        )
+        self.assertRegex(database_id, r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
         self.assertNotIn("vars.CLOUDFLARE_D1_DATABASE_ID", self.workflow)
         self.assertNotIn("missing+=(CLOUDFLARE_D1_DATABASE_ID)", self.workflow)
 
@@ -65,14 +59,8 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
     def test_remote_worker_semantic_drift_is_checked_before_worker_write(self):
         self.assertIn("Validate remote Worker config against canonical SSOT", self.workflow)
         self.assertIn("node tools/check_remote_worker_config.mjs", self.workflow)
-        self.assertLess(
-            self.workflow.index("Validate remote Worker config against canonical SSOT"),
-            self.workflow.index("Capture current production Worker version"),
-        )
-        self.assertLess(
-            self.workflow.index("Validate remote Worker config against canonical SSOT"),
-            self.workflow.index("Upload Worker version with required secret and no traffic"),
-        )
+        self.assertLess(self.workflow.index("Validate remote Worker config against canonical SSOT"), self.workflow.index("Capture current production Worker version"))
+        self.assertLess(self.workflow.index("Validate remote Worker config against canonical SSOT"), self.workflow.index("Upload Worker version with required secret and no traffic"))
         self.assertNotIn("--strict", self.workflow)
 
     def test_turnstile_secret_is_staged_atomically_without_implicit_deploy(self):
@@ -87,10 +75,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("Capture current production Worker version", self.workflow)
         self.assertIn("node tools/cloudflare_deploy_state.mjs active-version", self.workflow)
         self.assertIn("PREVIOUS_WORKER_VERSION_ID=$previous_version", self.workflow)
-        self.assertLess(
-            self.workflow.index("Capture current production Worker version"),
-            self.workflow.index("Upload Worker version with required secret and no traffic"),
-        )
+        self.assertLess(self.workflow.index("Capture current production Worker version"), self.workflow.index("Upload Worker version with required secret and no traffic"))
 
     def test_staged_worker_version_is_captured_from_structured_wrangler_output(self):
         self.assertIn("WRANGLER_OUTPUT_FILE_PATH:", self.workflow)
@@ -98,10 +83,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("Capture staged Worker version", self.workflow)
         self.assertIn("cloudflare_deploy_state.mjs uploaded-version", self.workflow)
         self.assertIn("STAGED_WORKER_VERSION_ID=$staged_version", self.workflow)
-        self.assertLess(
-            self.workflow.index("Upload Worker version with required secret and no traffic"),
-            self.workflow.index("Capture staged Worker version"),
-        )
+        self.assertLess(self.workflow.index("Upload Worker version with required secret and no traffic"), self.workflow.index("Capture staged Worker version"))
 
     def test_zero_traffic_deployment_registers_staged_version_before_override_smoke(self):
         self.assertIn("Register staged Worker at zero traffic", self.workflow)
@@ -128,33 +110,25 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("--yes", self.workflow)
         self.assertNotIn("npx wrangler deploy --config .wrangler.deploy.jsonc", self.workflow)
 
-    def test_promoted_worker_convergence_is_proved_before_other_public_smokes(self):
-        gate = "Verify promoted Worker deployment and schema health"
+    def test_promoted_worker_full_release_is_one_bounded_gate(self):
+        gate = "Verify promoted Worker deployment and full public release"
         self.assertIn(gate, self.workflow)
         self.assertIn("check_promoted_worker_version.mjs", self.workflow)
         self.assertLess(self.workflow.index("Promote staged Worker version"), self.workflow.index(gate))
-        for smoke in (
-            "Verify D1 readiness through catalog API",
-            "Verify recent catalog route",
-            "Verify gallery contract through catalog API",
-            "Verify shared collections route",
-        ):
-            self.assertLess(self.workflow.index(gate), self.workflow.index(smoke))
+        self.assertNotIn("Verify D1 readiness through catalog API", self.workflow)
+        self.assertNotIn("Verify recent catalog route", self.workflow)
+        self.assertNotIn("Verify gallery contract through catalog API", self.workflow)
+        self.assertNotIn("Verify shared collections route", self.workflow)
 
-    def test_failed_staged_or_post_promotion_smoke_restores_explicit_previous_version(self):
-        self.assertIn("Restore previous Worker after failed staged or production smoke", self.workflow)
+    def test_failed_staged_or_promoted_release_restores_explicit_previous_version(self):
+        gate = "Verify promoted Worker deployment and full public release"
+        restore_name = "Restore previous Worker after failed staged or production smoke"
+        self.assertIn(restore_name, self.workflow)
         self.assertIn("failure() && steps.stage_deployment.outcome == 'success'", self.workflow)
         self.assertIn('npx wrangler rollback "$PREVIOUS_WORKER_VERSION_ID"', self.workflow)
-        restore = self.workflow.index("Restore previous Worker after failed staged or production smoke")
+        restore = self.workflow.index(restore_name)
         self.assertLess(self.workflow.index("Smoke staged Worker version before promotion"), restore)
-        for smoke in (
-            "Verify promoted Worker deployment and schema health",
-            "Verify D1 readiness through catalog API",
-            "Verify recent catalog route",
-            "Verify gallery contract through catalog API",
-            "Verify shared collections route",
-        ):
-            self.assertLess(self.workflow.index(smoke), restore)
+        self.assertLess(self.workflow.index(gate), restore)
         self.assertLess(restore, self.workflow.index("Audit D1 structural integrity"))
 
     def test_migration_policy_gate_runs_before_remote_migrations(self):
@@ -162,8 +136,8 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("python tools/check_migration_deploy_policy.py", self.workflow)
         self.assertLess(self.workflow.index("Validate migration-first compatibility"), self.workflow.index("Apply D1 migrations"))
 
-    def test_legacy_gallery_repairs_are_explicit_opt_in_after_schema_health(self):
-        gate = "Verify promoted Worker deployment and schema health"
+    def test_legacy_gallery_repairs_are_explicit_opt_in_after_release_gate(self):
+        gate = "Verify promoted Worker deployment and full public release"
         self.assertIn("apply_legacy_gallery_repairs:", self.workflow)
         self.assertIn("default: false", self.workflow)
         self.assertIn(gate, self.workflow)
@@ -183,7 +157,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertLess(self.workflow.index("Apply reviewed legacy gallery repairs"), self.workflow.index("Verify repaired legacy aliases through public API"))
 
     def test_d1_integrity_audit_runs_before_and_after_legacy_repairs(self):
-        gate = "Verify promoted Worker deployment and schema health"
+        gate = "Verify promoted Worker deployment and full public release"
         self.assertIn("Audit D1 structural integrity", self.workflow)
         self.assertIn("Re-audit D1 after legacy repairs", self.workflow)
         self.assertIn("python tools/audit_d1_integrity.py", self.workflow)
@@ -209,6 +183,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             "tools/read_wrangler_d1_id.mjs",
             "tools/cloudflare_deploy_state.mjs",
             "tools/bounded_retry.mjs",
+            "tools/worker_release_smoke.mjs",
             "tools/check_remote_worker_config.mjs",
             "tools/check_staged_worker_version.mjs",
             "tools/check_promoted_worker_version.mjs",
