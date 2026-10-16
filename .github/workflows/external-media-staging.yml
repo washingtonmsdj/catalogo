@@ -1,0 +1,254 @@
+name: External media staging acquisition
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - '.github/workflows/external-media-staging.yml'
+      - 'config/external-sources/**'
+      - 'docs/evidence/external-source-001-*-staging-acquisition-*.json'
+      - 'tools/stage_external_media.py'
+      - 'tools/staging_checkpoint.py'
+      - 'tools/test_stage_external_media.py'
+      - 'tools/test_staging_checkpoint.py'
+  workflow_dispatch:
+    inputs:
+      evidence:
+        description: Reviewed evidence JSON with sourceObjectPath/SHA/bytes/watermark decisions
+        required: true
+        default: docs/evidence/external-source-001-malevola-dispatch-staging-acquisition-2026-10-16.json
+        type: string
+      shas:
+        description: Comma-separated reviewed SHA-256 values to stage
+        required: true
+        type: string
+      apply:
+        description: Write the verified bytes to private staging
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: external-media-staging-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  STAGING_EVIDENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.evidence || 'docs/evidence/external-source-001-malevola-dispatch-staging-acquisition-2026-10-16.json' }}
+
+jobs:
+  contract-tests:
+    name: Staging contract tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Run focused staging tests
+        working-directory: tools
+        run: python -m unittest -v test_staging_checkpoint.py test_stage_external_media.py
+      - name: Dry-run versioned staging acquisitions
+        if: ${{ github.event_name == 'pull_request' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/staging-acquisition-dry-run"
+          mkdir -p "$root"
+          python - "$root" <<'PY'
+          import glob, json, subprocess, sys
+          from pathlib import Path
+
+          root=Path(sys.argv[1])
+          summaries=[]
+          for raw in sorted(glob.glob('docs/evidence/external-source-001-*-staging-acquisition-*.json')):
+              path=Path(raw)
+              data=json.loads(path.read_text(encoding='utf-8'))
+              decision=data.get('decision') or {}
+              if decision.get('stagingAcquisitionReady') is not True:
+                  continue
+              images=data.get('images')
+              if not isinstance(images,list) or not images:
+                  raise SystemExit(f'acquisition evidence has no images: {path}')
+              shas=[]
+              for row in images:
+                  if not isinstance(row,dict):
+                      raise SystemExit(f'invalid image row: {path}')
+                  sha=str(row.get('sha256') or '').strip().lower()
+                  if len(sha)!=64 or any(ch not in '0123456789abcdef' for ch in sha):
+                      raise SystemExit(f'invalid acquisition SHA: {path}: {sha}')
+                  shas.append(sha)
+              if len(set(shas)) != len(shas):
+                  raise SystemExit(f'duplicate acquisition SHA: {path}')
+              summary_path=root/(path.stem+'.json')
+              cmd=[
+                  sys.executable,'tools/stage_external_media.py',str(path),
+                  '--source-contract','config/external-sources/external-source-001.json',
+                  '--summary',str(summary_path),
+              ]
+              for sha in shas:
+                  cmd.extend(['--sha',sha])
+              subprocess.run(cmd, check=True)
+              summary=json.loads(summary_path.read_text(encoding='utf-8'))
+              if summary.get('state') != 'dry_run' or summary.get('apply') is not False:
+                  raise SystemExit(f'acquisition did not remain dry-run: {path}')
+              if int(summary.get('stagingWrites') or 0) != 0 or int(summary.get('productionWrites') or 0) != 0:
+                  raise SystemExit(f'acquisition dry-run reported writes: {path}')
+              if int(summary.get('selected') or 0) != len(shas):
+                  raise SystemExit(f'acquisition selection mismatch: {path}')
+              summaries.append(summary)
+          batch={
+              'version':1,
+              'acquisitions':len(summaries),
+              'selected':sum(int(x['selected']) for x in summaries),
+              'stagingWrites':0,
+              'productionWrites':0,
+              'summaries':summaries,
+          }
+          (root/'batch-summary.json').write_text(json.dumps(batch,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps(batch,ensure_ascii=False))
+          PY
+      - name: Upload staging acquisition dry-run
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: staging-acquisition-dry-run-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/staging-acquisition-dry-run
+          if-no-files-found: error
+          retention-days: 7
+
+  stage:
+    name: Bounded private staging
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+         github.event.label.name == 'staging-release' && github.actor == github.repository_owner)
+      }}
+    needs: contract-tests
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Resolve bounded evidence and SHA arguments
+        id: selection
+        shell: bash
+        env:
+          INPUT_SHAS: ${{ github.event_name == 'workflow_dispatch' && inputs.shas || '' }}
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          evidence=Path(os.environ['STAGING_EVIDENCE'])
+          data=json.loads(evidence.read_text(encoding='utf-8'))
+          if (data.get('decision') or {}).get('stagingAcquisitionReady') is not True:
+              raise SystemExit('evidence is not stagingAcquisitionReady')
+          evidence_shas=[]
+          for row in data.get('images') or []:
+              sha=str(row.get('sha256') or '').strip().lower()
+              if len(sha)!=64 or any(ch not in '0123456789abcdef' for ch in sha):
+                  raise SystemExit(f'invalid evidence SHA: {sha}')
+              evidence_shas.append(sha)
+          if not evidence_shas or len(set(evidence_shas)) != len(evidence_shas):
+              raise SystemExit('evidence SHAs ausentes ou duplicados')
+
+          raw=os.environ.get('INPUT_SHAS','').strip()
+          values=[part.strip().lower() for part in raw.split(',') if part.strip()] if raw else evidence_shas
+          if not values or len(set(values)) != len(values):
+              raise SystemExit('SHAs ausentes ou duplicados')
+          for sha in values:
+              if len(sha) != 64 or any(ch not in '0123456789abcdef' for ch in sha):
+                  raise SystemExit(f'SHA inválido: {sha}')
+              if sha not in evidence_shas:
+                  raise SystemExit(f'SHA fora da evidência aprovada: {sha}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as handle:
+              handle.write('json=' + json.dumps(values, separators=(',', ':')) + '\n')
+          PY
+      - name: Dry-run exact evidence selection
+        shell: bash
+        env:
+          SELECTED_SHAS: ${{ steps.selection.outputs.json }}
+        run: |
+          set -euo pipefail
+          mapfile -t shas < <(python -c "import json,os; print('\\n'.join(json.loads(os.environ['SELECTED_SHAS'])))")
+          args=()
+          for sha in "${shas[@]}"; do args+=(--sha "$sha"); done
+          python tools/stage_external_media.py "$STAGING_EVIDENCE" \
+            --source-contract config/external-sources/external-source-001.json \
+            "${args[@]}" \
+            --summary "$RUNNER_TEMP/staging-plan.json"
+      - name: Setup Node for Wrangler
+        if: >-
+          ${{
+            (github.event_name == 'workflow_dispatch' && inputs.apply == true) ||
+            (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+             github.event.label.name == 'staging-release' && github.actor == github.repository_owner)
+          }}
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+      - name: Install locked Wrangler
+        if: >-
+          ${{
+            (github.event_name == 'workflow_dispatch' && inputs.apply == true) ||
+            (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+             github.event.label.name == 'staging-release' && github.actor == github.repository_owner)
+          }}
+        run: npm ci --ignore-scripts
+      - name: Assert Cloudflare staging credentials
+        if: >-
+          ${{
+            (github.event_name == 'workflow_dispatch' && inputs.apply == true) ||
+            (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+             github.event.label.name == 'staging-release' && github.actor == github.repository_owner)
+          }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::CLOUDFLARE_ACCOUNT_ID ausente'; exit 1; }
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::CLOUDFLARE_API_TOKEN ausente'; exit 1; }
+      - name: Download, verify, stage and read back selected bytes
+        if: >-
+          ${{
+            (github.event_name == 'workflow_dispatch' && inputs.apply == true) ||
+            (github.event_name == 'pull_request' && github.event.action == 'labeled' &&
+             github.event.label.name == 'staging-release' && github.actor == github.repository_owner)
+          }}
+        shell: bash
+        env:
+          SELECTED_SHAS: ${{ steps.selection.outputs.json }}
+        run: |
+          set -euo pipefail
+          mapfile -t shas < <(python -c "import json,os; print('\\n'.join(json.loads(os.environ['SELECTED_SHAS'])))")
+          args=()
+          for sha in "${shas[@]}"; do args+=(--sha "$sha"); done
+          python tools/stage_external_media.py "$STAGING_EVIDENCE" \
+            --source-contract config/external-sources/external-source-001.json \
+            "${args[@]}" \
+            --checkpoint-root "$RUNNER_TEMP/staging-checkpoint" \
+            --summary "$RUNNER_TEMP/staging-result.json" \
+            --apply
+      - name: Upload staging proof
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: external-media-staging-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/staging-plan.json
+            ${{ runner.temp }}/staging-result.json
+            ${{ runner.temp }}/staging-checkpoint/staging-offload-journal.jsonl
+          if-no-files-found: warn
+          retention-days: 7

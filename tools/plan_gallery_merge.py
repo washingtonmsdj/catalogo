@@ -21,6 +21,7 @@ from external_identity_contract import (
 )
 from media_quality_policy import (
     WATERMARK_CLEAR,
+    WATERMARK_CREATOR_ATTRIBUTION,
     WATERMARK_LEGACY_ACCEPTED,
     WATERMARK_WATERMARKED,
     WATERMARK_UNKNOWN,
@@ -53,7 +54,6 @@ def model_identity(row: dict[str, Any]) -> str:
     if not value:
         raise RuntimeError(f"imagem sem identidade de modelo: {row.get('path', '<sem caminho>')}")
     return value
-
 
 
 def image_sha(row: dict[str, Any]) -> str:
@@ -90,8 +90,15 @@ def public_candidate(row: dict[str, Any]) -> bool:
 
 
 def compact_image(row: dict[str, Any], source: str) -> dict[str, Any]:
+    provenance = row.get("source_provenance")
+    source_id = (
+        str(provenance.get("sourceId") or "").strip()
+        if isinstance(provenance, dict)
+        else ""
+    )
     return {
         "source": source,
+        "sourceId": source_id or None,
         "path": str(row.get("path") or ""),
         "sha256": image_sha(row),
         "dhash": image_dhash(row),
@@ -167,7 +174,6 @@ def plan_gallery_merge(
             digest = image_sha(row)
             exact = [item for item in accepted if image_sha(item) == digest]
             if exact:
-                preferred = best_quality(exact)
                 actions.append({
                     "model": identity,
                     "sourceModel": str(row.get("_source_model_identity") or identity),
@@ -228,18 +234,26 @@ def plan_gallery_merge(
             if visual_matches:
                 best_existing = best_quality(item for _, item in visual_matches)
                 best_existing_watermark = manifest_watermark_status(best_existing)
-                if (
-                    incoming_watermark == WATERMARK_CLEAR
-                    and best_existing_watermark == WATERMARK_WATERMARKED
-                ):
-                    incoming_better = True
-                    recommendation_reason = "clear_incoming_beats_watermarked_match"
-                elif (
-                    incoming_watermark == WATERMARK_CLEAR
-                    and best_existing_watermark == WATERMARK_LEGACY_ACCEPTED
-                ):
-                    incoming_better = True
-                    recommendation_reason = "verified_clear_incoming_beats_unverified_legacy_match"
+                if best_existing_watermark == WATERMARK_WATERMARKED:
+                    if incoming_watermark == WATERMARK_CLEAR:
+                        incoming_better = True
+                        recommendation_reason = "clear_incoming_beats_watermarked_match"
+                    elif incoming_watermark == WATERMARK_CREATOR_ATTRIBUTION:
+                        incoming_better = True
+                        recommendation_reason = "creator_attribution_incoming_beats_watermarked_match"
+                    else:
+                        incoming_better = quality_tuple(row) > quality_tuple(best_existing)
+                        recommendation_reason = "perceptual_similarity_requires_review"
+                elif best_existing_watermark == WATERMARK_LEGACY_ACCEPTED:
+                    if incoming_watermark == WATERMARK_CLEAR:
+                        incoming_better = True
+                        recommendation_reason = "verified_clear_incoming_beats_unverified_legacy_match"
+                    elif incoming_watermark == WATERMARK_CREATOR_ATTRIBUTION:
+                        incoming_better = True
+                        recommendation_reason = "verified_creator_attribution_incoming_beats_unverified_legacy_match"
+                    else:
+                        incoming_better = quality_tuple(row) > quality_tuple(best_existing)
+                        recommendation_reason = "perceptual_similarity_requires_review"
                 else:
                     incoming_better = quality_tuple(row) > quality_tuple(best_existing)
                     recommendation_reason = "perceptual_similarity_requires_review"
@@ -268,7 +282,7 @@ def plan_gallery_merge(
                 "incoming": compact_image(row, "incoming"),
                 "matches": [],
                 "recommendedSource": "incoming",
-                "reason": "no_exact_or_perceptual_match_and_watermark_clear",
+                "reason": "no_exact_or_perceptual_match_and_watermark_eligible",
             })
             counts["add_view"] += 1
             accepted.append(row)
@@ -281,8 +295,10 @@ def plan_gallery_merge(
             "distinctView": "add",
             "perceptualCandidate": "review_only",
             "watermarkedIncoming": "reject",
+            "creatorAttribution": "eligible_when_explicitly_audited",
             "unknownWatermark": "block_until_audited",
-            "qualityPreference": "higher_quality_after_watermark_eligibility",
+            "qualityPreference": "audited_eligibility_then_technical_quality",
+            "sourcePreference": "source_alone_never_overrides_identity_or_watermark_gates",
             "visualThreshold": visual_threshold,
             "destructiveDeletes": 0,
         },
