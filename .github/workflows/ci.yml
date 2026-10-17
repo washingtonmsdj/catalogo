@@ -143,7 +143,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-visual-audit:
+  visual-audit:
     name: Browser visual audit (demo)
     runs-on: ubuntu-latest
     timeout-minutes: 15
