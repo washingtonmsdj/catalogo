@@ -408,3 +408,70 @@
     box-shadow: 0 4px 12px rgba(0,0,0,.34);
   }
 }
+
+/* R21: collection actions belong to document flow on compact layouts.
+   Desktop retains the fixed shortcuts without obscuring the mobile catalog. */
+.collections-action-dock { display: contents; }
+@media (max-width: 1120px) {
+  .collections-action-dock {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 10px;
+    box-sizing: border-box;
+    width: min(calc(100% - 24px), 680px);
+    margin: 12px auto calc(18px + env(safe-area-inset-bottom, 0px));
+    padding: 12px;
+    border: 1px solid #dbe5df;
+    border-radius: 12px;
+    background: #f6faf7;
+  }
+  .collections-action-dock .collections-dock-trigger,
+  .collections-action-dock .collections-share-trigger {
+    position: static;
+    inset: auto;
+    transform: none;
+    flex: 1 1 0;
+    width: auto;
+    min-width: 0;
+    min-height: 44px;
+    height: auto;
+    margin: 0;
+    padding: 0 10px;
+    border-radius: 9px;
+    justify-content: center;
+    gap: 7px;
+  }
+  .collections-action-dock .collections-dock-trigger strong {
+    display: inline;
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+  .collections-action-dock .collections-dock-trigger b {
+    position: static;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 4px;
+    border-radius: 999px;
+  }
+  .collections-action-dock .collections-share-trigger {
+    display: inline-flex;
+    align-items: center;
+  }
+  .collections-action-dock .collections-share-trigger > span {
+    display: inline;
+    font: 750 11px/1.2 ui-sans-serif, system-ui;
+  }
+  .collections-action-dock .collections-dock-trigger:focus-visible,
+  .collections-action-dock .collections-share-trigger:focus-visible {
+    outline: 3px solid #258a67;
+    outline-offset: 2px;
+  }
+}
+@media (max-width: 359px) {
+  .collections-action-dock { gap: 7px; padding: 9px; }
+  .collections-action-dock .collections-dock-trigger,
+  .collections-action-dock .collections-share-trigger { padding: 0 6px; gap: 5px; }
+  .collections-action-dock .collections-dock-trigger strong,
+  .collections-action-dock .collections-share-trigger > span { font-size: 10px; }
+}
