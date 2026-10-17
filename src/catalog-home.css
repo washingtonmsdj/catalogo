@@ -1591,3 +1591,13 @@ body {
 @media (max-width: 900px) {
   #catalogo { scroll-margin-top: 125px; }
 }
+
+/* R20: readable, full-width results on narrow 320–359px phones. */
+@media (max-width: 359px) {
+  .storefront-model-grid.is-results {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .storefront-model-grid.is-results .storefront-model-card {
+    height: 212px;
+  }
+}

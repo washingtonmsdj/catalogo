@@ -27,3 +27,10 @@ test('production Pages deployment continues to exclude demo data', () => {
   assert.match(pages, /node tools\/check_demo_catalog_artifact\.mjs dist absent/)
   assert.doesNotMatch(pages, /VITE_CATALOG_MODE: demo/)
 })
+
+test('R20 narrow-phone column count and clean capture position are guarded', () => {
+  assert.match(browser, /spec\.width === 320\) assert\.equal\(entry\.layout\.columns, 1/)
+  assert.match(browser, /spec\.width === 390\) assert\.equal\(entry\.layout\.columns, 2/)
+  assert.match(browser, /async function resetCapturePosition\(page\)/)
+  assert.ok(browser.split('await resetCapturePosition(page)').length === 3)
+})
