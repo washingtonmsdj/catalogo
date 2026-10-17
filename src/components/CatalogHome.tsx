@@ -402,6 +402,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
 
   return (
     <div className={`storefront-shell ${sidebarCollapsed ? 'is-sidebar-collapsed' : ''}`}>
+      <a className="storefront-skip-link" href="#catalogo">Pular para o catálogo</a>
       <aside className="storefront-sidebar">
         <div className="storefront-brand">
           <span className="storefront-brand__mark" aria-hidden="true">{BRAND_SHORT_NAME.slice(0, 1).toLocaleUpperCase('pt-BR')}</span>
@@ -413,12 +414,16 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
           <a href="#catalogo" className={activeNavSection === 'catalogo' ? 'is-active' : ''} aria-current={activeNavSection === 'catalogo' ? 'page' : undefined}><Icon name="home" /><span>Catálogo</span></a>
           <a href="#destaques" className={activeNavSection === 'destaques' ? 'is-active' : ''} aria-current={activeNavSection === 'destaques' ? 'page' : undefined}><Icon name="star" /><span>Em destaque</span></a>
           <button type="button" onClick={onOpenUpdates}><Icon name="clock" /><span>Recém adicionados</span></button>
-          <a href="#colecoes" className={activeNavSection === 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection === 'colecoes' ? 'page' : undefined}><Icon name="layers" /><span>Coleções</span><b>{catalog.franchises.length}</b></a>
+          {resultsMode ? (
+            <button type="button" onClick={() => onOpenExplorer()}><Icon name="layers" /><span>Coleções</span><b>{catalog.franchises.length}</b></button>
+          ) : (
+            <a href="#colecoes" className={activeNavSection === 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection === 'colecoes' ? 'location' : undefined}><Icon name="layers" /><span>Coleções</span><b>{catalog.franchises.length}</b></a>
+          )}
           <button type="button" onClick={onOpenFavorites}><Icon name="heart" /><span>Favoritos</span><b>{favorites.length}</b></button>
         </nav>
 
         <div className="storefront-sidebar__section-head"><span>Franquias</span><button type="button" onClick={() => onOpenExplorer()} aria-label="Explorar todas as franquias">+</button></div>
-        <label className="storefront-franchise-search"><Icon name="search" /><input value={franchiseFilter} onChange={(event) => setFranchiseFilter(event.target.value)} placeholder="Buscar franquias..." /></label>
+        <label className="storefront-franchise-search"><Icon name="search" /><input aria-label="Buscar franquias" value={franchiseFilter} onChange={(event) => setFranchiseFilter(event.target.value)} placeholder="Buscar franquias..." /></label>
 
         <div className="storefront-franchise-list" aria-busy={sidebarSearchLoading}>
           {catalog.mode === 'live' && franchiseSearchLength > 0 && franchiseSearchLength < FRANCHISE_SEARCH_MIN_LENGTH && <div className="storefront-franchise-status is-hint">Digite {FRANCHISE_SEARCH_MIN_LENGTH}+ caracteres para pesquisar todo o acervo.</div>}
@@ -468,7 +473,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
 
       <div className="storefront-main">
         <header className="storefront-topbar">
-          <nav aria-label="Navegação principal"><a href="#catalogo" className={activeNavSection !== 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection !== 'colecoes' ? 'page' : undefined}>Explorar</a><a href="#colecoes" className={activeNavSection === 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection === 'colecoes' ? 'page' : undefined}>Coleções</a><button type="button" onClick={onOpenUpdates}>Novos</button><button type="button" className="storefront-topbar__favorites" onClick={onOpenFavorites}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
+          <nav aria-label="Navegação principal"><a href="#catalogo" className={activeNavSection !== 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection !== 'colecoes' ? 'page' : undefined}>Explorar</a>{resultsMode ? <button type="button" onClick={() => onOpenExplorer()}>Coleções</button> : <a href="#colecoes" className={activeNavSection === 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection === 'colecoes' ? 'location' : undefined}>Coleções</a>}<button type="button" onClick={onOpenUpdates}>Novos</button><button type="button" className="storefront-topbar__favorites" onClick={onOpenFavorites}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
           <div className={`storefront-search ${catalog.searchPending ? 'is-pending' : ''}`} role="search">
             <Icon name="search" />
             <input
@@ -491,7 +496,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
           </div>
           <div className="storefront-topbar__status" role="status" aria-live="polite"><span className={`is-${runtimeStatus.tone}`} /><strong>{runtimeStatus.label}</strong></div>
         </header>
-        <main id="catalogo" className="storefront-content" aria-busy={catalog.loading}>
+        <main id="catalogo" tabIndex={-1} className="storefront-content" aria-busy={catalog.loading}>
           {catalog.error && <div className="storefront-alert" role="alert">{catalog.error}</div>}
 
           <aside className="storefront-quote-rail" aria-label="Resumo da minha lista">
@@ -528,7 +533,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
               <span className="storefront-hero__eyebrow"><Icon name="star" /> Destaque · {heroCampaignCategory?.label ?? `Acervo ${BRAND_SHORT_NAME}`}</span>
               <h1>Encontre o modelo certo <em>sem se perder no catálogo.</em></h1>
               <p>Explore por franquia, personagem ou categoria, abra cada ficha e compare as vistas disponíveis antes de adicionar o modelo à sua lista.</p>
-              <div className="storefront-hero__metrics" aria-label="Resumo do acervo">
+              <div className="storefront-hero__metrics" role="group" aria-label="Resumo do acervo">
                 <span><strong>{formatter.format(catalogTotal)}</strong><small>modelos</small></span>
                 <span><strong>{formatter.format(publicCategories.length)}</strong><small>categorias</small></span>
                 <span><strong>{heroCampaignCategory ? formatter.format(heroCampaignCategory.count) : '—'}</strong><small>na coleção</small></span>
@@ -539,7 +544,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
               </div>
             </div>
             {heroCampaigns.length > 1 && (
-              <div className="storefront-hero__dots" aria-label="Coleções em destaque">
+              <div className="storefront-hero__dots" role="group" aria-label="Coleções em destaque">
                 {heroCampaigns.map((item, index) => <button type="button" key={item.id} onClick={() => setHeroCampaignIndex(index)} aria-current={index === normalizedHeroCampaignIndex ? 'true' : undefined} aria-label={`Mostrar ${item.label}`} />)}
               </div>
             )}
@@ -652,7 +657,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
             </section>
 
             <section className="storefront-section storefront-section--compact">
-              <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" disabled={catalog.loading || !catalog.hasPreviousPage} onClick={previousCatalogPage}>‹</button><button type="button" disabled={catalog.loading || !catalog.hasNextPage} onClick={nextCatalogPage}>›</button></div></div>
+              <div className="storefront-section__head"><div><span className="storefront-section__icon"><Icon name="plus" /></span><div><h2>Mais para explorar</h2><p>Continue navegando no recorte atual.</p></div></div><div className="storefront-pager"><button type="button" aria-label="Página anterior" disabled={catalog.loading || !catalog.hasPreviousPage} onClick={previousCatalogPage}>‹</button><button type="button" aria-label="Próxima página" disabled={catalog.loading || !catalog.hasNextPage} onClick={nextCatalogPage}>›</button></div></div>
               <div className="storefront-mini-grid">{secondaryModels.map((model) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} quoted={quoteList.includes(model.id)} active={selected.id === model.id} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} onQuote={() => onToggleQuote(model.id)} />)}</div>
             </section>
           </div>
