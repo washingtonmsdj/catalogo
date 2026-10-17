@@ -190,7 +190,7 @@ export function SharedCollectionsDock() {
 
   return (
     <>
-      <button type="button" className="collections-share-trigger" onClick={openShare} aria-label="Compartilhar uma coleção">↗</button>
+      <button type="button" className="collections-share-trigger" onClick={openShare} aria-label="Compartilhar uma coleção">↗ <span aria-hidden="true">Compartilhar</span></button>
       {open && <div className="modal-backdrop collections-share-backdrop" onMouseDown={() => setOpen(false)}>
         <section className="collections-share-modal" role="dialog" aria-modal="true" aria-labelledby="shared-collections-title" onMouseDown={(event) => event.stopPropagation()}>
           <div className="modal-head"><div><span>LINK DE COLEÇÃO</span><h2 id="shared-collections-title">{incoming ? incoming.name : 'Compartilhar coleção'}</h2><p>{incoming ? 'Seleção compartilhada por link público temporário.' : 'Crie um link curto sem expor sua lista inteira na URL.'}</p></div><button type="button" aria-label="Fechar compartilhamento" onClick={() => setOpen(false)}>×</button></div>

@@ -44,3 +44,12 @@ test('R20 mobile carousel controls cannot cover hero text', () => {
   assert.match(browser, /Mobile hero arrows must not obscure the title/)
   assert.match(browser, /Mobile hero dots must not obscure description/)
 })
+
+test('R21 browser audit requires in-flow collection actions on mobile and tablet', () => {
+  assert.match(browser, /spec\.width < 1500/)
+  assert.match(browser, /Collection actions must not cover model cards/)
+  assert.match(browser, /Collection actions must fit the viewport/)
+  assert.match(browser, /Collection actions need 44px touch targets/)
+  assert.match(browser, /Desktop collections shortcut remains fixed/)
+  assert.match(browser, /both collection dialogs open and close from the in-flow action dock/)
+})

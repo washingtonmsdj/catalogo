@@ -66,8 +66,10 @@ createRoot(document.getElementById('root')!).render(
       <ConnectivityBanner />
       <CatalogPublicationBanner />
       <App />
-      <CollectionsDock />
-      <SharedCollectionsDock />
+      <div className="collections-action-dock" role="group" aria-label="Ações de coleções">
+        <CollectionsDock />
+        <SharedCollectionsDock />
+      </div>
     </AppErrorBoundary>
   </StrictMode>,
 )

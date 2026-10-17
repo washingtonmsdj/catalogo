@@ -37,6 +37,11 @@ async function measure(page) {
     const cards = [...document.querySelectorAll('.storefront-model-grid.is-results > .storefront-model-card')]
       .map((element) => element.getBoundingClientRect()).filter((rect) => rect.width && rect.height)
     const rail = document.querySelector('.storefront-quote-rail')
+    const collectionButton = document.querySelector('.collections-dock-trigger')
+    const shareButton = document.querySelector('.collections-share-trigger')
+    const bounds = [collectionButton, shareButton].map((node) => node?.getBoundingClientRect()).filter(Boolean)
+    const overlap = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+    const cardObstruction = bounds.some((button) => cards.some((card) => overlap(button, card)))
     return {
       viewport: w,
       documentWidth: document.documentElement.scrollWidth,
@@ -45,6 +50,13 @@ async function measure(page) {
       columns: getComputedStyle(document.querySelector('.storefront-model-grid.is-results'))
         .gridTemplateColumns.trim().split(/\s+/).length,
       railVisible: Boolean(rail && getComputedStyle(rail).display !== 'none' && rail.getBoundingClientRect().width > 0),
+      collectionsDock: {
+        position: collectionButton && getComputedStyle(collectionButton).position,
+        sharingPosition: shareButton && getComputedStyle(shareButton).position,
+        buttonsOutsideViewport: bounds.some((rect) => rect.left < -1 || rect.right > w + 1),
+        obscuresCards: cardObstruction,
+        touchTargets: bounds.map((rect) => Math.round(rect.height)),
+      },
     }
   })
 }
@@ -115,6 +127,16 @@ async function exercise(browser, spec) {
     if (spec.width === 320) assert.equal(entry.layout.columns, 1, '320px results require readable full-width cards')
     if (spec.width === 390) assert.equal(entry.layout.columns, 2, '390px results should retain two-column density')
     assert.equal(entry.layout.railVisible, spec.width >= 1500, 'Quote rail responsive boundary')
+    if (spec.width < 1500) {
+      assert.equal(entry.layout.collectionsDock.position, 'static', 'Collections trigger must not float above tablet/mobile cards')
+      assert.equal(entry.layout.collectionsDock.sharingPosition, 'static', 'Share trigger must not float above tablet/mobile cards')
+      assert.equal(entry.layout.collectionsDock.obscuresCards, false, 'Collection actions must not cover model cards')
+      assert.equal(entry.layout.collectionsDock.buttonsOutsideViewport, false, 'Collection actions must fit the viewport')
+      assert.ok(entry.layout.collectionsDock.touchTargets.every((height) => height >= 44), 'Collection actions need 44px touch targets')
+    } else {
+      assert.equal(entry.layout.collectionsDock.position, 'fixed', 'Desktop collections shortcut remains fixed')
+      assert.equal(entry.layout.collectionsDock.sharingPosition, 'fixed', 'Desktop sharing shortcut remains fixed')
+    }
     assert.equal(await page.locator('.storefront-topbar nav a[href="#colecoes"]').count(), 0)
     assert.equal(await page.locator('.storefront-sidebar__nav a[href="#colecoes"]').count(), 0)
     assert.equal(await page.locator('.storefront-topbar nav button').filter({ hasText: 'Coleções' }).count(), 1)
@@ -123,6 +145,15 @@ async function exercise(browser, spec) {
     await page.screenshot({ path: resolve(evidence, spec.name + '-results.png'), fullPage: true, animations: 'disabled' })
     entry.screenshots.push(spec.name + '-results.png')
 
+    if ([390, 1024].includes(spec.width)) {
+      await page.getByRole('button', { name: 'Abrir minhas coleções' }).click()
+      assert.ok(await page.getByRole('dialog', { name: 'Minhas coleções' }).isVisible())
+      await page.getByRole('button', { name: 'Fechar coleções' }).click()
+      await page.getByRole('button', { name: 'Compartilhar uma coleção' }).click()
+      assert.ok(await page.getByRole('dialog', { name: 'Compartilhar coleção' }).isVisible())
+      await page.getByRole('button', { name: 'Fechar compartilhamento' }).click()
+      entry.checks.push('both collection dialogs open and close from the in-flow action dock')
+    }
     if ([390, 1920].includes(spec.width)) {
       const quote = page.locator('.storefront-model-grid.is-results .storefront-model-card__quote').first()
       await quote.click()
