@@ -27,3 +27,20 @@ test('production Pages deployment continues to exclude demo data', () => {
   assert.match(pages, /node tools\/check_demo_catalog_artifact\.mjs dist absent/)
   assert.doesNotMatch(pages, /VITE_CATALOG_MODE: demo/)
 })
+
+test('R20 narrow-phone column count and clean capture position are guarded', () => {
+  assert.match(browser, /spec\.width === 320\) assert\.equal\(entry\.layout\.columns, 1/)
+  assert.match(browser, /spec\.width === 390\) assert\.equal\(entry\.layout\.columns, 2/)
+  assert.match(browser, /async function resetCapturePosition\(page\)/)
+  assert.ok(browser.split('await resetCapturePosition(page)').length === 3)
+})
+
+test('R20 browser gate rejects a hero title clipped by its frame', () => {
+  assert.match(browser, /Hero title must not be clipped by its container/)
+  assert.match(browser, /hero\.titleTop >= hero\.frameTop - 1/)
+})
+
+test('R20 mobile carousel controls cannot cover hero text', () => {
+  assert.match(browser, /Mobile hero arrows must not obscure the title/)
+  assert.match(browser, /Mobile hero dots must not obscure description/)
+})

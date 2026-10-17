@@ -42,9 +42,22 @@ async function measure(page) {
       documentWidth: document.documentElement.scrollWidth,
       count: cards.length,
       outside: cards.filter((r) => r.left < -2 || r.right > w + 2).length,
+      columns: getComputedStyle(document.querySelector('.storefront-model-grid.is-results'))
+        .gridTemplateColumns.trim().split(/\s+/).length,
       railVisible: Boolean(rail && getComputedStyle(rail).display !== 'none' && rail.getBoundingClientRect().width > 0),
     }
   })
+}
+
+async function resetCapturePosition(page) {
+  // Preserve the actual keyboard-navigation test, but remove its scroll/focus
+  // side effects so screenshots depict the page from its natural beginning.
+  await page.evaluate(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+    document.documentElement.style.scrollBehavior = 'auto'
+    window.scrollTo(0, 0)
+  })
+  await page.waitForFunction(() => window.scrollY <= 1, null, { timeout: 5000 })
 }
 
 async function exercise(browser, spec) {
@@ -61,6 +74,27 @@ async function exercise(browser, spec) {
     assert.equal(response?.status(), 200)
     await page.locator('.storefront-model-grid .storefront-model-card').first().waitFor({ state: 'visible', timeout: 18000 })
     assert.ok(await page.getByRole('textbox', { name: 'Buscar no catálogo' }).isVisible())
+    const hero = await page.evaluate(() => {
+      const frame = document.querySelector('.storefront-hero')?.getBoundingClientRect()
+      const title = document.querySelector('.storefront-hero h1')?.getBoundingClientRect()
+      if (!frame || !title) return null
+      const paragraph = document.querySelector('.storefront-hero__copy > p')?.getBoundingClientRect()
+      const dots = document.querySelector('.storefront-hero__dots')?.getBoundingClientRect()
+      const navs = [...document.querySelectorAll('.storefront-hero__nav')].map((node) => node.getBoundingClientRect())
+      const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+      return {
+        frameTop: frame.top, titleTop: title.top, titleBottom: title.bottom, frameBottom: frame.bottom,
+        navOverlapsTitle: navs.some((nav) => intersects(nav, title)),
+        dotsOverlapParagraph: Boolean(dots && paragraph && intersects(dots, paragraph)),
+      }
+    })
+    assert.ok(hero, 'Hero and heading must exist')
+    assert.ok(hero.titleTop >= hero.frameTop - 1 && hero.titleBottom <= hero.frameBottom + 1,
+      'Hero title must not be clipped by its container')
+    if (spec.width <= 620) {
+      assert.equal(hero.navOverlapsTitle, false, 'Mobile hero arrows must not obscure the title')
+      assert.equal(hero.dotsOverlapParagraph, false, 'Mobile hero dots must not obscure description')
+    }
     assert.equal(await page.locator('.storefront-sidebar__nav a[href="#colecoes"]').count(), 1)
     await page.keyboard.press('Tab')
     assert.ok(await page.evaluate(() => document.activeElement?.classList.contains('storefront-skip-link')),
@@ -68,6 +102,7 @@ async function exercise(browser, spec) {
     await page.keyboard.press('Enter')
     await page.waitForURL((target) => target.hash === '#catalogo', { timeout: 5000 })
     entry.checks.push('demo, keyboard skip link, editorial collections anchor')
+    await resetCapturePosition(page)
     await page.screenshot({ path: resolve(evidence, spec.name + '-editorial.png'), fullPage: true, animations: 'disabled' })
     entry.screenshots.push(spec.name + '-editorial.png')
 
@@ -77,11 +112,14 @@ async function exercise(browser, spec) {
     assert.ok(entry.layout.count >= 6, 'Demo results not rendered')
     assert.ok(entry.layout.documentWidth <= entry.layout.viewport + 2, 'Horizontal page overflow')
     assert.equal(entry.layout.outside, 0, 'Model cards outside viewport')
+    if (spec.width === 320) assert.equal(entry.layout.columns, 1, '320px results require readable full-width cards')
+    if (spec.width === 390) assert.equal(entry.layout.columns, 2, '390px results should retain two-column density')
     assert.equal(entry.layout.railVisible, spec.width >= 1500, 'Quote rail responsive boundary')
     assert.equal(await page.locator('.storefront-topbar nav a[href="#colecoes"]').count(), 0)
     assert.equal(await page.locator('.storefront-sidebar__nav a[href="#colecoes"]').count(), 0)
     assert.equal(await page.locator('.storefront-topbar nav button').filter({ hasText: 'Coleções' }).count(), 1)
     entry.checks.push('responsive results, quote rail and valid collections navigation')
+    await resetCapturePosition(page)
     await page.screenshot({ path: resolve(evidence, spec.name + '-results.png'), fullPage: true, animations: 'disabled' })
     entry.screenshots.push(spec.name + '-results.png')
 

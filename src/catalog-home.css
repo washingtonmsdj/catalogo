@@ -1591,3 +1591,37 @@ body {
 @media (max-width: 900px) {
   #catalogo { scroll-margin-top: 125px; }
 }
+
+/* R20: readable, full-width results on narrow 320–359px phones. */
+@media (max-width: 359px) {
+  .storefront-model-grid.is-results {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .storefront-model-grid.is-results .storefront-model-card {
+    height: 212px;
+  }
+}
+
+/* R20: mobile hero content must contribute to its height, not be clipped. */
+@media (max-width: 620px) {
+  .storefront-hero { min-height: 0; }
+  .storefront-hero__copy {
+    position: relative;
+    inset: auto;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .storefront-hero__nav {
+    top: 14px;
+    transform: none;
+  }
+  .storefront-hero__nav--previous {
+    left: auto;
+    right: 54px;
+  }
+  .storefront-hero__nav--next { right: 13px; }
+  .storefront-hero__dots {
+    top: auto;
+    bottom: 10px;
+  }
+}
