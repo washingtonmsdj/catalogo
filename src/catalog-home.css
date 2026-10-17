@@ -1208,6 +1208,7 @@ body {
     font: 800 15px/1 ui-sans-serif, system-ui;
   }
   .storefront-quote-rail__preview img { width: 100%; height: 100%; object-fit: contain; }
+  .storefront-quote-rail__preview:disabled { cursor: default; opacity: .72; }
   .storefront-quote-rail__preview > span:last-child { min-width: 0; display: grid; gap: 4px; }
   .storefront-quote-rail__preview strong,
   .storefront-quote-rail__preview small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

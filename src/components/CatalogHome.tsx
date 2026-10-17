@@ -3,7 +3,8 @@ import { BRAND_NAME, BRAND_SHORT_NAME, CATALOG_LABEL } from '../config/brand'
 import { useCatalogRuntime } from '../hooks/useCatalogRuntime'
 import { listCatalogFranchises } from '../services/catalogApi'
 import { FRANCHISE_SEARCH_MIN_LENGTH } from '../services/catalogRepository'
-import { hasResolvedCatalogDiscovery, isCatalogResultsMode, modelsForCatalogHome } from '../lib/catalogHomeView'
+import { hasResolvedCatalogDiscovery, isCatalogResultsMode, modelsForCatalogHome, quoteRailItems } from '../lib/catalogHomeView'
+import type { KnownModelSummary } from '../services/knownModelCache'
 import { CatalogSidebarTree } from './CatalogSidebarTree'
 import type { CatalogCategory, CatalogFranchise, CatalogModel } from '../types/catalog'
 
@@ -30,6 +31,8 @@ type CatalogHomeProps = {
   searchInputRef: RefObject<HTMLInputElement | null>
   favorites: string[]
   quoteList: string[]
+  knownModels: Record<string, KnownModelSummary>
+  onOpenKnownModel: (id: string) => void
   onOpenExplorer: (initialQuery?: string) => void
   onOpenUpdates: () => void
   onOpenFavorites: () => void
@@ -142,7 +145,7 @@ function CategoryTile({ category, cover, active, onSelect }: {
   )
 }
 
-export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onOpenExplorer, onOpenUpdates, onOpenFavorites, onOpenQuote, onOpenModel, onToggleFavorite, onToggleQuote }: CatalogHomeProps) {
+export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, knownModels, onOpenKnownModel, onOpenExplorer, onOpenUpdates, onOpenFavorites, onOpenQuote, onOpenModel, onToggleFavorite, onToggleQuote }: CatalogHomeProps) {
   const [franchiseFilter, setFranchiseFilter] = useState('')
   const [sidebarSearchItems, setSidebarSearchItems] = useState<CatalogFranchise[]>([])
   const [sidebarSearchLoading, setSidebarSearchLoading] = useState(false)
@@ -169,7 +172,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
   const resultsMode = isCatalogResultsMode(homeModeInput)
   const featuredModels = modelsForCatalogHome(models, resultsMode)
   const secondaryModels = models.slice(6, 10).length ? models.slice(6, 10) : models.slice(0, 4)
-  const quotedModels = models.filter((model) => quoteList.includes(model.id)).slice(0, 4)
+  const quotedModels = quoteRailItems(quoteList, models, knownModels)
   const publicCategories = catalog.categories.filter((item) => item.id !== 'all')
   const categoryTiles = publicCategories.slice(0, 6)
   const hasScopeFilters = catalog.category !== 'all' || catalog.franchise !== 'all' || Boolean(catalog.folder)
@@ -472,6 +475,11 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
               ref={searchInputRef}
               value={catalog.search}
               onChange={(event) => catalog.setSearch(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' || event.nativeEvent.isComposing) return
+                event.preventDefault()
+                showCatalogPage()
+              }}
               placeholder="Buscar modelos, personagens, franquias..."
               aria-label="Buscar no catálogo"
             />
@@ -489,10 +497,13 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, onO
           <aside className="storefront-quote-rail" aria-label="Resumo da minha lista">
             <div className="storefront-quote-rail__head"><div><span>Minha lista</span><b>{quoteList.length}</b></div><button type="button" onClick={onOpenQuote} aria-label="Abrir minha lista"><Icon name="chevron" /></button></div>
             <div className="storefront-quote-rail__items">
-              {quotedModels.length ? quotedModels.map((model) => (
-                <div className="storefront-quote-rail__item" key={model.id}>
-                  <button type="button" className="storefront-quote-rail__preview" onClick={() => onOpenModel(model)}><span>{model.coverUrl ? <img src={model.coverUrl} alt="" loading="lazy" decoding="async" /> : model.name.slice(0, 1)}</span><span><strong>{model.name}</strong><small>{model.variantName || model.franchise || 'Catálogo'}</small></span></button>
-                  <button type="button" className="storefront-quote-rail__remove" onClick={() => onToggleQuote(model.id)} aria-label={`Remover ${model.name} da minha lista`}>×</button>
+              {quotedModels.length ? quotedModels.map(({ id, model, name, slug }) => (
+                <div className="storefront-quote-rail__item" key={id}>
+                  <button type="button" className="storefront-quote-rail__preview" disabled={!model && !slug} onClick={() => model ? onOpenModel(model) : onOpenKnownModel(id)}>
+                    <span>{model?.coverUrl ? <img src={model.coverUrl} alt="" loading="lazy" decoding="async" /> : (name?.slice(0, 1) || '?')}</span>
+                    <span><strong>{name || 'Modelo selecionado'}</strong><small>{model?.variantName || model?.franchise || (slug ? 'Da sua seleção' : 'Informações indisponíveis')}</small></span>
+                  </button>
+                  <button type="button" className="storefront-quote-rail__remove" onClick={() => onToggleQuote(id)} aria-label={'Remover ' + (name || 'modelo selecionado') + ' da minha lista'}>×</button>
                 </div>
               )) : <p className="storefront-quote-rail__empty">Adicione modelos usando o botão + nos cards.</p>}
             </div>
