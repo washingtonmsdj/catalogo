@@ -410,9 +410,9 @@
 }
 
 /* R21: collection actions belong to document flow on compact layouts.
-   Desktop retains the fixed shortcuts without obscuring the mobile catalog. */
+   Fixed shortcuts remain only on wide desktops with reserved side space. */
 .collections-action-dock { display: contents; }
-@media (max-width: 1120px) {
+@media (max-width: 1499px) {
   .collections-action-dock {
     display: flex;
     align-items: stretch;

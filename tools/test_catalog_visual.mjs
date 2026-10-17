@@ -127,7 +127,7 @@ async function exercise(browser, spec) {
     if (spec.width === 320) assert.equal(entry.layout.columns, 1, '320px results require readable full-width cards')
     if (spec.width === 390) assert.equal(entry.layout.columns, 2, '390px results should retain two-column density')
     assert.equal(entry.layout.railVisible, spec.width >= 1500, 'Quote rail responsive boundary')
-    if (spec.width <= 1120) {
+    if (spec.width < 1500) {
       assert.equal(entry.layout.collectionsDock.position, 'static', 'Collections trigger must not float above tablet/mobile cards')
       assert.equal(entry.layout.collectionsDock.sharingPosition, 'static', 'Share trigger must not float above tablet/mobile cards')
       assert.equal(entry.layout.collectionsDock.obscuresCards, false, 'Collection actions must not cover model cards')
