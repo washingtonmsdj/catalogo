@@ -1551,3 +1551,43 @@ body {
   padding-left: 6px;
   border-left: 1px solid #e0e9e5;
 }
+
+/* Keyboard-first navigation: focus indicators never depend on hover or viewport width. */
+.storefront-skip-link {
+  position: fixed;
+  z-index: 100;
+  top: -100px;
+  left: 12px;
+  padding: 11px 15px;
+  border: 2px solid #fff;
+  border-radius: 9px;
+  background: var(--concept-green);
+  color: #fff;
+  font: 750 13px/1.25 ui-sans-serif, system-ui;
+  text-decoration: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,.18);
+}
+.storefront-skip-link:focus-visible {
+  top: calc(12px + env(safe-area-inset-top, 0px));
+  outline: 3px solid #163e32;
+  outline-offset: 2px;
+}
+.storefront-sidebar__nav a:focus-visible,
+.storefront-sidebar__nav button:focus-visible,
+.storefront-sidebar__collapse:focus-visible,
+.storefront-commandbar button:focus-visible,
+.storefront-section__actions button:focus-visible,
+.storefront-pager button:focus-visible,
+.storefront-results-footer button:focus-visible,
+.storefront-quote-rail button:focus-visible {
+  outline: 2px solid var(--concept-green);
+  outline-offset: 2px;
+}
+.storefront-franchise-search:focus-within {
+  outline: 2px solid var(--concept-green);
+  outline-offset: 2px;
+}
+#catalogo { scroll-margin-top: 90px; }
+@media (max-width: 900px) {
+  #catalogo { scroll-margin-top: 125px; }
+}

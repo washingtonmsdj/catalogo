@@ -25,7 +25,7 @@
     "test:worker-media-contract": "node --experimental-strip-types --test tools/test_worker_media_contract.mjs",
     "test:gallery-runtime": "node --experimental-strip-types --test tools/test_gallery_validation.mjs tools/test_gallery_aggregation.mjs",
     "test:worker-gallery-contract": "node --test tools/test_worker_gallery_contract.mjs",
-    "test:catalog-home": "node --experimental-strip-types --test tools/test_catalog_home_view.mjs",
+    "test:catalog-home": "node --experimental-strip-types --test tools/test_catalog_home_view.mjs tools/test_catalog_home_a11y.mjs",
     "test:gallery-grid": "node --experimental-strip-types --test tools/test_gallery_grid_navigation.mjs",
     "test:worker-folder-counts": "node --test tools/test_worker_folder_counts.mjs",
     "test:legacy-gallery-grouping": "node --experimental-strip-types --test tools/test_legacy_gallery_grouping.mjs",
