@@ -1611,4 +1611,17 @@ body {
     box-sizing: border-box;
     width: 100%;
   }
+  .storefront-hero__nav {
+    top: 14px;
+    transform: none;
+  }
+  .storefront-hero__nav--previous {
+    left: auto;
+    right: 54px;
+  }
+  .storefront-hero__nav--next { right: 13px; }
+  .storefront-hero__dots {
+    top: auto;
+    bottom: 10px;
+  }
 }

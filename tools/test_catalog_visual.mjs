@@ -78,11 +78,23 @@ async function exercise(browser, spec) {
       const frame = document.querySelector('.storefront-hero')?.getBoundingClientRect()
       const title = document.querySelector('.storefront-hero h1')?.getBoundingClientRect()
       if (!frame || !title) return null
-      return { frameTop: frame.top, titleTop: title.top, titleBottom: title.bottom, frameBottom: frame.bottom }
+      const paragraph = document.querySelector('.storefront-hero__copy > p')?.getBoundingClientRect()
+      const dots = document.querySelector('.storefront-hero__dots')?.getBoundingClientRect()
+      const navs = [...document.querySelectorAll('.storefront-hero__nav')].map((node) => node.getBoundingClientRect())
+      const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+      return {
+        frameTop: frame.top, titleTop: title.top, titleBottom: title.bottom, frameBottom: frame.bottom,
+        navOverlapsTitle: navs.some((nav) => intersects(nav, title)),
+        dotsOverlapParagraph: Boolean(dots && paragraph && intersects(dots, paragraph)),
+      }
     })
     assert.ok(hero, 'Hero and heading must exist')
     assert.ok(hero.titleTop >= hero.frameTop - 1 && hero.titleBottom <= hero.frameBottom + 1,
       'Hero title must not be clipped by its container')
+    if (spec.width <= 620) {
+      assert.equal(hero.navOverlapsTitle, false, 'Mobile hero arrows must not obscure the title')
+      assert.equal(hero.dotsOverlapParagraph, false, 'Mobile hero dots must not obscure description')
+    }
     assert.equal(await page.locator('.storefront-sidebar__nav a[href="#colecoes"]').count(), 1)
     await page.keyboard.press('Tab')
     assert.ok(await page.evaluate(() => document.activeElement?.classList.contains('storefront-skip-link')),

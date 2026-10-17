@@ -25,3 +25,5 @@ O teste de navegador também restaura o topo e desfoca o link "Pular para o cat�
 ### Verificação adicional do hero mobile
 
 Ao abrir as capturas regeneradas, o título da chamada principal estava **visualmente cortado no topo** em 320 e 390 px. A causa era a combinação legada de `position:absolute;bottom` no conteúdo mobile com um hero de altura insuficiente e `overflow:hidden`. Em até 620 px, o conteúdo do hero voltou ao fluxo normal e a altura acompanha o texto. O browser agora exige que os limites verticais do `h1` permaneçam dentro do contêiner do hero em todas as seis larguras. Isso protege uma falha que as medições de overflow horizontal da R19 não conseguiam detectar.
+
+A revisão seguinte dos PNGs revelou que as setas do carrossel ainda cruzavam o `h1` e os indicadores apareciam sobre o parágrafo. O CSS R20 os reposiciona no canto superior direito e na margem inferior do hero, respectivamente. O Chromium verifica colisões geométricas das setas com o título e dos indicadores com o parágrafo nos perfis mobile.

@@ -39,3 +39,8 @@ test('R20 browser gate rejects a hero title clipped by its frame', () => {
   assert.match(browser, /Hero title must not be clipped by its container/)
   assert.match(browser, /hero\.titleTop >= hero\.frameTop - 1/)
 })
+
+test('R20 mobile carousel controls cannot cover hero text', () => {
+  assert.match(browser, /Mobile hero arrows must not obscure the title/)
+  assert.match(browser, /Mobile hero dots must not obscure description/)
+})
