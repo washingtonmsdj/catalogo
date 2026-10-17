@@ -66,7 +66,7 @@ async function exercise(browser, spec) {
     assert.ok(await page.evaluate(() => document.activeElement?.classList.contains('storefront-skip-link')),
       'Skip link must be the first keyboard stop')
     await page.keyboard.press('Enter')
-    assert.equal(new URL(page.url()).hash, '#catalogo')
+    await page.waitForURL((target) => target.hash === '#catalogo', { timeout: 5000 })
     entry.checks.push('demo, keyboard skip link, editorial collections anchor')
     await page.screenshot({ path: resolve(evidence, spec.name + '-editorial.png'), fullPage: true, animations: 'disabled' })
     entry.screenshots.push(spec.name + '-editorial.png')
