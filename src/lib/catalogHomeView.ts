@@ -25,3 +25,19 @@ export function modelsForCatalogHome<T>(models: readonly T[], resultsMode: boole
   if (resultsMode) return [...models]
   return models.slice(0, Math.max(0, Math.trunc(editorialLimit)))
 }
+
+export type QuoteRailKnownModel = { name: string; slug: string }
+
+export function quoteRailItems<T extends { id: string; name: string }>(
+  selectedIds: readonly string[],
+  pageModels: readonly T[],
+  knownModels: Readonly<Record<string, QuoteRailKnownModel>>,
+  limit = 4,
+) {
+  const byId = new Map(pageModels.map((model) => [model.id, model]))
+  return selectedIds.slice(0, Math.max(0, Math.trunc(limit))).map((id) => {
+    const model = byId.get(id)
+    const known = knownModels[id]
+    return { id, model, name: model?.name || known?.name, slug: known?.slug }
+  })
+}

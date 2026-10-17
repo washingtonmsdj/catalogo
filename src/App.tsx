@@ -265,10 +265,10 @@ export default function App() {
       window.dispatchEvent(new Event('hashchange'))
     }
   }
-  function openKnownModel(id: string, close: () => void) {
+  function openKnownModel(id: string, close?: () => void) {
     const slug = knownModels[id]?.slug
     if (!slug) return
-    close()
+    close?.()
     setModelDetailOpen(true)
     window.location.hash = `modelo=${encodeURIComponent(slug)}`
   }
@@ -344,6 +344,8 @@ export default function App() {
         searchInputRef={searchInputRef}
         favorites={favorites}
         quoteList={quoteList}
+        knownModels={knownModels}
+        onOpenKnownModel={(id) => openKnownModel(id)}
         onOpenExplorer={openExplorer}
         onOpenUpdates={() => setUpdatesOpen(true)}
         onOpenFavorites={() => setFavoritesOpen(true)}
