@@ -74,6 +74,15 @@ async function exercise(browser, spec) {
     assert.equal(response?.status(), 200)
     await page.locator('.storefront-model-grid .storefront-model-card').first().waitFor({ state: 'visible', timeout: 18000 })
     assert.ok(await page.getByRole('textbox', { name: 'Buscar no catálogo' }).isVisible())
+    const hero = await page.evaluate(() => {
+      const frame = document.querySelector('.storefront-hero')?.getBoundingClientRect()
+      const title = document.querySelector('.storefront-hero h1')?.getBoundingClientRect()
+      if (!frame || !title) return null
+      return { frameTop: frame.top, titleTop: title.top, titleBottom: title.bottom, frameBottom: frame.bottom }
+    })
+    assert.ok(hero, 'Hero and heading must exist')
+    assert.ok(hero.titleTop >= hero.frameTop - 1 && hero.titleBottom <= hero.frameBottom + 1,
+      'Hero title must not be clipped by its container')
     assert.equal(await page.locator('.storefront-sidebar__nav a[href="#colecoes"]').count(), 1)
     await page.keyboard.press('Tab')
     assert.ok(await page.evaluate(() => document.activeElement?.classList.contains('storefront-skip-link')),

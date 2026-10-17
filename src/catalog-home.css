@@ -1601,3 +1601,14 @@ body {
     height: 212px;
   }
 }
+
+/* R20: mobile hero content must contribute to its height, not be clipped. */
+@media (max-width: 620px) {
+  .storefront-hero { min-height: 0; }
+  .storefront-hero__copy {
+    position: relative;
+    inset: auto;
+    box-sizing: border-box;
+    width: 100%;
+  }
+}

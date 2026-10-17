@@ -34,3 +34,8 @@ test('R20 narrow-phone column count and clean capture position are guarded', () 
   assert.match(browser, /async function resetCapturePosition\(page\)/)
   assert.ok(browser.split('await resetCapturePosition(page)').length === 3)
 })
+
+test('R20 browser gate rejects a hero title clipped by its frame', () => {
+  assert.match(browser, /Hero title must not be clipped by its container/)
+  assert.match(browser, /hero\.titleTop >= hero\.frameTop - 1/)
+})

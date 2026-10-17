@@ -21,3 +21,7 @@ A revisão do artifact CI `catalog-visual-3f0dc4c5622cfb96dd7e5e226e4cfb0eea1a28
 O teste de navegador também restaura o topo e desfoca o link "Pular para o catálogo" **somente depois de testar a navegação pelo teclado**, antes de cada captura. Assim, os PNGs não mostram o foco/posição de rolagem deixados pela etapa de acessibilidade e representam a página desde o início.
 
 `report.json` agora inclui `columns` por largura e o CI exige explicitamente 1 coluna em 320 px e 2 em 390 px, além das verificações existentes de overflow, quote rail e navegação. O CI não analisa automaticamente a qualidade estética das capturas.
+
+### Verificação adicional do hero mobile
+
+Ao abrir as capturas regeneradas, o título da chamada principal estava **visualmente cortado no topo** em 320 e 390 px. A causa era a combinação legada de `position:absolute;bottom` no conteúdo mobile com um hero de altura insuficiente e `overflow:hidden`. Em até 620 px, o conteúdo do hero voltou ao fluxo normal e a altura acompanha o texto. O browser agora exige que os limites verticais do `h1` permaneçam dentro do contêiner do hero em todas as seis larguras. Isso protege uma falha que as medições de overflow horizontal da R19 não conseguiam detectar.
