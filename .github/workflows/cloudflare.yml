@@ -218,6 +218,8 @@ jobs:
         run: node tools/check_promoted_worker_version.mjs "$CATALOG_API_URL" "$STAGED_WORKER_VERSION_ID"
       - name: Verify public media gateway after promotion
         run: python tools/verify_public_catalog.py --api-base "$CATALOG_API_URL"
+      - name: Verify live public catalog hierarchy after promotion
+        run: node tools/check_public_catalog_hierarchy.mjs "$CATALOG_API_URL"
       - name: Verify Workers Cache hit after promotion
         run: node tools/check_worker_cache_hit.mjs "$CATALOG_API_URL"
       - name: Restore previous Worker after failed staged or production smoke

@@ -143,6 +143,20 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertLess(self.workflow.index(release_gate), self.workflow.index(media_gate))
         self.assertLess(self.workflow.index(media_gate), self.workflow.index(cache_gate))
 
+    def test_promoted_public_hierarchy_is_a_separate_fail_closed_release_gate(self):
+        release = "Verify promoted Worker deployment and full public release"
+        media = "Verify public media gateway after promotion"
+        hierarchy = "Verify live public catalog hierarchy after promotion"
+        cache = "Verify Workers Cache hit after promotion"
+        rollback = "Restore previous Worker after failed staged or production smoke"
+        self.assertIn('node tools/check_public_catalog_hierarchy.mjs "$CATALOG_API_URL"', self.workflow)
+        self.assertLess(self.workflow.index(release), self.workflow.index(media))
+        self.assertLess(self.workflow.index(media), self.workflow.index(hierarchy))
+        self.assertLess(self.workflow.index(hierarchy), self.workflow.index(cache))
+        self.assertLess(self.workflow.index(hierarchy), self.workflow.index(rollback))
+        self.assertLess(self.workflow.index("Promote staged Worker version"), self.workflow.index(hierarchy))
+        self.assertNotIn("- 'tools/check_public_catalog_hierarchy.mjs'", self.workflow.split("permissions:", 1)[0])
+
     def test_failed_staged_or_promoted_release_restores_explicit_previous_version(self):
         gate = "Verify promoted Worker deployment and full public release"
         restore_name = "Restore previous Worker after failed staged or production smoke"
@@ -210,7 +224,18 @@ class CatalogMaintenanceWorkflowConfigTests(unittest.TestCase):
         self.assertIn("- verify-legacy-gallery-repairs", self.workflow)
         self.assertIn("- backfill-image-sha", self.workflow)
         self.assertIn("- apply-legacy-gallery-repairs", self.workflow)
+        self.assertIn("- verify-public-hierarchy", self.workflow)
         self.assertNotIn("push:", self.workflow)
+
+    def test_public_hierarchy_verification_is_manual_and_never_writes_data(self):
+        gate = "Validate active Worker health and schema"
+        hierarchy = "Verify public hierarchy (read-only)"
+        self.assertIn("if: ${{ inputs.operation == 'verify-public-hierarchy' }}", self.workflow)
+        self.assertIn('node tools/check_public_catalog_hierarchy.mjs "$CATALOG_API_URL"', self.workflow)
+        self.assertLess(self.workflow.index(gate), self.workflow.index(hierarchy))
+        self.assertLess(self.workflow.index(hierarchy), self.workflow.index("Audit D1 structural integrity"))
+        self.assertNotIn("tools/verify_public_catalog.py --exhaustive", self.workflow)
+        self.assertNotIn("check_public_catalog_hierarchy.mjs --apply", self.workflow)
 
     def test_maintenance_serializes_with_production_deploy(self):
         self.assertIn("group: cloudflare-api", self.workflow)

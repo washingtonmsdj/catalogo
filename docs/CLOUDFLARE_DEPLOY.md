@@ -93,9 +93,10 @@ O CI de PR continua executando dry-run estrito do Wrangler com segredo sintétic
 14. promover `staged@100%`;
 15. confirmar bounded que o plano de controle aponta exatamente para a versão staged e que o contrato público convergiu;
 16. **provar um objeto de mídia real em `/media/<storage-key>` pela mesma origem do Worker**;
-17. provar `Workers Cache` com HIT real dentro da janela bounded;
-18. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
-19. executar auditoria D1 read-only em todo deploy, sem depender de mudança de schema.
+17. validar a navegação pública real `categoria → franquia → pasta → modelo → detalhe` com o verificador canônico de até 12 GETs, sem escrita D1;
+18. provar `Workers Cache` com HIT real dentro da janela bounded;
+19. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
+20. executar auditoria D1 read-only em todo deploy, sem depender de mudança de schema.
 
 Upload, migrations, deployment, promoção e rollback não são repetidos automaticamente. Retry bounded existe apenas para verificações read-only.
 
@@ -122,6 +123,14 @@ Auditoria completa:
 ```powershell
 python tools/verify_public_catalog.py --api-base https://<worker> --exhaustive --all-galleries
 ```
+
+### Gate real de hierarquia (R32)
+
+`tools/check_public_catalog_hierarchy.mjs` reutiliza `verifyWorkerHealth` e só consulta os endpoints públicos quando a integridade do esquema for comprovada. São, no máximo, **12 GETs por execução**, incluindo o health; não há leitura direta via API administrativa D1, escrita de dados, inventário fictício ou tentativas automáticas em loop.
+
+O workflow de publicação executa o gate **após** a promoção e a validação da mídia e **antes** do gate de cache. Qualquer falha mantém o deploy reprovado e aciona o rollback existente. Na manutenção, a opção manual `verify-public-hierarchy` executa a mesma prova apenas após o health obrigatório, sem aplicar migrações nem alterações de dados. Quando a quota estiver esgotada, ambos falham fechado; **não executar repetidamente** esperando que o limite seja contornado.
+
+A inclusão do gate apenas nos arquivos de orquestração e documentação não deve acionar um deploy do Worker por si só. Não executar `workflow_dispatch` de deploy enquanto a API estiver em 503.
 
 ## Workers Cache
 

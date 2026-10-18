@@ -30,3 +30,9 @@ Auditoria de código: `worker/index.ts` chama `catalogSchemaStatus` como guard d
 `worker/schemaContract.ts` passa a compartilhar uma única promessa de auditoria por instância, inclusive nas primeiras requisições simultâneas. O resultado válido continua em cache por toda a vida da instância. Um estado `ready=false` fica em cache por 30 segundos na mesma instância, depois uma nova requisição força uma auditoria real; durante a janela o Worker continua negando operações dependentes de D1 com HTTP 503. Não existe modo offline, bypass de esquema, outro banco, nem resposta `ok=true` sem auditoria.
 
 Testes exercitam 40 pedidos simultâneos na primeira validação, 30 concorrentes quando a quota falha, ausência de rechecagem antecipada, recuperação após os 30 segundos e permanência do cache saudável. A publicação depende dos gates de deploy Cloudflare existentes e ficará bloqueada se o health do Worker continuar em 503.
+
+## R32 — Gate de hierarquia no release e operação manual
+
+O mesmo script `tools/check_public_catalog_hierarchy.mjs` da R30 foi ligado ao **workflow já existente** de produção, depois da verificação de versão promovida e da mídia pública, antes do cache; falhas usam o rollback pós-stage já existente. O menu `Maintain Catalog Data` ganhou `verify-public-hierarchy`, operação manual que executa exclusivamente GETs após o health canônico e nunca aciona manutenção de dados. A suíte de contrato de workflows garante a ordem, o gatilho estritamente manual e o não acionamento de deploy por mudanças apenas na orquestração. Nenhum script paralelo de descoberta foi criado.
+
+A R31 ainda está pendente de promoção enquanto o health do Worker continuar 503. Essa R32 **não comprova** recuperação real do D1. Evitar reruns periódicos do deploy em quota esgotada.
