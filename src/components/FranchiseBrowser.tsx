@@ -231,7 +231,7 @@ export function FranchiseBrowser({
 
   return (
     <div className="modal-backdrop explorer-backdrop" onMouseDown={onClose}>
-      <section className="explorer-modal" role="dialog" aria-modal="true" aria-labelledby="explorer-title" onMouseDown={(event) => event.stopPropagation()}>
+      <section className={`explorer-modal ${browsingFranchise ? "explorer-modal--folders" : ""}`} role="dialog" aria-modal="true" aria-labelledby="explorer-title" onMouseDown={(event) => event.stopPropagation()}>
         <div className="modal-head explorer-head">
           <div>
             <span>{browsingFranchise ? 'ESTRUTURA DA FRANQUIA' : 'NAVEGADOR DO ACERVO'}</span>

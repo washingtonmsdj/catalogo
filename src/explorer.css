@@ -342,3 +342,6 @@
   .explorer-folder-navigation button { flex: 1 1 auto; }
   .explorer-folder-navigation .explorer-folder-all { margin-left: 0; }
 }
+
+/* The folder drill-down has two actual grid rows, not four empty search rows. */
+.explorer-modal--folders { grid-template-rows: auto minmax(0, 1fr); }
