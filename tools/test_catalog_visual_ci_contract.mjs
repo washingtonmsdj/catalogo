@@ -51,13 +51,13 @@ test('R21 browser audit requires in-flow collection actions on mobile and tablet
   assert.match(browser, /Collection actions must fit the viewport/)
   assert.match(browser, /Collection actions need 44px touch targets/)
   assert.match(browser, /Desktop collections shortcut remains fixed/)
-  assert.match(browser, /both collection dialogs open and close from the in-flow action dock/)
+  assert.match(browser, /both collection dialogs close and restore keyboard focus/)
 })
 
 test('R22 sticky header reaches the canonical collections dialog without overlay', () => {
   assert.match(browser, /Abrir minhas coleções pelo cabeçalho/)
   assert.match(browser, /Header collection shortcut must stay reachable after scrolling/)
-  assert.match(browser, /Header shortcut must open the same collections modal as the footer dock/)
+  assert.match(browser, /Header shortcut must open canonical collections dialog/)
   assert.match(browser, /Wide desktop retains the reserved fixed dock/)
 })
 
