@@ -154,7 +154,7 @@
   gap: 8px;
   padding-top: 12px;
 }
-.explorer-grid > button {
+:is(.explorer-grid > button, .explorer-grid__franchise > button:first-child) {
   min-width: 0;
   min-height: 74px;
   display: grid;
@@ -170,8 +170,8 @@
   text-align: left;
   box-shadow: inset 0 1px rgba(255,255,255,.018);
 }
-.explorer-grid > button:hover,
-.explorer-grid > button:focus-visible {
+:is(.explorer-grid > button, .explorer-grid__franchise > button:first-child):hover,
+:is(.explorer-grid > button, .explorer-grid__franchise > button:first-child):focus-visible {
   border-color: #725932;
   background: linear-gradient(180deg, #16191a, #11130f);
   transform: translateY(-1px);
@@ -206,7 +206,7 @@
 .explorer-grid__count strong { color: #d3a15b; font: 900 13px "Courier New", monospace; }
 .explorer-grid__count small { color: #70777b; font: 700 8px "Courier New", monospace; text-transform: uppercase; }
 .explorer-grid__arrow { color: #6f7679; font-size: 20px; }
-.explorer-grid > button:hover .explorer-grid__arrow { color: #d7a253; }
+:is(.explorer-grid > button, .explorer-grid__franchise > button:first-child):hover .explorer-grid__arrow { color: #d7a253; }
 
 .explorer-empty {
   min-height: 280px;
@@ -286,6 +286,59 @@
   .explorer-categories button { min-width: 118px; }
   .explorer-results { padding: 0 10px 12px; }
   .explorer-grid { grid-template-columns: 1fr; }
-  .explorer-grid > button { min-height: 68px; }
+  :is(.explorer-grid > button, .explorer-grid__franchise > button:first-child) { min-height: 68px; }
   .explorer-results__head { min-height: 58px; }
+}
+
+/* R28: canonical folder tree, reused in the responsive explorer. */
+.explorer-grid__franchise { min-width: 0; display: grid; grid-template-rows: minmax(74px, auto) auto; }
+.explorer-grid__franchise > button:first-child { border-radius: 3px 3px 0 0; }
+.explorer-grid__browse {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; min-height: 44px; padding: 0 13px;
+  border: 1px solid #363f3b; border-top: 0; border-radius: 0 0 3px 3px;
+  background: #131b18; color: #b9dfc5;
+  font: 750 11px/1 ui-sans-serif, system-ui, sans-serif;
+  text-align: left; cursor: pointer;
+}
+.explorer-grid__browse span { font-size: 20px; }
+.explorer-grid__browse:hover, .explorer-grid__browse:focus-visible {
+  border-color: #64a582; color: #f4fff8; background: #1a3026;
+}
+.explorer-folder-workspace { min-height: 0; overflow-y: auto; padding: 14px 18px 22px; }
+.explorer-folder-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+.explorer-folder-navigation button {
+  min-height: 44px; padding: 0 15px; border: 1px solid #49574c;
+  background: #15201a; color: #e9f0e9; border-radius: 5px;
+  font: 750 12px/1.2 ui-sans-serif, system-ui, sans-serif; cursor: pointer;
+}
+.explorer-folder-navigation .explorer-folder-all { margin-left: auto; border-color: #72946c; background: #253a2b; }
+.explorer-folder-navigation button:hover, .explorer-folder-navigation button:focus-visible { border-color: #a6c6aa; color: #fff; }
+.explorer-folder-structure { border: 1px solid #344039; border-radius: 8px; padding: 8px; background: #101713; }
+.explorer-folder-structure .storefront-folder-tree { padding: 2px 0 6px; }
+.explorer-folder-structure .storefront-folder-tree::before { display: none; }
+.explorer-folder-structure .storefront-tree-row {
+  --tree-indent: min(calc(var(--tree-depth, 0) * 16px), 88px);
+  min-height: 44px; grid-template-columns: 44px minmax(0, 1fr);
+  color: #dce8df; border-radius: 5px;
+}
+.explorer-folder-structure .storefront-tree-row.is-group { margin-block: 4px; border-color: #31443a; background: #1a2820; color: #ecf5e9; }
+.explorer-folder-structure .storefront-tree-row:hover, .explorer-folder-structure .storefront-tree-row.is-active { background: #264635; color: #fff; }
+.explorer-folder-structure .storefront-tree-row.is-group .storefront-tree-select strong { color: #e8f5e9; }
+.explorer-folder-structure .storefront-tree-row.is-group .storefront-tree-select small { color: #a0c7ad; }
+.explorer-folder-structure .storefront-tree-toggle { width: 44px; height: 44px; color: #9bd6b3; font-size: 17px; }
+.explorer-folder-structure .storefront-tree-leaf { width: 44px; color: #86ad93; }
+.explorer-folder-structure .storefront-tree-select { min-height: 44px; padding: 4px 9px; }
+.explorer-folder-structure .storefront-tree-select strong { font-size: 13px; color: inherit; white-space: normal; overflow-wrap: anywhere; }
+.explorer-folder-structure .storefront-tree-select small { font-size: 10px; color: #acc7b3; }
+.explorer-folder-structure .storefront-tree-status,
+.explorer-folder-structure .storefront-tree-retry { min-height: 44px; color: #d5e9d7; font-size: 12px; padding-left: 14px; }
+.explorer-folder-structure .storefront-tree-retry { color: #ebbb79; }
+.explorer-folder-structure .storefront-folder-tree__all { min-height: 44px; color: #b7e8c4; font-size: 12px; }
+.explorer-folder-structure button:focus-visible { outline: 2px solid #c4e5c8; outline-offset: 1px; }
+@media (max-width: 680px) {
+  .explorer-folder-workspace { padding: 10px; }
+  .explorer-folder-navigation { align-items: stretch; }
+  .explorer-folder-navigation button { flex: 1 1 auto; }
+  .explorer-folder-navigation .explorer-folder-all { margin-left: 0; }
 }
