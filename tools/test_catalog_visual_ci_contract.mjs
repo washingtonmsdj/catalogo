@@ -60,3 +60,11 @@ test('R22 sticky header reaches the canonical collections dialog without overlay
   assert.match(browser, /Header shortcut must open the same collections modal as the footer dock/)
   assert.match(browser, /Wide desktop retains the reserved fixed dock/)
 })
+
+test('R23 modal focus management checks both openers and keyboard wrap', () => {
+  assert.match(browser, /Opening collections from header must focus the close control/)
+  assert.match(browser, /Reverse Tab must remain inside the collections dialog/)
+  assert.match(browser, /Closing collections must restore focus to the header shortcut/)
+  assert.match(browser, /Close button must restore focus to the footer collections trigger/)
+  assert.match(browser, /Share dialog must restore focus to its opener/)
+})

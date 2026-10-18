@@ -152,10 +152,21 @@ async function exercise(browser, spec) {
       assert.ok(stickyBox && stickyBox.y >= -1 && stickyBox.y + stickyBox.height <= spec.height + 1,
         'Header collection shortcut must stay reachable after scrolling')
       await shortcut.click()
-      assert.ok(await page.getByRole('dialog', { name: 'Minhas coleções' }).isVisible(),
-        'Header shortcut must open the same collections modal as the footer dock')
-      await page.getByRole('button', { name: 'Fechar coleções' }).click()
-      entry.checks.push('canonical collections modal opened from sticky header')
+      const headerDialog = page.getByRole('dialog', { name: 'Minhas coleções' })
+      assert.ok(await headerDialog.isVisible(), 'Header shortcut must open canonical collections dialog')
+      assert.ok(await page.getByRole('button', { name: 'Fechar coleções' }).evaluate((node) => node === document.activeElement),
+        'Opening collections from header must focus the close control')
+      await page.keyboard.press('Shift+Tab')
+      assert.ok(await headerDialog.evaluate((node) => node.contains(document.activeElement)),
+        'Reverse Tab must remain inside the collections dialog')
+      await page.keyboard.press('Tab')
+      assert.ok(await page.getByRole('button', { name: 'Fechar coleções' }).evaluate((node) => node === document.activeElement),
+        'Tab must wrap back to the first collections control')
+      await page.keyboard.press('Escape')
+      await headerDialog.waitFor({ state: 'hidden' })
+      assert.ok(await shortcut.evaluate((node) => node === document.activeElement),
+        'Closing collections must restore focus to the header shortcut')
+      entry.checks.push('collections focus trapped and restored after header Escape')
     } else {
       assert.equal(await page.getByRole('button', { name: 'Abrir minhas coleções pelo cabeçalho' }).isVisible(), false,
         'Wide desktop retains the reserved fixed dock instead of duplicate header access')
@@ -165,13 +176,34 @@ async function exercise(browser, spec) {
     entry.screenshots.push(spec.name + '-results.png')
 
     if ([390, 1024].includes(spec.width)) {
-      await page.getByRole('button', { name: 'Abrir minhas coleções', exact: true }).click()
-      assert.ok(await page.getByRole('dialog', { name: 'Minhas coleções' }).isVisible())
+      const collectionTrigger = page.getByRole('button', { name: 'Abrir minhas coleções', exact: true })
+      await collectionTrigger.click()
+      const collectionsDialog = page.getByRole('dialog', { name: 'Minhas coleções' })
+      assert.ok(await collectionsDialog.isVisible())
+      assert.ok(await page.getByRole('button', { name: 'Fechar coleções' }).evaluate((node) => node === document.activeElement),
+        'Collections must put initial focus inside the modal')
       await page.getByRole('button', { name: 'Fechar coleções' }).click()
-      await page.getByRole('button', { name: 'Compartilhar uma coleção' }).click()
-      assert.ok(await page.getByRole('dialog', { name: 'Compartilhar coleção' }).isVisible())
-      await page.getByRole('button', { name: 'Fechar compartilhamento' }).click()
-      entry.checks.push('both collection dialogs open and close from the in-flow action dock')
+      await collectionsDialog.waitFor({ state: 'hidden' })
+      assert.ok(await collectionTrigger.evaluate((node) => node === document.activeElement),
+        'Close button must restore focus to the footer collections trigger')
+
+      const shareTrigger = page.getByRole('button', { name: 'Compartilhar uma coleção' })
+      await shareTrigger.click()
+      const shareDialog = page.getByRole('dialog', { name: 'Compartilhar coleção' })
+      assert.ok(await shareDialog.isVisible())
+      assert.ok(await page.getByRole('button', { name: 'Fechar compartilhamento' }).evaluate((node) => node === document.activeElement),
+        'Share dialog must focus the close control')
+      await page.keyboard.press('Shift+Tab')
+      assert.ok(await shareDialog.evaluate((node) => node.contains(document.activeElement)),
+        'Reverse Tab must stay inside the share dialog')
+      await page.keyboard.press('Tab')
+      assert.ok(await page.getByRole('button', { name: 'Fechar compartilhamento' }).evaluate((node) => node === document.activeElement),
+        'Tab must wrap inside the share dialog')
+      await page.keyboard.press('Escape')
+      await shareDialog.waitFor({ state: 'hidden' })
+      assert.ok(await shareTrigger.evaluate((node) => node === document.activeElement),
+        'Share dialog must restore focus to its opener')
+      entry.checks.push('both collection dialogs close and restore keyboard focus')
     }
     if ([390, 1920].includes(spec.width)) {
       const quote = page.locator('.storefront-model-grid.is-results .storefront-model-card__quote').first()

@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { TurnstileWidget, isTurnstileConfigured } from './TurnstileWidget'
+import { useCollectionDialogFocus } from './useCollectionDialogFocus'
 import {
   MAX_COLLECTIONS,
   loadCollections,
@@ -55,6 +56,7 @@ function readableExpiration(value: string) {
 export function SharedCollectionsDock() {
   const live = isSharedCollectionsLive()
   const [open, setOpen] = useState(false)
+  const dialogRef = useCollectionDialogFocus(open, () => setOpen(false))
   const [collections, setCollections] = useState<UserCollection[]>(loadCollections)
   const [selectedId, setSelectedId] = useState('')
   const [shareResult, setShareResult] = useState<SharedCollection | null>(null)
@@ -109,9 +111,6 @@ export function SharedCollectionsDock() {
     const current = loadCollections()
     setCollections(current)
     setSelectedId((id) => current.some((item) => item.id === id) ? id : current[0]?.id ?? '')
-    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
-    window.addEventListener('keydown', close)
-    return () => window.removeEventListener('keydown', close)
   }, [open])
 
   const selected = useMemo(() => collections.find((item) => item.id === selectedId) ?? null, [collections, selectedId])
@@ -192,8 +191,8 @@ export function SharedCollectionsDock() {
     <>
       <button type="button" className="collections-share-trigger" onClick={openShare} aria-label="Compartilhar uma coleção">↗ <span aria-hidden="true">Compartilhar</span></button>
       {open && <div className="modal-backdrop collections-share-backdrop" onMouseDown={() => setOpen(false)}>
-        <section className="collections-share-modal" role="dialog" aria-modal="true" aria-labelledby="shared-collections-title" onMouseDown={(event) => event.stopPropagation()}>
-          <div className="modal-head"><div><span>LINK DE COLEÇÃO</span><h2 id="shared-collections-title">{incoming ? incoming.name : 'Compartilhar coleção'}</h2><p>{incoming ? 'Seleção compartilhada por link público temporário.' : 'Crie um link curto sem expor sua lista inteira na URL.'}</p></div><button type="button" aria-label="Fechar compartilhamento" onClick={() => setOpen(false)}>×</button></div>
+        <section ref={dialogRef} tabIndex={-1} className="collections-share-modal" role="dialog" aria-modal="true" aria-labelledby="shared-collections-title" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="modal-head"><div><span>LINK DE COLEÇÃO</span><h2 id="shared-collections-title">{incoming ? incoming.name : 'Compartilhar coleção'}</h2><p>{incoming ? 'Seleção compartilhada por link público temporário.' : 'Crie um link curto sem expor sua lista inteira na URL.'}</p></div><button type="button" data-dialog-initial-focus aria-label="Fechar compartilhamento" onClick={() => setOpen(false)}>×</button></div>
 
           {loadingIncoming ? <div className="collections-share-state"><strong>CARREGANDO COLEÇÃO</strong><p>Buscando a seleção compartilhada…</p></div> : incoming ? <div className="collections-share-body">
             <div className="collections-share-summary"><div><span>Modelos disponíveis</span><strong>{incoming.availableCount}/{incoming.itemCount}</strong></div><div><span>Link válido até</span><strong>{readableExpiration(incoming.expiresAt)}</strong></div></div>
