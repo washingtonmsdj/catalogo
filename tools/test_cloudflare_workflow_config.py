@@ -24,6 +24,10 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("credencial ausente é falha de deploy", self.workflow)
         self.assertIn("exit 1", self.workflow)
 
+    def test_deploy_workflow_policy_changes_trigger_self_validation(self):
+        self.assertIn("- '.github/workflows/cloudflare.yml'", self.workflow)
+        self.assertIn("branches: [main]", self.workflow)
+
     def test_deploy_still_requires_secrets_when_preflight_is_ready(self):
         self.assertIn("CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}", self.workflow)
         self.assertIn("TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}", self.workflow)

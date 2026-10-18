@@ -165,3 +165,7 @@ O health do Worker diferencia `d1_daily_read_quota_exceeded` de `schema_query_un
 ### Distinção API de administração x binding do Worker — R26d
 
 A auditoria estrutural canônica via endpoint administrativo D1 passou em 18/10/2026, enquanto a versão staged seguia retornando `d1_daily_read_quota_exceeded` no binding do Worker. Por isso, em deploy **sem alteração de schema**, o fluxo também executa `node tools/check_worker_health.mjs "$CATALOG_API_URL"` no Worker **atualmente ativo**, antes do upload. Falha de disponibilidade nessa leitura bloqueia a tentativa sem criar Worker version. Essa prova também não garante que uma versão staged nova terá quota suficiente; o smoke staged e rollback continuam incondicionais. Em deploy com migração, a validação do novo schema só se torna possível após aplicar as migrações e continua protegida por staging.
+
+### Autovalidação do workflow
+
+A configuração `.github/workflows/cloudflare.yml` está incluída nos caminhos que disparam `Deploy Cloudflare API` em push para `main`. Alterações em gates, rollback ou ordem de deploy não podem entrar sem disparar a própria execução real; os contratos Python também verificam essa regra. O preflight ativo não substitui health staged nem serve como permissão para publicar quando o D1 está indisponível.
