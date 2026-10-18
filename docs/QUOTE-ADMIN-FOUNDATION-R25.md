@@ -30,3 +30,11 @@ A preparação é intencionalmente separada da ativação em produção. Não h�
 - `worker/quoteWorkflow.ts` segue o SSOT da máquina de estados. O teste SQLite verifica **todos os pares de estados** contra o contrato TypeScript, bloqueando divergências entre aplicação e banco.
 - O contrato D1 e a política `migrate-before-worker` incluem a migração; o novo SQL é exclusivamente expansivo e compatível com o Worker público anterior.
 - Nenhum endpoint admin, credencial ou interface de gestão é ativado por este passo. Ainda são exigidas a aplicação Cloudflare Access/MFA real, configuração privada e E2E antes do acesso a dados pessoais.
+
+## R25c — Auditoria D1 alinhada ao schema e às aprovações
+
+- A consulta estrutural usa uma relação `VALUES` derivada do contrato versionado, sem encadear `UNION ALL` e sem multiplicar parâmetros; isso evita os limites de termos e bind constatados no D1 remoto.
+- A auditoria aceita nomes distintos na galeria **somente** quando houver aprovação explícita e imutável do par canônico/fonte, conforme o guard da migração 0020. Estados de publicação inválidos permanecem erros.
+- O teste inclui 650 colunas e os casos de aprovação correta/incorreta. Não há escrita de dados na auditoria.
+- A auditoria é obrigatória após cada deploy e alterações no verificador/contrato também acionam o workflow Cloudflare.
+

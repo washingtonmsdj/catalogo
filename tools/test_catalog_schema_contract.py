@@ -73,7 +73,10 @@ class CatalogSchemaContractTests(unittest.TestCase):
         statement = schema_structure_statement(contract)
 
         self.assertIn("sqlite_schema", statement["sql"])
-        self.assertIn("pragma_table_info('models')", statement["sql"])
+        self.assertIn("pragma_table_info(requirements.table_name)", statement["sql"])
+        self.assertIn("WITH requirements(", statement["sql"])
+        self.assertNotIn("UNION ALL", statement["sql"])
+        self.assertEqual(statement["params"], [])
 
         rows = [
             {"structure_key": "table:model_gallery_members"},
@@ -87,6 +90,25 @@ class CatalogSchemaContractTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "estrutura D1 diverge"):
             validate_schema_structures(contract, rows[:-1])
+
+    def test_structure_statement_avoids_union_and_parameter_limits(self) -> None:
+        contract = {"requiredObjects": {
+            "tables": ["many_columns"],
+            "indexes": [],
+            "triggers": [],
+            "columns": {"many_columns": [f"col_{i}" for i in range(650)]},
+        }}
+        statement = schema_structure_statement(contract)
+        self.assertNotIn("UNION ALL", statement["sql"])
+        self.assertEqual(statement["params"], [])
+        db = sqlite3.connect(":memory:")
+        try:
+            db.execute("CREATE TABLE many_columns (" +
+                       ",".join(f"col_{i} TEXT" for i in range(650)) + ")")
+            rows = [{"structure_key": row[0]} for row in db.execute(statement["sql"]).fetchall()]
+            self.assertEqual(validate_schema_structures(contract, rows)["verifiedStructures"], 651)
+        finally:
+            db.close()
 
     def test_structure_statement_executes_against_real_sqlite_schema(self) -> None:
         db = sqlite3.connect(":memory:")
