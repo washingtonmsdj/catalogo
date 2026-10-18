@@ -217,6 +217,21 @@ async function exercise(browser, spec) {
         () => document.querySelectorAll('.storefront-model-grid.is-results > .storefront-model-card').length === 1,
         null, { timeout: 7000 },
       )
+      if (spec.width === 390) {
+        await page.locator('.storefront-commandbar__actions button.is-primary').click()
+        const quoteDialog = page.getByRole('dialog', { name: 'Solicitar orçamento' })
+        await quoteDialog.waitFor({ state: 'visible' })
+        await quoteDialog.locator('input[name="name"]').fill('Cliente Demo')
+        await quoteDialog.locator('input[name="email"]').fill('teste@example.com')
+        await quoteDialog.getByRole('button', { name: /Enviar solicitação/ }).click()
+        await page.getByRole('dialog', { name: 'Solicitação registrada' }).waitFor({ state: 'visible' })
+        assert.ok((await page.locator('.quote-receipt code').innerText()).startsWith('DEMO-'),
+          'Only a demo receipt should be shown by the test catalog')
+        assert.equal(await page.evaluate(() => localStorage.getItem('tonecos:last-live-quote-receipt')), null,
+          'Demo submissions must never be stored as a live quote')
+        await page.getByRole('button', { name: 'Voltar ao catálogo' }).click()
+        entry.checks.push('demo quote request creates no persistent live receipt')
+      }
       entry.checks.push('selection and keyboard search')
     }
     console.log('PASS ' + spec.name + ' (' + entry.layout.documentWidth + 'px document)')
