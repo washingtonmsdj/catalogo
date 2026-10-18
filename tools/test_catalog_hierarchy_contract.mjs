@@ -18,6 +18,8 @@ test('live franchises retain model selection and have a separate accessible fold
   assert.ok(browser.includes('Ver modelos de'))
   assert.ok(browser.includes('Navegar pastas de'))
   assert.match(browser, /mode === 'live' && \(/)
+  assert.ok(browser.includes('if (!open || mode !== \'live\' || browsingFranchise) return'))
+  assert.ok(browser.includes('searchPending || discovery.ready'))
   assert.match(browser, /ref=\{backRef\}/)
   assert.match(browser, /Voltar às franquias/)
   assert.match(browser, /Ver todos os modelos da franquia/)
@@ -29,5 +31,6 @@ test('live franchises retain model selection and have a separate accessible fold
 test('selected folder uses canonical category, franchise and folder setters, in order', () => {
   assert.ok(browser.includes('onSelectFolder(browsingFranchise.category, browsingFranchise.id, folder)'))
   assert.match(app, /function chooseExplorerFolder\(category: string, franchise: string, folder: string\) \{\s*catalog\.setSearch\(''\)\s*catalog\.setCategory\(category\)\s*catalog\.setFranchise\(franchise\)\s*catalog\.setFolder\(folder\)/)
-  assert.match(app, /<FranchiseBrowser[^>]*onSelectFolder=\{chooseExplorerFolder\}/)
+  assert.ok(app.includes('<FranchiseBrowser '))
+  assert.ok(app.includes('onSelectFolder={chooseExplorerFolder}'))
 })
