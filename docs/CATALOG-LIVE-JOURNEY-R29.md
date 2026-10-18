@@ -23,3 +23,7 @@ O check administrativo mínimo da API Cloudflare D1 voltou a responder em 18/10/
 - Inicialização live: `useCatalogRuntime` não depende mais de `demoModels[0].id`, porque o build de produção exclui os dados de demonstração. A seleção fica vazia até a chegada da primeira página real da API.
 - Acesso responsivo: a entrada para o navegador de franquias/pastas fica no cabeçalho para telas até 1080 px, usando a mesma ação de exploração e o estilo de 44 px do botão de coleções, sem inventar outro explorador.
 - No teste, a falha e o retry da pasta são confirmados **antes** da escolha do personagem, distinguindo-os das leituras da trilha ativa feitas pelo runtime.
+
+### Conflito de CSS corrigido
+
+A primeira validação com navegador mostrou que a mesma classe `.storefront-folder-tree`, usada na barra lateral, tinha `display:none` herdado para telas móveis. A árvore do explorador passa a ter `display:block` **somente dentro de `.explorer-folder-structure`**, mantendo a regra que oculta a barra lateral em celulares.

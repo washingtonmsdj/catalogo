@@ -34,3 +34,9 @@ test('selected folder uses canonical category, franchise and folder setters, in 
   assert.ok(app.includes('<FranchiseBrowser '))
   assert.ok(app.includes('onSelectFolder={chooseExplorerFolder}'))
 })
+
+test('reused folder tree remains visible in the modal on mobile while sidebar stays hidden', () => {
+  const fullCss = readFileSync(new URL('../src/catalog-home.css', import.meta.url), 'utf8')
+  assert.match(fullCss, /\.storefront-sidebar__collapse, \.storefront-sidebar__section-head,[^\n]*\.storefront-folder-tree[^\n]*\{ display: none; \}/)
+  assert.match(css, /\.explorer-folder-structure \.storefront-folder-tree \{ display: block;/)
+})
