@@ -29,7 +29,7 @@ export function parseLiveQuoteReceipt(raw: string | null): LiveQuoteReceipt | nu
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
     const v = parsed as Record<string, unknown>
     if (v.version !== 1 || typeof v.reference !== 'string' || !LIVE_REFERENCE.test(v.reference)
-      || !Number.isInteger(v.modelCount) || (v.modelCount as number) < 1 || (v.modelCount as number) > 50
+      || typeof v.modelCount !== 'number' || !Number.isInteger(v.modelCount) || v.modelCount < 1 || v.modelCount > 50
       || typeof v.receivedAt !== 'string') return null
     const date = new Date(v.receivedAt)
     if (!Number.isFinite(date.getTime()) || date.toISOString() !== v.receivedAt) return null
