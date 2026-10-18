@@ -119,7 +119,9 @@ async function exercise(browser, spec) {
   })
   const page = await context.newPage()
   const state = { folderCalls: [], deepRequests: 0, unexpected: [] }
-  const entry = { ...spec, checks: [] }
+  const entry = { ...spec, checks: [], pageErrors: [], consoleErrors: [] }
+  page.on('pageerror', error => entry.pageErrors.push(error.stack || error.message))
+  page.on('console', message => { if (message.type() === 'error') entry.consoleErrors.push(message.text().slice(0, 2500)) })
   report.profiles.push(entry)
 
   await page.route('**/*', async route => {
@@ -146,7 +148,11 @@ async function exercise(browser, spec) {
   try {
     const start = await page.goto(origin, { waitUntil: 'domcontentloaded', timeout: 20000 })
     assert.equal(start?.status(), 200)
-    await page.locator('.storefront-model-grid .storefront-model-card').first().waitFor({ state: 'visible' })
+    await page.waitForFunction(() => Boolean(document.querySelector('.storefront-model-grid .storefront-model-card, .fatal-state')), null, { timeout: 10000 })
+    if (await page.locator('.fatal-state').count()) {
+      throw Error('Live catalog failed during initial render. ' + JSON.stringify({ pageErrors: entry.pageErrors, consoleErrors: entry.consoleErrors, unexpected: state.unexpected }))
+    }
+    await page.locator('.storefront-model-grid .storefront-model-card').first().waitFor({ state: 'visible', timeout: 10000 })
     const openExplorer = async () => {
       await page.locator('button.storefront-filterbar__filters').click()
       await page.getByRole('dialog', { name: 'Encontrar modelos e franquias' }).waitFor({ state: 'visible' })
