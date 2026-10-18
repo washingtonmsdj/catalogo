@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import unittest
 import sqlite3
+from unittest.mock import patch
 
 from audit_d1_integrity import (
+    probe_schema_readability,
     integrity_queries,
     metric_queries,
     validate_integrity_results,
@@ -111,6 +113,38 @@ class AuditD1IntegrityTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, "formato inválido"):
             validate_integrity_results(checks, metrics, results)
+
+    def test_preflight_reuses_exact_schema_queries_and_allows_pending_migration(self) -> None:
+        with patch("audit_d1_integrity._query") as query:
+            query.return_value = [
+                {"success": True, "results": [{"name": "0001_catalog.sql"}]},
+                {"success": True, "results": [{"structure_key": "table:models"}]},
+            ]
+            result = probe_schema_readability("account", "database", "token")
+        self.assertEqual(result["schemaReadable"], True)
+        self.assertEqual(result["observedMigrations"], 1)
+        self.assertEqual(result["observedStructures"], 1)
+        statements = query.call_args.args[3]
+        self.assertEqual(len(statements), 2)
+        self.assertIn("FROM d1_migrations", statements[0]["sql"])
+        self.assertIn("WITH requirements(", statements[1]["sql"])
+        self.assertIn("sqlite_schema", statements[1]["sql"])
+
+    def test_preflight_fails_closed_on_schema_query_error_or_missing_baseline(self) -> None:
+        cases = [
+            ([{"success": True, "results": [{"name": "0001_catalog.sql"}]},
+              {"success": False, "errors": [{"code": 7500}]}],
+             "d1_preflight_schema_query_failed"),
+            ([{"success": True, "results": []}, {"success": True, "results": [{}]}],
+             "d1_schema_baseline_not_confirmed"),
+            ([{"success": True, "results": [{"name": "0001_catalog.sql"}]},
+              {"success": True, "results": []}],
+             "d1_schema_structure_unreadable"),
+        ]
+        for response, error in cases:
+            with self.subTest(error=error), patch("audit_d1_integrity._query", return_value=response):
+                with self.assertRaisesRegex(RuntimeError, error):
+                    probe_schema_readability("account", "database", "token")
 
 
 if __name__ == "__main__":
