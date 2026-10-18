@@ -68,3 +68,11 @@ test('R23 modal focus management checks both openers and keyboard wrap', () => {
   assert.match(browser, /Close button must restore focus to the footer collections trigger/)
   assert.match(browser, /Share dialog must restore focus to its opener/)
 })
+
+test('R29 live-contract browser gate runs independently of production D1 and without demo assets', () => {
+  assert.match(ci, /VITE_CATALOG_MODE: live/)
+  assert.match(ci, /VITE_API_BASE_URL: http:\/\/127\.0\.0\.1:4174\/__catalog_contract__/)
+  assert.match(ci, /node tools\/test_catalog_live_navigation\.mjs/)
+  assert.match(ci, /node tools\/check_demo_catalog_artifact\.mjs "\$CATALOG_LIVE_ARTIFACT_DIR" absent/)
+  assert.match(browser, /Isolated demo build, not public production/)
+})

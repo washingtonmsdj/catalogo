@@ -180,6 +180,21 @@ jobs:
           DEMO_ARTIFACT_DIR: ${{ runner.temp }}/catalog-visual-demo
           CATALOG_VISUAL_DIR: ${{ runner.temp }}/catalog-visual-evidence
         run: node tools/test_catalog_visual.mjs
+      - name: Build isolated live-contract catalog
+        env:
+          VITE_CATALOG_MODE: live
+          VITE_API_BASE_URL: http://127.0.0.1:4174/__catalog_contract__
+          CATALOG_LIVE_ARTIFACT_DIR: ${{ runner.temp }}/catalog-live-contract
+        run: npx vite build --outDir "$CATALOG_LIVE_ARTIFACT_DIR"
+      - name: Verify live-contract build excludes demo data
+        env:
+          CATALOG_LIVE_ARTIFACT_DIR: ${{ runner.temp }}/catalog-live-contract
+        run: node tools/check_demo_catalog_artifact.mjs "$CATALOG_LIVE_ARTIFACT_DIR" absent
+      - name: Test mobile live-contract hierarchy journey
+        env:
+          CATALOG_LIVE_ARTIFACT_DIR: ${{ runner.temp }}/catalog-live-contract
+          CATALOG_VISUAL_DIR: ${{ runner.temp }}/catalog-visual-evidence
+        run: node tools/test_catalog_live_navigation.mjs
       - name: Upload browser evidence even on failure
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
