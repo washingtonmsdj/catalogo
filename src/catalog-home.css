@@ -1652,3 +1652,15 @@ body {
 @media (max-width: 1080px) {
   .storefront-topbar__explore { display: inline-flex; }
 }
+
+/* R29 narrow-phone layout: the search absorbs width before 44px actions. */
+@media (max-width: 359px) {
+  .storefront-topbar { gap: 5px; }
+  .storefront-search {
+    flex: 1 1 0%;
+    min-width: 0;
+    padding-inline: 8px;
+    gap: 5px;
+  }
+  .storefront-topbar__utility { gap: 4px; }
+}
