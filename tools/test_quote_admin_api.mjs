@@ -115,7 +115,7 @@ function memoryDb() {
 test('admin service is unmounted and fail-closed without explicit gate', async () => {
   const store = memoryDb()
   const res = await handleQuoteAdminRequest(req('/api/admin/quotes'),
-    config(store.db, undefined), async () => { throw Error('unwanted JWKS request') })
+    config(store.db, ''), async () => { throw Error('unwanted JWKS request') })
   assert.equal(res.status, 404)
   assert.equal(store.queries, 0)
   assert.equal(res.headers.get('access-control-allow-origin'), null)
