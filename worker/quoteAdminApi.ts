@@ -121,7 +121,11 @@ function decodeCursor(raw: string): Cursor | null {
 }
 
 function parseListRequest(url: URL): { limit: number; cursor: Cursor | null } | null {
-  for (const key of url.searchParams.keys()) if (key !== 'limit' && key !== 'cursor') return null
+  let unknownParameter = false
+  url.searchParams.forEach((_value, key) => {
+    if (key !== 'limit' && key !== 'cursor') unknownParameter = true
+  })
+  if (unknownParameter) return null
   if (url.searchParams.getAll('limit').length > 1 || url.searchParams.getAll('cursor').length > 1) return null
   const rawLimit = url.searchParams.get('limit')
   if (rawLimit !== null && !/^[1-9][0-9]?$/.test(rawLimit)) return null
