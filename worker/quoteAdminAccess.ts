@@ -82,7 +82,10 @@ export async function verifyQuoteAdminAssertion(
       {kty:'RSA',n:matched.n,e:matched.e,alg:'RS256',ext:true},
       {name:'RSASSA-PKCS1-v1_5',hash:'SHA-256'},false,['verify'])
     const signingInput = new TextEncoder().encode(parts[0]+'.'+parts[1])
-    if (!await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,bytes(parts[2]),signingInput)) return null
+    const signature = bytes(parts[2])
+    const signatureBuffer = new ArrayBuffer(signature.byteLength)
+    new Uint8Array(signatureBuffer).set(signature)
+    if (!await crypto.subtle.verify('RSASSA-PKCS1-v1_5',key,signatureBuffer,signingInput)) return null
     if (claims.iss !== issuer
       || !(claims.aud === audience || (Array.isArray(claims.aud) && claims.aud.includes(audience)))
       || typeof claims.sub !== 'string' || !claims.sub || claims.sub.length > 512
