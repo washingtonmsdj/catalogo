@@ -280,6 +280,12 @@ export default function App() {
   function addComparisonToQuote(ids: string[]) { setQuoteList((current) => { const next = [...current]; for (const id of ids) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setCompareOpen(false); setQuoteOpen(true) }
   function chooseExplorerCategory(category: string) { catalog.setSearch(''); catalog.setCategory(category) }
   function chooseExplorerFranchise(category: string, franchise: string) { catalog.setSearch(''); catalog.setCategory(category); catalog.setFranchise(franchise) }
+  function chooseExplorerFolder(category: string, franchise: string, folder: string) {
+    catalog.setSearch('')
+    catalog.setCategory(category)
+    catalog.setFranchise(franchise)
+    catalog.setFolder(folder)
+  }
   function handleGalleryGridKey(event: ReactKeyboardEvent<HTMLDivElement>) {
     const directionByKey: Partial<Record<string, GalleryDirection>> = {
       ArrowLeft: 'left',
@@ -381,7 +387,7 @@ export default function App() {
         onToggleCompare={() => toggleCompare(selected.id)}
         onToggleQuote={() => safeToggleQuote(selected.id)}
       />
-      <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} initialQuery={explorerInitialQuery} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} />
+      <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} activeFranchise={catalog.franchise} activeFolder={catalog.folder} folderTrail={catalog.folderTrail} initialQuery={explorerInitialQuery} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} onSelectFolder={chooseExplorerFolder} />
 
       <ModelComparison open={compareOpen} mode={catalog.mode} ids={compareIds} knownModels={knownModels} onClose={() => setCompareOpen(false)} onRemove={(id) => setCompareIds((current) => current.filter((item) => item !== id))} onClear={() => setCompareIds([])} onOpenModel={(id) => openKnownModel(id, () => setCompareOpen(false))} onAddToQuote={addComparisonToQuote} />
 
