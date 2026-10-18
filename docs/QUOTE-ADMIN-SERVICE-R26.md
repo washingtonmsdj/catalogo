@@ -45,3 +45,7 @@ A publicação passa a verificar a disponibilidade mínima do D1 antes do upload
 ## R26c — Gate completo
 
 Uma primeira sondagem de uma única migração passou quando a verificação de schema no Worker já estava bloqueada pela quota 7500. O gate foi substituído pelas duas consultas canônicas (migrações e estruturas) via `audit_d1_integrity.py --preflight-schema-readability`, antes do upload, sem copiar ou inventar novos SQLs. O mecanismo de staging/rollback continua inalterado.
+
+## R26d — leitura real do binding
+
+A API de administração D1 conseguiu consultar o schema enquanto o binding no Worker staged reportava 7500. Para mudanças de runtime sem migrações, adicionou-se um gate sobre `/api/health` do Worker público ativo, antes do upload. Não substitui o teste da versão staged e não cria autenticação administrativa.
