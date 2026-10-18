@@ -218,7 +218,7 @@ async function exercise(browser, spec) {
         null, { timeout: 7000 },
       )
       if (spec.width === 390) {
-        await page.locator('.storefront-topbar nav button').filter({ hasText: 'Minha lista' }).click()
+        await page.locator('.storefront-commandbar__actions button.is-primary').click()
         const quoteDialog = page.getByRole('dialog', { name: 'Solicitar orçamento' })
         await quoteDialog.waitFor({ state: 'visible' })
         await quoteDialog.locator('input[name="name"]').fill('Cliente Demo')
