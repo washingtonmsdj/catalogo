@@ -78,6 +78,7 @@ export async function verifyWorkerHealth(apiBase, fetchImpl = fetch) {
       if (schema && typeof schema === 'object') {
         const fields = {
           ready: schema.ready === true,
+          errorCode: ['d1_daily_read_quota_exceeded', 'schema_query_unavailable'].includes(schema.errorCode) ? schema.errorCode : null,
           contractVersion: Number.isSafeInteger(schema.contractVersion) ? schema.contractVersion : null,
           appliedMigrations: Number.isSafeInteger(schema.appliedMigrations) ? schema.appliedMigrations : null,
           requiredMigrations: Number.isSafeInteger(schema.requiredMigrations) ? schema.requiredMigrations : null,

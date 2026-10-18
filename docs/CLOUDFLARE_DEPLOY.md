@@ -83,17 +83,18 @@ O CI de PR continua executando dry-run estrito do Wrangler com segredo sintétic
 4. validar drift remoto;
 5. capturar o Version ID que serve 100% do tráfego;
 6. validar o bucket R2 read-only;
-7. criar uma versão staged sem tráfego, com código + secret juntos;
-8. validar política migration-first;
-9. aplicar migrations D1 somente quando o diff realmente altera schema;
-10. registrar `previous@100% + staged@0%`;
-11. executar smoke completo da versão staged por Version Override;
-12. promover `staged@100%`;
-13. confirmar bounded que o plano de controle aponta exatamente para a versão staged e que o contrato público convergiu;
-14. **provar um objeto de mídia real em `/media/<storage-key>` pela mesma origem do Worker**;
-15. provar `Workers Cache` com HIT real dentro da janela bounded;
-16. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
-17. executar auditoria D1 read-only em todo deploy, sem depender de mudança de schema.
+7. testar quota de leitura e baseline do D1 via API (uma leitura parametrizada, sem repetir em erro de quota);
+8. criar uma versão staged sem tráfego, com código + secret juntos;
+9. validar política migration-first;
+10. aplicar migrations D1 somente quando o diff realmente altera schema;
+11. registrar `previous@100% + staged@0%`;
+12. executar smoke completo da versão staged por Version Override;
+13. promover `staged@100%`;
+14. confirmar bounded que o plano de controle aponta exatamente para a versão staged e que o contrato público convergiu;
+15. **provar um objeto de mídia real em `/media/<storage-key>` pela mesma origem do Worker**;
+16. provar `Workers Cache` com HIT real dentro da janela bounded;
+17. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
+18. executar auditoria D1 read-only em todo deploy, sem depender de mudança de schema.
 
 Upload, migrations, deployment, promoção e rollback não são repetidos automaticamente. Retry bounded existe apenas para verificações read-only.
 
@@ -151,3 +152,11 @@ O frontend recebe somente valores públicos. O Turnstile secret nunca vai para o
 - Não enfraquecer gates para fazer deploy passar.
 - Divergência entre dashboard e SSOT deve ser reconciliada conscientemente.
 - Não reintroduzir `VITE_MEDIA_BASE_URL`, `r2.dev` ou custom domain R2 como segunda origem de mídia sem uma decisão arquitetural explícita.
+
+## Quota D1 — diagnóstico R26b
+
+Em 18/10/2026, a API D1 devolveu erro Cloudflare `7500`: limite diário de leituras de linhas do plano gratuito excedido. O antigo `schema_not_ready` mascarava a exceção como se nenhuma migração existisse, mesmo com 21 migrações e 55 estruturas previamente verificadas. A indisponibilidade de consulta **não equivale à ausência de schema**.
+
+`tools/check_d1_readiness.mjs` verifica apenas a existência da migração inicial com query parametrizada, contra o UUID de D1 vindo do `wrangler.jsonc`, **antes de qualquer upload/stage**. Em erro 7500, falha com `d1_daily_read_quota_exceeded` sem retries e sem mostrar respostas ou credenciais. Esse gate só detecta indisponibilidade/quota naquele instante; **não substitui** migrações, smoke completo, auditoria D1 ou rollback. A quota pode se esgotar depois do preflight e a promoção ainda deve falhar. Aumentar capacidade requer alteração explícita do plano Cloudflare; não contornar limites nem usar outro banco sem migração canônica.
+
+O health do Worker diferencia `d1_daily_read_quota_exceeded` de `schema_query_unavailable` e de ausências realmente verificadas; não divulga mensagens de erro SQL nem dados privados.

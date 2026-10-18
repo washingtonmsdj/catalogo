@@ -169,7 +169,19 @@ test('schema lookup failure returns explicit not-ready state', async () => {
 
   assert.equal(status.ready, false)
   assert.equal(status.appliedMigrations, 0)
-  assert.deepEqual(status.missingMigrations, contract.requiredMigrations)
+  assert.deepEqual(status.missingMigrations, []) // unknown, not proved missing
   assert.equal(status.verifiedStructures, 0)
-  assert.deepEqual(status.missingStructures, structureKeys())
+  assert.deepEqual(status.missingStructures, []) // unknown, not proved missing
+  assert.equal(status.errorCode, 'schema_query_unavailable')
+})
+
+
+test('quota exhaustion is not misrepresented as 21 missing migrations', async () => {
+  resetSchemaStatusCacheForTests()
+  const status = await catalogSchemaStatus({prepare() { throw Error('D1 error 7500 daily row read limit; AUTH_TOKEN=secret-do-not-echo') }})
+  assert.equal(status.ready, false)
+  assert.equal(status.errorCode, 'd1_daily_read_quota_exceeded')
+  assert.deepEqual(status.missingMigrations, [])
+  assert.deepEqual(status.missingStructures, [])
+  assert.ok(!JSON.stringify(status).includes('secret-do-not-echo'))
 })

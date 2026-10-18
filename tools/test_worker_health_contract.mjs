@@ -125,3 +125,22 @@ test('non-JSON 503 does not bypass fail closed or log raw response', async () =>
     },
   )
 })
+
+
+test('HTTP 503 diagnostic classifies quota without revealing secrets or claiming missing schema', async () => {
+  await assert.rejects(
+    () => verifyWorkerHealth('https://api.example.com', async () => ({
+      ok: false, status: 503,
+      async json() { return {schema: {
+        ready: false, errorCode: 'd1_daily_read_quota_exceeded',
+        missingMigrations: [], missingStructures: [],
+        secret: 'not-for-logs',
+      }} },
+    })),
+    (error) => {
+      assert.match(error.message, /d1_daily_read_quota_exceeded/)
+      assert.ok(!error.message.includes('not-for-logs'))
+      return true
+    },
+  )
+})

@@ -18,6 +18,8 @@ export type SchemaStatus = {
   requiredStructures: number
   verifiedStructures: number
   missingStructures: string[]
+  /** Present only when verification was impossible, not when objects are missing. */
+  errorCode?: 'd1_daily_read_quota_exceeded' | 'schema_query_unavailable'
 }
 
 type SchemaObjectType = 'table' | 'index' | 'trigger'
@@ -110,7 +112,10 @@ async function readSchemaStatus(db: SchemaDatabase): Promise<SchemaStatus> {
   }
 }
 
-function unavailableStatus(): SchemaStatus {
+function unavailableStatus(error: unknown): SchemaStatus {
+  const message = error instanceof Error ? error.message : ''
+  const quota = /\b7500\b|d1.{0,80}(?:row.read|read.limit|daily.quota)|daily.{0,80}row.read|exceeded.{0,80}row.read/i.test(message)
+
   const structures = requiredStructureKeys()
   return {
     ready: false,
@@ -118,10 +123,13 @@ function unavailableStatus(): SchemaStatus {
     latestMigration: schemaContract.latestMigration,
     requiredMigrations: schemaContract.requiredMigrations.length,
     appliedMigrations: 0,
-    missingMigrations: [...schemaContract.requiredMigrations],
+    // A rejected query cannot prove that migrations are missing.
+    missingMigrations: [],
     requiredStructures: structures.length,
     verifiedStructures: 0,
-    missingStructures: structures,
+    // A rejected query cannot prove that schema objects are missing.
+    missingStructures: [],
+    errorCode: quota ? 'd1_daily_read_quota_exceeded' : 'schema_query_unavailable',
   }
 }
 
@@ -131,8 +139,8 @@ export async function catalogSchemaStatus(db: SchemaDatabase): Promise<SchemaSta
     const status = await readSchemaStatus(db)
     if (status.ready) readyCache = Promise.resolve(status)
     return status
-  } catch {
-    return unavailableStatus()
+  } catch (error) {
+    return unavailableStatus(error)
   }
 }
 
