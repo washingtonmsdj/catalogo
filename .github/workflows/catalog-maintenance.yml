@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - audit
+          - verify-public-hierarchy
           - verify-legacy-gallery-repairs
           - backfill-image-sha
           - apply-legacy-gallery-repairs
@@ -63,6 +64,10 @@ jobs:
           echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
       - name: Validate active Worker health and schema
         run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
+
+      - name: Verify public hierarchy (read-only)
+        if: ${{ inputs.operation == 'verify-public-hierarchy' }}
+        run: node tools/check_public_catalog_hierarchy.mjs "$CATALOG_API_URL"
 
       - name: Audit D1 structural integrity
         if: ${{ inputs.operation == 'audit' }}
