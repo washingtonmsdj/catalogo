@@ -2,6 +2,7 @@
 """Read-only structural integrity audit for the production catalog D1."""
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from typing import Any
@@ -303,6 +304,38 @@ def _query(
     return result
 
 
+def probe_schema_readability(account_id: str, database_id: str, token: str) -> dict[str, Any]:
+    """Read BOTH canonical schema probes before staging.
+
+    This is not a release-success substitute: a newly added migration may still
+    be pending (migration-first), and full validation runs after staging.
+    """
+    contract = load_schema_contract()
+    statements = [
+        schema_migrations_statement(contract),
+        schema_structure_statement(contract),
+    ]
+    results = _query(account_id, database_id, token, statements)
+    migrations, structures = results
+    if any(not isinstance(item, dict) or item.get("success") is not True for item in results):
+        raise RuntimeError("d1_preflight_schema_query_failed")
+    applied = migrations.get("results")
+    found = structures.get("results")
+    if not isinstance(applied, list) or not isinstance(found, list):
+        raise RuntimeError("d1_preflight_schema_response_invalid")
+    baseline = contract["requiredMigrations"][0]
+    if baseline not in {row.get("name") for row in applied if isinstance(row, dict)}:
+        raise RuntimeError("d1_schema_baseline_not_confirmed")
+    if not found:
+        raise RuntimeError("d1_schema_structure_unreadable")
+    return {
+        "schemaReadable": True,
+        "checked": "canonical_migrations_and_structures",
+        "observedMigrations": len(applied),
+        "observedStructures": len(found),
+    }
+
+
 def run_audit(account_id: str, database_id: str, token: str) -> dict[str, Any]:
     contract = load_schema_contract()
     schema_result = _query(
@@ -343,16 +376,30 @@ def run_audit(account_id: str, database_id: str, token: str) -> dict[str, Any]:
     }
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="D1 canonical read-only integrity audit")
+    parser.add_argument("--preflight-schema-readability", action="store_true",
+                        help="prove complete schema-query readability without asserting pending migrations")
+    args = parser.parse_args(argv)
     try:
         account_id = require_env("CLOUDFLARE_ACCOUNT_ID")
         database_id = require_env("CLOUDFLARE_D1_DATABASE_ID")
         token = require_env("CLOUDFLARE_API_TOKEN")
-        result = run_audit(account_id, database_id, token)
+        result = (probe_schema_readability(account_id, database_id, token)
+                  if args.preflight_schema_readability
+                  else run_audit(account_id, database_id, token))
         print(json.dumps(result, ensure_ascii=False))
         return 0
     except (OSError, RuntimeError, ValueError) as exc:
-        print(f"ERRO: {exc}", file=sys.stderr)
+        if args.preflight_schema_readability:
+            # Never print HTTP bodies, SQL statements, customer data or secrets.
+            message = str(exc).lower()
+            code = ("d1_daily_read_quota_exceeded"
+                    if "7500" in message or "daily row read limit" in message
+                    else "d1_preflight_schema_unavailable")
+            print(f"ERRO: {code}", file=sys.stderr)
+        else:
+            print(f"ERRO: {exc}", file=sys.stderr)
         return 2
 
 

@@ -41,3 +41,7 @@ O verificador de saúde agora retorna **somente metadados estruturais limitados*
 No deploy do serviço isolado, o Worker staged devolveu 503. A checagem direta confirmou `Cloudflare 7500` (quota diária de leitura de linhas atingida). As 21 migrações estavam aplicadas antes do esgotamento; o Worker anterior foi restaurado. A operação administrativa continua desativada e a resolução de quota não libera Cloudflare Access.
 
 A publicação passa a verificar a disponibilidade mínima do D1 antes do upload, sem retries em quota diária esgotada. A validação da estrutura completa continua obrigatória durante o staged smoke e na auditoria pós-publicação.
+
+## R26c — Gate completo
+
+Uma primeira sondagem de uma única migração passou quando a verificação de schema no Worker já estava bloqueada pela quota 7500. O gate foi substituído pelas duas consultas canônicas (migrações e estruturas) via `audit_d1_integrity.py --preflight-schema-readability`, antes do upload, sem copiar ou inventar novos SQLs. O mecanismo de staging/rollback continua inalterado.
