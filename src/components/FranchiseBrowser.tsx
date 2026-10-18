@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { models as demoModels } from '../data/mockCatalog'
 import { listCatalogFranchises, listCatalogModels, type CatalogRuntimeMode } from '../services/catalogApi'
 import { FRANCHISE_SEARCH_MIN_LENGTH, type CatalogModelCard } from '../services/catalogRepository'
+import { explorerScopeKey, resolveExplorerSnapshot, type ExplorerSnapshot } from '../lib/explorerDiscovery'
 import type { CatalogCategory, CatalogFranchise } from '../types/catalog'
 
 const DISCOVERY_LIMIT = 48
@@ -84,17 +85,17 @@ export function FranchiseBrowser({
   const searchRef = useRef<HTMLInputElement>(null)
   const [category, setCategory] = useState(activeCategory)
   const [query, setQuery] = useState('')
-  const [items, setItems] = useState<CatalogFranchise[]>([])
-  const [modelItems, setModelItems] = useState<CatalogModelCard[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [truncated, setTruncated] = useState(false)
+  // Atomic snapshot: results and errors always belong to the same query+category.
+  const [liveSnapshot, setLiveSnapshot] = useState<ExplorerSnapshot<CatalogFranchise, CatalogModelCard> | null>(null)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setLiveSnapshot(null)
+      return
+    }
     setCategory(activeCategory)
     setQuery(initialQuery.trim())
-    setError('')
+    setLiveSnapshot(null)
     const frame = window.requestAnimationFrame(() => searchRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
   }, [open, activeCategory, initialQuery])
@@ -104,22 +105,19 @@ export function FranchiseBrowser({
   const queryLength = Array.from(query.trim()).length
   const searchPending = queryLength > 0 && queryLength < FRANCHISE_SEARCH_MIN_LENGTH
   const modelSearchActive = queryLength >= FRANCHISE_SEARCH_MIN_LENGTH
+  const scopeKey = explorerScopeKey(category, query)
+  const discovery = resolveExplorerSnapshot(scopeKey, liveSnapshot)
+  // Pending begins on the same render as a new term/category, before debounce.
+  const loading = mode === 'live' && !searchPending && !discovery.ready
+  const error = mode === 'live' ? discovery.error : ''
+  const truncated = mode === 'live' ? discovery.truncated : false
 
   useEffect(() => {
     if (!open || mode !== 'live') return
-    if (searchPending) {
-      setLoading(false)
-      setError('')
-      setItems([])
-      setModelItems([])
-      setTruncated(false)
-      return
-    }
+    if (searchPending) return
 
     let cancelled = false
     const timer = window.setTimeout(() => {
-      setLoading(true)
-      setError('')
       const franchiseRequest = listCatalogFranchises(category, DISCOVERY_LIMIT, query.trim() || undefined)
       const modelRequest = modelSearchActive
         ? listCatalogModels({
@@ -132,40 +130,45 @@ export function FranchiseBrowser({
       Promise.all([franchiseRequest, modelRequest])
         .then(([franchisePage, modelPage]) => {
           if (cancelled) return
-          setItems(franchisePage.items)
-          setTruncated(franchisePage.truncated)
-          setModelItems(modelPage.items)
+          setLiveSnapshot({
+            scopeKey,
+            franchises: franchisePage.items,
+            models: modelPage.items,
+            truncated: franchisePage.truncated,
+            error: '',
+          })
         })
         .catch(() => {
           if (cancelled) return
-          setItems([])
-          setModelItems([])
-          setTruncated(false)
-          setError('Não foi possível carregar a descoberta do catálogo agora.')
+          setLiveSnapshot({
+            scopeKey,
+            franchises: [],
+            models: [],
+            truncated: false,
+            error: 'Não foi possível carregar a descoberta do catálogo agora.',
+          })
         })
-        .finally(() => { if (!cancelled) setLoading(false) })
     }, query.trim() ? 220 : 0)
 
     return () => {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [open, mode, category, query, modelSearchActive, searchPending])
+  }, [open, mode, category, query, scopeKey, modelSearchActive, searchPending])
 
   if (!open) return null
 
   const needle = normalize(query)
   const visible = mode === 'live'
-    ? items.filter((item) => !needle || normalize(item.label).includes(needle))
+    ? discovery.franchises.filter((item) => !needle || normalize(item.label).includes(needle))
     : demoItems
-  const visibleModels = mode === 'live' ? modelItems : demoModelsFound
+  const visibleModels = mode === 'live' ? discovery.models : demoModelsFound
   const selectedCategoryLabel = categories.find((item) => item.id === category)?.label ?? 'Todos'
   const hasDiscoveryResults = visibleModels.length > 0 || visible.length > 0
 
   function chooseCategory(next: string) {
     setCategory(next)
     setQuery('')
-    setModelItems([])
   }
 
   function chooseFranchise(item: CatalogFranchise) {
@@ -184,7 +187,7 @@ export function FranchiseBrowser({
   }
 
   function handleSearchKey(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key !== 'Enter' || loading) return
+    if (event.key !== 'Enter' || loading || searchPending || error) return
     if (visibleModels[0]) {
       event.preventDefault()
       chooseModel(visibleModels[0])
@@ -241,7 +244,7 @@ export function FranchiseBrowser({
           ))}
         </div>
 
-        <div className="explorer-results" aria-busy={loading}>
+        <div className="explorer-results" aria-busy={loading} aria-live="polite">
           <div className="explorer-results__head">
             <div>
               <span>{selectedCategoryLabel}</span>
@@ -258,14 +261,20 @@ export function FranchiseBrowser({
               <strong>Continue digitando</strong>
               <p>Use pelo menos {FRANCHISE_SEARCH_MIN_LENGTH} caracteres para pesquisar rapidamente no índice do catálogo.</p>
             </div>
-          ) : !loading && !error && !hasDiscoveryResults ? (
+          ) : loading ? (
+            <div className="explorer-empty explorer-empty--hint" role="status">
+              <span aria-hidden="true">⌕</span>
+              <strong>Buscando no acervo…</strong>
+              <p>Consultando modelos e franquias deste recorte.</p>
+            </div>
+          ) : !error && !hasDiscoveryResults ? (
             <div className="explorer-empty">
               <span>⌕</span>
               <strong>Nenhum resultado encontrado</strong>
               <p>Tente outro termo ou volte para “Todos”.</p>
               <button type="button" onClick={() => { setQuery(''); setCategory('all') }}>Limpar recorte</button>
             </div>
-          ) : (
+          ) : error ? null : (
             <>
               {modelSearchActive && visibleModels.length > 0 && (
                 <>
