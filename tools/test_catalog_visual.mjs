@@ -141,12 +141,31 @@ async function exercise(browser, spec) {
     assert.equal(await page.locator('.storefront-sidebar__nav a[href="#colecoes"]').count(), 0)
     assert.equal(await page.locator('.storefront-topbar nav button').filter({ hasText: 'Coleções' }).count(), 1)
     entry.checks.push('responsive results, quote rail and valid collections navigation')
+    if (spec.width < 1500) {
+      const shortcut = page.getByRole('button', { name: 'Abrir minhas coleções pelo cabeçalho' })
+      assert.ok(await shortcut.isVisible(), 'Collections header shortcut must be visible')
+      const buttonBox = await shortcut.boundingBox()
+      assert.ok(buttonBox && buttonBox.width >= 40 && buttonBox.height >= 40,
+        'Header collection shortcut needs a reachable touch target')
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight / 2))
+      const stickyBox = await shortcut.boundingBox()
+      assert.ok(stickyBox && stickyBox.y >= -1 && stickyBox.y + stickyBox.height <= spec.height + 1,
+        'Header collection shortcut must stay reachable after scrolling')
+      await shortcut.click()
+      assert.ok(await page.getByRole('dialog', { name: 'Minhas coleções' }).isVisible(),
+        'Header shortcut must open the same collections modal as the footer dock')
+      await page.getByRole('button', { name: 'Fechar coleções' }).click()
+      entry.checks.push('canonical collections modal opened from sticky header')
+    } else {
+      assert.equal(await page.getByRole('button', { name: 'Abrir minhas coleções pelo cabeçalho' }).isVisible(), false,
+        'Wide desktop retains the reserved fixed dock instead of duplicate header access')
+    }
     await resetCapturePosition(page)
     await page.screenshot({ path: resolve(evidence, spec.name + '-results.png'), fullPage: true, animations: 'disabled' })
     entry.screenshots.push(spec.name + '-results.png')
 
     if ([390, 1024].includes(spec.width)) {
-      await page.getByRole('button', { name: 'Abrir minhas coleções' }).click()
+      await page.getByRole('button', { name: 'Abrir minhas coleções', exact: true }).click()
       assert.ok(await page.getByRole('dialog', { name: 'Minhas coleções' }).isVisible())
       await page.getByRole('button', { name: 'Fechar coleções' }).click()
       await page.getByRole('button', { name: 'Compartilhar uma coleção' }).click()

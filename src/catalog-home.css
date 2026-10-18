@@ -1625,3 +1625,24 @@ body {
     bottom: 10px;
   }
 }
+
+/* R22: reach the existing collections modal through the sticky header, without floating over cards. */
+.storefront-topbar__utility { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.storefront-topbar__collections { display: none; }
+@media (max-width: 1499px) {
+  .storefront-topbar__collections {
+    flex: 0 0 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    box-sizing: border-box; width: 44px; min-width: 44px; height: 44px; padding: 0 10px;
+    border: 1px solid #bdd6c9; border-radius: 10px; background: #ecf5f0;
+    color: #205b45; cursor: pointer;
+  }
+  .storefront-topbar__collections .storefront-icon { width: 19px; height: 19px; }
+  .storefront-topbar__collections > span { display: none; }
+  .storefront-topbar__collections:focus-visible { outline: 3px solid var(--concept-green); outline-offset: 2px; }
+}
+@media (min-width: 1300px) and (max-width: 1499px) {
+  .storefront-topbar__collections { width: auto; flex-basis: auto; }
+  .storefront-topbar__collections > span { display: inline; font: 750 10px/1.2 ui-sans-serif, system-ui; white-space: nowrap; }
+}
+@media (max-width: 1080px) { .storefront-topbar__utility { grid-column: 2; } }
+@media (max-width: 760px) { .storefront-topbar__utility { flex: 0 0 auto; } }
