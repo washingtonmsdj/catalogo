@@ -132,8 +132,8 @@ export function FranchiseBrowser({
   const truncated = mode === 'live' ? discovery.truncated : false
 
   useEffect(() => {
-    if (!open || mode !== 'live') return
-    if (searchPending) return
+    if (!open || mode !== 'live' || browsingFranchise) return
+    if (searchPending || discovery.ready) return
 
     let cancelled = false
     const timer = window.setTimeout(() => {
@@ -173,7 +173,7 @@ export function FranchiseBrowser({
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [open, mode, category, query, scopeKey, modelSearchActive, searchPending])
+  }, [open, mode, category, query, scopeKey, modelSearchActive, searchPending, browsingFranchise, discovery.ready])
 
   if (!open) return null
 
