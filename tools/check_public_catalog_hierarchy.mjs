@@ -6,7 +6,7 @@
  */
 import { verifyWorkerHealth } from './check_worker_health.mjs'
 
-const CANDIDATE_LIMIT = 6
+const CANDIDATE_LIMIT = 5
 const MAX_FOLDER_DEPTH = 3
 
 function validatedBase(apiBase) {
@@ -92,7 +92,7 @@ export async function verifyPublicCatalogHierarchy(apiBase, fetchImpl = fetch) {
     if (candidate) { chosen = { franchise, folder: candidate }; break }
   }
   if (!chosen) {
-    throw new Error('No populated folder found in the first six published franchises; production journey unverified')
+    throw new Error('No populated folder found in the first five published franchises; production journey unverified')
   }
 
   let depth = 1

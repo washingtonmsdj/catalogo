@@ -76,7 +76,7 @@ test('real published hierarchy journey stays read-only, bounded and contract-che
   assert.equal(result.folder, 'herois/personagens')
   assert.equal(result.modelSlug, 'personagem-um')
   assert.equal(result.readOnly, true)
-  assert.equal(calls.length, 7)
+  assert.equal(calls.length, 8)
   assert.deepEqual(calls.slice(-2), ['/api/catalog', '/api/models/personagem-um'])
 })
 
