@@ -1,4 +1,4 @@
-import { isQuoteAdminRole, type QuoteAdminRole } from './quoteWorkflow'
+import { isQuoteAdminRole, type QuoteAdminRole } from './quoteWorkflow.ts'
 
 export type QuoteAdmin = { subject: string; email: string; role: QuoteAdminRole }
 export type Principal = { email: string; role: QuoteAdminRole }
