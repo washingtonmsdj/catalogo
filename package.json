@@ -19,7 +19,7 @@
     "dialog:a11y": "node tools/check_dialog_architecture.mjs",
     "test:wrangler-config": "node --test tools/test_wrangler_config_contract.mjs",
     "test:cloudflare-deploy-state": "node --test tools/test_cloudflare_deploy_state.mjs",
-    "test:worker-release-smoke": "node --test tools/test_worker_release_smoke.mjs",
+    "test:worker-release-smoke": "node --test tools/test_worker_release_smoke.mjs tools/test_public_catalog_hierarchy.mjs",
     "test:promoted-worker": "node --test tools/test_promoted_worker_version.mjs",
     "test:remote-worker-config": "node --test tools/test_remote_worker_config.mjs",
     "test:worker-media-contract": "node --experimental-strip-types --test tools/test_worker_media_contract.mjs",
