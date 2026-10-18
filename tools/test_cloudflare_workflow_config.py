@@ -84,6 +84,16 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertIn("PREVIOUS_WORKER_VERSION_ID=$previous_version", self.workflow)
         self.assertLess(self.workflow.index("Capture current production Worker version"), self.workflow.index("Upload Worker version with required secret and no traffic"))
 
+    def test_runtime_only_deploy_checks_actual_worker_binding_before_upload(self):
+        live_probe = "Verify currently serving Worker health before runtime-only deploy"
+        schema_probe = "Verify canonical D1 schema queries before uploading any Worker version"
+        upload = "Upload Worker version with required secret and no traffic"
+        self.assertIn('node tools/check_worker_health.mjs "$CATALOG_API_URL"', self.workflow)
+        self.assertIn("steps.d1_scope.outputs.run_d1_schema != 'true'", self.workflow)
+        self.assertLess(self.workflow.index(live_probe), self.workflow.index(upload))
+        self.assertLess(self.workflow.index(schema_probe), self.workflow.index(upload))
+        self.assertLess(self.workflow.index(live_probe), self.workflow.index(schema_probe))
+
     def test_staged_worker_version_is_captured_from_structured_wrangler_output(self):
         self.assertIn("WRANGLER_OUTPUT_FILE_PATH:", self.workflow)
         self.assertIn("wrangler-version-upload.ndjson", self.workflow)

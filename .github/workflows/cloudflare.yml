@@ -165,6 +165,9 @@ jobs:
           echo "PREVIOUS_WORKER_VERSION_ID=$previous_version" >> "$GITHUB_ENV"
       - name: Verify R2 bucket
         run: npx wrangler r2 bucket info tonecos-catalogo-media --json
+      - name: Verify currently serving Worker health before runtime-only deploy
+        if: ${{ steps.d1_scope.outputs.run_d1_schema != 'true' }}
+        run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
       - name: Verify canonical D1 schema queries before uploading any Worker version
         run: python tools/audit_d1_integrity.py --preflight-schema-readability
       - name: Upload Worker version with required secret and no traffic
