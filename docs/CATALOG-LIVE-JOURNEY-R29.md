@@ -17,3 +17,9 @@ O script verifica: entrada de filtros, seleção da franquia, árvore canônica,
 ## Pendência de produção
 
 O check administrativo mínimo da API Cloudflare D1 voltou a responder em 18/10/2026, **mas não prova a leitura pelo binding do Worker**. O E2E de contrato não é aprovação de produção. Confirmar via smoke de health real do Worker e, depois, E2E read-only nos endpoints públicos quando a quota diária estiver recuperada. Rotas privadas de administração permanecem desativadas.
+
+## Correções reveladas pela auditoria
+
+- Inicialização live: `useCatalogRuntime` não depende mais de `demoModels[0].id`, porque o build de produção exclui os dados de demonstração. A seleção fica vazia até a chegada da primeira página real da API.
+- Acesso responsivo: a entrada para o navegador de franquias/pastas fica no cabeçalho para telas até 1080 px, usando a mesma ação de exploração e o estilo de 44 px do botão de coleções, sem inventar outro explorador.
+- No teste, a falha e o retry da pasta são confirmados **antes** da escolha do personagem, distinguindo-os das leituras da trilha ativa feitas pelo runtime.

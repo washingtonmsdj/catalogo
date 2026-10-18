@@ -154,7 +154,11 @@ async function exercise(browser, spec) {
     }
     await page.locator('.storefront-model-grid .storefront-model-card').first().waitFor({ state: 'visible', timeout: 10000 })
     const openExplorer = async () => {
-      await page.locator('button.storefront-filterbar__filters').click()
+      const trigger = page.getByRole('button', { name: 'Explorar franquias e pastas' })
+      assert.ok(await trigger.isVisible(), 'Mobile/tablet requires persistent hierarchy entry in header')
+      const target = await trigger.boundingBox()
+      assert.ok(target && target.width >= 40 && target.height >= 44, 'Responsive navigation requires a 44px touch target')
+      await trigger.click()
       await page.getByRole('dialog', { name: 'Encontrar modelos e franquias' }).waitFor({ state: 'visible' })
     }
     await openExplorer()
@@ -165,7 +169,13 @@ async function exercise(browser, spec) {
     await page.getByRole('button', { name: 'Expandir Personagens' }).click()
     await page.getByRole('button', { name: 'Tentar novamente' }).waitFor({ state: 'visible' })
     await page.getByRole('button', { name: 'Tentar novamente' }).click()
-    await page.locator('.explorer-folder-structure .storefront-tree-select', { hasText: 'Ayla' }).click()
+    const ayla = page.locator('.explorer-folder-structure .storefront-tree-select', { hasText: 'Ayla' })
+    await ayla.waitFor({ state: 'visible' })
+    assert.equal(state.deepRequests, 2, 'Nested folder failure must recover with one explicit retry')
+    if (spec.width === 320) await page.screenshot({
+      path: resolve(evidence, 'r29-mobile-folder-hierarchy.png'), fullPage: true, animations: 'disabled',
+    })
+    await ayla.click()
     await page.waitForFunction(() => {
       const url = new URL(window.location.href)
       return url.searchParams.get('categoria') === 'games' &&
@@ -178,7 +188,8 @@ async function exercise(browser, spec) {
       document.querySelectorAll('.storefront-model-grid.is-results .storefront-model-card__main').length === 1,
     null, { timeout: 10000 })
     assert.match(await results.first().innerText(), /Ayla Colecionável/)
-    assert.equal(state.deepRequests, 2, 'One failed nested folder read followed by exactly one successful retry')
+    // The canonical active-folder trail can refresh the same ancestor after selection.
+    assert.ok(state.deepRequests >= 2 && state.deepRequests <= 3, 'Unexpected repeated deep-folder reads')
     entry.checks.push('franchise / nested character folder / retry / URL scope / single filtered model')
 
     await results.first().click()
@@ -209,6 +220,8 @@ async function exercise(browser, spec) {
   } catch (error) {
     const message = error instanceof Error ? error.stack || error.message : String(error)
     entry.error = message
+    entry.folderCalls = state.folderCalls
+    entry.deepRequests = state.deepRequests
     report.failures.push({ profile: spec.name, error: message })
     try { await page.screenshot({ path: resolve(evidence, 'r29-' + spec.name + '-failure.png'), fullPage: true, timeout: 7000 }) }
     catch { /* preserve original failure */ }

@@ -1646,3 +1646,9 @@ body {
 }
 @media (max-width: 1080px) { .storefront-topbar__utility { grid-column: 2; } }
 @media (max-width: 760px) { .storefront-topbar__utility { flex: 0 0 auto; } }
+
+/* R29: a reachable entry to the ONE canonical franchise/folder explorer on mobile. */
+.storefront-topbar__explore { display: none; }
+@media (max-width: 1080px) {
+  .storefront-topbar__explore { display: inline-flex; }
+}
