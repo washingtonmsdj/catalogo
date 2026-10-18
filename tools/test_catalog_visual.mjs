@@ -165,7 +165,7 @@ async function exercise(browser, spec) {
     entry.screenshots.push(spec.name + '-results.png')
 
     if ([390, 1024].includes(spec.width)) {
-      await page.getByRole('button', { name: 'Abrir minhas coleções' }).click()
+      await page.getByRole('button', { name: 'Abrir minhas coleções', exact: true }).click()
       assert.ok(await page.getByRole('dialog', { name: 'Minhas coleções' }).isVisible())
       await page.getByRole('button', { name: 'Fechar coleções' }).click()
       await page.getByRole('button', { name: 'Compartilhar uma coleção' }).click()
