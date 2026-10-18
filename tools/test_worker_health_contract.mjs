@@ -82,3 +82,46 @@ test('HTTP 503 fails closed', async () => {
     /HTTP 503/,
   )
 })
+
+test('503 diagnostic includes only bounded schema metadata and never raw payload', async () => {
+  const fetch = async () => ({
+    ok: false, status: 503,
+    async json() { return {
+      schema: {
+        ready: false,
+        contractVersion: 5,
+        appliedMigrations: 20,
+        requiredMigrations: 21,
+        verifiedStructures: 54,
+        requiredStructures: 55,
+        missingMigrations: ['0021_quote_admin_audit_events.sql'],
+        missingStructures: ['table:quote_status_events'],
+      },
+      customer: { email: 'private@example.com' },
+    } },
+  })
+  await assert.rejects(
+    () => verifyWorkerHealth('https://api.example.com', fetch),
+    (error) => {
+      assert.match(error.message, /HTTP 503/)
+      assert.match(error.message, /0021_quote_admin_audit_events.sql/)
+      assert.match(error.message, /table:quote_status_events/)
+      assert.ok(!error.message.includes('private@example.com'))
+      return true
+    },
+  )
+})
+
+test('non-JSON 503 does not bypass fail closed or log raw response', async () => {
+  await assert.rejects(
+    () => verifyWorkerHealth('https://api.example.com', async () => ({
+      ok: false, status: 503,
+      async json() { throw Error('secret raw error content') },
+    })),
+    (error) => {
+      assert.match(error.message, /HTTP 503/)
+      assert.ok(!error.message.includes('secret raw error content'))
+      return true
+    },
+  )
+})

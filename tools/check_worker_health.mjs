@@ -69,7 +69,33 @@ export async function verifyWorkerHealth(apiBase, fetchImpl = fetch) {
     },
   })
   if (!response?.ok) {
-    throw new Error(`health failed with HTTP ${response?.status ?? 'unknown'}`)
+    // Only schema metadata from our health contract is safe to expose in CI
+    // logs. Never log raw response bodies, headers, tokens or customer data.
+    let diagnostic = ''
+    try {
+      const payload = await response.json()
+      const schema = payload?.schema
+      if (schema && typeof schema === 'object') {
+        const fields = {
+          ready: schema.ready === true,
+          contractVersion: Number.isSafeInteger(schema.contractVersion) ? schema.contractVersion : null,
+          appliedMigrations: Number.isSafeInteger(schema.appliedMigrations) ? schema.appliedMigrations : null,
+          requiredMigrations: Number.isSafeInteger(schema.requiredMigrations) ? schema.requiredMigrations : null,
+          verifiedStructures: Number.isSafeInteger(schema.verifiedStructures) ? schema.verifiedStructures : null,
+          requiredStructures: Number.isSafeInteger(schema.requiredStructures) ? schema.requiredStructures : null,
+          missingMigrations: Array.isArray(schema.missingMigrations)
+            ? schema.missingMigrations.filter(x => typeof x === 'string' && x.length < 140).slice(0, 5) : [],
+          missingStructures: Array.isArray(schema.missingStructures)
+            ? schema.missingStructures.filter(x => typeof x === 'string' && x.length < 140).slice(0, 5) : [],
+        }
+        diagnostic = ' schema=' + JSON.stringify(fields)
+      } else if (payload?.error === 'schema_not_ready') {
+        diagnostic = ' error=schema_not_ready'
+      }
+    } catch {
+      // Even invalid JSON must fail closed without echoing untrusted payload.
+    }
+    throw new Error(`health failed with HTTP ${response?.status ?? 'unknown'}${diagnostic}`)
   }
   return validateWorkerHealth(await response.json())
 }

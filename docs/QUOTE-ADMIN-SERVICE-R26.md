@@ -29,3 +29,9 @@ Todas as respostas exigem autenticação antes de consultas pessoais, usam no-st
 npm run test:quote-admin testa a fundação R25 e o serviço R26 com tokens RSA assinados; tools/test_quote_audit_schema.py exercita a migração D1 em SQLite real.
 
 A vitrine pública e POST /api/quotes não foram modificados.
+
+## R26a — Diagnóstico de publicação staged
+
+A primeira tentativa de publicar a R26 retornou HTTP 503 na verificação de saúde da versão staged, antes de qualquer promoção, e o workflow restaurou a versão pública anterior. Não foram alterados os dados pessoais nem ativada a administração. O status do PR no GitHub não prova o sucesso do deploy Cloudflare.
+
+O verificador de saúde agora retorna **somente metadados estruturais limitados** quando o Worker responde 503 (migrações e estruturas ausentes, se a resposta trouxer esse contrato). Tokens, dados pessoais, headers e corpo HTTP bruto continuam excluídos dos logs. Os gates de staging, promoção e rollback permanecem obrigatórios; não se converte 503 em sucesso.
