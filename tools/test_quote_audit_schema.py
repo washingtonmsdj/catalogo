@@ -13,10 +13,10 @@ STATES = ("new", "in_review", "response_recorded", "closed")
 
 def canonical_transitions() -> set[tuple[str, str]]:
     source = WORKFLOW.read_text(encoding="utf-8")
-    match = re.search(r"export const QUOTE_TRANSITIONS:[^=]+=[ ]*\\{([\\s\\S]*?)\\n\\}", source)
+    match = re.search(r"export const QUOTE_TRANSITIONS:[^=]+=[ ]*\{([\s\S]*?)\n\}", source)
     if not match:
         raise AssertionError("canonical TS transitions missing")
-    rows = re.findall(r"^\\s*(new|in_review|response_recorded|closed):\\s*\\[([^\\]]*)\\]", match.group(1), re.M)
+    rows = re.findall(r"^\s*(new|in_review|response_recorded|closed):\s*\[([^\]]*)\]", match.group(1), re.M)
     if len(rows) != len(STATES):
         raise AssertionError("canonical TS transitions incomplete")
     return {(state, target) for state, targets in rows
