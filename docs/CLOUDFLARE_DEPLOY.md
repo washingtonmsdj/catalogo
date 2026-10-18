@@ -85,17 +85,17 @@ O CI de PR continua executando dry-run estrito do Wrangler com segredo sintétic
 6. validar o bucket R2 read-only;
 7. para deploy sem mudança de schema, verificar `/api/health` do Worker ativo usando o mesmo cliente de health do smoke staged;
 8. validar a leitura das estruturas canônicas do D1 pelo auditor antes de criar versão staged;
-19. criar uma versão staged sem tráfego, com código + secret juntos;
-9. validar política migration-first;
-10. aplicar migrations D1 somente quando o diff realmente altera schema;
-11. registrar `previous@100% + staged@0%`;
-12. executar smoke completo da versão staged por Version Override;
-13. promover `staged@100%`;
-14. confirmar bounded que o plano de controle aponta exatamente para a versão staged e que o contrato público convergiu;
-15. **provar um objeto de mídia real em `/media/<storage-key>` pela mesma origem do Worker**;
-16. provar `Workers Cache` com HIT real dentro da janela bounded;
-17. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
-18. executar auditoria D1 read-only em todo deploy, sem depender de mudança de schema.
+9. criar uma versão staged sem tráfego, com código + secret juntos;
+10. validar política migration-first;
+11. aplicar migrations D1 somente quando o diff realmente altera schema;
+12. registrar `previous@100% + staged@0%`;
+13. executar smoke completo da versão staged por Version Override;
+14. promover `staged@100%`;
+15. confirmar bounded que o plano de controle aponta exatamente para a versão staged e que o contrato público convergiu;
+16. **provar um objeto de mídia real em `/media/<storage-key>` pela mesma origem do Worker**;
+17. provar `Workers Cache` com HIT real dentro da janela bounded;
+18. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
+19. executar auditoria D1 read-only em todo deploy, sem depender de mudança de schema.
 
 Upload, migrations, deployment, promoção e rollback não são repetidos automaticamente. Retry bounded existe apenas para verificações read-only.
 
