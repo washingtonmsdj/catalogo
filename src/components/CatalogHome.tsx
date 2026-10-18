@@ -498,6 +498,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
           </div>
           <div className="storefront-topbar__utility">
             <div className="storefront-topbar__status" role="status" aria-live="polite"><span className={`is-${runtimeStatus.tone}`} /><strong>{runtimeStatus.label}</strong></div>
+            <button type="button" className="storefront-topbar__collections storefront-topbar__explore"
+              onClick={() => onOpenExplorer()} aria-label="Explorar franquias e pastas" title="Franquias e pastas"
+            ><Icon name="sliders" /><span>Franquias e pastas</span></button>
             <button type="button" className="storefront-topbar__collections"
               onClick={() => setCollectionsOpen(true)}
               aria-label="Abrir minhas coleções pelo cabeçalho" title="Minhas coleções"

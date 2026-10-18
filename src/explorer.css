@@ -315,7 +315,7 @@
 .explorer-folder-navigation .explorer-folder-all { margin-left: auto; border-color: #72946c; background: #253a2b; }
 .explorer-folder-navigation button:hover, .explorer-folder-navigation button:focus-visible { border-color: #a6c6aa; color: #fff; }
 .explorer-folder-structure { border: 1px solid #344039; border-radius: 8px; padding: 8px; background: #101713; }
-.explorer-folder-structure .storefront-folder-tree { padding: 2px 0 6px; }
+.explorer-folder-structure .storefront-folder-tree { display: block; padding: 2px 0 6px; }
 .explorer-folder-structure .storefront-folder-tree::before { display: none; }
 .explorer-folder-structure .storefront-tree-row {
   --tree-indent: min(calc(var(--tree-depth, 0) * 16px), 88px);

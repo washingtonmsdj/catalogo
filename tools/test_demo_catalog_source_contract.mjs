@@ -15,3 +15,10 @@ test('demo catalog has no live-mode fallback branch containing fake records', ()
   assert.doesNotMatch(source, /\?\s*\[\]\s*:\s*demoCategories/)
   assert.doesNotMatch(source, /\?\s*\[\]\s*:\s*demoModels/)
 })
+
+test('live runtime starts without dereferencing deliberately removed demo fixtures', () => {
+  const hook = fs.readFileSync(new URL('../src/hooks/useCatalogRuntime.ts', import.meta.url), 'utf8')
+  assert.match(hook, /mode === 'demo'\s*\?\s*\(demoModels\.find/)
+  assert.match(hook, /demoModels\[0\]\?\.id \?\? ''/)
+  assert.doesNotMatch(hook, /demoModels\[0\]\.id/)
+})

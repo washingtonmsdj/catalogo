@@ -1646,3 +1646,21 @@ body {
 }
 @media (max-width: 1080px) { .storefront-topbar__utility { grid-column: 2; } }
 @media (max-width: 760px) { .storefront-topbar__utility { flex: 0 0 auto; } }
+
+/* R29: a reachable entry to the ONE canonical franchise/folder explorer on mobile. */
+.storefront-topbar__explore { display: none; }
+@media (max-width: 1080px) {
+  .storefront-topbar__explore { display: inline-flex; }
+}
+
+/* R29 narrow-phone layout: the search absorbs width before 44px actions. */
+@media (max-width: 359px) {
+  .storefront-topbar { gap: 5px; }
+  .storefront-search {
+    flex: 1 1 0%;
+    min-width: 0;
+    padding-inline: 8px;
+    gap: 5px;
+  }
+  .storefront-topbar__utility { gap: 4px; }
+}

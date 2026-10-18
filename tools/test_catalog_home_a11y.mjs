@@ -30,3 +30,9 @@ test('icon-only pagination and franchise search have accessible names', () => {
   assert.match(css, /\.storefront-pager button:focus-visible/)
   assert.match(css, /\.storefront-franchise-search:focus-within/)
 })
+
+test('R29 mobile header exposes the existing franchise and folder explorer at 44px', () => {
+  assert.match(home, /className="storefront-topbar__collections storefront-topbar__explore"/)
+  assert.match(home, /aria-label="Explorar franquias e pastas"/)
+  assert.match(css, /@media \(max-width: 1080px\)\s*\{\s*\.storefront-topbar__explore \{ display: inline-flex; \}/)
+})
