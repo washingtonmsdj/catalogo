@@ -22,3 +22,11 @@ O teste `tools/test_public_catalog_hierarchy.mjs` integra o comando já existent
 4. Cloudflare Access + MFA configurados antes de montar qualquer rota de administração de orçamentos.
 
 Nenhum workaround de quota, Worker paralelo, cache fictício ou replay de migrações está autorizado.
+
+## R31 — Redução estrutural de leituras concorrentes de esquema
+
+Auditoria de código: `worker/index.ts` chama `catalogSchemaStatus` como guard do tráfego API. O módulo já mantinha cache quando a auditoria era bem-sucedida, porém não compartilhava a promessa em andamento entre requisições simultâneas e repetia a leitura de metadados imediatamente após uma falha. Isso **pode amplificar leituras e falhas** em cold starts e períodos de indisponibilidade; não é prova de que seja a única causa do esgotamento diário observado.
+
+`worker/schemaContract.ts` passa a compartilhar uma única promessa de auditoria por instância, inclusive nas primeiras requisições simultâneas. O resultado válido continua em cache por toda a vida da instância. Um estado `ready=false` fica em cache por 30 segundos na mesma instância, depois uma nova requisição força uma auditoria real; durante a janela o Worker continua negando operações dependentes de D1 com HTTP 503. Não existe modo offline, bypass de esquema, outro banco, nem resposta `ok=true` sem auditoria.
+
+Testes exercitam 40 pedidos simultâneos na primeira validação, 30 concorrentes quando a quota falha, ausência de rechecagem antecipada, recuperação após os 30 segundos e permanência do cache saudável. A publicação depende dos gates de deploy Cloudflare existentes e ficará bloqueada se o health do Worker continuar em 503.

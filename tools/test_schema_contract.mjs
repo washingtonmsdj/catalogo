@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 
 import {
   catalogSchemaStatus,
+  FAILED_SCHEMA_RECHECK_MS,
   resetSchemaStatusCacheForTests,
 } from '../worker/schemaContract.ts'
 
@@ -111,8 +112,10 @@ test('healthy schema status is cached for the worker isolate', async () => {
   assert.equal(calls.filter((item) => item.kind === 'prepare').length, preparesAfterFirst)
 })
 
-test('incomplete migration set fails closed without structural probes and is not cached', async () => {
+test('incomplete migrations fail closed and recheck only after bounded cooldown', async (t) => {
   resetSchemaStatusCacheForTests()
+  let clock = 1_000_000
+  t.mock.method(Date, 'now', () => clock)
   const calls = []
   const applied = new Set(contract.requiredMigrations.slice(0, -1))
   const db = fakeDb(applied, calls)
@@ -125,6 +128,14 @@ test('incomplete migration set fails closed without structural probes and is not
   assert.equal(first.verifiedStructures, 0)
   assert.deepEqual(first.missingStructures, structureKeys())
   assert.equal(second.ready, false)
+  assert.equal(calls.filter((item) => item.kind === 'prepare').length, 1)
+
+  clock += FAILED_SCHEMA_RECHECK_MS - 1
+  await catalogSchemaStatus(db)
+  assert.equal(calls.filter((item) => item.kind === 'prepare').length, 1)
+
+  clock += 1
+  await catalogSchemaStatus(db)
   assert.equal(calls.filter((item) => item.kind === 'prepare').length, 2)
   assert.equal(calls.some((item) => item.sql?.includes('sqlite_schema')), false)
 })
@@ -184,4 +195,52 @@ test('quota exhaustion is not misrepresented as 21 missing migrations', async ()
   assert.deepEqual(status.missingMigrations, [])
   assert.deepEqual(status.missingStructures, [])
   assert.ok(!JSON.stringify(status).includes('secret-do-not-echo'))
+})
+
+test('cold-start concurrency shares a single full schema audit', async () => {
+  resetSchemaStatusCacheForTests()
+  const calls = []
+  const db = fakeDb(new Set(contract.requiredMigrations), calls)
+  const statuses = await Promise.all(Array.from({ length: 40 }, () => catalogSchemaStatus(db)))
+  assert.ok(statuses.every(status => status.ready))
+  const prepareCount = calls.filter(item => item.kind === 'prepare').length
+  assert.ok(prepareCount >= 3)
+  assert.ok(prepareCount <= 1 + Object.keys(contract.requiredObjects.columns).length + 1)
+  await catalogSchemaStatus(db)
+  assert.equal(calls.filter(item => item.kind === 'prepare').length, prepareCount)
+})
+
+test('quota failure is cached only briefly and does not leak as healthy', async (t) => {
+  resetSchemaStatusCacheForTests()
+  let clock = 2_000_000
+  t.mock.method(Date, 'now', () => clock)
+  let quotaBlocked = true
+  let prepares = 0
+  const liveDb = fakeDb(new Set(contract.requiredMigrations), [])
+  const db = {
+    prepare(sql) {
+      prepares += 1
+      if (quotaBlocked) throw Error('D1 error 7500: free tier row read limit')
+      return liveDb.prepare(sql)
+    },
+  }
+
+  const blocked = await Promise.all(Array.from({ length: 30 }, () => catalogSchemaStatus(db)))
+  assert.ok(blocked.every(status => !status.ready && status.errorCode === 'd1_daily_read_quota_exceeded'))
+  assert.equal(prepares, 1, 'only one attempt when D1 is blocked')
+
+  quotaBlocked = false
+  clock += FAILED_SCHEMA_RECHECK_MS - 1
+  const stillBlocked = await catalogSchemaStatus(db)
+  assert.equal(stillBlocked.ready, false, 'do not claim recovery without a new query')
+  assert.equal(prepares, 1)
+
+  clock += 1
+  const recovered = await catalogSchemaStatus(db)
+  assert.equal(recovered.ready, true, 'new audit after cooldown proves recovery')
+  const countAfterRecovery = prepares
+  clock += FAILED_SCHEMA_RECHECK_MS * 2
+  const remainsHealthy = await catalogSchemaStatus(db)
+  assert.equal(remainsHealthy.ready, true)
+  assert.equal(prepares, countAfterRecovery, 'healthy isolate never repeats schema audit')
 })
