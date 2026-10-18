@@ -6,6 +6,7 @@ import { FRANCHISE_SEARCH_MIN_LENGTH } from '../services/catalogRepository'
 import { hasResolvedCatalogDiscovery, isCatalogResultsMode, modelsForCatalogHome, quoteRailItems } from '../lib/catalogHomeView'
 import type { KnownModelSummary } from '../services/knownModelCache'
 import { CatalogSidebarTree } from './CatalogSidebarTree'
+import { useCollectionActions } from './CollectionActionsContext'
 import type { CatalogCategory, CatalogFranchise, CatalogModel } from '../types/catalog'
 
 const formatter = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 })
@@ -146,6 +147,7 @@ function CategoryTile({ category, cover, active, onSelect }: {
 }
 
 export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, knownModels, onOpenKnownModel, onOpenExplorer, onOpenUpdates, onOpenFavorites, onOpenQuote, onOpenModel, onToggleFavorite, onToggleQuote }: CatalogHomeProps) {
+  const { setCollectionsOpen } = useCollectionActions()
   const [franchiseFilter, setFranchiseFilter] = useState('')
   const [sidebarSearchItems, setSidebarSearchItems] = useState<CatalogFranchise[]>([])
   const [sidebarSearchLoading, setSidebarSearchLoading] = useState(false)
@@ -494,7 +496,13 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
               <span className="storefront-search__shortcut" aria-hidden="true"><kbd>Ctrl</kbd><kbd>K</kbd></span>
             )}
           </div>
-          <div className="storefront-topbar__status" role="status" aria-live="polite"><span className={`is-${runtimeStatus.tone}`} /><strong>{runtimeStatus.label}</strong></div>
+          <div className="storefront-topbar__utility">
+            <div className="storefront-topbar__status" role="status" aria-live="polite"><span className={`is-${runtimeStatus.tone}`} /><strong>{runtimeStatus.label}</strong></div>
+            <button type="button" className="storefront-topbar__collections"
+              onClick={() => setCollectionsOpen(true)}
+              aria-label="Abrir minhas coleções pelo cabeçalho" title="Minhas coleções"
+            ><Icon name="layers" /><span>Minhas coleções</span></button>
+          </div>
         </header>
         <main id="catalogo" tabIndex={-1} className="storefront-content" aria-busy={catalog.loading}>
           {catalog.error && <div className="storefront-alert" role="alert">{catalog.error}</div>}

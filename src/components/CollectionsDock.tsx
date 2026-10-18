@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useCollectionActions } from './CollectionActionsContext'
 import { BRAND_FILE_SLUG } from '../config/brand'
 import {
   COLLECTION_STORAGE_KEY,
@@ -77,7 +78,7 @@ function normalizedSearch(value: string) {
 
 export function CollectionsDock() {
   const importInputRef = useRef<HTMLInputElement>(null)
-  const [open, setOpen] = useState(false)
+  const { collectionsOpen: open, setCollectionsOpen: setOpen } = useCollectionActions()
   const [collections, setCollections] = useState<UserCollection[]>(loadCollections)
   const [activeId, setActiveId] = useState('')
   const [sources, setSources] = useState<LocalSources>(loadSources)
