@@ -18,6 +18,7 @@ import {
   type KnownModelSummary,
 } from './services/knownModelCache'
 import { submitQuoteRequest } from './services/quotes'
+import { clearLastLiveQuoteReceipt, readLastLiveQuoteReceipt, receiptFromQuoteSubmission, saveLastLiveQuoteReceipt, type LiveQuoteReceipt } from './services/quoteReceipt'
 import type { CatalogImage, CatalogModel } from './types/catalog'
 
 const formatter = new Intl.NumberFormat('pt-BR')
@@ -127,6 +128,9 @@ export default function App() {
   const [sent, setSent] = useState(false)
   const [quoteMode, setQuoteMode] = useState<'live' | 'demo' | null>(null)
   const [quoteReference, setQuoteReference] = useState('')
+  const [lastQuoteReceipt, setLastQuoteReceipt] = useState<LiveQuoteReceipt | null>(readLastLiveQuoteReceipt)
+  const [reopenedReceipt, setReopenedReceipt] = useState(false)
+  const [receiptStorageWarning, setReceiptStorageWarning] = useState('')
   const [submittedQuoteCount, setSubmittedQuoteCount] = useState(0)
   const [quoteSubmitting, setQuoteSubmitting] = useState(false)
   const [quoteError, setQuoteError] = useState('')
@@ -328,6 +332,15 @@ export default function App() {
     try {
       const result = await submitQuoteRequest({ name: String(data.get('name') ?? '').trim(), email: String(data.get('email') ?? '').trim(), notes: String(data.get('notes') ?? '').trim(), modelIds: quoteList, turnstileToken })
       setQuoteMode(result.mode); setQuoteReference(result.reference); setSubmittedQuoteCount(submittedCount)
+      setReopenedReceipt(false)
+      setReceiptStorageWarning('')
+      const receipt = receiptFromQuoteSubmission(result, submittedCount)
+      if (receipt) {
+        if (saveLastLiveQuoteReceipt(receipt)) setLastQuoteReceipt(receipt)
+        else setReceiptStorageWarning('O navegador não conseguiu guardar o protocolo. Anote-o antes de fechar.')
+      } else if (result.mode === 'live') {
+        setReceiptStorageWarning('O servidor confirmou o envio, mas o comprovante não pôde ser salvo. Anote o protocolo.')
+      }
       if (result.mode === 'live') setQuoteList([])
       setSent(true)
     } catch (error) {
@@ -409,10 +422,25 @@ export default function App() {
         quoteMode={quoteMode}
         quoteReference={quoteReference}
         submittedQuoteCount={submittedQuoteCount}
+        lastReceipt={lastQuoteReceipt}
+        reopenedReceipt={reopenedReceipt}
+        receiptStorageWarning={receiptStorageWarning}
+        onShowLastReceipt={() => {
+          if (!lastQuoteReceipt) return
+          setQuoteMode('live')
+          setQuoteReference(lastQuoteReceipt.reference)
+          setSubmittedQuoteCount(lastQuoteReceipt.modelCount)
+          setReopenedReceipt(true)
+          setSent(true)
+        }}
+        onForgetLastReceipt={() => {
+          if (clearLastLiveQuoteReceipt()) { setLastQuoteReceipt(null); setReceiptStorageWarning('') }
+          else setReceiptStorageWarning('Não foi possível apagar o comprovante deste navegador.')
+        }}
         submitting={quoteSubmitting}
         error={quoteError}
         turnstileResetKey={turnstileResetKey}
-        onClose={() => setQuoteOpen(false)}
+        onClose={() => { setQuoteOpen(false); setSent(false); setReopenedReceipt(false) }}
         onRemove={safeToggleQuote}
         onOpenModel={(id) => openKnownModel(id, () => setQuoteOpen(false))}
         onSubmit={submitQuote}

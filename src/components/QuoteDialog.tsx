@@ -1,6 +1,7 @@
 import type { FormEventHandler } from 'react'
 import { TurnstileWidget, isTurnstileConfigured } from './TurnstileWidget'
 import type { KnownModelSummary } from '../services/knownModelCache'
+import type { LiveQuoteReceipt } from '../services/quoteReceipt'
 
 type Props = {
   open: boolean
@@ -12,6 +13,11 @@ type Props = {
   quoteMode: 'live' | 'demo' | null
   quoteReference: string
   submittedQuoteCount: number
+  lastReceipt: LiveQuoteReceipt | null
+  reopenedReceipt: boolean
+  receiptStorageWarning: string
+  onShowLastReceipt: () => void
+  onForgetLastReceipt: () => void
   submitting: boolean
   error: string
   turnstileResetKey: number
@@ -32,6 +38,11 @@ export function QuoteDialog({
   quoteMode,
   quoteReference,
   submittedQuoteCount,
+  lastReceipt,
+  reopenedReceipt,
+  receiptStorageWarning,
+  onShowLastReceipt,
+  onForgetLastReceipt,
   submitting,
   error,
   turnstileResetKey,
@@ -55,8 +66,8 @@ export function QuoteDialog({
         <div className="modal-head quote-request-head">
           <div>
             <span>{sent ? 'SOLICITAÇÃO' : 'MINHA LISTA'}</span>
-            <h2 id="quote-title">{sent ? 'Solicitação registrada' : 'Solicitar orçamento'}</h2>
-            <p>{sent ? 'Guarde o protocolo para referência.' : 'Revise os modelos selecionados antes de enviar.'}</p>
+            <h2 id="quote-title">{sent ? (reopenedReceipt ? 'Último protocolo salvo' : 'Solicitação registrada') : 'Solicitar orçamento'}</h2>
+            <p>{sent ? 'O protocolo comprova o recebimento pelo catálogo, não o atendimento pelo lojista.' : 'Revise os modelos selecionados antes de enviar.'}</p>
           </div>
           <button type="button" aria-label="Fechar formulário" onClick={onClose}>×</button>
         </div>
@@ -64,9 +75,9 @@ export function QuoteDialog({
         {sent ? (
           <div className="quote-request-success">
             <span className="quote-request-success__mark" aria-hidden="true">✓</span>
-            <strong>SOLICITAÇÃO REGISTRADA</strong>
+            <strong>{reopenedReceipt ? 'ÚLTIMO PROTOCOLO SALVO' : 'SOLICITAÇÃO REGISTRADA'}</strong>
             <p>{quoteMode === 'live'
-              ? 'Sua solicitação foi enviada com sucesso. Guarde o protocolo abaixo para referência.'
+              ? (reopenedReceipt ? 'Comprovante recuperado do navegador. O andamento não foi consultado.' : 'Sua solicitação foi recebida pelo catálogo. Isso não confirma atendimento nem envio de e-mail.')
               : 'Esta prévia não envia pedidos reais. O protocolo abaixo demonstra a confirmação em produção.'}</p>
             {quoteReference && (
               <div className="quote-receipt">
@@ -75,6 +86,8 @@ export function QuoteDialog({
                 <small>{submittedQuoteCount} modelo{submittedQuoteCount === 1 ? '' : 's'} nesta solicitação</small>
               </div>
             )}
+            {receiptStorageWarning && <p className="quote-request-error" role="alert">{receiptStorageWarning}</p>}
+            {quoteMode === 'live' && !reopenedReceipt && !receiptStorageWarning && <small className="quote-receipt__note">Último protocolo salvo neste navegador. Consulte-o em “Minha lista”.</small>}
             <button type="button" className="primary-action" onClick={onDismissSuccess}>Voltar ao catálogo <span>›</span></button>
           </div>
         ) : (
@@ -122,6 +135,19 @@ export function QuoteDialog({
             </section>
 
             <section className="quote-request-fields">
+              {lastReceipt && (
+                <aside className="quote-request-last-receipt" aria-label="Último protocolo salvo">
+                  <strong>Último orçamento recebido</strong>
+                  <code>{lastReceipt.reference}</code>
+                  <small>{lastReceipt.modelCount} modelo{lastReceipt.modelCount === 1 ? '' : 's'} · {new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(lastReceipt.receivedAt))}</small>
+                  <span>Protocolo de recebimento, não de atendimento.</span>
+                  <div>
+                    <button type="button" onClick={onShowLastReceipt}>Ver comprovante</button>
+                    <button type="button" onClick={onForgetLastReceipt}>Apagar deste navegador</button>
+                  </div>
+                </aside>
+              )}
+              {receiptStorageWarning && <p className="quote-request-error" role="alert">{receiptStorageWarning}</p>}
               <div className="quote-request-fields__grid">
                 <label>
                   Nome completo
