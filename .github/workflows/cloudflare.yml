@@ -21,6 +21,7 @@ on:
       - 'tools/check_worker_cache_hit.mjs'
       - 'tools/verify_public_catalog.py'
       - 'tools/check_migration_deploy_policy.py'
+      - 'tools/catalog_schema_contract.py'
       - 'tools/check_worker_health.mjs'
       - 'tools/audit_d1_integrity.py'
       - 'config/catalog-schema-contract.json'
@@ -221,5 +222,4 @@ jobs:
           --message "automatic restore after failed deploy validation ${GITHUB_SHA}"
           --config .wrangler.deploy.jsonc
       - name: Audit D1 structural integrity
-        if: ${{ steps.d1_scope.outputs.run_d1_schema == 'true' }}
         run: python tools/audit_d1_integrity.py

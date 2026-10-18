@@ -187,7 +187,14 @@ WHERE canonical.published<>1
    OR source.published<>0
    OR canonical.franchise_id<>source.franchise_id
    OR COALESCE(canonical.folder_id,-1)<>COALESCE(source.folder_id,-1)
-   OR lower(trim(canonical.name))<>lower(trim(source.name))""",
+   OR (
+     lower(trim(canonical.name))<>lower(trim(source.name))
+     AND NOT EXISTS (
+       SELECT 1 FROM model_gallery_member_approvals approval
+       WHERE approval.canonical_model_id=gm.canonical_model_id
+         AND approval.source_model_id=gm.source_model_id
+     )
+   )""",
         },
         {
             "name": "gallery_relation_chains",
