@@ -93,7 +93,7 @@ O CI de PR continua executando dry-run estrito do Wrangler com segredo sintétic
 14. **provar um objeto de mídia real em `/media/<storage-key>` pela mesma origem do Worker**;
 15. provar `Workers Cache` com HIT real dentro da janela bounded;
 16. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
-17. executar auditoria D1 somente quando o escopo de schema exigir.
+17. executar auditoria D1 read-only em todo deploy, sem depender de mudança de schema.
 
 Upload, migrations, deployment, promoção e rollback não são repetidos automaticamente. Retry bounded existe apenas para verificações read-only.
 

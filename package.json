@@ -36,7 +36,7 @@
     "test:legacy-gallery-repairs-contract": "node --test tools/test_legacy_gallery_repairs_contract.mjs",
     "test:worker-search-contract": "node --test tools/test_worker_search_contract.mjs",
     "test:quote-receipt": "node --experimental-strip-types --test tools/test_quote_receipt.mjs",
-    "test:quote-admin": "node --experimental-strip-types --test tools/test_quote_admin_foundation.mjs"
+    "test:quote-admin": "node --experimental-strip-types --test tools/test_quote_admin_foundation.mjs tools/test_quote_admin_api.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",

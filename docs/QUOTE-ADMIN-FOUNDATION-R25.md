@@ -38,3 +38,7 @@ A preparação é intencionalmente separada da ativação em produção. Não h�
 - O teste inclui 650 colunas e os casos de aprovação correta/incorreta. Não há escrita de dados na auditoria.
 - A auditoria é obrigatória após cada deploy e alterações no verificador/contrato também acionam o workflow Cloudflare.
 
+
+## Continuação R26
+
+O serviço privado de listagem, leitura e transição auditável está preparado em `worker/quoteAdminApi.ts`, mas deliberadamente não registrado no Worker público. Regras, testes e bloqueios estão documentados em `docs/QUOTE-ADMIN-SERVICE-R26.md`. A ativação depende da aplicação Cloudflare Access real e do fluxo de autorização completo.
