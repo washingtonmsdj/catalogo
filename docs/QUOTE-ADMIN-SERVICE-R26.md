@@ -35,3 +35,9 @@ A vitrine pública e POST /api/quotes não foram modificados.
 A primeira tentativa de publicar a R26 retornou HTTP 503 na verificação de saúde da versão staged, antes de qualquer promoção, e o workflow restaurou a versão pública anterior. Não foram alterados os dados pessoais nem ativada a administração. O status do PR no GitHub não prova o sucesso do deploy Cloudflare.
 
 O verificador de saúde agora retorna **somente metadados estruturais limitados** quando o Worker responde 503 (migrações e estruturas ausentes, se a resposta trouxer esse contrato). Tokens, dados pessoais, headers e corpo HTTP bruto continuam excluídos dos logs. Os gates de staging, promoção e rollback permanecem obrigatórios; não se converte 503 em sucesso.
+
+## R26b — disponibilidade D1
+
+No deploy do serviço isolado, o Worker staged devolveu 503. A checagem direta confirmou `Cloudflare 7500` (quota diária de leitura de linhas atingida). As 21 migrações estavam aplicadas antes do esgotamento; o Worker anterior foi restaurado. A operação administrativa continua desativada e a resolução de quota não libera Cloudflare Access.
+
+A publicação passa a verificar a disponibilidade mínima do D1 antes do upload, sem retries em quota diária esgotada. A validação da estrutura completa continua obrigatória durante o staged smoke e na auditoria pós-publicação.

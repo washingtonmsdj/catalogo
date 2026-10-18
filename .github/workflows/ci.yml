@@ -37,6 +37,8 @@ jobs:
         run: npm ci
       - name: Audit dependencies
         run: npm audit --audit-level=high
+      - name: Test pre-deploy D1 read quota gate
+        run: npm run test:d1-readiness
       - name: Test fail-closed Cloudflare Access quote admin foundation
         run: npm run test:quote-admin
       - name: Test bounded browser metadata cache
