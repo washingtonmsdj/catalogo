@@ -3,6 +3,7 @@ import { models as demoModels } from '../data/mockCatalog'
 import { listCatalogFranchises, listCatalogModels, type CatalogRuntimeMode } from '../services/catalogApi'
 import { FRANCHISE_SEARCH_MIN_LENGTH, type CatalogModelCard } from '../services/catalogRepository'
 import { explorerScopeKey, resolveExplorerSnapshot, type ExplorerSnapshot } from '../lib/explorerDiscovery'
+import { CatalogSidebarTree } from './CatalogSidebarTree'
 import type { CatalogCategory, CatalogFranchise } from '../types/catalog'
 
 const DISCOVERY_LIMIT = 48
@@ -14,10 +15,14 @@ type Props = {
   mode: CatalogRuntimeMode
   categories: CatalogCategory[]
   activeCategory: string
+  activeFranchise: string
+  activeFolder: string
+  folderTrail: Array<{ id: string; label: string }>
   initialQuery?: string
   onClose: () => void
   onSelectCategory: (category: string) => void
   onSelectFranchise: (category: string, franchise: string) => void
+  onSelectFolder: (category: string, franchise: string, folder: string) => void
 }
 
 function normalize(value: string) {
@@ -77,12 +82,18 @@ export function FranchiseBrowser({
   mode,
   categories,
   activeCategory,
+  activeFranchise,
+  activeFolder,
+  folderTrail,
   initialQuery = '',
   onClose,
   onSelectCategory,
   onSelectFranchise,
+  onSelectFolder,
 }: Props) {
   const searchRef = useRef<HTMLInputElement>(null)
+  const backRef = useRef<HTMLButtonElement>(null)
+  const [browsingFranchise, setBrowsingFranchise] = useState<CatalogFranchise | null>(null)
   const [category, setCategory] = useState(activeCategory)
   const [query, setQuery] = useState('')
   // Atomic snapshot: results and errors always belong to the same query+category.
@@ -91,14 +102,22 @@ export function FranchiseBrowser({
   useEffect(() => {
     if (!open) {
       setLiveSnapshot(null)
+      setBrowsingFranchise(null)
       return
     }
+    setBrowsingFranchise(null)
     setCategory(activeCategory)
     setQuery(initialQuery.trim())
     setLiveSnapshot(null)
     const frame = window.requestAnimationFrame(() => searchRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
   }, [open, activeCategory, initialQuery])
+
+  useEffect(() => {
+    if (!open || !browsingFranchise) return
+    const frame = window.requestAnimationFrame(() => backRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [open, browsingFranchise])
 
   const demoItems = useMemo(() => demoFranchises(category, query), [category, query])
   const demoModelsFound = useMemo(() => demoModelResults(category, query), [category, query])
@@ -176,6 +195,17 @@ export function FranchiseBrowser({
     onClose()
   }
 
+  function chooseFolder(folder: string) {
+    if (!browsingFranchise) return
+    onSelectFolder(browsingFranchise.category, browsingFranchise.id, folder)
+    onClose()
+  }
+
+  function returnToFranchises() {
+    setBrowsingFranchise(null)
+    window.requestAnimationFrame(() => searchRef.current?.focus())
+  }
+
   function chooseModel(model: CatalogModelCard) {
     onClose()
     window.location.hash = `modelo=${encodeURIComponent(model.slug)}`
@@ -204,13 +234,32 @@ export function FranchiseBrowser({
       <section className="explorer-modal" role="dialog" aria-modal="true" aria-labelledby="explorer-title" onMouseDown={(event) => event.stopPropagation()}>
         <div className="modal-head explorer-head">
           <div>
-            <span>NAVEGADOR DO ACERVO</span>
-            <h2 id="explorer-title">Encontrar modelos e franquias</h2>
-            <p>Pesquise no mesmo índice do catálogo ou navegue por categoria para chegar ao modelo sem percorrer milhares de itens.</p>
+            <span>{browsingFranchise ? 'ESTRUTURA DA FRANQUIA' : 'NAVEGADOR DO ACERVO'}</span>
+            <h2 id="explorer-title">{browsingFranchise ? browsingFranchise.label : 'Encontrar modelos e franquias'}</h2>
+            <p>{browsingFranchise ? 'Explore as pastas existentes desta franquia ou abra todos os seus modelos.' : 'Pesquise no mesmo índice do catálogo ou navegue por categoria para chegar ao modelo sem percorrer milhares de itens.'}</p>
           </div>
           <button type="button" aria-label="Fechar navegador" onClick={onClose}>×</button>
         </div>
 
+        {browsingFranchise ? (
+          <div className="explorer-folder-workspace">
+            <div className="explorer-folder-navigation">
+              <button ref={backRef} type="button" onClick={returnToFranchises}>‹ Voltar às franquias</button>
+              <button type="button" className="explorer-folder-all" onClick={() => chooseFranchise(browsingFranchise)}>Ver todos os modelos da franquia ›</button>
+            </div>
+            <div className="explorer-folder-structure" aria-label={`Pastas de ${browsingFranchise.label}`}>
+              <CatalogSidebarTree
+                key={`${browsingFranchise.category}:${browsingFranchise.id}`}
+                category={browsingFranchise.category}
+                franchise={browsingFranchise.id}
+                activeFolder={browsingFranchise.category === activeCategory && browsingFranchise.id === activeFranchise ? activeFolder : ''}
+                trail={browsingFranchise.category === activeCategory && browsingFranchise.id === activeFranchise ? folderTrail : []}
+                onSelectFolder={chooseFolder}
+              />
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="explorer-toolbar">
           <label className={`explorer-search ${searchPending ? 'is-pending' : ''}`}>
             <span aria-hidden="true">⌕</span>
@@ -317,18 +366,25 @@ export function FranchiseBrowser({
                   )}
                   <div className="explorer-grid">
                     {visible.map((item, index) => (
-                      <button type="button" key={`${item.category}:${item.id}`} onClick={() => chooseFranchise(item)}>
-                        <span className="explorer-grid__rank">{String(index + 1).padStart(2, '0')}</span>
-                        <span className="explorer-grid__body">
-                          <strong>{item.label}</strong>
-                          <small>{categories.find((entry) => entry.id === item.category)?.label ?? item.category}</small>
-                        </span>
-                        <span className="explorer-grid__count">
-                          <strong>{numberFormatter.format(item.count)}</strong>
-                          <small>modelos</small>
-                        </span>
-                        <span className="explorer-grid__arrow">›</span>
-                      </button>
+                      <div className="explorer-grid__franchise" key={`${item.category}:${item.id}`}>
+                        <button type="button" onClick={() => chooseFranchise(item)} aria-label={`Ver modelos de ${item.label}`}>
+                          <span className="explorer-grid__rank">{String(index + 1).padStart(2, '0')}</span>
+                          <span className="explorer-grid__body">
+                            <strong>{item.label}</strong>
+                            <small>{categories.find((entry) => entry.id === item.category)?.label ?? item.category}</small>
+                          </span>
+                          <span className="explorer-grid__count">
+                            <strong>{numberFormatter.format(item.count)}</strong>
+                            <small>modelos</small>
+                          </span>
+                          <span className="explorer-grid__arrow">›</span>
+                        </button>
+                        {mode === 'live' && (
+                          <button type="button" className="explorer-grid__browse" onClick={() => setBrowsingFranchise(item)} aria-label={`Navegar pastas de ${item.label}`}>
+                            Navegar pastas <span aria-hidden="true">›</span>
+                          </button>
+                        )}
+                      </div>
                     ))}
                   </div>
                 </>
@@ -340,6 +396,8 @@ export function FranchiseBrowser({
             <div className="explorer-more">Mostrando as {DISCOVERY_LIMIT} franquias de maior volume neste recorte. Refine a busca para localizar outras coleções.</div>
           )}
         </div>
+          </>
+        )}
       </section>
     </div>
   )
