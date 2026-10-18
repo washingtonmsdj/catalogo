@@ -1,6 +1,6 @@
 {
-  "version": 4,
-  "latestMigration": "0020_gallery_member_explicit_approvals.sql",
+  "version": 5,
+  "latestMigration": "0021_quote_admin_audit_events.sql",
   "requiredMigrations": [
     "0001_catalog.sql",
     "0002_keyset_pagination.sql",
@@ -21,13 +21,15 @@
     "0017_gallery_lifecycle_integrity.sql",
     "0018_gallery_alias_immutability.sql",
     "0019_model_variant_name.sql",
-    "0020_gallery_member_explicit_approvals.sql"
+    "0020_gallery_member_explicit_approvals.sql",
+    "0021_quote_admin_audit_events.sql"
   ],
   "requiredObjects": {
     "tables": [
       "model_gallery_members",
       "model_image_sources",
-      "model_gallery_member_approvals"
+      "model_gallery_member_approvals",
+      "quote_status_events"
     ],
     "indexes": [
       "idx_models_folder_published",
@@ -35,7 +37,8 @@
       "idx_model_gallery_members_canonical",
       "idx_model_image_sources_sha",
       "idx_model_image_sources_model_version",
-      "idx_model_gallery_member_approvals_canonical"
+      "idx_model_gallery_member_approvals_canonical",
+      "idx_quote_status_events_quote_revision"
     ],
     "triggers": [
       "trg_folder_counts_after_model_insert",
@@ -59,7 +62,12 @@
       "trg_gallery_relation_delete_protected",
       "trg_gallery_member_approval_validate_insert",
       "trg_gallery_member_approval_immutable_update",
-      "trg_gallery_member_approval_delete_protected"
+      "trg_gallery_member_approval_delete_protected",
+      "trg_quote_status_events_validate",
+      "trg_quote_status_events_immutable_update",
+      "trg_quote_status_events_immutable_delete",
+      "trg_quote_requests_initial_status_insert",
+      "trg_quote_requests_initial_status_immutable"
     ],
     "columns": {
       "catalog_folders": [
@@ -76,6 +84,16 @@
         "registry_family",
         "reason",
         "approved_at"
+      ],
+      "quote_status_events": [
+        "quote_request_id",
+        "from_status",
+        "to_status",
+        "actor_subject",
+        "actor_email",
+        "actor_role",
+        "response_text",
+        "created_at"
       ]
     }
   }

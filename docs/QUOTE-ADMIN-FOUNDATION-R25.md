@@ -21,3 +21,12 @@ O Worker público recebe POST /api/quotes, valida Turnstile, resolve IDs públic
 5. Acrescentar testes E2E de operador autorizado, token expirado, papel inadequado e mutações concorrentes. Só depois criar interface administrativa.
 
 A preparação é intencionalmente separada da ativação em produção. Não há consulta pública de pedidos por protocolo.
+
+## R25b — Ledger auditável de mudanças de estado (migração 0021)
+
+- A migração expansiva `0021_quote_admin_audit_events.sql` cria `quote_status_events` com revisão monotônica, ator Cloudflare Access, papel, transição e resposta interna opcional.
+- `quote_requests.status` permanece **somente o estado inicial histórico** (`new`, ou estado legado já existente). Nunca atualize esse campo para progredir o pedido: o estado corrente é o `to_status` do último evento (`ORDER BY id DESC`), com fallback ao estado inicial.
+- Triggers bloqueiam transição divergente/concorrente, sequência inválida, evento sem identidade, papel `viewer`, edição/apagamento do histórico e alterações diretas do estado inicial. A transição para `response_recorded` exige texto de resposta interna persistido; isso **não** implica envio ao cliente.
+- `worker/quoteWorkflow.ts` segue o SSOT da máquina de estados. O teste SQLite verifica **todos os pares de estados** contra o contrato TypeScript, bloqueando divergências entre aplicação e banco.
+- O contrato D1 e a política `migrate-before-worker` incluem a migração; o novo SQL é exclusivamente expansivo e compatível com o Worker público anterior.
+- Nenhum endpoint admin, credencial ou interface de gestão é ativado por este passo. Ainda são exigidas a aplicação Cloudflare Access/MFA real, configuração privada e E2E antes do acesso a dados pessoais.
