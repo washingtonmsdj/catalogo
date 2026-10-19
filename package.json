@@ -39,8 +39,8 @@
     "test:quote-admin": "node --experimental-strip-types --test tools/test_quote_admin_foundation.mjs tools/test_quote_admin_api.mjs"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@types/react": "^19.1.10",
