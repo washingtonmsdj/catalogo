@@ -302,8 +302,6 @@ export function FranchiseBrowser({
             <small>{loading ? 'Carregando…' : searchPending ? 'Busca indexada' : query.trim() ? `${visibleModels.length} modelos · ${visible.length} franquias` : `${visible.length} franquias`}</small>
           </div>
 
-          {error && <p className="runtime-alert" role="alert">{error}</p>}
-
           {searchPending ? (
             <div className="explorer-empty explorer-empty--hint">
               <span>⌕</span>
@@ -323,7 +321,13 @@ export function FranchiseBrowser({
               <p>Tente outro termo ou volte para “Todos”.</p>
               <button type="button" onClick={() => { setQuery(''); setCategory('all') }}>Limpar recorte</button>
             </div>
-          ) : error ? null : (
+          ) : error ? (
+            <div className="explorer-empty explorer-empty--error" role="alert">
+              <strong>Busca temporariamente indisponível</strong>
+              <p>{error}</p>
+              <button type="button" onClick={() => setLiveSnapshot(null)}>Tentar novamente</button>
+            </div>
+          ) : (
             <>
               {modelSearchActive && visibleModels.length > 0 && (
                 <>
