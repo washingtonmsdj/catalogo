@@ -16,6 +16,22 @@ class CollisionReviewTests(unittest.TestCase):
         self.assertIsNone(r["summary"]["confirmedDuplicateSculptures"])
         self.assertFalse(r["groups"][0]["mergeAuthorized"])
 
+    def test_preserves_model_metadata_for_review(self):
+        d = sample()
+        d["sameFranchiseNormalizedNameCollisions"][0]["modelMetadata"] = [
+            {"modelId": "mdl_a", "slug": "iron-one", "imageCount": 2},
+            {"modelId": "mdl_b", "slug": "iron-two", "imageCount": 3}]
+        out = plan(d)
+        group = next(g for g in out["groups"] if g["normalizedName"] == "iron")
+        self.assertEqual(len(group["modelMetadata"]), 2)
+        self.assertFalse(group["mergeAuthorized"])
+
+    def test_rejects_incomplete_model_metadata(self):
+        d = sample()
+        d["sameFranchiseNormalizedNameCollisions"][0]["modelMetadata"] = [{"modelId": "mdl_a"}]
+        with self.assertRaises(ValueError):
+            plan(d)
+
     def test_unflagged_models(self):
         d = sample()
         d["totalRecords"] = d["uniqueRecordIds"] = 8
