@@ -8,6 +8,8 @@ on:
       - '.github/workflows/external-source-coverage.yml'
       - 'tools/audit_external_source_coverage.py'
       - 'tools/test_audit_external_source_coverage.py'
+      - 'tools/plan_external_identity_triage.py'
+      - 'tools/test_plan_external_identity_triage.py'
       - 'config/external-sources/external-source-001.json'
 
 permissions:
@@ -34,7 +36,7 @@ jobs:
           node-version: 22
       - name: Test conservative coverage semantics
         working-directory: tools
-        run: python -m unittest -v test_audit_external_source_coverage.py
+        run: python -m unittest -v test_audit_external_source_coverage.py test_plan_external_identity_triage.py
       - name: Verify read-only bindings
         shell: bash
         env:
@@ -53,6 +55,11 @@ jobs:
         run: >-
           python tools/audit_external_source_coverage.py
           --output "$RUNNER_TEMP/external-source-coverage.json"
+      - name: Generate entire backlog triage from canonical coverage (read-only)
+        run: >-
+          python tools/plan_external_identity_triage.py
+          "$RUNNER_TEMP/external-source-coverage.json"
+          --output "$RUNNER_TEMP/external-source-identity-triage.json"
       - name: Assert report remained conservative and read-only
         shell: bash
         run: |
@@ -68,12 +75,21 @@ jobs:
           assert summary['confirmedPresent'] <= summary['sourceProducts']
           assert isinstance(summary['coverage100Proven'], bool)
           assert len(report['products']) == summary['sourceProducts']
-          print(json.dumps(summary, ensure_ascii=False))
+          triage=json.loads(Path(__import__('os').environ['RUNNER_TEMP'], 'external-source-identity-triage.json').read_text(encoding='utf-8'))
+          t=triage['summary']
+          assert t['sourceProducts']==summary['sourceProducts']
+          assert t['confirmedPublishedIdentities']==summary['confirmedPresent']
+          assert t['workItems']+t['confirmedPublishedIdentities']==t['sourceProducts']
+          assert t['productionWrites']==t['stagingWrites']==0
+          assert all(x['identityApproved'] is False and x['mediaPromotionAuthorized'] is False for x in triage['workItems'])
+          print(json.dumps({'coverage': summary, 'triage': t}, ensure_ascii=False))
           PY
       - name: Upload short-lived coverage evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: external-source-coverage-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/external-source-coverage.json
+          path: |
+            ${{ runner.temp }}/external-source-coverage.json
+            ${{ runner.temp }}/external-source-identity-triage.json
           if-no-files-found: error
           retention-days: 3

@@ -5,12 +5,41 @@
   "sourceProductId": 12433,
   "productName": "Reanette Elfelt – The Ossan Newbie Adventurer",
   "scope": "identity_preflight_only",
-  "stagingEvidence": {"coverage":"6/6","completeStaging":true,"reverseIndexRunId":38825743609,"productionWrites":0,"stagingWrites":0},
-  "productionSearch": {"exactOrTextualCandidateCount":0,"candidateModelIds":[],"database":"tonecos-catalogo","readOnly":true},
+  "stagingEvidence": {
+    "coverage": "6/6",
+    "completeStaging": true,
+    "reverseIndexRunId": 38825743609,
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "productionSearch": {
+    "exactOrTextualCandidateCount": 0,
+    "candidateModelIds": [],
+    "database": "tonecos-catalogo",
+    "readOnly": true
+  },
   "identityReview": {
     "decision": "unresolved",
     "reason": "no_exact_name_candidate_requires_visual_and_alias_review",
-    "notes": "No exact-name candidate was found. Absence by exact name is insufficient to authorize a new model without checking aliases, franchise labeling and historical imports."
+    "notes": "No exact-name candidate was found. Absence by exact name is insufficient to authorize a new model without checking aliases, franchise labeling and historical imports.",
+    "reviewQueue": {
+      "phase": "historical_catalog_search_required",
+      "discoveryRunId": 40825845722,
+      "discoveryUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40825845722",
+      "lastCheckedAt": "2026-10-29",
+      "liveCandidateCount": 0,
+      "completeSourceGalleryVerified": "6/6",
+      "nextGate": "Check canonical historical aliases and original franchise identity across all published records; absence of literal candidates never authorizes new models.",
+      "productionWrites": 0,
+      "stagingWrites": 0
+    }
   },
-  "decision": {"identityResolved":false,"newModelIdentityAuthorized":false,"batchCreationAuthorized":false,"productionWrites":0,"stagingWrites":0,"nextGate":"visual and alias review against historical franchise records"}
+  "decision": {
+    "identityResolved": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "visual and alias review against historical franchise records"
+  }
 }
