@@ -127,6 +127,9 @@ jobs:
         run: |
           set -euo pipefail
           python tools/discover_external_staging_candidates.py \
+            --page 44 \
+            --per-page 20 \
+            --max-products 3 \
             --product-ids "$PRIORITY_COHORT_IDS" \
             --max-review-products 3 \
             --output "$RUNNER_TEMP/external-priority-image-review"
