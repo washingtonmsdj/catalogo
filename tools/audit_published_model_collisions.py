@@ -24,6 +24,7 @@ def audit(models: list[dict]) -> dict:
     names = defaultdict(list)
     slugs = defaultdict(list)
     missing = []
+    metadata = {}
     for model in models:
         if not isinstance(model, dict):
             raise ValueError("invalid model row")
@@ -31,6 +32,10 @@ def audit(models: list[dict]) -> dict:
         if not isinstance(mid, str) or not mid or mid in ids:
             raise ValueError("missing or repeated model ID")
         ids.add(mid)
+        metadata[mid] = {"modelId": mid, "slug": str(model.get("slug") or ""),
+                         "code": str(model.get("code") or ""),
+                         "imageCount": model.get("image_count"),
+                         "franchiseName": str(model.get("franchise_name") or "")}
         name = normalize(model.get("name"))
         slug = normalize(model.get("slug"))
         franchise = normalize(model.get("franchise_id"))
@@ -42,7 +47,8 @@ def audit(models: list[dict]) -> dict:
 
     def groups(index):
         return [{"key": list(key) if isinstance(key, tuple) else key,
-                 "modelIds": sorted(values)}
+                 "modelIds": sorted(values),
+                 "modelMetadata": [metadata[mid] for mid in sorted(values)]}
                 for key, values in sorted(index.items()) if len(values) > 1]
 
     return {
