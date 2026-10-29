@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 27775,
+  "productName": "Gabimaru STL — Hell's Paradise",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "5/5",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40818209292,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40818209292",
+    "artifactName": "external-candidate-discovery-40818209292-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "7e40f7232f34b26bdd7d1eabeaf9d27eb729e2c164557a6359794231b375d01b",
+    "sourcePositionBytes": 6991432,
+    "productionCoverSha256": "459839bcb42cff578f1c91bc0ffbf711edc2380ccf53e1237724243573b0b117",
+    "productionCoverBytes": 79128,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "2a52d0e0243264c7",
+    "productionCoverDhash": "2a52d0e0243264c7",
+    "coverToSourceDhashDistance": 0,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Same floating white-haired masked Gabimaru, blue robe, bright pink flame effects and flowered rocky pedestal, same frontal camera composition.",
+    "identityProofInterpretation": "Manual comparison of same sculpture, view and setting, corroborated by identical canonical dHash across independently SHA-256 verified source and production images; not a name-based mapping."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_9eabf305e069fb0d8260",
+    "modelName": "Gabimaru",
+    "slug": "hells-paradise-gabimaru-diorama-com-chamas-rosas",
+    "code": "TS-9EABF305E069",
+    "coverStorageKey": "media/mdl_9eabf305e069fb0d8260/img_e1d9d28d7ee5c99311c2/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_9eabf305e069fb0d8260",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "oneCandidateReviewed": true
+  },
+  "mediaReview": {
+    "creatorAttributionOrPromotionalBrandingVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_branding_visible",
+    "promotableMedia": false,
+    "notes": "MINI ANIME logo and Patreon promotion visible on both source and candidate covers. No image import, replacement, cropping or removal of marks is authorized. Existing published cover needs separate provenance review."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep canonical model; separately review source and already published cover for rights/quality before any media action."
+  }
+}
