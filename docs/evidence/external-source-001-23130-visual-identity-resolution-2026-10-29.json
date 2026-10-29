@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 23130,
+  "productName": "Electro STL — Marvel Comics",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "7/7",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40821082657,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40821082657",
+    "artifactName": "external-candidate-discovery-40821082657-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "32fb2daefb4fb58cbfb907c07021e1049f1de58fc41c1dceee1614db81b8f657",
+    "sourcePositionBytes": 2511738,
+    "productionCoverSha256": "46637834b91bc465f39a0b8af50998ff0d9a74af649c5982ee8a3eeeaa5cdbbb",
+    "productionCoverBytes": 69568,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "69f83ce8d1f4f033",
+    "productionCoverDhash": "b29e86f071b271b2",
+    "coverToSourceDhashDistance": 26,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Source is a colored green/yellow Electro in mid-action with yellow lightning, bent raised right leg on electrical urban equipment and a rocky base. The lone published candidate is a different monochrome sculpture standing upright with two cylindrical coils and a floating ball; not the same pose, geometry, base, or composition.",
+    "identityProofInterpretation": "Human comparison of sculpt geometry, pose, outfit and base, corroborated by source/cover SHA-256 and dHash; perceptual hash and text matches alone never authorize merging."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_81d60f280bc8f5d793fb",
+    "reviewedCandidateSlug": "herois-individuais-electro-estatua-cinza-com-bobinas",
+    "reviewedCandidatePublished": true
+  },
+  "identityReview": {
+    "decision": "new_model",
+    "newModelIdentityAuthorized": true,
+    "publishedCandidateRejectedForIdentity": "mdl_81d60f280bc8f5d793fb",
+    "reason": "different_sculpture_and_pose",
+    "visualDistinctnessApproved": true,
+    "sameCharacterIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "watermarkOrCreatorBrandingPresent": true,
+    "promotableMedia": false,
+    "notes": "Creator/promotional branding appears in source and/or public images; no reuse, watermark editing, replacement or gallery import authorized."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": true,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Distinct sculpt proven; do not create a published catalog model or media until provenance, attribution and rights and deterministic identity are approved."
+  }
+}
