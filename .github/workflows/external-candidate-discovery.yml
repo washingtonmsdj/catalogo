@@ -37,6 +37,9 @@ on:
       - 'tools/enrich_external_candidate_identity.py'
       - 'tools/test_enrich_external_candidate_identity.py'
       - 'tools/test_incomplete_identity_review.py'
+      - 'tools/select_external_identity_review_queue.py'
+      - 'tools/test_select_external_identity_review_queue.py'
+      - 'docs/evidence/external-source-001-*-visual-identity-resolution-*.json'
 
 permissions:
   contents: read
@@ -52,8 +55,8 @@ env:
   DISCOVERY_PER_PAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.per_page || '20' }}
   DISCOVERY_MAX_PRODUCTS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_products || '7' }}
   DISCOVERY_PRODUCT_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.product_id || '' }}
-  # PR verification samples three previously staged, unresolved identities; no auto-mapping or media promotion.
-  DISCOVERY_PRODUCT_IDS: ${{ github.event_name == 'workflow_dispatch' && inputs.product_ids || (github.event_name == 'pull_request' && '27575,28861,31231') || '' }}
+  DISCOVERY_PRODUCT_IDS: ${{ github.event_name == 'workflow_dispatch' && inputs.product_ids || '' }}
+  DISCOVERY_READY: 'true'
 
 jobs:
   discover:
@@ -86,7 +89,23 @@ jobs:
           test_discover_external_staging_candidates.py
           test_enrich_external_candidate_identity.py
           test_incomplete_identity_review.py
+          test_select_external_identity_review_queue.py
+      - name: Select next unresolved identities from versioned SSOT
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ids="$(python tools/select_external_identity_review_queue.py --evidence-root docs/evidence --limit 3)"
+          echo "DISCOVERY_PRODUCT_IDS=$ids" >> "$GITHUB_ENV"
+          if [[ -n "$ids" ]]; then
+            echo "DISCOVERY_READY=true" >> "$GITHUB_ENV"
+            echo "Read-only review batch: $ids"
+          else
+            echo "DISCOVERY_READY=false" >> "$GITHUB_ENV"
+            echo "No pending, complete-staging identity preflights in versioned evidence"
+          fi
       - name: Discover candidates without writes
+        if: env.DISCOVERY_READY == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -105,11 +124,13 @@ jobs:
           fi
           python tools/discover_external_staging_candidates.py "${args[@]}"
       - name: Attach production covers for identity review
+        if: env.DISCOVERY_READY == 'true'
         run: >-
           python tools/enrich_external_candidate_identity.py
           "$RUNNER_TEMP/external-candidate-discovery/discovery-report.json"
           --review-root "$RUNNER_TEMP/external-candidate-discovery/review"
       - name: Assert discovery remained read-only
+        if: env.DISCOVERY_READY == 'true'
         shell: bash
         run: |
           python - "$RUNNER_TEMP/external-candidate-discovery/discovery-report.json" "$DISCOVERY_PRODUCT_ID" "$DISCOVERY_PRODUCT_IDS" <<'PY'
@@ -153,7 +174,7 @@ jobs:
           }, ensure_ascii=False))
           PY
       - name: Upload short-lived review evidence
-        if: always()
+        if: always() && env.DISCOVERY_READY == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: external-candidate-discovery-${{ github.run_id }}-${{ github.run_attempt }}
