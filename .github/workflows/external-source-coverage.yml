@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/external-source-coverage.yml'
       - 'tools/audit_external_source_coverage.py'
+      - 'tools/audit_published_model_collisions.py'
+      - 'tools/test_audit_published_model_collisions.py'
       - 'tools/test_audit_external_source_coverage.py'
       - 'tools/plan_external_identity_triage.py'
       - 'tools/test_plan_external_identity_triage.py'
@@ -42,7 +44,7 @@ jobs:
           node-version: 22
       - name: Test conservative coverage semantics
         working-directory: tools
-        run: python -m unittest -v test_audit_external_source_coverage.py test_plan_external_identity_triage.py
+        run: python -m unittest -v test_audit_external_source_coverage.py test_plan_external_identity_triage.py test_audit_published_model_collisions.py
       - name: Verify read-only bindings
         shell: bash
         env:
@@ -61,6 +63,12 @@ jobs:
         run: >-
           python tools/audit_external_source_coverage.py
           --output "$RUNNER_TEMP/external-source-coverage.json"
+          --published-models-output "$RUNNER_TEMP/published-models.json"
+      - name: Audit collisions across published models from the same D1 snapshot
+        run: >-
+          python tools/audit_published_model_collisions.py
+          "$RUNNER_TEMP/published-models.json"
+          --output "$RUNNER_TEMP/published-model-collisions.json"
       - name: Generate entire backlog triage from canonical coverage (read-only)
         run: >-
           python tools/plan_external_identity_triage.py
@@ -76,6 +84,11 @@ jobs:
           summary=report['summary']
           assert summary['sourceProducts'] > 0
           assert summary['publishedModels'] > 0
+          collisions=json.loads(Path(__import__('os').environ['RUNNER_TEMP'], 'published-model-collisions.json').read_text(encoding='utf-8'))
+          assert collisions['totalRecords']==summary['publishedModels']
+          assert collisions['uniqueRecordIds']==summary['publishedModels']
+          assert collisions['mutationAuthorized'] is False
+          assert collisions['sculptureUniquenessProven'] is False
           assert summary['productionWrites'] == 0
           assert summary['stagingWrites'] == 0
           assert summary['confirmedPresent'] <= summary['sourceProducts']
@@ -176,6 +189,7 @@ jobs:
           name: external-source-coverage-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/external-source-coverage.json
+            ${{ runner.temp }}/published-model-collisions.json
             ${{ runner.temp }}/external-source-identity-triage.json
             ${{ runner.temp }}/external-source-priority-review-batch.json
           if-no-files-found: error
