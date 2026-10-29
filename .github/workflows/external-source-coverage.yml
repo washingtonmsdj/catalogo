@@ -135,7 +135,8 @@ jobs:
             --output "$RUNNER_TEMP/external-priority-image-review"
           python tools/enrich_external_candidate_identity.py \
             "$RUNNER_TEMP/external-priority-image-review/discovery-report.json" \
-            --review-root "$RUNNER_TEMP/external-priority-image-review/review"
+            --review-root "$RUNNER_TEMP/external-priority-image-review/review" \
+            --priority-batch "$RUNNER_TEMP/external-source-priority-review-batch.json"
       - name: Assert priority image review is unchanged and read-only
         if: env.PRIORITY_COHORT_READY == 'true'
         shell: bash

@@ -1,7 +1,12 @@
 import unittest
+import json
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
-from enrich_external_candidate_identity import alias_hints, find_candidates, sql_like_literal, subject_hint
+from enrich_external_candidate_identity import (
+    alias_hints, find_candidates, priority_scope, sql_like_literal, subject_hint,
+)
 
 
 class EnrichExternalCandidateIdentityTests(unittest.TestCase):
@@ -55,6 +60,47 @@ class EnrichExternalCandidateIdentityTests(unittest.TestCase):
         with patch("enrich_external_candidate_identity.post_json", side_effect=responses):
             with self.assertRaisesRegex(RuntimeError, "consulta D1 alias"):
                 find_candidates("account", "token", "database", "Groot and Rocket")
+
+    def test_priority_candidate_queries_only_selected_canonical_id(self):
+        result = {"success": True, "result": [{"results": [
+            {"id": "mdl_matrix", "name": "Neo", "cover_storage_key": "media/cover.webp"}
+        ]}]}
+        with patch("enrich_external_candidate_identity.post_json", return_value=result) as call:
+            rows = find_candidates("account", "token", "db", "Neo",
+                                   selected_model_id="mdl_matrix")
+        self.assertEqual([x["id"] for x in rows], ["mdl_matrix"])
+        self.assertEqual(rows[0]["_matchBasis"], "priority_canonical_id_review_only")
+        call.assert_called_once()
+        sql = call.call_args.args[1]["sql"]
+        self.assertIn("published=1 AND id=?", sql)
+        self.assertNotIn("LIKE", sql)
+        self.assertEqual(call.call_args.args[1]["params"], ["mdl_matrix"])
+
+    def test_missing_priority_candidate_is_hard_failure_not_unbounded_fallback(self):
+        response = {"success": True, "result": [{"results": []}]}
+        with patch("enrich_external_candidate_identity.post_json", return_value=response) as call:
+            with self.assertRaisesRegex(RuntimeError, "missing or ambiguous"):
+                find_candidates("account", "token", "db", "Neo", selected_model_id="mdl_missing")
+        call.assert_called_once()
+
+    def test_priority_scope_requires_exact_downloaded_ids_and_unique_models(self):
+        report = {"requestedProductIds": [1, 2]}
+        batch = {"selectedProductIds": [1, 2], "selected": [
+            {"sourceProductId": 1, "candidateModelId": "mdl_one", "identityApproved": False,
+             "mediaPromotionAuthorized": False},
+            {"sourceProductId": 2, "candidateModelId": "mdl_two", "identityApproved": False,
+             "mediaPromotionAuthorized": False},
+        ], "productionWrites": 0, "stagingWrites": 0}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "batch.json"
+            path.write_text(json.dumps(batch), encoding="utf-8")
+            self.assertEqual(priority_scope(path, report), {1: "mdl_one", 2: "mdl_two"})
+            with self.assertRaisesRegex(RuntimeError, "differs"):
+                priority_scope(path, {"requestedProductIds": [2, 1]})
+            batch["selected"][1]["candidateModelId"] = "mdl_one"
+            path.write_text(json.dumps(batch), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "duplicate"):
+                priority_scope(path, report)
 
     def test_subject_hint_decodes_entities(self):
         self.assertEqual(subject_hint("Tom &amp; Jerry"), "Tom & Jerry")

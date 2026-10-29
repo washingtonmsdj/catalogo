@@ -106,8 +106,29 @@ def post_json(url: str, payload: dict[str, Any], token: str) -> Any:
         return json.loads(response.read().decode("utf-8"))
 
 
-def find_candidates(account_id: str, token: str, database_id: str, hint: str) -> list[dict[str, Any]]:
+def find_candidates(
+    account_id: str, token: str, database_id: str, hint: str,
+    *, selected_model_id: str | None = None,
+) -> list[dict[str, Any]]:
     endpoint = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/d1/database/{database_id}/query"
+    # A priority cohort is already scoped by one canonical candidate ID.
+    # Avoid broad substring search (Neo => unrelated Neon franchises).
+    if selected_model_id is not None:
+        if not selected_model_id.startswith("mdl_"):
+            raise RuntimeError("invalid priority model ID")
+        result = post_json(endpoint, {
+            "sql": (
+                "SELECT id,name,slug,code,image_count,cover_storage_key "
+                "FROM models WHERE published=1 AND id=? LIMIT 2"
+            ),
+            "params": [selected_model_id],
+        }, token)
+        if not result.get("success"):
+            raise RuntimeError(f"falha na consulta D1 canônica: {result.get('errors')}")
+        rows = [row for item in result.get("result") or [] for row in item.get("results") or []]
+        if len(rows) != 1 or rows[0].get("id") != selected_model_id:
+            raise RuntimeError("priority canonical model missing or ambiguous in D1")
+        return [{**rows[0], "_matchBasis": "priority_canonical_id_review_only"}]
     pattern = f"%{hint.casefold()}%"
     payload = post_json(
         endpoint,
@@ -181,7 +202,39 @@ def download_r2_object(account_id: str, token: str, bucket: str, key: str, desti
     return total
 
 
-def enrich(report_path: Path, descriptor_path: Path, review_root: Path) -> dict[str, Any]:
+def priority_scope(batch_path: Path, report: dict[str, Any]) -> dict[int, str]:
+    batch = load_json(batch_path)
+    rows = batch.get("selected")
+    if not isinstance(rows, list) or not 1 <= len(rows) <= 3:
+        raise RuntimeError("invalid priority review cohort")
+    expected_ids = batch.get("selectedProductIds")
+    if not isinstance(expected_ids, list) or len(expected_ids) != len(rows):
+        raise RuntimeError("priority cohort ID list mismatch")
+    if report.get("requestedProductIds") != expected_ids:
+        raise RuntimeError("priority cohort differs from downloaded review products")
+    scope: dict[int, str] = {}
+    candidates: set[str] = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict) or row.get("identityApproved") is not False or row.get("mediaPromotionAuthorized") is not False:
+            raise RuntimeError("priority review-only guard violated")
+        pid = row.get("sourceProductId")
+        mid = row.get("candidateModelId")
+        if (isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0
+                or pid != expected_ids[index] or pid in scope
+                or not isinstance(mid, str) or not mid.startswith("mdl_")
+                or mid in candidates):
+            raise RuntimeError("invalid or duplicate priority candidate")
+        scope[pid] = mid
+        candidates.add(mid)
+    if batch.get("productionWrites") != 0 or batch.get("stagingWrites") != 0:
+        raise RuntimeError("priority cohort cannot authorize writes")
+    return scope
+
+
+def enrich(
+    report_path: Path, descriptor_path: Path, review_root: Path,
+    priority_batch_path: Path | None = None,
+) -> dict[str, Any]:
     report = load_json(report_path)
     descriptor = load_json(descriptor_path)
     production_bucket = str(descriptor.get("productionBucket") or "").strip()
@@ -191,6 +244,7 @@ def enrich(report_path: Path, descriptor_path: Path, review_root: Path) -> dict[
     if not production_bucket or not account_id or not token or not database_id:
         raise RuntimeError("bindings de revisão ausentes")
 
+    scope = priority_scope(priority_batch_path, report) if priority_batch_path is not None else None
     materialized = 0
     reviewed_products = 0
     for product in report.get("products") or []:
@@ -198,7 +252,12 @@ def enrich(report_path: Path, descriptor_path: Path, review_root: Path) -> dict[
         if not identity_review_state_supported(state):
             continue
         hint = subject_hint(str(product.get("productName") or ""))
-        matches = find_candidates(account_id, token, database_id, hint)
+        if scope is not None and product.get("productId") not in scope:
+            raise RuntimeError("review product outside selected priority cohort")
+        matches = find_candidates(
+            account_id, token, database_id, hint,
+            selected_model_id=scope[product["productId"]] if scope is not None else None,
+        )
         review_candidates: list[dict[str, Any]] = []
         for row in matches:
             model_id = str(row.get("id") or "")
@@ -252,9 +311,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("report")
     parser.add_argument("--descriptor", default="config/external-batches/external-source-001-batch-004.json")
     parser.add_argument("--review-root", required=True)
+    parser.add_argument("--priority-batch", default=None,
+                        help="Constrain priority visual review to exact selected model IDs")
     return parser.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
-    enrich(Path(args.report), Path(args.descriptor), Path(args.review_root))
+    enrich(Path(args.report), Path(args.descriptor), Path(args.review_root),
+           Path(args.priority_batch) if args.priority_batch else None)
