@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 14300,
+  "productName": "Nathan Drake STL + Bust — Uncharted",
+  "scope": "read_only_identity_review_no_media_promotion",
+  "sourceGallery": {
+    "positionsDownloaded": 9,
+    "totalSourcePositions": 9,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "0/9",
+    "completeStaging": false,
+    "stagingNote": "Read-only source download is not private staging, ownership or creator rights proof."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40840773179,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40840773179",
+    "artifactName": "external-priority-visual-review-40840773179-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "3fa7a0c362a365a4bd5cb46fc1ec7f555ab1807f305741c563b33df9f4ec04ad",
+    "sourcePositionBytes": 570388,
+    "sourcePositionDhash": "9178f8f0f0e8e033",
+    "productionCoverSha256": "698e11414cea190ce502b23b51069fa1b55089583328ec0525bb336ba8697b33",
+    "productionCoverBytes": 52670,
+    "productionCoverDhash": "0d464f49756d0d09",
+    "coverToSourceDhashDistance": 36,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "The published model is a plain gray Nathan Drake sprinting with a pistol extended horizontally, stepping across a blocky wrecked machine bearing an engraved nameplate. The source statue shows Nathan jumping through ruins with arms raised, rope and rusty hanging cage framing the figure, skeletal remains and a fractured rock/boat-like environment, different leg and arm positions and different base objects. Multiple source angles 2–9 corroborate distinct sculpt geometry; the source character name alone does not prove same model.",
+    "identityProofInterpretation": "Visual exclusion of the exact candidate based on pose, base and sculptural geometry. Candidate cover and source source-position bytes SHA-256 verified. This does not prove absence from all published or historical aliases."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_1fad1f7b7c2ad892e020",
+    "reviewedCandidateSlug": "uncharted-nathan-drake",
+    "coverStorageKey": "media/mdl_1fad1f7b7c2ad892e020/img_cde29fc9f402c1bd89e9/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_1fad1f7b7c2ad892e020",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "reason": "same_character_but_different_three_dimensional_sculpture",
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "External source gallery includes logo overlays and promotional/render references; private staging 0/9. Companion bust or extras require independent identity and rights review. No import, watermark removal or display as new gallery media is authorized."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Read-only search for further same-franchise variants and alias/historical records, comparing sculpture geometry; an excluded nominal candidate cannot automatically authorize creating a new model."
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 14328,
+  "productName": "Angewomon STL 2 + NSFW — Digimon",
+  "scope": "read_only_identity_review_no_media_promotion",
+  "sourceGallery": {
+    "positionsDownloaded": 7,
+    "totalSourcePositions": 7,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "0/7",
+    "completeStaging": false,
+    "stagingNote": "Read-only source download is not private staging, ownership or creator rights proof."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40840773179,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40840773179",
+    "artifactName": "external-priority-visual-review-40840773179-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "4e0af37b80a99d69a5920aea5aedbcca34c63cca5c53242c20fb2f9cc34efeb1",
+    "sourcePositionBytes": 444131,
+    "sourcePositionDhash": "169668f8f0c8e068",
+    "productionCoverSha256": "402dfeff784229fcc26f4b781754967b95217b34d2f6d82ea89abfb324ac3c40",
+    "productionCoverBytes": 88550,
+    "productionCoverDhash": "86cf8baf133397b3",
+    "coverToSourceDhashDistance": 40,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Current published figure stands symmetrically upright on a angular blue/gray cuboid base with large dark gray outspread feather wings and long vertical pale ribbons. Source displays a moving, bent-knee winged figure leaping above swirling gray cloud-vine effects, with pink circular rune rings and outstretched arms holding a spear-like golden implement. Pose, multilevel spiral base and wing/ribbon arrangement do not match. Source profiles and sculpt-detail views 2–7 corroborate. Same character/franchise is not the same 3D statue.",
+    "identityProofInterpretation": "Visual exclusion of the exact candidate based on pose, base and sculptural geometry. Candidate cover and source source-position bytes SHA-256 verified. This does not prove absence from all published or historical aliases."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_97dee1e9e5e58f71edc4",
+    "reviewedCandidateSlug": "digimon-angewomon-digimon",
+    "coverStorageKey": "media/mdl_97dee1e9e5e58f71edc4/img_78ced86f9544b144c6fe/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_97dee1e9e5e58f71edc4",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "reason": "same_character_but_different_three_dimensional_sculpture",
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source gallery includes artist/publisher marks and promotional overlays, private staging 0/7; no media rights or variant licensing authorization. No import, watermark removal or display as new gallery media is authorized."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Read-only search for further same-franchise variants and alias/historical records, comparing sculpture geometry; an excluded nominal candidate cannot automatically authorize creating a new model."
+  }
+}
