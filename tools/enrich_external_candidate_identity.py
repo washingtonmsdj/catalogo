@@ -82,7 +82,7 @@ def alias_hints(hint: str) -> list[str]:
 
 def sql_like_literal(value: str) -> str:
     """Escape LIKE wildcards so names cannot broaden unbounded wildcard scans."""
-    return "%" + value.casefold().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+    return "%" + value.casefold().replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
 
 
 def identity_review_state_supported(state: str) -> bool:
@@ -134,7 +134,7 @@ def find_candidates(account_id: str, token: str, database_id: str, hint: str) ->
     aliases = alias_hints(hint)
     if not aliases:
         return []
-    predicates = ["(lower(name) LIKE ? ESCAPE '\\\\' OR lower(search_text) LIKE ? ESCAPE '\\\\')" for _ in aliases]
+    predicates = ["(lower(name) LIKE ? ESCAPE '!' OR lower(search_text) LIKE ? ESCAPE '!')" for _ in aliases]
     patterns = [pattern for alias in aliases for pattern in (sql_like_literal(alias),) * 2]
     fallback = post_json(
         endpoint,

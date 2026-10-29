@@ -17,8 +17,9 @@ class EnrichExternalCandidateIdentityTests(unittest.TestCase):
         self.assertEqual(alias_hints("Groot and Rocket"), ["Groot", "Rocket"])
         self.assertEqual(alias_hints("Tom & Jerry"), ["Jerry"])  # Tom too short
         self.assertEqual(alias_hints("Bane"), [])
-        self.assertEqual(sql_like_literal("Kai%Sa"), r"%kai\%sa%")
-        self.assertEqual(sql_like_literal("A_B"), r"%a\_b%")
+        self.assertEqual(sql_like_literal("Kai%Sa"), "%kai!%sa%")
+        self.assertEqual(sql_like_literal("A_B"), "%a!_b%")
+        self.assertEqual(sql_like_literal("A!_B%"), "%a!!!_b!%%")
 
     def test_fallback_is_bounded_parameterized_and_never_authorizes_identity(self):
         fallback_model = {"id": "mdl_a", "name": "Kaisa", "slug": "kaisa"}
@@ -36,6 +37,7 @@ class EnrichExternalCandidateIdentityTests(unittest.TestCase):
         self.assertIn("%kaisa%", payload["params"])
         self.assertIn("%kai sa%", payload["params"])
         self.assertNotIn("Kai’Sa", payload["sql"])
+        self.assertIn("ESCAPE '!'", payload["sql"])
 
     def test_exact_match_skips_alias_fallback(self):
         rows = [{"id": "mdl_exact", "name": "Kai’Sa"}]
