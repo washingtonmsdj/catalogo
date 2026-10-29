@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 18447,
+  "productName": "Orochimaru STL 2 + Bust — Naruto",
+  "scope": "read_only_identity_review_no_media_publication",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "0/6",
+    "completeStaging": false,
+    "stagingNote": "Source images downloaded temporarily for manual inspection, not evidence of R2 staging, ownership or license."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40896452674,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40896452674",
+    "artifactName": "external-priority-visual-review-40896452674-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "32f00792ca86eed35dac968f6ffb72b6e7d546adabde14e28f17045d8e619e9c",
+    "sourcePositionBytes": 659168,
+    "sourcePositionDhash": "0d369e0f0f07170b",
+    "productionCoverSha256": "9cb95f6b0cdd767849fd0cd945996e56789a5f2e6f6e7bec77b21e333713c198",
+    "productionCoverBytes": 42654,
+    "productionCoverDhash": "0c4c0c9d9c0e363e",
+    "coverToSourceDhashDistance": 24,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "External sculpture shows Orochimaru wearing a pale tan top and blue trousers with an enormous tan/brown snake winding over his head, around his torso and down to a gnarled root base. Nominal published cover instead shows Orochimaru in a long dark Akatsuki cloak with purple snake rising behind him and a round purple base. Costume, snake size/texture, body pose and base differ; multiple source angles corroborate distinct sculptures.",
+    "identityProofInterpretation": "Human cross-view comparison of sculpt, pose, accessories and base; verified source SHA and canonical R2 cover dHash are supporting evidence, never standalone automatic approval."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_177a25675f0d6ee6f2b1",
+    "reviewedCandidateSlug": "naruto-orochimaru-akatsuki-com-serpente-roxa",
+    "coverStorageKey": "media/mdl_177a25675f0d6ee6f2b1/img_95191e2f063fe08121e4/card.webp",
+    "published": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [],
+    "sourceShaOwnerIsSamePublishedTarget": false
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_177a25675f0d6ee6f2b1",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "sameNameIsNotDuplicateProof": true,
+    "reason": "published_same_name_candidate_has_different_sculpture_and_base"
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source photos marked with Tanuki Figures studio branding; published cover has a separate creator watermark and commercial handles. No watermark removal, crop, image replacement, source gallery ingestion, or publication approved."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Search other published same-franchise/historical aliases read-only; exclude current sculpture as identity match but do not assume complete absence or approve new model."
+  }
+}
