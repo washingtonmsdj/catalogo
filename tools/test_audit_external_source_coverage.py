@@ -1,8 +1,11 @@
+import json
+import tempfile
 import urllib.parse
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
-from audit_external_source_coverage import classify, fetch_source_products, subject_hint
+from audit_external_source_coverage import CoverageError, classify, fetch_source_products, review_evidence, subject_hint
 
 
 class ExternalSourceCoverageTests(unittest.TestCase):
@@ -56,9 +59,72 @@ class ExternalSourceCoverageTests(unittest.TestCase):
             self.models,
             {10: {"map_existing"}},
             {},
+            {10: {"mdl_a"}},
         )
         self.assertEqual(report["summary"]["confirmedPresent"], 1)
         self.assertEqual(report["products"][0]["state"], "confirmed_present_map_existing")
+
+    def test_map_existing_is_unresolved_when_target_not_published_or_not_proven(self):
+        product = [{"id": 10, "name": "Azula STL – Avatar"}]
+        for targets in ({}, {10: {"mdl_missing"}}, {10: {"mdl_a", "mdl_r1"}}):
+            with self.subTest(targets=targets):
+                report = classify(product, self.models, {10: {"map_existing"}}, {}, targets)
+                self.assertEqual(report["summary"]["confirmedPresent"], 0)
+                self.assertEqual(report["products"][0]["state"], "reviewed_unresolved")
+                self.assertFalse(report["summary"]["coverage100Proven"])
+
+    def test_only_approved_versioned_target_is_allowed_into_map_existing_proof(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "external-source-001-azula-gallery-review.json"
+            evidence = {
+                "sourceProductId": 10,
+                "identityReview": {"decision": "map_existing", "targetModelId": "mdl_a"},
+                "decision": {"mapExistingApproved": False},
+            }
+            path.write_text(json.dumps(evidence), encoding="utf-8")
+            states, targets = review_evidence(Path(tmp))
+            self.assertIn("map_existing", states[10])
+            self.assertFalse(targets.get(10))
+            evidence["decision"]["mapExistingApproved"] = True
+            path.write_text(json.dumps(evidence), encoding="utf-8")
+            states, targets = review_evidence(Path(tmp))
+            self.assertEqual(targets[10], {"mdl_a"})
+            report = classify([{"id": 10, "name": "Azula"}], self.models, states, {}, targets)
+            self.assertEqual(report["summary"]["confirmedPresent"], 1)
+
+    def test_map_existing_conflicting_model_ids_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "external-source-001-conflict.json"
+            path.write_text(json.dumps({
+                "sourceProductId": 10,
+                "identityReview": {
+                    "decision": "map_existing",
+                    "mapExistingApproved": True,
+                    "targetModelId": "mdl_a",
+                },
+                "decision": {"canonicalModelId": "mdl_other"},
+            }), encoding="utf-8")
+            with self.assertRaises(CoverageError):
+                review_evidence(Path(tmp))
+
+    def test_source_pagination_fails_closed_when_total_or_order_drifts(self):
+        def missing_product(_url, **_kwargs):
+            return ([{"id": 1}], {"X-WP-Total": "2", "X-WP-TotalPages": "1"})
+        with patch("audit_external_source_coverage.fetch_json", side_effect=missing_product):
+            with self.assertRaisesRegex(CoverageError, "snapshot incompleto"):
+                fetch_source_products("https://example.test")
+
+        def reordered(_url, **_kwargs):
+            return ([{"id": 2}, {"id": 1}], {"X-WP-Total": "2", "X-WP-TotalPages": "1"})
+        with patch("audit_external_source_coverage.fetch_json", side_effect=reordered):
+            with self.assertRaisesRegex(CoverageError, "fora de ordem"):
+                fetch_source_products("https://example.test")
+
+        def inconsistent_page_count(_url, **_kwargs):
+            return ([{"id": 1}], {"X-WP-Total": "101", "X-WP-TotalPages": "1"})
+        with patch("audit_external_source_coverage.fetch_json", side_effect=inconsistent_page_count):
+            with self.assertRaisesRegex(CoverageError, "paginação de origem inconsistente"):
+                fetch_source_products("https://example.test")
 
     def test_reviewed_new_model_is_not_present_until_deterministic_id_is_published(self):
         report = classify(
