@@ -1,6 +1,10 @@
 import unittest
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+from io import BytesIO
 
-from materialize_external_source_review import safe_source_url, selected_review, selected_reviews
+from materialize_external_source_review import safe_source_url, selected_review, selected_reviews, download
 
 
 class ExternalSourceReviewTests(unittest.TestCase):
@@ -73,6 +77,40 @@ class ExternalSourceReviewTests(unittest.TestCase):
             safe_source_url("https://example.com", "/wp-content/../secret.webp")
         with self.assertRaises(RuntimeError):
             safe_source_url("https://example.com", "/wp-content/a.webp?x=1")
+
+    def test_interrupted_transfer_retries_without_partial_file(self):
+        class Broken(BytesIO):
+            def read(self, size=-1):
+                if self.tell():
+                    raise ConnectionResetError("interrupted")
+                return super().read(2)
+            headers = {"Content-Type": "image/webp"}
+        class Valid(BytesIO):
+            headers = {"Content-Type": "image/webp"}
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "cover.webp"
+            with patch("materialize_external_source_review.urllib.request.urlopen",
+                       side_effect=[Broken(b"badbytes"), Valid(b"complete")]) as opener:
+                import hashlib
+                sha, size, media_type = download("https://example.com/a.webp", target, 100)
+            self.assertEqual(opener.call_count, 2)
+            self.assertEqual(target.read_bytes(), b"complete")
+            self.assertFalse((Path(tmp) / "cover.webp.partial").exists())
+            self.assertEqual(sha, hashlib.sha256(b"complete").hexdigest())
+            self.assertEqual((size, media_type), (8, "image/webp"))
+
+    def test_oversize_is_not_retried_or_promoted(self):
+        class Large(BytesIO):
+            headers = {"Content-Type": "image/webp"}
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "cover.webp"
+            with patch("materialize_external_source_review.urllib.request.urlopen",
+                       return_value=Large(b"too-large")) as opener:
+                with self.assertRaisesRegex(RuntimeError, "limite"):
+                    download("https://example.com/a.webp", target, 2)
+            self.assertEqual(opener.call_count, 1)
+            self.assertFalse(target.exists())
+            self.assertFalse((Path(tmp) / "cover.webp.partial").exists())
 
 
 if __name__ == "__main__":
