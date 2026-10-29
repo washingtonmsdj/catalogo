@@ -30,7 +30,13 @@ def plan(report: dict) -> dict:
         franchise, name = item["key"]
         if not isinstance(franchise, str) or not isinstance(name, str) or not name:
             raise ValueError("invalid collision key")
+        details = item.get("modelMetadata")
+        if details is not None:
+            if (not isinstance(details, list) or len(details) != len(ids)
+                    or {v.get("modelId") for v in details if isinstance(v, dict)} != set(ids)):
+                raise ValueError("collision model metadata mismatch")
         groups.append({"franchiseId": franchise, "normalizedName": name,
+                       "modelMetadata": details if details is not None else [],
                        "modelIds": sorted(ids), "modelCount": len(ids),
                        "pairwiseComparisons": len(ids) * (len(ids) - 1) // 2,
                        "reviewState": "requires_visual_and_provenance_review",
