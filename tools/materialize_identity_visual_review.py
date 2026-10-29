@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import urllib.error
 import urllib.parse
+import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from materialize_external_source_review import (
     decode_b64_text,
@@ -88,6 +90,55 @@ def public_media_url(api_base: str, storage_key: str) -> str:
     return f"{base}/media/{safe_key}"
 
 
+def verify_public_candidate(
+    api_base: str,
+    candidate: dict[str, Any],
+    opener: Callable = urllib.request.urlopen,
+) -> dict[str, Any]:
+    """Fail closed on stale evidence before downloading any external gallery bytes.
+
+    The public API is the authority for the current published model and cover key;
+    the review evidence pins identity but is not a mutable lookup or fallback.
+    """
+    base = normalize_api_base(api_base)
+    url = f"{base}/api/models/{urllib.parse.quote(candidate['slug'], safe='')}"
+    request = urllib.request.Request(
+        url,
+        headers={"Accept": "application/json", "User-Agent": "catalog-identity-preflight/1"},
+    )
+    try:
+        with opener(request, timeout=20) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(
+            f"candidate model unavailable: HTTP {exc.code}; "
+            f"model={candidate['modelId']} slug={candidate['slug']}; "
+            "refresh/version the evidence before visual review"
+        ) from exc
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise RuntimeError("candidate model API unavailable; no identity decision authorized") from exc
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise RuntimeError("candidate model API returned invalid JSON") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("candidate model API returned invalid object")
+    expected = {
+        "id": candidate["modelId"],
+        "slug": candidate["slug"],
+        "cover_storage_key": candidate["coverStorageKey"],
+    }
+    divergent = {
+        field: {"expected": value, "current": payload.get(field)}
+        for field, value in expected.items()
+        if payload.get(field) != value
+    }
+    if divergent:
+        raise RuntimeError(
+            f"candidate evidence is stale or resolves to another model: {json.dumps(divergent, ensure_ascii=False)}; "
+            "no fallback or automatic identity mapping authorized"
+        )
+    return payload
+
+
 def materialize(args: argparse.Namespace) -> dict[str, Any]:
     review = load_json(Path(args.review))
     contract = load_json(Path(args.source_contract))
@@ -100,6 +151,7 @@ def materialize(args: argparse.Namespace) -> dict[str, Any]:
 
     origin = decode_b64_text(contract.get("sourceOriginB64"), "sourceOriginB64")
     candidate = production_candidate(review)
+    verify_public_candidate(args.api_base, candidate)
     output = Path(args.output)
     source_dir = output / "source"
     candidate_dir = output / "candidate"
@@ -132,11 +184,19 @@ def materialize(args: argparse.Namespace) -> dict[str, Any]:
         })
 
     candidate_target = candidate_dir / "cover.webp"
-    candidate_sha, candidate_bytes, candidate_content_type = download(
-        public_media_url(args.api_base, candidate["coverStorageKey"]),
-        candidate_target,
-        int(args.max_image_bytes),
-    )
+    try:
+        candidate_sha, candidate_bytes, candidate_content_type = download(
+            public_media_url(args.api_base, candidate["coverStorageKey"]),
+            candidate_target,
+            int(args.max_image_bytes),
+        )
+    except urllib.error.HTTPError as exc:
+        raise RuntimeError(
+            f"published model {candidate['modelId']} currently references "
+            f"{candidate['coverStorageKey']} but the canonical public media gateway returned "
+            f"HTTP {exc.code}; verify the actual R2 object and Worker binding, "
+            "without substituting an alternative cover"
+        ) from exc
     total_bytes += candidate_bytes
     if total_bytes > int(args.max_total_bytes):
         raise RuntimeError("identity review excedeu max-total-bytes")
