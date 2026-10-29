@@ -15,8 +15,10 @@ import json
 import os
 import re
 import unicodedata
+import urllib.error
 import urllib.parse
 import urllib.request
+import time
 from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
@@ -72,9 +74,26 @@ def fetch_json(url: str, *, token: str | None = None, body: dict[str, Any] | Non
         data = json.dumps(body, separators=(",", ":")).encode("utf-8")
         method = "POST"
     request = urllib.request.Request(url, data=data, method=method, headers=headers)
-    with urllib.request.urlopen(request, timeout=45) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-        return payload, response.headers
+    # The public WordPress source occasionally emits transient 403/429/5xx at
+    # the edge. Retry read-only anonymous GET only, as in candidate discovery.
+    # Never retry authenticated Cloudflare errors or any POST/query, and never
+    # treat a failed/partial page as a successful coverage snapshot.
+    anonymous_read = method == "GET" and token is None
+    max_attempts = 4 if anonymous_read else 1
+    for attempt in range(max_attempts):
+        try:
+            with urllib.request.urlopen(request, timeout=45) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+                return payload, response.headers
+        except urllib.error.HTTPError as exc:
+            transient = exc.code in {403, 408, 425, 429} or 500 <= exc.code <= 599
+            if not anonymous_read or not transient or attempt + 1 >= max_attempts:
+                raise
+        except (urllib.error.URLError, TimeoutError):
+            if not anonymous_read or attempt + 1 >= max_attempts:
+                raise
+        time.sleep(2 ** attempt)
+    raise CoverageError("anonymous source request exhausted retry budget")
 
 
 def fetch_source_products(origin: str, *, per_page: int = 100, max_pages: int = 100) -> tuple[list[dict[str, Any]], dict[str, int]]:

@@ -1,11 +1,12 @@
 import json
 import tempfile
+import urllib.error
 import urllib.parse
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from audit_external_source_coverage import CoverageError, classify, fetch_source_products, review_evidence, subject_hint
+from audit_external_source_coverage import CoverageError, classify, fetch_json, fetch_source_products, review_evidence, subject_hint
 
 
 class ExternalSourceCoverageTests(unittest.TestCase):
@@ -35,6 +36,55 @@ class ExternalSourceCoverageTests(unittest.TestCase):
 
     def test_subject_hint_is_review_only_character_hint(self):
         self.assertEqual(subject_hint("Ryu STL 3 – Street Fighter"), "Ryu")
+
+    def test_transient_anonymous_403_then_valid_page_is_retried_without_bypass(self):
+        class Response:
+            headers = {"X-WP-Total": "1", "X-WP-TotalPages": "1"}
+            def __enter__(self):
+                return self
+            def __exit__(self, *args):
+                return False
+            def read(self):
+                return b'[{"id": 1}]'
+        err = urllib.error.HTTPError("https://source.test/api", 403, "Forbidden", {}, None)
+        with patch("audit_external_source_coverage.urllib.request.urlopen", side_effect=[err, Response()]) as open_url, patch(
+            "audit_external_source_coverage.time.sleep", return_value=None
+        ) as sleep:
+            payload, headers = fetch_json("https://source.test/api")
+        self.assertEqual(payload, [{"id": 1}])
+        self.assertEqual(headers["X-WP-Total"], "1")
+        self.assertEqual(open_url.call_count, 2)
+        sleep.assert_called_once_with(1)
+
+    def test_persistent_public_403_is_a_hard_failure(self):
+        err = urllib.error.HTTPError("https://source.test/api", 403, "Forbidden", {}, None)
+        with patch("audit_external_source_coverage.urllib.request.urlopen", side_effect=err) as open_url, patch(
+            "audit_external_source_coverage.time.sleep", return_value=None
+        ) as sleep:
+            with self.assertRaises(urllib.error.HTTPError):
+                fetch_json("https://source.test/api")
+        self.assertEqual(open_url.call_count, 4)
+        self.assertEqual(sleep.call_count, 3)
+
+    def test_authenticated_cloudflare_403_is_never_retried(self):
+        err = urllib.error.HTTPError("https://api.cloudflare.com/client/v4/", 403, "Forbidden", {}, None)
+        with patch("audit_external_source_coverage.urllib.request.urlopen", side_effect=err) as open_url, patch(
+            "audit_external_source_coverage.time.sleep", return_value=None
+        ) as sleep:
+            with self.assertRaises(urllib.error.HTTPError):
+                fetch_json("https://api.cloudflare.com/client/v4/", token="secret", body={"sql": "SELECT 1"})
+        self.assertEqual(open_url.call_count, 1)
+        sleep.assert_not_called()
+
+    def test_anonymous_404_is_not_retried(self):
+        err = urllib.error.HTTPError("https://source.test/missing", 404, "Not Found", {}, None)
+        with patch("audit_external_source_coverage.urllib.request.urlopen", side_effect=err) as open_url, patch(
+            "audit_external_source_coverage.time.sleep", return_value=None
+        ) as sleep:
+            with self.assertRaises(urllib.error.HTTPError):
+                fetch_json("https://source.test/missing")
+        self.assertEqual(open_url.call_count, 1)
+        sleep.assert_not_called()
 
     def test_source_pagination_is_stable_and_requests_categories(self):
         requested: list[str] = []
