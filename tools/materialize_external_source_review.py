@@ -12,6 +12,9 @@ import argparse
 import base64
 import hashlib
 import json
+import socket
+import http.client
+import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -123,27 +126,41 @@ def selected_review(source_map: dict[str, Any]) -> dict[str, Any]:
 
 
 def download(url: str, target: Path, max_bytes: int) -> tuple[str, int, str]:
+    """Retry interrupted source reads once, never accepting partial files."""
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT, "Accept": "image/*"})
     target.parent.mkdir(parents=True, exist_ok=True)
-    digest = hashlib.sha256()
-    total = 0
-    content_type = ""
-    with urllib.request.urlopen(request, timeout=60) as response, target.open("wb") as handle:
-        content_type = str(response.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
-        if not content_type.startswith("image/"):
-            raise RuntimeError(f"source não retornou imagem: {content_type or '<vazio>'}")
-        while True:
-            chunk = response.read(1024 * 1024)
-            if not chunk:
-                break
-            total += len(chunk)
-            if total > max_bytes:
-                raise RuntimeError(f"source excede limite de {max_bytes} bytes")
-            digest.update(chunk)
-            handle.write(chunk)
-    if total < 1:
-        raise RuntimeError("source vazio")
-    return digest.hexdigest(), total, content_type
+    temporary = target.with_name(target.name + ".partial")
+    for attempt in range(2):
+        digest = hashlib.sha256()
+        total = 0
+        content_type = ""
+        try:
+            with urllib.request.urlopen(request, timeout=60) as response, temporary.open("wb") as handle:
+                content_type = str(response.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
+                if not content_type.startswith("image/"):
+                    raise RuntimeError(f"source não retornou imagem: {content_type or '<vazio>'}")
+                while True:
+                    chunk = response.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > max_bytes:
+                        raise RuntimeError(f"source excede limite de {max_bytes} bytes")
+                    digest.update(chunk)
+                    handle.write(chunk)
+            if total < 1:
+                raise RuntimeError("source vazio")
+            temporary.replace(target)
+            return digest.hexdigest(), total, content_type
+        except (ConnectionResetError, TimeoutError, socket.timeout, http.client.IncompleteRead,
+                urllib.error.URLError, http.client.RemoteDisconnected):
+            temporary.unlink(missing_ok=True)
+            if attempt == 1:
+                raise
+        except Exception:
+            temporary.unlink(missing_ok=True)
+            raise
+    raise RuntimeError("download retry budget exhausted")
 
 
 def materialize(args: argparse.Namespace) -> dict[str, Any]:
