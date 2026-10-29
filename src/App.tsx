@@ -387,7 +387,7 @@ export default function App() {
         onToggleCompare={() => toggleCompare(selected.id)}
         onToggleQuote={() => safeToggleQuote(selected.id)}
       />
-      <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} activeFranchise={catalog.franchise} activeFolder={catalog.folder} folderTrail={catalog.folderTrail} initialQuery={explorerInitialQuery} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} onSelectFolder={chooseExplorerFolder} />
+      <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} activeFranchise={catalog.franchise} activeFolder={catalog.folder} folderTrail={catalog.folderTrail} loadFolders={catalog.loadFolders} initialQuery={explorerInitialQuery} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} onSelectFolder={chooseExplorerFolder} />
 
       <ModelComparison open={compareOpen} mode={catalog.mode} ids={compareIds} knownModels={knownModels} onClose={() => setCompareOpen(false)} onRemove={(id) => setCompareIds((current) => current.filter((item) => item !== id))} onClear={() => setCompareIds([])} onOpenModel={(id) => openKnownModel(id, () => setCompareOpen(false))} onAddToQuote={addComparisonToQuote} />
 

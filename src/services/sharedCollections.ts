@@ -1,3 +1,5 @@
+import { buildSharedCollectionUrl } from './catalogNavigation'
+
 export type SharedCollectionItem = {
   id: string
   slug: string
@@ -47,10 +49,6 @@ export async function fetchSharedCollection(code: string) {
   return body
 }
 
-export function sharedCollectionPublicUrl(code: string) {
-  const url = new URL(window.location.href)
-  url.search = ''
-  url.hash = ''
-  url.searchParams.set('colecao', code)
-  return url.toString()
+export function sharedCollectionPublicUrl(code: string, currentUrl = new URL(window.location.href)) {
+  return buildSharedCollectionUrl(code, currentUrl)
 }

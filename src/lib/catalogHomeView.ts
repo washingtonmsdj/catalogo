@@ -6,6 +6,10 @@ export type CatalogHomeModeInput = {
   folder: string
   search: string
   searchPending: boolean
+  material?: string
+  collection?: string
+  minHeight?: string
+  maxHeight?: string
 }
 
 export function hasResolvedCatalogDiscovery(input: CatalogHomeModeInput) {
@@ -14,6 +18,7 @@ export function hasResolvedCatalogDiscovery(input: CatalogHomeModeInput) {
     || input.franchise !== 'all'
     || Boolean(input.folder)
     || Boolean(input.search.trim() && !input.searchPending)
+    || Boolean(input.material || input.collection || input.minHeight || input.maxHeight)
   )
 }
 
