@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 13154,
+  "productName": "Lune STL — Clair Obscur: Expedition 33",
+  "scope": "identity_review_only_no_media_publication",
+  "sourceGallery": {
+    "positionsDownloaded": 5,
+    "totalSourcePositions": 5,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "4/5",
+    "completeStaging": false,
+    "stagingNote": "Source bytes were downloaded for read-only comparison. Partial or missing private staging is not a license or ownership proof."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40839484524,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40839484524",
+    "artifactName": "external-priority-visual-review-40839484524-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "d6d54b1907398ab135c5c968884e66f0c9db25574d45536ebc28cad467424b7b",
+    "sourcePositionBytes": 810396,
+    "sourcePositionDhash": "a5326e1b647373b1",
+    "productionCoverSha256": "bbd8d5ba9dabaf129f552900564ab8a87ab78513b7662b73a3e08b89048e10d6",
+    "productionCoverBytes": 89368,
+    "productionCoverDhash": "a5326e1b647333b1",
+    "coverToSourceDhashDistance": 1,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Source view 1 and production cover are the same tight portrait of brown-haired Lune in a long dark waistcoat and gray-blue outfit, with her right hand raised producing orange flames, golden geometric cube shapes and bright orange fire effects. The framing, face, arm, costume stitching and flame ribbons match; additional full statue/side views corroborate the same figure, spell effects and broken-rock base. One-bit canonical dHash difference consistent with image resampling.",
+    "identityProofInterpretation": "Manual comparison across verified source views and canonical R2 cover. SHA-256, dHash, sculpture, pose, costume and base are evidence; similar character names and hashes never by themselves authorize mapping or new publication."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_d464df80d1a56b5e6946",
+    "reviewedCandidateSlug": "clair-obscur-expedition-33-lune-estatua-com-magia-de-fogo",
+    "coverStorageKey": "media/mdl_d464df80d1a56b5e6946/img_f92f947547ea7dc4df67/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_d464df80d1a56b5e6946",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source and already published cover contain creator marks and Patreon promotional text. No new gallery upload or modification authorized. No new image use, watermark removal, crop, cover replacement, upload or gallery promotion authorized."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Maintain one canonical published model; independently verify creator rights, attribution and provenance before importing or replacing any source image."
+  }
+}

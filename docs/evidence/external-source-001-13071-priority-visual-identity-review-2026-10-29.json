@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 13071,
+  "productName": "Vergil STL 2 — Devil May Cry",
+  "scope": "identity_review_only_no_media_publication",
+  "sourceGallery": {
+    "positionsDownloaded": 5,
+    "totalSourcePositions": 5,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "4/5",
+    "completeStaging": false,
+    "stagingNote": "Source bytes were downloaded for read-only comparison. Partial or missing private staging is not a license or ownership proof."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40839484524,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40839484524",
+    "artifactName": "external-priority-visual-review-40839484524-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "e6707332874bbfaf3fceef90b33fdc45ccbf47b9f4241fbbcef681f82d9f4c00",
+    "sourcePositionBytes": 398108,
+    "sourcePositionDhash": "1d17369cd0f8f8c3",
+    "productionCoverSha256": "f768d44fa7d7bc6120a2b1c47eca4e47dc407cb922ea6edd338b4a5cceb53683",
+    "productionCoverBytes": 66060,
+    "productionCoverDhash": "90ccb436d2b494d3",
+    "coverToSourceDhashDistance": 25,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "The canonical cover is a monochrome collage of THREE Vergil sculpture views, with different arms and ornate skull/monster pedestals. Source view 1 is a colored closeup of short pale-haired Vergil, and views 2–5 show a single lunging/crouched blue-coated Vergil drawing a katana above an orange ring of flames on a flat VERGIL nameplate. Neither pose, pedestal, sword placement nor the prominent fire arc matches the reviewed canonical cover. Source's other camera angles corroborate. The one published same-name candidate is not proven to be the same sculpture; other historical variants remain unsearched.",
+    "identityProofInterpretation": "Manual comparison across verified source views and canonical R2 cover. SHA-256, dHash, sculpture, pose, costume and base are evidence; similar character names and hashes never by themselves authorize mapping or new publication."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_7805403af49aaed1760b",
+    "reviewedCandidateSlug": "devil-may-cry-vergil-estatua-multiplas-vistas-com-yamato",
+    "coverStorageKey": "media/mdl_7805403af49aaed1760b/img_19e12bb721eb0761383e/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_7805403af49aaed1760b",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "reason": "published_same_character_statue_differs_from_source_sculpture_no_catalog_wide_absence_proven",
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Third-party studio lion insignia, web/social handles, Patreon promotion, and print-test labeling are visible in the source images. The published cover also shows creator branding. No new image use, watermark removal, crop, cover replacement, upload or gallery promotion authorized."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Search other published variants and historical aliases, checking actual sculptures; absence of a match among one current candidate cannot approve a new model."
+  }
+}
