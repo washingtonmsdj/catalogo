@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 15776,
+  "productName": "Rudo — Gachiakuta",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 7,
+    "totalSourcePositions": 7,
+    "stagingCoverage": "0/7",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40892556102,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40892556102",
+    "artifactName": "external-priority-visual-review-40892556102-1",
+    "reviewedSourcePosition": 3,
+    "sourcePositionSha256": "782a2f30394ededdf80c71a824624e3ecec11f83972081b78b9b421c31bb3c3a",
+    "sourcePositionBytes": 106700,
+    "sourcePositionDhash": "080a6a61b3f67633",
+    "productionCoverSha256": "2cb90200355764aed0290aa6bc26a47b92cf3cfa84734aec1fdeceaa54ba60cb",
+    "productionCoverBytes": 132484,
+    "productionCoverDhash": "d8c8e4e472f0b2e3",
+    "coverToSourceDhashDistance": 24,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Source depicts standing white-haired Rudo in a gray-purple long high-collar outfit with red chain-like magic from one extended arm, on a round industrial debris platform lit by vivid green liquid effects; 7 views confirm same standing geometry. Published nominal Rudo cover is a separate crouched figure with one hand on an industrial plinth and red energy ring. Physical posture, clothing, feet, prop placements and base do not correspond. The closest dHash distance is 24, not a proof of distinctness by itself. Other historical/catalog variants have not been ruled out.",
+    "identityProofInterpretation": "Human sculpture comparison rejects one candidate; does not assert catalog-wide absence."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_0f8c986f22f4f30a8e14",
+    "reviewedCandidateSlug": "gachiakuta-rudo-diorama-com-energia-vermelha",
+    "coverStorageKey": "media/mdl_0f8c986f22f4f30a8e14/img_f8b5ebd55c8855a9233f/card.webp",
+    "published": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": []
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_0f8c986f22f4f30a8e14",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "sameNameIsNotDuplicateProof": true,
+    "reason": "different_sculpture_from_nominal_published_model_other_variants_not_excluded"
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Third-party studio logos, QR links, creator social handles and Patreon appear on external imagery; media use and private staging not approved."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Continue read-only historical/other Gachiakuta Rudo variant review. One rejected current cover cannot authorize a new model."
+  }
+}
