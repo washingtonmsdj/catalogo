@@ -4,6 +4,7 @@ import io
 import json
 import unittest
 import urllib.error
+import urllib.parse
 
 from materialize_identity_visual_review import (
     normalize_api_base,
@@ -50,7 +51,24 @@ class IdentityVisualReviewTests(unittest.TestCase):
             "https://catalog.example.test/",
             "media/mdl_abc/image name/card.webp",
         )
-        self.assertEqual(url, "https://catalog.example.test/media/media/mdl_abc/image%20name/card.webp")
+        self.assertEqual(url, "https://catalog.example.test/media/mdl_abc/image%20name/card.webp")
+
+    def test_public_media_url_rejects_unsafe_or_unprefixed_keys(self) -> None:
+        for key in (
+            "mdl_abc/img/card.webp", "/media/mdl_abc/img/card.webp",
+            "media//card.webp", "media/../card.webp", "media/./card.webp",
+            "media/mdl_abc\\bad/card.webp", "media/mdl_abc/\\x00.webp",
+        ):
+            with self.subTest(key=key), self.assertRaises(RuntimeError):
+                public_media_url("https://catalog.example.test", key)
+
+    def test_public_media_url_matches_worker_key_boundary(self) -> None:
+        key = "media/mdl_bccd5cff1c3fafa4763f/img_2bdd9e845f2a6a255498/card.webp"
+        url = public_media_url("https://catalog.example.test", key)
+        self.assertEqual(
+            urllib.parse.urlsplit(url).path.lstrip("/"), key,
+        )
+
 
     def test_published_candidate_preflight_requires_exact_identity_and_cover(self) -> None:
         candidate = {
