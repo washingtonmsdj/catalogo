@@ -13,6 +13,7 @@ import html
 import json
 import os
 import re
+import unicodedata
 import urllib.parse
 import urllib.request
 from pathlib import Path
@@ -57,6 +58,33 @@ def subject_hint(value: str) -> str:
     return html.unescape(str(value or "")).strip()
 
 
+def alias_hints(hint: str) -> list[str]:
+    """Bounded alternate name hints; NEVER an identity decision or new-model proof."""
+    raw = unicodedata.normalize("NFKD", html.unescape(str(hint or ""))).strip()
+    raw = "".join(char for char in raw if not unicodedata.combining(char))
+    raw = re.sub(r"\s+", " ", raw.replace("’", "'").replace("‘", "'"))
+    candidates: list[str] = []
+    if "'" in raw:
+        candidates.extend([raw.replace("'", ""), raw.replace("'", " ")])
+    pieces = re.split(r"\s+(?:and|e)\s+|\s*[&+]\s*", raw, flags=re.IGNORECASE)
+    if len(pieces) == 2:
+        candidates.extend(pieces)
+    aliases = []
+    seen = {raw.casefold()}
+    for candidate in candidates:
+        alias = re.sub(r"\s+", " ", candidate).strip()
+        if len(alias) < 4 or len(alias) > 72 or alias.casefold() in seen:
+            continue
+        seen.add(alias.casefold())
+        aliases.append(alias)
+    return aliases[:4]
+
+
+def sql_like_literal(value: str) -> str:
+    """Escape LIKE wildcards so names cannot broaden unbounded wildcard scans."""
+    return "%" + value.casefold().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+
+
 def identity_review_state_supported(state: str) -> bool:
     return str(state or "") in IDENTITY_REVIEW_STATES
 
@@ -98,6 +126,38 @@ def find_candidates(account_id: str, token: str, database_id: str, hint: str) ->
     rows: list[dict[str, Any]] = []
     for result in payload.get("result") or []:
         rows.extend(result.get("results") or [])
+    if rows:
+        return rows
+
+    # The canonical name can differ in apostrophes or joined-character labels.
+    # Fallback remains small and read-only; it only produces visual candidates.
+    aliases = alias_hints(hint)
+    if not aliases:
+        return []
+    predicates = ["(lower(name) LIKE ? ESCAPE '\\\\' OR lower(search_text) LIKE ? ESCAPE '\\\\')" for _ in aliases]
+    patterns = [pattern for alias in aliases for pattern in (sql_like_literal(alias),) * 2]
+    fallback = post_json(
+        endpoint,
+        {
+            "sql": (
+                "SELECT id,name,slug,code,image_count,cover_storage_key "
+                "FROM models WHERE published=1 AND (" + " OR ".join(predicates) + ") "
+                "ORDER BY name,slug LIMIT ?"
+            ),
+            "params": [*patterns, 12],
+        },
+        token,
+    )
+    if not fallback.get("success"):
+        raise RuntimeError(f"falha na consulta D1 alias: {fallback.get('errors')}")
+    seen: set[str] = set()
+    for result in fallback.get("result") or []:
+        for row in result.get("results") or []:
+            model_id = str(row.get("id") or "")
+            if not model_id or model_id in seen:
+                continue
+            seen.add(model_id)
+            rows.append({**row, "_matchBasis": "alias_fallback_review_only"})
     return rows
 
 
@@ -150,7 +210,7 @@ def enrich(report_path: Path, descriptor_path: Path, review_root: Path) -> dict[
                 "code": str(row.get("code") or ""),
                 "imageCount": int(row.get("image_count") or 0),
                 "coverStorageKey": key,
-                "matchBasis": "name_or_search_hint_review_only",
+                "matchBasis": str(row.get("_matchBasis") or "name_or_search_hint_review_only"),
             }
             if model_id and key.startswith("media/"):
                 ext = Path(key).suffix.lower() or ".bin"
@@ -163,6 +223,10 @@ def enrich(report_path: Path, descriptor_path: Path, review_root: Path) -> dict[
                     item["coverMaterializationError"] = str(exc)
             review_candidates.append(item)
         product["identityReviewHint"] = hint
+        product["identityReviewAliasesChecked"] = alias_hints(hint) if not any(
+            candidate["matchBasis"] == "name_or_search_hint_review_only"
+            for candidate in review_candidates
+        ) else []
         product["identityReviewCandidates"] = review_candidates
         product["identityDecision"] = "unresolved"
         product["promotable"] = False
