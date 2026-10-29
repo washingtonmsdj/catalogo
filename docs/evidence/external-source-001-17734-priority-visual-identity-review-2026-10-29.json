@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 17734,
+  "productName": "Asuna Yuuki — Sword Art Online",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 7,
+    "totalSourcePositions": 7,
+    "stagingCoverage": "0/7",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40895809416,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40895809416",
+    "artifactName": "external-priority-visual-review-40895809416-1",
+    "reviewedSourcePosition": 3,
+    "sourcePositionSha256": "501b5c38aa726d2e9f56507f460ea5399ab500a56ef3fcd141326c1236baa63a",
+    "sourcePositionBytes": 227152,
+    "sourcePositionDhash": "6960f07070707123",
+    "productionCoverSha256": "dc492c0588af7180e493c8ed3b33f4c6501b5ab0ae70c51664f7cef94256138c",
+    "productionCoverBytes": 51332,
+    "productionCoverDhash": "6960f07070707123",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Identical sword-raised Asuna sculpture with long blonde windswept hair, white-red armor/dress, one knee elevated, teal curved energy arcs around rocky base, and sword held vertically behind raised arm. Source view 3 and public cover share exact pose, effect placement and camera view; source profile/rear angles corroborate.",
+    "identityProofInterpretation": "Manually reviewed physical sculpture, props and base from multiple source views; published cover identity corroborated by SHA-256 provenance and dHash."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_d466653a3c826c4b2e41",
+    "reviewedCandidateModelId": "mdl_d466653a3c826c4b2e41",
+    "reviewedCandidateSlug": "sword-art-online-asuna-yuuki-com-espada-em-diorama",
+    "coverStorageKey": "media/mdl_d466653a3c826c4b2e41/img_0be24f995295c0e69824/card.webp",
+    "published": true,
+    "sourceShaOwnerIsSamePublishedTarget": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [
+      "mdl_d466653a3c826c4b2e41"
+    ]
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_d466653a3c826c4b2e41",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Third-party studio/publisher watermarks, artist labels or Patreon branding are visible. Source images, extra package assets and additional gallery rights remain unapproved."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain only existing canonical model. No gallery changes without verified author license, attribution and staging."
+  }
+}
