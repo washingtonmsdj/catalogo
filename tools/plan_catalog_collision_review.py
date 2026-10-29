@@ -45,7 +45,9 @@ def plan(report: dict) -> dict:
                     unavailable.append(entry["modelId"])
         groups.append({"franchiseId": franchise, "normalizedName": name,
                        "modelsWithoutImages": sorted(unavailable),
-                       "imageReviewReady": details is not None and not unavailable,
+                       "imageReviewReady": False,
+                       "declaredImagesPresent": details is not None and not unavailable,
+                       "visualEvidenceVerified": False,
                        "modelMetadata": details if details is not None else [],
                        "modelIds": sorted(ids), "modelCount": len(ids),
                        "pairwiseComparisons": len(ids) * (len(ids) - 1) // 2,
@@ -59,7 +61,9 @@ def plan(report: dict) -> dict:
                         "recordsFlagged": len(seen),
                         "recordsOutsideNameCollisionGroups": report["totalRecords"] - len(seen),
                         "potentialPairwiseComparisons": sum(g["pairwiseComparisons"] for g in groups),
-                        "imageReviewReadyGroups": sum(g["imageReviewReady"] for g in groups),
+                        "imageReviewReadyGroups": 0,
+                        "groupsWithDeclaredImages": sum(g["declaredImagesPresent"] for g in groups),
+                        "groupsWithVerifiedVisualEvidence": 0,
                         "groupsBlockedByMissingImages": sum(bool(g["modelsWithoutImages"]) for g in groups),
                         "confirmedDuplicateSculptures": None, "mutations": 0},
             "groups": groups}
