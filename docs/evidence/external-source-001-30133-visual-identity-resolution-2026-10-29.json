@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 30133,
+  "productName": "Aldrich STL — Dark Souls",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "6/6",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40818482983,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40818482983",
+    "artifactName": "external-candidate-discovery-40818482983-1",
+    "sourcePosition": 5,
+    "sourcePositionSha256": "fd60157e6ac06974fab5d19c8b80c46244c887a9fc8dcef7f31b953898b10f20",
+    "sourcePositionBytes": 7628679,
+    "productionCoverSha256": "4f87ee5a83e9e16678567cb155fdbf587933f110acb5553536779233f6b5c637",
+    "productionCoverBytes": 64406,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "8cd44cc8c0c0c8c1",
+    "productionCoverDhash": "8cd44cc8c0c0c8c1",
+    "coverToSourceDhashDistance": 0,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Same Aldrich diorama: wind-swept pale hair, elongated spear, dark robed torso emerging from a coiled skeletal base; source position 5 matches published composition.",
+    "identityProofInterpretation": "Explicit review of identical sculpture and source view, supported by canonical dHash match and SHA-256 of both independently verified media sources."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_dd210e4038a22fa384d5",
+    "modelName": "Aldrich",
+    "slug": "dark-souls-aldrich-dark-souls-aldrich-stl-dark-souls-principal",
+    "code": "TS-DD210E4038A2",
+    "coverStorageKey": "media/mdl_dd210e4038a22fa384d5/img_42fcd17ed94b6b4e7cd2/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_dd210e4038a22fa384d5",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "oneCandidateReviewed": true
+  },
+  "mediaReview": {
+    "creatorAttributionOrPromotionalBrandingVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_branding_visible",
+    "promotableMedia": false,
+    "notes": "Promotional creator attribution and Patreon URL visible on source and production images. Do not crop or replace existing/public images or publish new source media based solely on identity."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep one canonical model; separately verify creator rights and promotional branding before any media replacement or import."
+  }
+}
