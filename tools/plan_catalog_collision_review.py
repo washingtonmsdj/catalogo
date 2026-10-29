@@ -35,7 +35,17 @@ def plan(report: dict) -> dict:
             if (not isinstance(details, list) or len(details) != len(ids)
                     or {v.get("modelId") for v in details if isinstance(v, dict)} != set(ids)):
                 raise ValueError("collision model metadata mismatch")
+        unavailable = []
+        if details is not None:
+            for entry in details:
+                count = entry.get("imageCount")
+                if isinstance(count, bool) or not isinstance(count, int) or count < 0:
+                    raise ValueError("invalid image count metadata")
+                if count == 0:
+                    unavailable.append(entry["modelId"])
         groups.append({"franchiseId": franchise, "normalizedName": name,
+                       "modelsWithoutImages": sorted(unavailable),
+                       "imageReviewReady": details is not None and not unavailable,
                        "modelMetadata": details if details is not None else [],
                        "modelIds": sorted(ids), "modelCount": len(ids),
                        "pairwiseComparisons": len(ids) * (len(ids) - 1) // 2,
@@ -49,6 +59,8 @@ def plan(report: dict) -> dict:
                         "recordsFlagged": len(seen),
                         "recordsOutsideNameCollisionGroups": report["totalRecords"] - len(seen),
                         "potentialPairwiseComparisons": sum(g["pairwiseComparisons"] for g in groups),
+                        "imageReviewReadyGroups": sum(g["imageReviewReady"] for g in groups),
+                        "groupsBlockedByMissingImages": sum(bool(g["modelsWithoutImages"]) for g in groups),
                         "confirmedDuplicateSculptures": None, "mutations": 0},
             "groups": groups}
 
