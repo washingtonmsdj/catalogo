@@ -81,8 +81,9 @@ jobs:
           })
           try:
               with urllib.request.urlopen(req,timeout=20) as response:
-                  sample=response.read(1)
-                  status="present" if sample else "empty"
+                  sample=response.read(12)
+                  is_webp=len(sample)==12 and sample[:4]==b"RIFF" and sample[8:12]==b"WEBP"
+                  status="present_webp" if is_webp else "unexpected_or_empty_content"
                   print(json.dumps({"modelId":candidate["modelId"],"r2Object":status,
                       "r2HttpStatus":response.status,"bucket":buckets[0],"publicGatewayPassed":False}))
           except urllib.error.HTTPError as exc:
@@ -93,6 +94,12 @@ jobs:
               print(json.dumps({"modelId":candidate["modelId"],
                   "r2Object":"unverified_network_error","publicGatewayPassed":False}))
           PY
+      - name: Validate remote Worker bindings after failed public media check (read-only)
+        if: failure()
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node tools/check_remote_worker_config.mjs
       - name: Assert review remained read-only and undecided
         shell: bash
         run: |
