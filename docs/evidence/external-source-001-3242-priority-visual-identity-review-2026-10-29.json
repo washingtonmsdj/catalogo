@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 3242,
+  "productName": "Anubis STL + Bust — Fantasy",
+  "scope": "read_only_identity_only_no_new_gallery",
+  "sourceGallery": {
+    "positionsDownloaded": 7,
+    "totalSourcePositions": 7,
+    "sourceFilesVerifiedBySha256": true,
+    "completeStaging": false,
+    "stagingNote": "Source bytes were downloaded only for review; canonical private staging was not demonstrated."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40835396027,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40835396027",
+    "artifactName": "external-priority-visual-review-40835396027-1",
+    "reviewedSourcePosition": 3,
+    "sourcePositionSha256": "25d175f35b1ff068998b85e29745262ab405a5f2679113a614cfbba2ce479ede",
+    "sourcePositionBytes": 1092414,
+    "sourcePositionDhash": "e6e061b1f0f0f0f0",
+    "productionCoverSha256": "341510c31a960e539f0a725e3119e635f1029f7284efc2dc6253760046207fa8",
+    "productionCoverBytes": 59842,
+    "productionCoverDhash": "e6e061b1f0f0f0f0",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Same jackal-headed Anubis warrior with ornate gold armor and purple chest medallion, hooked weapon and upright staff, standing above purple smoke and skeletal/rock pedestal. Source view 3 and canonical published cover have the same sculpture, staging, and frontal camera angle; closeups and rear views corroborate.",
+    "identityProofInterpretation": "Visual sculptural identity verified across available views and source/candidate image SHA-256; dHash agrees exactly but is not sufficient alone."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_8f974272d88bfe877ba8",
+    "slug": "fantasy-anubis-busto-fantasy",
+    "coverStorageKey": "media/mdl_8f974272d88bfe877ba8/img_3c015f94da0b116dfd0c/card.webp",
+    "published": true,
+    "coverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_8f974272d88bfe877ba8",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "The source renders show studio marks and publisher promotional imagery. Author, attribution, and usage rights have not been verified; no additional gallery assets may be copied."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep only the existing published canonical model. Verify rights, author attribution and watermark policy independently before any image import, crop, replacement or publication."
+  }
+}
