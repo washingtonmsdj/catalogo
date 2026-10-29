@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 16117,
+  "productName": "Big Boss — Metal Gear",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "stagingCoverage": "0/6",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40894980068,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40894980068",
+    "artifactName": "external-priority-visual-review-40894980068-1",
+    "reviewedSourcePosition": 5,
+    "sourcePositionSha256": "c4183e0684e73ffbf06cc745cf8fea6492cbff783a3fecbd1b07962f7a8d7e5d",
+    "sourcePositionBytes": 326248,
+    "sourcePositionDhash": "0faad8ece3f0f031",
+    "productionCoverSha256": "86302a4e8a5b5948c334e130d4e34d40558d8ba1e8a1f546edd5ec46c0820b04",
+    "productionCoverBytes": 45248,
+    "productionCoverDhash": "2cecece8d0d0f0f3",
+    "coverToSourceDhashDistance": 18,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Source shows shirtless muscular bearded Big Boss with harness and headband wrapping or fighting a large thick tan snake above tangled wooden branches, knife and pistol in hand. The published nominal Big Boss cover depicts a standing uniformed soldier with boots and gear, holding pistol low and one hand near ear on a dark rocky base. The bare torso, coiled serpent, leg stance, wooden tree base and equipment differ, corroborated by six source views. The candidate mdl_bccd5cff1c3fafa4763f was separately mapped to another source sculpture (Big Boss 3, product 27486); it must not also absorb this distinct sculpt without independent verification.",
+    "identityProofInterpretation": "Human multi-view exclusion of one name match. Source and cover hashes only support comparison, not completeness or new-model authorization."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_bccd5cff1c3fafa4763f",
+    "reviewedCandidateSlug": "metal-gear-big-boss-metal-gear-big-boss-stl-3-metal-gear-principal",
+    "coverStorageKey": "media/mdl_bccd5cff1c3fafa4763f/img_2bdd9e845f2a6a255498/card.webp",
+    "published": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": []
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_bccd5cff1c3fafa4763f",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "sameNameIsNotDuplicateProof": true,
+    "reason": "snake_diorama_differs_from_published_uniformed_big_boss_variant_other_models_not_excluded"
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source images feature third-party artist logo and promotional watermark. Never import, crop, publish or remove branding without independent rights and provenance verification."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Inspect other Metal Gear Big Boss historical variant covers read-only; retain previously approved identity for source 27486 and do not create a duplicate."
+  }
+}

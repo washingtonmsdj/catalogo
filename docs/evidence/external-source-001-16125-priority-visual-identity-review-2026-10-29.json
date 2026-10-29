@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 16125,
+  "productName": "Female V + Bust — Cyberpunk",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "stagingCoverage": "0/6",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40894980068,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40894980068",
+    "artifactName": "external-priority-visual-review-40894980068-1",
+    "reviewedSourcePosition": 4,
+    "sourcePositionSha256": "66528c350299110527c8348cd3c40c25513872efdf4b3643b4e24095b5987e4e",
+    "sourcePositionBytes": 301072,
+    "sourcePositionDhash": "a694dca8b8f0f0b0",
+    "productionCoverSha256": "44f6c21b5ed91591ce0f31172730961f51e0d72eb5f8b96f38d252ee89f9df6f",
+    "productionCoverBytes": 43630,
+    "productionCoverDhash": "a694dcaab8f0f0b0",
+    "coverToSourceDhashDistance": 1,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Same red-pink side-shaved long-haired Female V from Cyberpunk standing in black leather jacket and armored trousers, with a yellow katana over the shoulder and compact octagonal sci-fi platform base. Source view 4 and published cover show identical sculpture/pose/stand, dHash differs only one bit, and the exact source image SHA is owned by the same published model.",
+    "identityProofInterpretation": "Manually verified sculpture and props from multiple source views against published R2 cover; exact source-image SHA belongs to the same model. The perceptual hash is only corroboration."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_76393987b2fff53ced67",
+    "reviewedCandidateModelId": "mdl_76393987b2fff53ced67",
+    "reviewedCandidateSlug": "cyberpunk-female-v",
+    "coverStorageKey": "media/mdl_76393987b2fff53ced67/img_b0a230590594caff720e/card.webp",
+    "published": true,
+    "sourceShaOwnerIsSamePublishedTarget": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [
+      "mdl_76393987b2fff53ced67"
+    ]
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_76393987b2fff53ced67",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "External studio/artists' promotional marks and third-party source attribution visible. Identity mapping does not authorize images, files, licenses, watermark cropping, or new gallery usage."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep existing published canonical model; separately audit origin, rights, and staging before any source-media promotion."
+  }
+}

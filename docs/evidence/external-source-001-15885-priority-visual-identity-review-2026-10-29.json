@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 15885,
+  "productName": "Ami Mizuno — Sailor Moon",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 7,
+    "totalSourcePositions": 7,
+    "stagingCoverage": "0/7",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40894980068,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40894980068",
+    "artifactName": "external-priority-visual-review-40894980068-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "9f0897115a28ec260035b20319df0a856cef2afb92b8304101b5af28f3ed170b",
+    "sourcePositionBytes": 87776,
+    "sourcePositionDhash": "d1c4cc61f0d0f918",
+    "productionCoverSha256": "ecd9942c16f056a7449de9386d4e3d991a749ee00d9925b8322f1381fb5a4576",
+    "productionCoverBytes": 64236,
+    "productionCoverDhash": "d1c4cc61f0d0f918",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Same green-blue-haired Sailor Mercury in a blue skirt and white sailor blouse, arms lifted and crossed above her head, surrounded by three swirling translucent blue water arcs and mounted on a blue water-wave pedestal. Source view 2 and published cover have exactly the same viewpoint, pose and effect placement; source SHA owner is this model.",
+    "identityProofInterpretation": "Manually verified sculpture and props from multiple source views against published R2 cover; exact source-image SHA belongs to the same model. The perceptual hash is only corroboration."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_ba8022f2d7e961ce694b",
+    "reviewedCandidateModelId": "mdl_ba8022f2d7e961ce694b",
+    "reviewedCandidateSlug": "sailor-moon-ami-mizuno-sailor-mercury-com-agua",
+    "coverStorageKey": "media/mdl_ba8022f2d7e961ce694b/img_25d7557491c6a11c2fe2/card.webp",
+    "published": true,
+    "sourceShaOwnerIsSamePublishedTarget": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [
+      "mdl_ba8022f2d7e961ce694b"
+    ]
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_ba8022f2d7e961ce694b",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "External studio/artists' promotional marks and third-party source attribution visible. Identity mapping does not authorize images, files, licenses, watermark cropping, or new gallery usage."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep existing published canonical model; separately audit origin, rights, and staging before any source-media promotion."
+  }
+}
