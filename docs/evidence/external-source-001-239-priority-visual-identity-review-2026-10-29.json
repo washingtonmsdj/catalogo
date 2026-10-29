@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 239,
+  "productName": "Sakuyamon STL — Digimon",
+  "scope": "read_only_identity_review_no_media_publication",
+  "sourceGallery": {
+    "positionsDownloaded": 4,
+    "totalSourcePositions": 4,
+    "sourceFilesVerifiedBySha256": true,
+    "completeStaging": false,
+    "stagingNote": "The read-only discovery reported incomplete private staging; downloaded source images are NOT proof of staged ownership."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40834424109,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40834424109",
+    "artifactName": "external-priority-visual-review-40834424109-1",
+    "reviewedSourcePosition": 4,
+    "sourcePositionSha256": "019c467552074fbb0e5de9f998189d93ec8c9b8e83f9ca87a69571f138a53e46",
+    "sourcePositionBytes": 288174,
+    "sourcePositionDhash": "86861b0c0c0d9e8c",
+    "productionCoverSha256": "dee02aea71f0fe19a518b2c654874d3132276f7eaf6a81e5f6f89b5233f551c6",
+    "productionCoverBytes": 64940,
+    "productionCoverDhash": "86861b040c0d9e8c",
+    "coverToSourceDhashDistance": 1,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Identical yellow-and-purple Sakuyamon with long staff and ornate ring tip, round moon backdrop, red blossom tree, pagoda and roof base. The published cover matches source view 4; source views 1/3 show the same sculpture in other camera framing. Exact sculpt and matching camera view, not a name-only match.",
+    "identityProofInterpretation": "Human review of geometry, props, pose and base with SHA-256 verified source images; dHash corroborates and never decides identity automatically."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_825de1888506099d4f63",
+    "reviewedCandidateSlug": "digimon-sakuyamon",
+    "coverStorageKey": "media/mdl_825de1888506099d4f63/img_98cc6d794a4cb72b974c/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_825de1888506099d4f63",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "brandingOrProvenanceNote": "Source gallery includes visible third-party branded or promotional background. Existing cover provenance/rights and any new gallery views require separate approval.",
+    "galleryMediaReviewApproved": false
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain one canonical published model; audit author and image rights independently before any import, replacement, or promotion."
+  }
+}
