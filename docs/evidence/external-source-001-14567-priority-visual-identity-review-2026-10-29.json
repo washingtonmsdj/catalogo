@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 14567,
+  "productName": "Aki Hayakawa STL & Fox Devil 2 — Chainsaw Man",
+  "scope": "read_only_identity_review_no_external_media_promotion",
+  "sourceGallery": {
+    "positionsDownloaded": 8,
+    "totalSourcePositions": 8,
+    "stagingCoverage": "1/8",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingNote": "Temporary reviewed source bytes do not prove private staging, ownership or rights."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40841222677,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40841222677",
+    "artifactName": "external-priority-visual-review-40841222677-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "01f93357315955ed43f70b01857825bbbc14bec286cb62efd32ecc05ebebf23a",
+    "sourcePositionBytes": 346890,
+    "sourcePositionDhash": "e4dcd8c6ce6c3c1d",
+    "productionCoverSha256": "c8757c385a036f4b6a4fee2285a851374cebb47fffe28a9dcc3b600b2f53d13c",
+    "productionCoverBytes": 47642,
+    "productionCoverDhash": "acdcd88e8cc87294",
+    "coverToSourceDhashDistance": 16,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Source shows a pale wolf-like Fox Devil head with numerous glowing orange eyes, encircling Aki in a black suit against dark horn/root-like diorama framing. The selected published Aki cover has a different pale-faced Fox Devil with red curved horns, cloud-like rocks and another figure position/platform. The two versions are not identical sculptures. Important separate provenance: source position 2 has exact SHA-256 registered in D1 model_image_sources under mdl_45f83859097ac14eebc5, an owner distinct from the nominal candidate; whether that model is published and visually matches must be checked before any identity decision.",
+    "identityProofInterpretation": "Human source-to-R2 cover comparison of sculptural pose, outfit, accessories and base. Verified bytes and canonical perceptual distance are supporting evidence only."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_c985c8a392041ddffad5",
+    "reviewedCandidateSlug": "chainsaw-man-aki-hayakawa-com-raposa-em-diorama",
+    "coverStorageKey": "media/mdl_c985c8a392041ddffad5/img_8e9e2b16c4aceb5b7094/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true,
+    "sourceShaOverlapModelImageSourcesOwnerId": "mdl_45f83859097ac14eebc5",
+    "sourceShaOverlapPosition": 2,
+    "sourceShaOverlapOwnerPublishedStatus": "unverified",
+    "crossNameOwnerReviewRequired": true
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_c985c8a392041ddffad5",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "sameNameIsNotDuplicateProof": true,
+    "reason": "nominal_candidate_distinct_exact_sha_owner_other_model_requires_verification"
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "All gallery views include artist/studio marks, Patreon references and source branding. One image staged privately does not license or justify promotion. No image transfer, watermark removal, cover replacement or public gallery promotion authorized."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Read-only check if exact source_sha256 owner mdl_45f83859097ac14eebc5 is published; compare its actual model and cover. No automatic map."
+  }
+}

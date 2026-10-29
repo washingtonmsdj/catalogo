@@ -5,7 +5,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from enrich_external_candidate_identity import (
-    alias_hints, find_candidates, priority_scope, sql_like_literal, subject_hint,
+    alias_hints, find_candidates, lookup_published_source_owners,
+    priority_scope, source_sha_owner_hints, sql_like_literal, subject_hint,
 )
 
 
@@ -101,6 +102,43 @@ class EnrichExternalCandidateIdentityTests(unittest.TestCase):
             path.write_text(json.dumps(batch), encoding="utf-8")
             with self.assertRaisesRegex(RuntimeError, "duplicate"):
                 priority_scope(path, report)
+
+    def test_sha_owner_exposes_cross_name_model_without_auto_approval(self):
+        sha = "a" * 64
+        product = {"images": [
+            {"position": 2, "sha256": sha, "productionOwners": ["mdl_alternate"]},
+            {"position": 3, "sha256": "b" * 64, "productionOwners": []},
+        ]}
+        self.assertEqual(source_sha_owner_hints(product), {
+            "mdl_alternate": [{"sourcePosition": 2, "sourceSha256": sha}]
+        })
+        published = {"id": "mdl_alternate", "name": "Other title", "cover_storage_key": "media/a.webp"}
+        with patch("enrich_external_candidate_identity.post_json", return_value={
+            "success": True, "result": [{"results": [published]}]
+        }) as q:
+            rows = lookup_published_source_owners("account", "token", "database", ["mdl_alternate"])
+        self.assertEqual(rows[0]["_matchBasis"], "exact_source_sha_owner_review_only")
+        query = q.call_args.args[1]
+        self.assertIn("published=1 AND id IN (?)", query["sql"])
+        self.assertEqual(query["params"], ["mdl_alternate", 2])
+        self.assertNotIn("map_existing", str(rows))
+
+    def test_invalid_or_duplicate_exact_source_owner_fails_closed(self):
+        with self.assertRaisesRegex(RuntimeError, "invalid source SHA ownership"):
+            source_sha_owner_hints({"images": [{"position": 1, "sha256": "bad", "productionOwners": ["mdl_a"]}]})
+        with self.assertRaisesRegex(RuntimeError, "invalid priority source owner batch"):
+            lookup_published_source_owners("account", "token", "database", ["mdl_a", "mdl_a"])
+        with patch("enrich_external_candidate_identity.post_json", return_value={
+            "success": True, "result": [{"results": [{"id": "mdl_unknown"}]}]
+        }):
+            with self.assertRaisesRegex(RuntimeError, "unexpected/duplicate"):
+                lookup_published_source_owners("account", "token", "database", ["mdl_known"])
+
+    def test_missing_published_owner_is_not_proof_of_missing_sculpture(self):
+        with patch("enrich_external_candidate_identity.post_json", return_value={
+            "success": True, "result": [{"results": []}]
+        }):
+            self.assertEqual(lookup_published_source_owners("a", "t", "d", ["mdl_a"]), [])
 
     def test_subject_hint_decodes_entities(self):
         self.assertEqual(subject_hint("Tom &amp; Jerry"), "Tom & Jerry")

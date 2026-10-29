@@ -21,6 +21,7 @@ from typing import Any
 
 USER_AGENT = "catalog-external-identity-review/1.0"
 MAX_REVIEW_CANDIDATES = 100
+MAX_PRIORITY_OWNER_CANDIDATES = 3
 IDENTITY_REVIEW_STATES = {
     "visual_review_required",
     "identity_review_required_exact_sha_overlap",
@@ -182,6 +183,65 @@ def find_candidates(
     return rows
 
 
+def source_sha_owner_hints(product: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
+    """Correlate exact source SHA owners without granting model or media approval."""
+    hints: dict[str, list[dict[str, Any]]] = {}
+    for image in product.get("images") or []:
+        if not isinstance(image, dict):
+            raise RuntimeError("invalid source image provenance")
+        owners = image.get("productionOwners") or []
+        if not isinstance(owners, list):
+            raise RuntimeError("invalid model_image_sources owners")
+        sha = image.get("sha256")
+        pos = image.get("position")
+        if owners and (
+            not isinstance(sha, str) or re.fullmatch(r"[a-f0-9]{64}", sha) is None
+            or isinstance(pos, bool) or not isinstance(pos, int) or pos < 1
+        ):
+            raise RuntimeError("invalid source SHA ownership proof")
+        for owner in owners:
+            if not isinstance(owner, str) or re.fullmatch(r"mdl_[a-zA-Z0-9]+", owner) is None:
+                raise RuntimeError("invalid exact-source owner model ID")
+            records = hints.setdefault(owner, [])
+            evidence = {"sourcePosition": pos, "sourceSha256": sha}
+            if evidence not in records:
+                records.append(evidence)
+    if len(hints) > MAX_PRIORITY_OWNER_CANDIDATES + 1:
+        raise RuntimeError("too many exact-source owners; manual investigation required")
+    return hints
+
+
+def lookup_published_source_owners(
+    account_id: str, token: str, database_id: str, owner_model_ids: list[str]
+) -> list[dict[str, Any]]:
+    """Fetch published owner IDs via a bounded parameterized D1 read-only query."""
+    if not owner_model_ids:
+        return []
+    if len(owner_model_ids) > MAX_PRIORITY_OWNER_CANDIDATES or len(set(owner_model_ids)) != len(owner_model_ids):
+        raise RuntimeError("invalid priority source owner batch")
+    if any(not isinstance(mid, str) or re.fullmatch(r"mdl_[a-zA-Z0-9]+", mid) is None for mid in owner_model_ids):
+        raise RuntimeError("invalid priority source owner model ID")
+    endpoint = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/d1/database/{database_id}/query"
+    markers = ",".join("?" for _ in owner_model_ids)
+    payload = post_json(endpoint, {
+        "sql": (
+            "SELECT id,name,slug,code,image_count,cover_storage_key "
+            f"FROM models WHERE published=1 AND id IN ({markers}) ORDER BY id LIMIT ?"
+        ),
+        "params": [*owner_model_ids, len(owner_model_ids) + 1],
+    }, token)
+    if not payload.get("success"):
+        raise RuntimeError(f"falha na verificação D1 de owner: {payload.get('errors')}")
+    owners = [row for res in payload.get("result") or [] for row in res.get("results") or []]
+    returned: set[str] = set()
+    for owner in owners:
+        model_id = owner.get("id")
+        if model_id not in owner_model_ids or model_id in returned:
+            raise RuntimeError("source SHA owner query returned unexpected/duplicate model")
+        returned.add(model_id)
+    return [{**owner, "_matchBasis": "exact_source_sha_owner_review_only"} for owner in owners]
+
+
 def download_r2_object(account_id: str, token: str, bucket: str, key: str, destination: Path) -> int:
     encoded_key = urllib.parse.quote(key, safe="/")
     url = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/r2/buckets/{bucket}/objects/{encoded_key}"
@@ -258,6 +318,18 @@ def enrich(
             account_id, token, database_id, hint,
             selected_model_id=scope[product["productId"]] if scope is not None else None,
         )
+        # Preserve exact-SHA model_image_sources owners even when the canonical
+        # title search returned another sculpture. This is a review lead only.
+        owner_hints = source_sha_owner_hints(product) if scope is not None else {}
+        owner_ids = [owner for owner in owner_hints if owner not in {row.get("id") for row in matches}]
+        extra_owners = lookup_published_source_owners(
+            account_id, token, database_id, owner_ids
+        ) if owner_ids else []
+        matches.extend(extra_owners)
+        product["sourceShaOwnerReviewHints"] = owner_hints
+        product["sourceShaOwnersWithoutPublishedModel"] = [
+            owner for owner in owner_ids if owner not in {row.get("id") for row in extra_owners}
+        ]
         review_candidates: list[dict[str, Any]] = []
         for row in matches:
             model_id = str(row.get("id") or "")
@@ -270,6 +342,7 @@ def enrich(
                 "imageCount": int(row.get("image_count") or 0),
                 "coverStorageKey": key,
                 "matchBasis": str(row.get("_matchBasis") or "name_or_search_hint_review_only"),
+                "sourceShaOverlapEvidence": owner_hints.get(model_id, []),
             }
             if model_id and key.startswith("media/"):
                 ext = Path(key).suffix.lower() or ".bin"

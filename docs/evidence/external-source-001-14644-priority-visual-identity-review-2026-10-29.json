@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 14644,
+  "productName": "Anakin Skywalker STL — Star Wars",
+  "scope": "read_only_identity_review_no_external_media_promotion",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "stagingCoverage": "0/6",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingNote": "Temporary reviewed source bytes do not prove private staging, ownership or rights."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40841222677,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40841222677",
+    "artifactName": "external-priority-visual-review-40841222677-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "55cd39524d29dc84841775f2cf9bb521ae1eec428b75aca126a9f26126d0adba",
+    "sourcePositionBytes": 565391,
+    "sourcePositionDhash": "796969b5f2b0b4f0",
+    "productionCoverSha256": "69738172230bbffd4b84664765eb444ef66248faaefd27f63064160daaba5448",
+    "productionCoverBytes": 38550,
+    "productionCoverDhash": "796969b5f2b0b4f4",
+    "coverToSourceDhashDistance": 1,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Source position 2 and the canonical published cover depict the same dark-robed Anakin holding a red lightsaber pointing down, standing on a circular metal platform above a large orange flame effect. Same face, body stance, saber position, black coat folds and characteristic fire/base framing; other source angles corroborate, and one-bit dHash difference is consistent with resampling.",
+    "identityProofInterpretation": "Human source-to-R2 cover comparison of sculptural pose, outfit, accessories and base. Verified bytes and canonical perceptual distance are supporting evidence only."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_1a5b2f0e7bf79e277d36",
+    "reviewedCandidateSlug": "star-wars-anakin-skywalker-star-wars",
+    "coverStorageKey": "media/mdl_1a5b2f0e7bf79e277d36/img_64275e0f3503487bc0dd/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_1a5b2f0e7bf79e277d36",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Third-party source renders include branded presentation and an unverified copyright/creator license; identity match does not authorize importing any source image. No image transfer, watermark removal, cover replacement or public gallery promotion authorized."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep existing canonical published Anakin; independent rights and media provenance review required."
+  }
+}

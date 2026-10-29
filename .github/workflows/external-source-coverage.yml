@@ -14,6 +14,7 @@ on:
       - 'tools/test_select_external_priority_batch.py'
       - 'tools/discover_external_staging_candidates.py'
       - 'tools/enrich_external_candidate_identity.py'
+      - 'tools/test_enrich_external_candidate_identity.py'
       - 'docs/evidence/external-source-001-*-visual-identity-resolution-*.json'
       - 'config/external-sources/external-source-001.json'
 
