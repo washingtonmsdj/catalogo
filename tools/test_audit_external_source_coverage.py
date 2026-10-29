@@ -92,6 +92,36 @@ class ExternalSourceCoverageTests(unittest.TestCase):
             report = classify([{"id": 10, "name": "Azula"}], self.models, states, {}, targets)
             self.assertEqual(report["summary"]["confirmedPresent"], 1)
 
+    def test_identity_proven_but_media_blocked_is_still_present(self):
+        # A blocked gallery never grants media promotion, but does not erase
+        # a reviewed identity that points to a currently published model.
+        with tempfile.TemporaryDirectory() as tmp:
+            evidence = {
+                "sourceProductId": 14066,
+                "identityReview": {
+                    "decision": "map_existing",
+                    "targetModelId": "mdl_a",
+                },
+                "decision": {
+                    "identityResolved": True,
+                    "galleryMediaReviewApproved": False,
+                    "galleryPromotionApproved": False,
+                },
+            }
+            (Path(tmp) / "external-source-001-okarun-review.json").write_text(
+                json.dumps(evidence), encoding="utf-8"
+            )
+            states, targets = review_evidence(Path(tmp))
+            self.assertIn("media_blocked_or_pending", states[14066])
+            self.assertEqual(targets[14066], {"mdl_a"})
+            report = classify(
+                [{"id": 14066, "name": "Okarun STL 4"}],
+                self.models, states, {}, targets,
+            )
+            self.assertEqual(report["products"][0]["state"], "confirmed_present_map_existing")
+            self.assertEqual(report["summary"]["confirmedPresent"], 1)
+            self.assertIn("media_blocked_or_pending", report["products"][0]["reviewStates"])
+
     def test_map_existing_conflicting_model_ids_fail_closed(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "external-source-001-conflict.json"
