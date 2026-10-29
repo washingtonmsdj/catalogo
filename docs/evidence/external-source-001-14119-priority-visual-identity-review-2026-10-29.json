@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 14119,
+  "productName": "Inarius STL — Diablo",
+  "scope": "identity_review_only_no_media_promotion",
+  "sourceGallery": {
+    "positionsDownloaded": 4,
+    "totalSourcePositions": 4,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "0/4",
+    "completeStaging": false,
+    "stagingNote": "Partial/absent private staging; review images downloaded read-only do not establish ownership or media usage rights."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40840314622,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40840314622",
+    "artifactName": "external-priority-visual-review-40840314622-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "7978e3dabf4a949d28ca1d69c5c6c71ecaaaac2121881e4d4229c0765f3a6d97",
+    "sourcePositionBytes": 746778,
+    "sourcePositionDhash": "db9d8ccecd289aba",
+    "productionCoverSha256": "efdca89fb3104216b3f1238eced04f883e41547ee030904ed878565c90177b4d",
+    "productionCoverBytes": 84952,
+    "productionCoverDhash": "71cc868bead4dace",
+    "coverToSourceDhashDistance": 27,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Both depict the named angelic character but the sculpture/pose is different: canonical cover shows ornate pale gold and silver armor, both arms extended outward, wide pale tendril wings and a dark rocky/lava pedestal. Source views 1–4 show a hooded brown/gray-robed figure with sword held low, one arm relaxed, a flat glowing circular base and a densely branching gold light-wing halo with distinct curves. The canonical cover's ornate layered armor, limb positions, wings and base do not match. One current name candidate cannot exclude every historical Diablo variant.",
+    "identityProofInterpretation": "Human visual comparison of physical sculpture, geometry, pose and base. Verified SHA-256 source bytes and public R2 cover; perceptual hash is corroboration only and never automatic identity proof."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_44b87089fc132948cad4",
+    "reviewedCandidateSlug": "diablo-inarius-diablo-inarius-stl-2-bust-diablo-principal",
+    "coverStorageKey": "media/mdl_44b87089fc132948cad4/img_4c3570df5ab5fe83c73c/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_44b87089fc132948cad4",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "reason": "same_character_but_different_physical_sculpture_not_excluded_from_all_published_variants",
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source images and cover have distinct third-party artist logos and Patreon/creator marks; creator rights are not established by same-character imagery. Never import/crop/retouch branded source assets or replace published cover from identity decision."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Read-only search of historical aliases and other same-franchise published variants; do not approve new model from one distinct current name match."
+  }
+}
