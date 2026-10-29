@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 13024,
+  "productName": "Aira Shiratori STL — Dandadan",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 8,
+    "totalSourcePositions": 8,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "3/8",
+    "completeStaging": false,
+    "stagingNote": "Read-only source comparison does not prove media ownership, complete private staging, or license."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40839039649,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40839039649",
+    "artifactName": "external-priority-visual-review-40839039649-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "0ff6d0c235b5696610f66920196f51f6a1f96ef3bc9b61552573c74274d22b6a",
+    "sourcePositionBytes": 1911205,
+    "sourcePositionDhash": "71617130b1b0311b",
+    "productionCoverSha256": "807e7a9730d7b047d9b2f761652ba3dbc0e47f0888019ba8c7caf6fb0452bce0",
+    "productionCoverBytes": 41046,
+    "productionCoverDhash": "f1717130b0b0311b",
+    "coverToSourceDhashDistance": 3,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "The same acrobatic Aira figure in a black school uniform, one leg raised high and pink hair circling above and around the pose, surrounded by green effect-sculptural waves and red typography on the base. Canonical cover matches source position 2, with an almost identical view; other source views show the closeups, profile and print parts. dHash distance is 3, consistent with presentation/crop changes.",
+    "identityProofInterpretation": "Manual sculpture, pose and base comparison corroborated by source/canonical-cover SHA-256 bytes and bounded dHash. Matching title or hash alone never authorizes canonical mapping."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_21309cc3fc18e04caad1",
+    "slug": "dandadan-aira-shiratori-diorama-com-cabelos-rosas",
+    "coverStorageKey": "media/mdl_21309cc3fc18e04caad1/img_bbc4fdc4785f7bf850fc/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_21309cc3fc18e04caad1",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "External images include creator marks, third-party promotional logos and source/gallery advertising; usage rights not verified. No external image import, cropping, watermark removal or replacement authorized."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep one canonical published model; verify identity and image ownership/attribution independently before any source-gallery promotion."
+  }
+}

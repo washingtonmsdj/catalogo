@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 12967,
+  "productName": "Cenarius STL — Warcraft",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 7,
+    "totalSourcePositions": 7,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "0/7",
+    "completeStaging": false,
+    "stagingNote": "Read-only source comparison does not prove media ownership, complete private staging, or license."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40839039649,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40839039649",
+    "artifactName": "external-priority-visual-review-40839039649-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "76ef24da00b1f643081600282c775f5550bda71891df179c2de2f40f8f585c27",
+    "sourcePositionBytes": 602239,
+    "sourcePositionDhash": "e8e0e0f0f0f0f0f9",
+    "productionCoverSha256": "15b864f2c4af366776fd807a708354e3e29fe67c1a2bc916618a005eb311b015",
+    "productionCoverBytes": 45304,
+    "productionCoverDhash": "e8e0e0f0f0f0f0f9",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Same upright horned centaur forest guardian with broad antlers, muscular humanoid torso, left arm open and right arm raised, four hooves on an oval stone platform with textured rock/plant growth; same dark background and exact frontal framing in source view 1 and canonical cover. Other views and side-by-side scale comparison corroborate geometry.",
+    "identityProofInterpretation": "Manual sculpture, pose and base comparison corroborated by source/canonical-cover SHA-256 bytes and bounded dHash. Matching title or hash alone never authorizes canonical mapping."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_6c1dea0bc5f8307c338e",
+    "slug": "warcraft-cenarius-warcraft",
+    "coverStorageKey": "media/mdl_6c1dea0bc5f8307c338e/img_6bb6e58845477783d5a6/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_6c1dea0bc5f8307c338e",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "External renders show studio/Patreon branding; creator permission for further image reuse is not verified. No external image import, cropping, watermark removal or replacement authorized."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep one canonical published model; verify identity and image ownership/attribution independently before any source-gallery promotion."
+  }
+}

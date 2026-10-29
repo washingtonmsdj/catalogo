@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 12952,
+  "productName": "Atreus STL + Bust + Extras — God of War",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 11,
+    "totalSourcePositions": 11,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "0/11",
+    "completeStaging": false,
+    "stagingNote": "Read-only source comparison does not prove media ownership, complete private staging, or license."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40839039649,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40839039649",
+    "artifactName": "external-priority-visual-review-40839039649-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "5ce57e840f9dbc2348236265a0addc6cc27e498311f1d222406495168dd4cd35",
+    "sourcePositionBytes": 564594,
+    "sourcePositionDhash": "980e2787c6c3e3f4",
+    "productionCoverSha256": "4ecd8a49be7c3bd34c668b3ac4b4e41d63bb99bed1b34eb676fc2cce76e219bf",
+    "productionCoverBytes": 104146,
+    "productionCoverDhash": "980e2787c6c3e3f4",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Source view 1 and canonical published cover match the same youthful Atreus archer, one leg extended, drawing a bow over a multi-layered rocky/wooden base with sculpted branches and a round engraved rim. Views 2-7 show angles and anatomy of the same standing action sculpt, and views 8-11 include a separate companion bust from the source package. Product identity matches the already published main statue but does not authorize the bust/gallery as additional media.",
+    "identityProofInterpretation": "Manual sculpture, pose and base comparison corroborated by source/canonical-cover SHA-256 bytes and bounded dHash. Matching title or hash alone never authorizes canonical mapping."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_94a884d9e82c7b95cb53",
+    "slug": "god-of-war-atreus-bust-god-of-war",
+    "coverStorageKey": "media/mdl_94a884d9e82c7b95cb53/img_36132bb4bb4040b3d4b4/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_94a884d9e82c7b95cb53",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source renders contain creator watermarks and licensed-character branding. Ownership of the companion bust and distribution rights are not established. No external image import, cropping, watermark removal or replacement authorized."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep one canonical published model; verify identity and image ownership/attribution independently before any source-gallery promotion."
+  }
+}
