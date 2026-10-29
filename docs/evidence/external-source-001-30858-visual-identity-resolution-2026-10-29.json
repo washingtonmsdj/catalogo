@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 30858,
+  "productName": "Perona STL — One Piece",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "6/6",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40817885500,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40817885500",
+    "artifactName": "external-candidate-discovery-40817885500-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "8598c8912bcee560ca1d585bd3843af2a31bfe25a589f0f6c2a79458fc0f6d02",
+    "sourcePositionBytes": 4838644,
+    "productionCoverSha256": "9092704f07e2f91c7ef29a809d6bc6e2dc128485efdbd8961554af3deb0c662e",
+    "productionCoverBytes": 51298,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "2af0ed61d1d074b9",
+    "productionCoverDhash": "2af0ed61d1d074b9",
+    "coverToSourceDhashDistance": 0,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Same diorama: pink twin tails and crown, striped stockings and red boots, seated character with large dark umbrella, two white ghosts, wooden base and skull flame; identical front view.",
+    "identityProofInterpretation": "Explicit sculpture comparison supported by verified source SHA-256 and production cover bytes; dHash is corroboration, not automatic mapping."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_d2c1e5bbf27c47eeafa6",
+    "modelName": "Perona",
+    "slug": "one-piece-perona-com-fantasmas-em-diorama",
+    "code": "TS-D2C1E5BBF27C",
+    "coverStorageKey": "media/mdl_d2c1e5bbf27c47eeafa6/img_093be43c5ee78709b8b4/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_d2c1e5bbf27c47eeafa6",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "oneCandidateReviewed": true
+  },
+  "mediaReview": {
+    "sourcePromotionalLogosVisible": true,
+    "sourcePatreonPromotionVisible": true,
+    "productionCoverPromotionalLogoVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_promotional_branding_visible",
+    "promotableMedia": false,
+    "notes": "Source renders and already published cover display third-party branding. Identity mapping does not authorize reuse, editing, deletion or re-publication of any media. Existing public cover needs separate quality/rights follow-up."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain single canonical model; independently review rights and promotional branding before any further media action; no cropping/removal/automatic promotion."
+  }
+}
