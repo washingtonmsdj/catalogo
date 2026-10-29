@@ -41,8 +41,21 @@ class CollisionReviewTests(unittest.TestCase):
         group = next(g for g in r["groups"] if g["normalizedName"] == "iron")
         self.assertEqual(group["modelsWithoutImages"], ["mdl_a"])
         self.assertFalse(group["imageReviewReady"])
+        self.assertFalse(group["visualEvidenceVerified"])
         self.assertEqual(r["summary"]["groupsBlockedByMissingImages"], 1)
         self.assertFalse(group["mergeAuthorized"])
+
+    def test_declared_images_do_not_mean_visual_evidence_verified(self):
+        d = sample()
+        d["sameFranchiseNormalizedNameCollisions"][0]["modelMetadata"] = [
+            {"modelId": "mdl_a", "imageCount": 1},
+            {"modelId": "mdl_b", "imageCount": 4}]
+        result = plan(d)
+        group = next(g for g in result["groups"] if g["normalizedName"] == "iron")
+        self.assertTrue(group["declaredImagesPresent"])
+        self.assertFalse(group["imageReviewReady"])
+        self.assertFalse(group["visualEvidenceVerified"])
+        self.assertEqual(result["summary"]["groupsWithVerifiedVisualEvidence"], 0)
 
     def test_invalid_image_metadata_fails_closed(self):
         for count in (-1, None, True, "2"):
