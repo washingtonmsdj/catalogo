@@ -1,5 +1,5 @@
 import unittest
-from tools.audit_published_model_collisions import audit
+from audit_published_model_collisions import audit
 
 
 class CollisionAuditTests(unittest.TestCase):
