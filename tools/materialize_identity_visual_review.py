@@ -85,9 +85,20 @@ def production_candidate(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def public_media_url(api_base: str, storage_key: str) -> str:
+    """Map the R2 key to the exact public Worker path without duplicating media/."""
     base = normalize_api_base(api_base)
-    safe_key = urllib.parse.quote(storage_key, safe="/")
-    return f"{base}/media/{safe_key}"
+    key = str(storage_key or "").strip()
+    parts = key.split("/")
+    if (
+        not key.startswith("media/")
+        or "\\" in key
+        or "\\x00" in key
+        or any(part in {"", ".", ".."} for part in parts)
+        or len(key.encode("utf-8")) > 1024
+    ):
+        raise RuntimeError("canonical media storage key inválida")
+    safe_key = "/".join(urllib.parse.quote(part, safe="") for part in parts)
+    return f"{base}/{safe_key}"
 
 
 def verify_public_candidate(
