@@ -47,6 +47,7 @@
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.2",
+    "esbuild": "0.28.2",
     "lightningcss": "^1.33.0",
     "purgecss": "^8.0.0",
     "typescript": "^5.9.2",
