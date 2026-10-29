@@ -55,7 +55,7 @@ def review_alias_hints(name: str, categories: list[str]) -> list[str]:
     text = html.unescape(str(name or "")).strip()
     segments = re.split(r"\s+[-–—]\s+", text)
     trailing_labels = {normalize(value) for value in categories}
-    trailing_labels.update({"stl files", "stl forge"})
+    trailing_labels.add("stl files")
     choices: list[str] = []
     while len(segments) > 1 and normalize(segments[-1]) in trailing_labels:
         segments.pop()
