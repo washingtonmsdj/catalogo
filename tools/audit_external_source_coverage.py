@@ -197,6 +197,7 @@ def review_evidence(root: Path) -> tuple[dict[int, set[str]], dict[int, set[str]
                 identity.get("mapExistingApproved") is True
                 or top_decision.get("mapExistingAuthorized") is True
                 or top_decision.get("mapExistingApproved") is True
+                or top_decision.get("identityResolved") is True
             )
             if approved:
                 target_ids = {
