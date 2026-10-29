@@ -157,32 +157,8 @@ def materialize(args: argparse.Namespace) -> dict[str, Any]:
     candidate_dir = output / "candidate"
     source_manifest: list[dict[str, Any]] = []
     total_bytes = 0
-
-    for row in source_rows(review):
-        position = int(row["position"])
-        source_path = str(row["sourcePath"])
-        url = safe_source_url(origin, source_path)
-        suffix = Path(urllib.parse.unquote(source_path)).suffix.lower() or ".bin"
-        target = source_dir / f"position-{position:02d}{suffix}"
-        actual_sha, actual_bytes, content_type = download(url, target, int(args.max_image_bytes))
-        expected_sha = validate_sha(row["sha256"], f"expected source sha posição {position}")
-        expected_bytes = int(row["bytes"])
-        if actual_sha != expected_sha or actual_bytes != expected_bytes:
-            raise RuntimeError(
-                f"fonte posição {position} divergiu: {actual_sha}/{actual_bytes} != "
-                f"{expected_sha}/{expected_bytes}"
-            )
-        total_bytes += actual_bytes
-        source_manifest.append({
-            "position": position,
-            "sourceImageId": str(row.get("sourceImageId") or ""),
-            "sourcePath": source_path,
-            "sha256": actual_sha,
-            "bytes": actual_bytes,
-            "contentType": content_type,
-            "artifactPath": str(target.relative_to(output)).replace("\\", "/"),
-        })
-
+    # Inspect the canonical public cover first, before transferring the source gallery.
+    # A missing/stale production object must not cause repeated multi-image downloads.
     candidate_target = candidate_dir / "cover.webp"
     try:
         candidate_sha, candidate_bytes, candidate_content_type = download(
@@ -200,6 +176,34 @@ def materialize(args: argparse.Namespace) -> dict[str, Any]:
     total_bytes += candidate_bytes
     if total_bytes > int(args.max_total_bytes):
         raise RuntimeError("identity review excedeu max-total-bytes")
+
+    for row in source_rows(review):
+        position = int(row["position"])
+        source_path = str(row["sourcePath"])
+        url = safe_source_url(origin, source_path)
+        suffix = Path(urllib.parse.unquote(source_path)).suffix.lower() or ".bin"
+        target = source_dir / f"position-{position:02d}{suffix}"
+        actual_sha, actual_bytes, content_type = download(url, target, int(args.max_image_bytes))
+        expected_sha = validate_sha(row["sha256"], f"expected source sha posição {position}")
+        expected_bytes = int(row["bytes"])
+        if actual_sha != expected_sha or actual_bytes != expected_bytes:
+            raise RuntimeError(
+                f"fonte posição {position} divergiu: {actual_sha}/{actual_bytes} != "
+                f"{expected_sha}/{expected_bytes}"
+            )
+        total_bytes += actual_bytes
+        if total_bytes > int(args.max_total_bytes):
+            raise RuntimeError("identity review excedeu max-total-bytes")
+        source_manifest.append({
+            "position": position,
+            "sourceImageId": str(row.get("sourceImageId") or ""),
+            "sourcePath": source_path,
+            "sha256": actual_sha,
+            "bytes": actual_bytes,
+            "contentType": content_type,
+            "artifactPath": str(target.relative_to(output)).replace("\\", "/"),
+        })
+
 
     summary = {
         "version": 1,
