@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 12899,
+  "productName": "A2 STL 3 — NieR",
+  "scope": "identity_review_only_no_media_promotion",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "5/6",
+    "completeStaging": false,
+    "stagingNote": "Read-only download is not proof of media ownership or license; no new source images may be promoted."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40837087633,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40837087633",
+    "artifactName": "external-priority-visual-review-40837087633-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "125d8879927c799242c437bd45a93645b2c1164380db5fc3a088f6130492e3fb",
+    "sourcePositionBytes": 3380920,
+    "sourcePositionDhash": "f0f0e86860f0f4f0",
+    "productionCoverSha256": "5e7158b33a47d7b46662153b457eb76946fbc05f3463dece6601f0d52c210e78",
+    "productionCoverBytes": 31742,
+    "productionCoverDhash": "f0f0e86860f0f4d0",
+    "coverToSourceDhashDistance": 1,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Same A2 (NieR) long-silver-haired sculpture balanced on a mechanical sphere/debris base, bent knee raised, dark bodysuit with cutouts, long black blade in one hand and large white sword support behind her. External source view 2 and existing canonical cover share the exact sculpture, pose, props, perspective and framing; their canonical dHash differs by one bit.",
+    "identityProofInterpretation": "Human multi-view sculpture, pose, base and object correspondence, corroborated by SHA-256 and perceptual evidence. Different camera crops explain when perceptual distance is large; hash never automatically authorizes mapping."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_ca6782b528fd0d849016",
+    "reviewedCandidateSlug": "nier-a2-nier",
+    "coverStorageKey": "media/mdl_ca6782b528fd0d849016/img_87560d2094b89db47c15/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_ca6782b528fd0d849016",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Renders originate from a third-party sculpt vendor, and authorship/usage permission for new source views is not verified. No crop, watermark removal, image publication or reuse is approved."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep the single canonical published model; separately verify image license, creator provenance and rights before any source-gallery action."
+  }
+}

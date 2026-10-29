@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 12635,
+  "productName": "Maomao STL 5 — The Apothecary Diaries",
+  "scope": "identity_review_only_no_media_promotion",
+  "sourceGallery": {
+    "positionsDownloaded": 4,
+    "totalSourcePositions": 4,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "0/4",
+    "completeStaging": false,
+    "stagingNote": "Read-only download is not proof of media ownership or license; no new source images may be promoted."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40837087633,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40837087633",
+    "artifactName": "external-priority-visual-review-40837087633-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "10ea2824ef0c7e240e5c7716b04e23aa3119837ee4bc2219fdfede461eee505c",
+    "sourcePositionBytes": 1726499,
+    "sourcePositionDhash": "454df0f46cf253c9",
+    "productionCoverSha256": "6f89841f22a7edde89366af88835905992124b6494cdffff2f28690674aa910f",
+    "productionCoverBytes": 14068,
+    "productionCoverDhash": "9f9ad4e0f0f0f0f0",
+    "coverToSourceDhashDistance": 28,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "The external sculpture shows Maomao in flowing pink ceremonial robes with teal hanging ribbons, one hand at her waist and long fabric crossing her arms, on an elevated dark platform with red railings and two lanterns. The only published Maomao candidate shows a green tunic, maroon trousers, different hairstyle and simple round pedestal. This is not the same physical sculpture or base. A further historical/cross-name search is required before declaring a new model or absence from the complete catalog.",
+    "identityProofInterpretation": "Human multi-view sculpture, pose, base and object correspondence, corroborated by SHA-256 and perceptual evidence. Different camera crops explain when perceptual distance is large; hash never automatically authorizes mapping."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_1d7680cb5309e3cdecfe",
+    "reviewedCandidateSlug": "the-apothecary-diaries-maomao-estatua-em-pe",
+    "coverStorageKey": "media/mdl_1d7680cb5309e3cdecfe/img_27cb3dbfa7ad0b3773e4/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_1d7680cb5309e3cdecfe",
+    "reason": "same_character_but_different_physical_sculpture",
+    "historicalAliasSearchRequired": true,
+    "visualMatchApproved": false,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "The external views display artist/source promotional marks; no permission for gallery distribution established. No crop, watermark removal, image publication or reuse is approved."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Perform read-only historical and cross-variant identity lookup; absence of one matching nominal cover is insufficient to authorize a new model."
+  }
+}
