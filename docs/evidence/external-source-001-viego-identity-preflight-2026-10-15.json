@@ -5,12 +5,41 @@
   "sourceProductId": 12207,
   "productName": "Viego – League of Legends",
   "scope": "identity_preflight_only",
-  "stagingEvidence": {"coverage":"6/6","completeStaging":true,"reverseIndexRunId":38825218195,"productionWrites":0,"stagingWrites":0},
-  "productionSearch": {"nameSlugSearchTextMatches":0,"database":"tonecos-catalogo","readOnly":true},
+  "stagingEvidence": {
+    "coverage": "6/6",
+    "completeStaging": true,
+    "reverseIndexRunId": 38825218195,
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "productionSearch": {
+    "nameSlugSearchTextMatches": 0,
+    "database": "tonecos-catalogo",
+    "readOnly": true
+  },
   "identityReview": {
     "decision": "unresolved",
     "reason": "no_textual_candidate_but_visual_identity_gate_not_completed",
-    "notes": "No published Viego textual candidate was found. League of Legends already has published records, so a sculpture-level review remains required before authorizing new_model."
+    "notes": "No published Viego textual candidate was found. League of Legends already has published records, so a sculpture-level review remains required before authorizing new_model.",
+    "reviewQueue": {
+      "phase": "historical_catalog_search_required",
+      "lastCheckedAt": "2026-10-29",
+      "discoveryRunId": 40822904539,
+      "discoveryUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40822904539",
+      "liveCandidateCount": 0,
+      "completeSourceGalleryVerified": "6/6",
+      "priority": "broaden_historical_names_aliases_and_franchise_search",
+      "nextGate": "Read-only historical cross-franchise/alias scan with a visual comparison against actual published images; no new model authorization from absence of name matches.",
+      "productionWrites": 0,
+      "stagingWrites": 0
+    }
   },
-  "decision": {"identityResolved":false,"newModelIdentityAuthorized":false,"batchCreationAuthorized":false,"productionWrites":0,"stagingWrites":0,"nextGate":"visual/catalog identity review against League of Legends historical records"}
+  "decision": {
+    "identityResolved": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "visual/catalog identity review against League of Legends historical records"
+  }
 }

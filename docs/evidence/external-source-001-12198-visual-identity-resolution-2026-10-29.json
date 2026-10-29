@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 12198,
+  "productName": "Hercules STL 2 — Movies",
+  "scope": "identity_distinct_no_media_publication",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "5/5",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40822904539,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40822904539",
+    "artifactName": "external-candidate-discovery-40822904539-1",
+    "sourcePosition": 2,
+    "sourcePositionSha256": "e386426e18295a351755280695ef1cc8edfd269f4af256459e478a9203c7c8b2",
+    "sourcePositionBytes": 4428988,
+    "productionCoverSha256": "c97c5dfa6046f0d8b8f7ce3e03410cc6d80d29a2d45089cc640ca97aac6d6338",
+    "productionCoverBytes": 57208,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "ba4ec6c4cccce8c0",
+    "productionCoverDhash": "317869e1f1f8b00b",
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Source is red-haired classical Greek hero with blue cape, dark gold cuirass, crossed arms and shield atop pink monster-themed base. The only current published Hercules candidate is a God of War sculpture in armor, dark arena/rock diorama with weapons, a completely different pose and base. Not the same physical sculpture or franchise.",
+    "identityProofInterpretation": "Explicit visual exclusion based on pose, outfit and base; different published franchise. Does not authorize media reuse."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_0518118ed5e83fc50be8",
+    "reviewedCandidateSlug": "god-of-war-hercules-stl-3-bust-extras-god-of-war-principal",
+    "reviewedCandidatePublished": true,
+    "reviewedProductionCoverSha256": "c97c5dfa6046f0d8b8f7ce3e03410cc6d80d29a2d45089cc640ca97aac6d6338"
+  },
+  "identityReview": {
+    "decision": "new_model",
+    "reason": "distinct_sculpture_and_franchise",
+    "newModelIdentityAuthorized": true,
+    "publishedCandidateRejectedForIdentity": "mdl_0518118ed5e83fc50be8",
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "watermarkOrCreatorBrandingPresent": true,
+    "promotableMedia": false,
+    "notes": "Any new model requires provenance and usage rights for media. No cropping, replacement or new external images."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": true,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Do not publish an additional model or gallery before deterministic identity, creator rights, attribution, and source media are approved."
+  }
+}
