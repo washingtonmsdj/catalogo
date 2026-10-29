@@ -394,6 +394,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--evidence-root", default="docs/evidence")
     parser.add_argument("--batch-root", default="config/external-batches")
     parser.add_argument("--output", required=True)
+    parser.add_argument("--published-models-output", default=None)
     return parser.parse_args()
 
 
@@ -408,6 +409,10 @@ def main() -> None:
         raise CoverageError("bindings Cloudflare ausentes")
     products, source_meta = fetch_source_products(origin)
     models = fetch_published_models(account_id, token, database_id)
+    if args.published_models_output:
+        Path(args.published_models_output).write_text(
+            json.dumps(models, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
     reviews, existing_targets = review_evidence(Path(args.evidence_root))
     report = classify(
         products,
