@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 28878,
+  "productName": "Master Chief STL 3 + Bust — Halo",
+  "scope": "identity_review_only_no_media_promotion",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "6/6",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40819113596,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40819113596",
+    "artifactName": "external-candidate-discovery-40819113596-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "e145af5df425665aed712b28690e29d288908dff1faebd762c962a74a3d606c3",
+    "sourcePositionBytes": 3895937,
+    "productionCoverSha256": "27ae93dda6355148c2d6c1903249552e7a18e9b619aaf629ceb9a22dd7033124",
+    "productionCoverBytes": 65446,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "b0e6ccc8eab839cd",
+    "productionCoverDhash": "b0e6ccc8eab839cd",
+    "coverToSourceDhashDistance": 0,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Same Master Chief armor, raised long rifle and blue-lit angular rocky base, identical frontal composition in source position 1. The second Master Chief cover is a different standing green-armored miniature on a circular plain base, explicitly excluded.",
+    "identityProofInterpretation": "Explicit comparison of sculpture/pose/base and franchise; dHash is corroboration only, not identity authorization by itself."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_c221a5a1bbebaebb1eef",
+    "reviewedCandidateSlug": "halo-master-chief-halo-master-chief-stl-3-bust-halo-principal",
+    "reviewedCandidatePublished": true,
+    "productionCoverSha256": "27ae93dda6355148c2d6c1903249552e7a18e9b619aaf629ceb9a22dd7033124",
+    "otherCandidateModelIdsRejected": [
+      "mdl_ca3e256d6d02c2322766"
+    ]
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_c221a5a1bbebaebb1eef",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "otherCandidateModelIdsRejected": [
+      "mdl_ca3e256d6d02c2322766"
+    ]
+  },
+  "mediaReview": {
+    "creatorAttributionOrPromotionalBrandingVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_branding_visible",
+    "promotableMedia": false,
+    "notes": "Creator/logo watermark present in source and target; source gallery needs separate rights and branding approval. No crop, import, replacement or removal of branding authorized."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep existing canonical model, separately review ownership/branding and rights of the already published cover and proposed source gallery."
+  }
+}
