@@ -38,7 +38,7 @@
     "closestStructuralCandidateBytes": 32682,
     "closestStructuralCandidateDhash": "91b47c1c36310824",
     "exactByteShaOverlap": false,
-    "manualVisualComparison": "The STL Forge sculpture shows Gambit lunging horizontally over a large upturned blue robotic HAND, wielding a staff with pink projected energy and a flowing long trenchcoat. Eight published Gambit covers were reviewed. The closest thematic grayscale candidate mdl_bfc3295a0b7670d2b2ab depicts Gambit running upright along a robot HEAD with tubes, different robot geometry, foot placement, arm gestures and coat composition; other seven covers use standing, couple, separate diorama, bust, or different base/pose. Same character does not mean same 3D sculpture.",
+    "manualVisualComparison": "The external source sculpture shows Gambit lunging horizontally over a large upturned blue robotic HAND, wielding a staff with pink projected energy and a flowing long trenchcoat. Eight published Gambit covers were reviewed. The closest thematic grayscale candidate mdl_bfc3295a0b7670d2b2ab depicts Gambit running upright along a robot HEAD with tubes, different robot geometry, foot placement, arm gestures and coat composition; other seven covers use standing, couple, separate diorama, bust, or different base/pose. Same character does not mean same 3D sculpture.",
     "identityProofInterpretation": "Manual source-to-candidate shape and base comparison with hashed images and multiple viewing angles. dHash differences corroborate but do not automatically establish distinctness."
   },
   "productionEvidence": {
