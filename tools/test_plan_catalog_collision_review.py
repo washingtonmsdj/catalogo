@@ -32,6 +32,27 @@ class CollisionReviewTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             plan(d)
 
+    def test_missing_images_block_visual_review_without_merge(self):
+        d = sample()
+        d["sameFranchiseNormalizedNameCollisions"][0]["modelMetadata"] = [
+            {"modelId": "mdl_a", "imageCount": 0},
+            {"modelId": "mdl_b", "imageCount": 2}]
+        r = plan(d)
+        group = next(g for g in r["groups"] if g["normalizedName"] == "iron")
+        self.assertEqual(group["modelsWithoutImages"], ["mdl_a"])
+        self.assertFalse(group["imageReviewReady"])
+        self.assertEqual(r["summary"]["groupsBlockedByMissingImages"], 1)
+        self.assertFalse(group["mergeAuthorized"])
+
+    def test_invalid_image_metadata_fails_closed(self):
+        for count in (-1, None, True, "2"):
+            d = sample()
+            d["sameFranchiseNormalizedNameCollisions"][0]["modelMetadata"] = [
+                {"modelId": "mdl_a", "imageCount": count},
+                {"modelId": "mdl_b", "imageCount": 2}]
+            with self.subTest(count=count), self.assertRaises(ValueError):
+                plan(d)
+
     def test_unflagged_models(self):
         d = sample()
         d["totalRecords"] = d["uniqueRecordIds"] = 8
