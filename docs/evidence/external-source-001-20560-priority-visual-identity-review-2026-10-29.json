@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 20560,
+  "productName": "Shanks STL 2 — One Piece",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 8,
+    "totalSourcePositions": 8,
+    "stagingCoverage": "0/8",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true,
+    "duplicateByteIdenticalSourcePositions": [
+      1,
+      6
+    ],
+    "uniqueImageCountAtMost": 7
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40898907944,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40898907944",
+    "artifactName": "external-priority-visual-review-40898907944-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "ff6fbb75128588289f50aa3bcee204726717b4137e67a4d6e539ab4b3165fbb7",
+    "sourcePositionBytes": 482938,
+    "sourcePositionDhash": "b0324267c653396d",
+    "productionCoverSha256": "bed3c9e1895922fbf0d896c7721bf02ea38659736f37a1c88f8221efe5bb1dca",
+    "productionCoverBytes": 70190,
+    "productionCoverDhash": "2a0c0f2b2b279696",
+    "coverToSourceDhashDistance": 39,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Source Shanks crouches in wide sword-combat stance with massive rolling black-red cape, orange-red trousers and blue translucent splashes on a low rectangular RED-HAIRED SHANKS base. Published model is standing more upright with raised sword on a tall elaborate crimson lightning/thorn-and-skulls diorama, with different cape and stance. Base silhouette, sword position and effect geometry are not the same across the source views. Positions 1 and 6 are byte-identical duplicate source images; retain one identity review and avoid duplicate gallery objects.",
+    "identityProofInterpretation": "Human comparison of sculpture pose, props and base from source views and canonical R2 cover. SHA-256 source ownership supports only the published matching identity and provides no media rights."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_981829a87a388ede11a7",
+    "reviewedCandidateSlug": "one-piece-shanks-diorama-com-energia-vermelha",
+    "coverStorageKey": "media/mdl_981829a87a388ede11a7/img_06695fba9a962fb2b061/card.webp",
+    "published": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [],
+    "sourceShaOwnerIsSamePublishedTarget": false
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_981829a87a388ede11a7",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "sameNameIsNotDuplicateProof": true,
+    "reason": "nominal_published_candidate_is_different_physical_sculpture_and_no_catalog_wide_exclusion"
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source shows Samiho studio branding, Patreon and commercial render marks; published cover from another studio. Do not reuse or crop marks. Private staging 0/N, no rights proof for any externally downloaded gallery."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Search other same-franchise historical variants read-only; current nominal candidate excluded from same-sculpt approval, not proof a new model must be created."
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 20445,
+  "productName": "Igris STL 2 — Solo Leveling",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "stagingCoverage": "0/6",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40898907944,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40898907944",
+    "artifactName": "external-priority-visual-review-40898907944-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "fbb272e17e805db4508ce4f46236f4cb0dabf0848362944fde591167fdeccc7c",
+    "sourcePositionBytes": 627478,
+    "sourcePositionDhash": "129999e8685af86c",
+    "productionCoverSha256": "4b527733f7f958856c70161c05b817c0c61178e7daaeddcf8a15bc7b68d8a135",
+    "productionCoverBytes": 94940,
+    "productionCoverDhash": "cf0d1333333bb234",
+    "coverToSourceDhashDistance": 32,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Source shows dark armored Igris with very tall red plume, massive black broad blade held horizontally/diagonally to one side, straight upright standing pose and small round base, photographed before figurine shelves. Published candidate shows another Igris posture with raised/bent leg, sweeping shadow cape, luminous pale blue blade, tentacle-like blue energy and large jagged tree/debris base. Sword shape, pose, armor color, energy and pedestal differ across all six source views. Do not merge by character name.",
+    "identityProofInterpretation": "Human comparison of sculpture pose, props and base from source views and canonical R2 cover. SHA-256 source ownership supports only the published matching identity and provides no media rights."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_68d02f69b24798beaba8",
+    "reviewedCandidateSlug": "solo-leveling-igris-shadow-estatua-em-diorama",
+    "coverStorageKey": "media/mdl_68d02f69b24798beaba8/img_85347c56058912014809/card.webp",
+    "published": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [],
+    "sourceShaOwnerIsSamePublishedTarget": false
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_68d02f69b24798beaba8",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "sameNameIsNotDuplicateProof": true,
+    "reason": "nominal_published_candidate_is_different_physical_sculpture_and_no_catalog_wide_exclusion"
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source pictures include LionRealmStudio logo, Gumroad/Patreon marketing and QR promotional content; published cover also displays third-party attribution. Private staging 0/N, no rights proof for any externally downloaded gallery."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Search other same-franchise historical variants read-only; current nominal candidate excluded from same-sculpt approval, not proof a new model must be created."
+  }
+}
