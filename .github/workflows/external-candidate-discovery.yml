@@ -52,7 +52,8 @@ env:
   DISCOVERY_PER_PAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.per_page || '20' }}
   DISCOVERY_MAX_PRODUCTS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_products || '7' }}
   DISCOVERY_PRODUCT_ID: ${{ github.event_name == 'workflow_dispatch' && inputs.product_id || '' }}
-  DISCOVERY_PRODUCT_IDS: ${{ github.event_name == 'workflow_dispatch' && inputs.product_ids || (github.event_name == 'pull_request' && '36978') || '' }}
+  # PR verification samples three previously staged, unresolved identities; no auto-mapping or media promotion.
+  DISCOVERY_PRODUCT_IDS: ${{ github.event_name == 'workflow_dispatch' && inputs.product_ids || (github.event_name == 'pull_request' && '27784,30242,30858') || '' }}
 
 jobs:
   discover:
