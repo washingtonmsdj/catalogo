@@ -24,10 +24,11 @@ CATEGORIES = {
 }
 QUEUE_ORDER = {
     "visual_review": 0,
-    "variant_review": 1,
-    "identity_review": 2,
-    "alias_search": 3,
-    "rights_gate": 4,
+    "alias_review": 1,
+    "variant_review": 2,
+    "identity_review": 3,
+    "alias_search": 4,
+    "rights_gate": 5,
 }
 
 
@@ -55,6 +56,7 @@ def build_triage(coverage: dict[str, Any]) -> dict[str, Any]:
     counted: Counter[str] = Counter()
     work: list[dict[str, Any]] = []
     confirmed = 0
+    alias_sources_with_candidates = 0
     for row in products:
         if not isinstance(row, dict):
             raise TriageError("invalid product record")
@@ -81,6 +83,22 @@ def build_triage(coverage: dict[str, Any]) -> dict[str, Any]:
             raise TriageError(f"multiple-candidate state disagrees with metadata: {pid}")
         if state == "unreviewed_no_exact_name_candidate" and candidates:
             raise TriageError(f"no-candidate state disagrees with metadata: {pid}")
+        alias_candidates = row.get("reviewAliasCandidates", [])
+        alias_truncated = row.get("reviewAliasCandidatesTruncated", False)
+        if not isinstance(alias_candidates, list) or not isinstance(alias_truncated, bool):
+            raise TriageError(f"invalid review alias metadata: {pid}")
+        if alias_candidates and state != "unreviewed_no_exact_name_candidate":
+            raise TriageError(f"alias candidates cannot override other states: {pid}")
+        if any(not isinstance(item, dict) or not str(item.get("modelId") or "").startswith("mdl_")
+               for item in alias_candidates):
+            raise TriageError(f"invalid review alias candidate IDs: {pid}")
+        if len({item["modelId"] for item in alias_candidates}) != len(alias_candidates):
+            raise TriageError(f"duplicate review alias candidates: {pid}")
+        if alias_candidates:
+            alias_sources_with_candidates += 1
+        if state == "unreviewed_no_exact_name_candidate" and alias_candidates and not alias_truncated:
+            phase, next_gate = "alias_review", "compare_title_category_alias_candidates"
+
         work.append({
             "sourceProductId": pid,
             "sourceName": str(row.get("sourceName") or ""),
@@ -91,6 +109,8 @@ def build_triage(coverage: dict[str, Any]) -> dict[str, Any]:
             "nextGate": next_gate,
             "exactNameCandidateCount": len(candidates),
             "candidateModelIds": [str(c.get("modelId") or "") for c in candidates],
+            "aliasCandidateModelIds": [c["modelId"] for c in alias_candidates],
+            "aliasCandidatesTruncated": alias_truncated,
             "identityApproved": False,
             "mediaPromotionAuthorized": False,
             "productionWrites": 0,
@@ -104,6 +124,9 @@ def build_triage(coverage: dict[str, Any]) -> dict[str, Any]:
         raise TriageError("state counts do not reconcile with the canonical coverage")
     if summary.get("confirmedPresent") != confirmed:
         raise TriageError("confirmed identity count mismatch")
+    if ("unreviewedAliasSuggestions" in summary
+            and summary["unreviewedAliasSuggestions"] != alias_sources_with_candidates):
+        raise TriageError("review alias count mismatch")
     if summary.get("coverage100Proven") is not (confirmed == len(products)):
         raise TriageError("coverage100Proven inconsistent with report")
 
@@ -118,6 +141,7 @@ def build_triage(coverage: dict[str, Any]) -> dict[str, Any]:
             "sourceProducts": len(products),
             "confirmedPublishedIdentities": confirmed,
             "workItems": len(work),
+            "aliasReviewSources": alias_sources_with_candidates,
             "phaseCounts": {name: phases[name] for name in QUEUE_ORDER},
             "coverage100Proven": confirmed == len(products),
             "productionWrites": 0,

@@ -37,6 +37,33 @@ class IdentityTriageTests(unittest.TestCase):
         self.assertTrue(all(not x["identityApproved"] and not x["mediaPromotionAuthorized"] for x in result["workItems"]))
         self.assertTrue(all(x["productionWrites"] == 0 for x in result["workItems"]))
 
+    def test_unreviewed_alias_candidates_are_review_only_and_prioritized(self):
+        data = fixture()
+        row = data["products"][5]
+        row["reviewAliasCandidates"] = [{"modelId": "mdl_review"}]
+        row["reviewAliasCandidatesTruncated"] = False
+        data["summary"]["unreviewedAliasSuggestions"] = 1
+        result = build_triage(data)
+        item = next(x for x in result["workItems"] if x["sourceProductId"] == 15)
+        self.assertEqual(item["phase"], "alias_review")
+        self.assertEqual(item["aliasCandidateModelIds"], ["mdl_review"])
+        self.assertFalse(item["identityApproved"])
+        self.assertEqual(result["summary"]["confirmedPublishedIdentities"], 1)
+
+    def test_alias_overflow_remains_historical_search(self):
+        data = fixture()
+        data["products"][5]["reviewAliasCandidates"] = [{"modelId": "mdl_review"}]
+        data["products"][5]["reviewAliasCandidatesTruncated"] = True
+        out = build_triage(data)
+        self.assertEqual(next(x for x in out["workItems"] if x["sourceProductId"] == 15)["phase"],
+                         "alias_search")
+
+    def test_alias_candidates_cannot_be_attached_to_confirmed_exact_states(self):
+        data = fixture()
+        data["products"][3]["reviewAliasCandidates"] = [{"modelId": "mdl_review"}]
+        with self.assertRaisesRegex(TriageError, "cannot override"):
+            build_triage(data)
+
     def test_duplicate_id_fails_closed(self):
         data = fixture()
         data["products"][1]["sourceProductId"] = 10

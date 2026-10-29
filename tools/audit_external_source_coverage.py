@@ -27,6 +27,7 @@ USER_AGENT = "catalog-external-coverage/1.0"
 TAG_RE = re.compile(r"<[^>]+>")
 SPACE_RE = re.compile(r"\s+")
 STL_SPLIT_RE = re.compile(r"\bSTL\b", re.IGNORECASE)
+MAX_ALIAS_REVIEW_CANDIDATES = 24
 
 
 class CoverageError(RuntimeError):
@@ -47,6 +48,37 @@ def subject_hint(name: str) -> str:
     text = html.unescape(str(name or "")).strip()
     prefix = STL_SPLIT_RE.split(text, maxsplit=1)[0].strip(" -–—")
     return prefix or text
+
+
+def review_alias_hints(name: str, categories: list[str]) -> list[str]:
+    """Create title/category review hints, never approved identity or media."""
+    text = html.unescape(str(name or "")).strip()
+    segments = re.split(r"\s+[-–—]\s+", text)
+    trailing_labels = {normalize(value) for value in categories}
+    trailing_labels.update({"stl files", "stl forge"})
+    choices: list[str] = []
+    while len(segments) > 1 and normalize(segments[-1]) in trailing_labels:
+        segments.pop()
+        choices.append(" – ".join(segments))
+    candidates = [subject_hint(choice) for choice in choices] + choices
+    candidates.append(subject_hint(text))
+    aliases: list[str] = []
+    seen = {normalize(subject_hint(text))}
+    for candidate in candidates:
+        variants = [
+            candidate,
+            re.sub(
+                r"(?:\s*\+\s*(?:extras?|bust(?:o)?|nsfw|poster))+$",
+                "",
+                candidate,
+                flags=re.IGNORECASE,
+            ).strip(),
+        ]
+        for alias in variants:
+            if 3 <= len(alias) <= 100 and normalize(alias) not in seen:
+                seen.add(normalize(alias))
+                aliases.append(alias)
+    return aliases[:8]
 
 
 def decode_origin(descriptor: dict[str, Any]) -> str:
@@ -278,6 +310,8 @@ def classify(
 
     rows: list[dict[str, Any]] = []
     counts: Counter[str] = Counter()
+    alias_sources_with_candidates = 0
+    alias_candidate_links = 0
     for product in products:
         product_id = int(product["id"])
         name = str(product.get("name") or "")
@@ -305,17 +339,31 @@ def classify(
         else:
             state = "unreviewed_multiple_exact_name_candidates"
         counts[state] += 1
+        source_categories = category_names(product)
+        alias_hints = review_alias_hints(name, source_categories) if state == "unreviewed_no_exact_name_candidate" else []
+        alias_matches: dict[str, dict[str, Any]] = {}
+        for hint in alias_hints:
+            for match in names.get(normalize(hint), []):
+                alias_matches.setdefault(match["modelId"], match)
+        alias_candidates = list(alias_matches.values())[:MAX_ALIAS_REVIEW_CANDIDATES]
+        alias_truncated = len(alias_matches) > MAX_ALIAS_REVIEW_CANDIDATES
+        if alias_candidates:
+            alias_sources_with_candidates += 1
+            alias_candidate_links += len(alias_candidates)
         rows.append(
             {
                 "sourceProductId": product_id,
                 "sourceName": name,
                 "sourceSlug": str(product.get("slug") or ""),
-                "sourceCategories": category_names(product),
+                "sourceCategories": source_categories,
                 "state": state,
                 "expectedModelId": expected_id,
                 "approvedExistingTargetModelId": confirmed_target,
                 "reviewStates": sorted(states),
                 "exactNameCandidates": candidates,
+                "reviewAliasHints": alias_hints,
+                "reviewAliasCandidates": alias_candidates,
+                "reviewAliasCandidatesTruncated": alias_truncated,
                 "candidateMetadataSemantics": "review_only",
             }
         )
@@ -331,6 +379,8 @@ def classify(
             "coverage100Proven": bool(products) and confirmed == len(products),
             "states": dict(sorted(counts.items())),
             "candidateMetadataSemantics": "review_only",
+            "unreviewedAliasSuggestions": alias_sources_with_candidates,
+            "unreviewedAliasCandidateLinks": alias_candidate_links,
             "productionWrites": 0,
             "stagingWrites": 0,
         },

@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from audit_external_source_coverage import CoverageError, classify, fetch_json, fetch_source_products, review_evidence, subject_hint
+from audit_external_source_coverage import CoverageError, classify, fetch_json, fetch_source_products, review_alias_hints, review_evidence, subject_hint
 
 
 class ExternalSourceCoverageTests(unittest.TestCase):
@@ -36,6 +36,51 @@ class ExternalSourceCoverageTests(unittest.TestCase):
 
     def test_subject_hint_is_review_only_character_hint(self):
         self.assertEqual(subject_hint("Ryu STL 3 – Street Fighter"), "Ryu")
+
+    def test_title_franchise_suffix_creates_review_only_alias(self):
+        product = [{
+            "id": 253, "name": "Superman – DC", "slug": "superman",
+            "categories": [{"name": "DC"}, {"name": "Comics"}],
+        }]
+        models = [{
+            "id": "mdl_superman", "name": "Superman", "slug": "dc-superman",
+            "franchise_name": "DC", "franchise_slug": "dc",
+        }]
+        result = classify(product, models, {}, {})
+        row = result["products"][0]
+        self.assertEqual(row["state"], "unreviewed_no_exact_name_candidate")
+        self.assertEqual([x["modelId"] for x in row["reviewAliasCandidates"]], ["mdl_superman"])
+        self.assertEqual(result["summary"]["unreviewedAliasSuggestions"], 1)
+        self.assertEqual(result["summary"]["confirmedPresent"], 0)
+        self.assertFalse(result["summary"]["coverage100Proven"])
+
+    def test_category_and_decorations_are_suggestions_not_identity(self):
+        hints = review_alias_hints(
+            "Deadpool + Extras + Bust – Marvel – STL Files",
+            ["Marvel", "Comics"],
+        )
+        self.assertIn("Deadpool", hints)
+        self.assertNotIn("Marvel", hints)
+        self.assertNotIn("STL Files", hints)
+        self.assertEqual(review_alias_hints("Wonder Woman – Unrelated", ["DC"]), [])
+
+    def test_alias_matches_capped_with_overflow_flag(self):
+        products = [{"id": 101, "name": "Cammy White – Street Fighter",
+                     "categories": [{"name": "Street Fighter"}]}]
+        models = [{"id": f"mdl_{i}", "name": "Cammy White"} for i in range(30)]
+        result = classify(products, models, {}, {})
+        row = result["products"][0]
+        self.assertEqual(len(row["reviewAliasCandidates"]), 24)
+        self.assertTrue(row["reviewAliasCandidatesTruncated"])
+        self.assertEqual(result["summary"]["confirmedPresent"], 0)
+
+    def test_exact_candidate_still_stays_exact_without_automatic_approval(self):
+        p = [{"id": 101, "name": "Ryu STL – Street Fighter",
+              "categories": [{"name": "Street Fighter"}]}]
+        result = classify(p, self.models, {}, {})
+        self.assertEqual(result["products"][0]["state"], "unreviewed_multiple_exact_name_candidates")
+        self.assertEqual(result["products"][0]["reviewAliasCandidates"], [])
+        self.assertEqual(result["summary"]["confirmedPresent"], 0)
 
     def test_transient_anonymous_403_then_valid_page_is_retried_without_bypass(self):
         class Response:
