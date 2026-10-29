@@ -9,6 +9,8 @@ on:
       - 'tools/audit_external_source_coverage.py'
       - 'tools/audit_published_model_collisions.py'
       - 'tools/test_audit_published_model_collisions.py'
+      - 'tools/plan_catalog_collision_review.py'
+      - 'tools/test_plan_catalog_collision_review.py'
       - 'tools/test_audit_external_source_coverage.py'
       - 'tools/plan_external_identity_triage.py'
       - 'tools/test_plan_external_identity_triage.py'
@@ -44,7 +46,7 @@ jobs:
           node-version: 22
       - name: Test conservative coverage semantics
         working-directory: tools
-        run: python -m unittest -v test_audit_external_source_coverage.py test_plan_external_identity_triage.py test_audit_published_model_collisions.py
+        run: python -m unittest -v test_audit_external_source_coverage.py test_plan_external_identity_triage.py test_audit_published_model_collisions.py test_plan_catalog_collision_review.py
       - name: Verify read-only bindings
         shell: bash
         env:
@@ -69,6 +71,11 @@ jobs:
           python tools/audit_published_model_collisions.py
           "$RUNNER_TEMP/published-models.json"
           --output "$RUNNER_TEMP/published-model-collisions.json"
+      - name: Prioritize published collision review without automatic merges
+        run: >-
+          python tools/plan_catalog_collision_review.py
+          "$RUNNER_TEMP/published-model-collisions.json"
+          --output "$RUNNER_TEMP/published-collision-review-queue.json"
       - name: Generate entire backlog triage from canonical coverage (read-only)
         run: >-
           python tools/plan_external_identity_triage.py
@@ -89,6 +96,12 @@ jobs:
           assert collisions['uniqueRecordIds']==summary['publishedModels']
           assert collisions['mutationAuthorized'] is False
           assert collisions['sculptureUniquenessProven'] is False
+          queue=json.loads(Path(__import__('os').environ['RUNNER_TEMP'], 'published-collision-review-queue.json').read_text(encoding='utf-8'))
+          assert queue['summary']['publishedRecords']==summary['publishedModels']
+          assert queue['summary']['collisionGroups']==len(collisions['sameFranchiseNormalizedNameCollisions'])
+          assert queue['summary']['mutations']==0
+          assert queue['summary']['confirmedDuplicateSculptures'] is None
+          assert all(not group['mergeAuthorized'] for group in queue['groups'])
           assert summary['productionWrites'] == 0
           assert summary['stagingWrites'] == 0
           assert summary['confirmedPresent'] <= summary['sourceProducts']
@@ -190,6 +203,7 @@ jobs:
           path: |
             ${{ runner.temp }}/external-source-coverage.json
             ${{ runner.temp }}/published-model-collisions.json
+            ${{ runner.temp }}/published-collision-review-queue.json
             ${{ runner.temp }}/external-source-identity-triage.json
             ${{ runner.temp }}/external-source-priority-review-batch.json
           if-no-files-found: error
