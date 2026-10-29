@@ -13,6 +13,9 @@ class CollisionAuditTests(unittest.TestCase):
         self.assertEqual(len(output["sameFranchiseNormalizedNameCollisions"]), 1)
         self.assertFalse(output["sculptureUniquenessProven"])
         self.assertFalse(output["mutationAuthorized"])
+        details = output["sameFranchiseNormalizedNameCollisions"][0]["modelMetadata"]
+        self.assertEqual([d["modelId"] for d in details], ["mdl_1", "mdl_2"])
+        self.assertEqual([d["slug"] for d in details], ["gambit-one", "gambit-two"])
 
     def test_same_name_different_franchises_not_merged(self):
         rows = [
