@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 26131,
+  "productName": "Leon S. Kennedy STL 5 — Resident Evil",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "6/6",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40819423071,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40819423071",
+    "artifactName": "external-candidate-discovery-40819423071-1",
+    "sourcePosition": 4,
+    "sourcePositionSha256": "c397f33d1a7338ca52f92b5e4405d3aa04781a8be213f5916465b977210381b1",
+    "sourcePositionBytes": 3157445,
+    "productionCoverSha256": "384e19475cb42cb4fc7a878a57f5c77bea0f527c315829199e4b4d1ffff52483",
+    "productionCoverBytes": 48360,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "94ccc8c46d49b013",
+    "productionCoverDhash": "94ccc8c46d49b013",
+    "coverToSourceDhashDistance": 0,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Selected candidate matches Leon in dark tactical shirt and vest, shoulder sling, sidearm in hand, and rubble/industrial prop base in the same frontal pose. The other eight broad-text candidates show different jackets, outfits, poses, and/or bases.",
+    "identityProofInterpretation": "Explicit comparison of same sculpture/view, corroborated by identical canonical dHash and original SHA/byte checks; other textual candidates were rejected."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_c5616ffab4d46b446302",
+    "slug": "resident-evil-leon-s-kennedy-resident-evil-leon-s-kennedy-stl-5-resident-evil-principal",
+    "code": "TS-C5616FFAB4D4",
+    "coverStorageKey": "media/mdl_c5616ffab4d46b446302/img_b46eb0b7759c6d2cff37/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true,
+    "otherCandidateModelIdsRejected": [
+      "mdl_185daf05d5b37311c912",
+      "mdl_300cffe164feab20c551",
+      "mdl_502bab0e901695652695",
+      "mdl_af1a98c17638291e5326",
+      "mdl_69b9b96479dd00b33ed5",
+      "mdl_38f516d3afbf499e7e23",
+      "mdl_1d55644779795b4c59d6",
+      "mdl_968b35581e408860c35c"
+    ]
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_c5616ffab4d46b446302",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "otherCandidateModelIdsRejected": [
+      "mdl_185daf05d5b37311c912",
+      "mdl_300cffe164feab20c551",
+      "mdl_502bab0e901695652695",
+      "mdl_af1a98c17638291e5326",
+      "mdl_69b9b96479dd00b33ed5",
+      "mdl_38f516d3afbf499e7e23",
+      "mdl_1d55644779795b4c59d6",
+      "mdl_968b35581e408860c35c"
+    ]
+  },
+  "mediaReview": {
+    "creatorAttributionOrPromotionalBrandingVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_branding_visible",
+    "promotableMedia": false,
+    "notes": "Source and selected published cover carry creator-style attribution/watermark symbols; license and quality approval separate. Do not import new source media, edit watermarks or replace already published media based on identity only."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep published canonical model; separately audit rights and branding before any further gallery modification."
+  }
+}
