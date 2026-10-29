@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 19623,
+  "productName": "Satoru Gojo STL 4 — Jujutsu Kaisen",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "stagingCoverage": "0/6",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingNote": "Read-only fetched images do not establish staging/creator rights."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40898233723,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40898233723",
+    "artifactName": "external-priority-visual-review-40898233723-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "a02e42a9ddd39f2da013f92b78749ed7771c9e441fcab347d6d13af956f175f0",
+    "sourcePositionBytes": 359290,
+    "sourcePositionDhash": "241a1a230606466d",
+    "productionCoverSha256": "851693002dbaec25f4c102c1b31b9ed7be473c7953ef676b2049f400b54a54e4",
+    "productionCoverBytes": 59266,
+    "productionCoverDhash": "6c4c1169653c3060",
+    "coverToSourceDhashDistance": 28,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Source Gojo is a purple-haired figure with both hands thrust forward in a casting gesture, white wide pants, purple ghost-flame figures, massive flaring scarf and tall jagged pedestal showing a large embedded eyeball and skulls. Published Gojo cover is a relaxed standing black-shirt statue with one hand over shoulder, gray trousers and a plain round base. Character and pant shape alone do not establish same physical statue; retain Gojo 4 separately from previously proven Gojo source 1028 and reviewed Gojo 5. Historical/other variants remain unexcluded.",
+    "identityProofInterpretation": "Human multiview sculptural comparison verified using SHA-256 of reviewed source and canonical published R2 cover; perceptual hash is only corroboration."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_19191b5f633e12d319c6",
+    "reviewedCandidateSlug": "jujutsu-kaisen-satoru-gojo-estatua-em-pe",
+    "coverStorageKey": "media/mdl_19191b5f633e12d319c6/img_99d7ebcdc12afdcdf4ea/card.webp",
+    "published": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [],
+    "sourceShaOwnerIsSamePublishedTarget": false
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_19191b5f633e12d319c6",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "sameNameIsNotDuplicateProof": true,
+    "reason": "nominal_published_cover_is_different_physical_sculpture_and_other_variants_not_excluded"
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Third-party creator logos, Patreon promotion and attribution appear on source or public covers. No source image reuse, cropping, watermark removal, upload, or publication authorized."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Investigate other same-franchise published models and historical aliases read-only before considering a new-model identity."
+  }
+}

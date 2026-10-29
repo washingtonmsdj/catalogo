@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 18488,
+  "productName": "Monoco STL — Clair Obscur: Expedition 33",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "stagingCoverage": "0/6",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingNote": "Read-only fetched images do not establish staging/creator rights."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40898233723,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40898233723",
+    "artifactName": "external-priority-visual-review-40898233723-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "a3a83028ca347f10b10b457765f6f27980efa3e209fc4670e3874b4836b01cb4",
+    "sourcePositionBytes": 739074,
+    "sourcePositionDhash": "ce4f4b6f638b3330",
+    "productionCoverSha256": "c8bb4b8865a5ce5c8fc82d9575dfa3959938ff2153b3525ebb0f5fbf4eb6203c",
+    "productionCoverBytes": 104012,
+    "productionCoverDhash": "ce4f4b6f638b3330",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Same ragged-haired Monoco skeleton/animal-like hunter bending on a rocky plinth with a set of long skeletal staffs, hanging skull/bells and heavy fur covering the shoulders. The published cover matches source view 2 in object layout, body posture and camera; source SHA is already indexed under the exact published model ID.",
+    "identityProofInterpretation": "Human multiview sculptural comparison verified using SHA-256 of reviewed source and canonical published R2 cover; perceptual hash is only corroboration."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_7b94fa566865d22574ef",
+    "reviewedCandidateSlug": "clair-obscur-expedition-33-monoco-estatua-com-cajado-osseo",
+    "coverStorageKey": "media/mdl_7b94fa566865d22574ef/img_1a92f4f308cb2523cc87/card.webp",
+    "published": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [
+      "mdl_7b94fa566865d22574ef"
+    ],
+    "sourceShaOwnerIsSamePublishedTarget": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_7b94fa566865d22574ef",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Third-party creator logos, Patreon promotion and attribution appear on source or public covers. No source image reuse, cropping, watermark removal, upload, or publication authorized."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain one already-published canonical model. Independently verify rights and provenance before importing any source gallery."
+  }
+}
