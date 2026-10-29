@@ -55,6 +55,7 @@ def select_next(root: Path, limit: int = 3) -> list[int]:
     if limit < 1 or limit > 3:
         raise ValueError("identity review must be bounded to 1–3 products")
     resolved: set[int] = set()
+    deferred: set[int] = set()
     pending: dict[int, tuple[int, int]] = {}
     for path, pid, row in evidence_rows(root):
         if approved_identity(row):
@@ -72,6 +73,23 @@ def select_next(root: Path, limit: int = 3) -> list[int]:
             or staging.get("completeStaging") is not True
         ):
             continue
+        queue_gate = identity.get("reviewQueue")
+        if queue_gate is not None:
+            if not isinstance(queue_gate, dict):
+                raise RuntimeError(f"invalid queue gate in {path.name}")
+            if queue_gate.get("phase") == "historical_catalog_search_required":
+                run_id = queue_gate.get("discoveryRunId")
+                count_now = queue_gate.get("liveCandidateCount")
+                if (
+                    isinstance(run_id, bool)
+                    or not isinstance(run_id, int)
+                    or run_id <= 0
+                    or isinstance(count_now, bool)
+                    or not isinstance(count_now, int)
+                    or count_now != 0
+                ):
+                    raise RuntimeError(f"invalid read-only discovery proof in {path.name}")
+                deferred.add(pid)
         production = row.get("productionSearch") or {}
         count = production.get("exactOrTextualCandidateCount") if isinstance(production, dict) else None
         if count is None:
@@ -82,7 +100,7 @@ def select_next(root: Path, limit: int = 3) -> list[int]:
         rank = 0 if isinstance(count, int) and not isinstance(count, bool) and count == 1 else 1
         pending[pid] = min(pending.get(pid, (2, pid)), (rank, pid))
     return [pid for pid, _ in sorted(
-        ((pid, priority) for pid, priority in pending.items() if pid not in resolved),
+        ((pid, priority) for pid, priority in pending.items() if pid not in resolved and pid not in deferred),
         key=lambda item: (item[1], item[0]),
     )[:limit]]
 

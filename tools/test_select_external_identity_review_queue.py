@@ -59,6 +59,42 @@ class ReviewQueueTests(unittest.TestCase):
                   identity="map_existing", resolved=True, approved=False)
             self.assertEqual(select_next(root), [601])
 
+    def test_current_nocandidate_is_deferred_for_historical_search_not_repeated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            a = "external-source-001-a-identity-preflight-2026-10-15.json"
+            write(root, a, 10015, identity="unresolved", candidates=0)
+            write(root, "external-source-001-b-identity-preflight-2026-10-15.json",
+                  10016, identity="unresolved", candidates=1)
+            path = root / a
+            row = json.loads(path.read_text(encoding="utf-8"))
+            row["identityReview"]["reviewQueue"] = {
+                "phase": "historical_catalog_search_required",
+                "discoveryRunId": 40822172147,
+                "liveCandidateCount": 0,
+            }
+            path.write_text(json.dumps(row), encoding="utf-8")
+            self.assertEqual(select_next(root), [10016])
+            # Still unresolved; absence of candidates never means new identity.
+            self.assertFalse(row["decision"]["identityResolved"])
+            self.assertEqual(row["identityReview"]["decision"], "unresolved")
+
+    def test_unverified_defer_cannot_silently_disappear_from_review(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            a = "external-source-001-a-identity-preflight-2026-10-15.json"
+            write(root, a, 101, identity="unresolved", candidates=0)
+            path = root / a
+            row = json.loads(path.read_text(encoding="utf-8"))
+            row["identityReview"]["reviewQueue"] = {
+                "phase": "historical_catalog_search_required",
+                "discoveryRunId": 40822172147,
+                "liveCandidateCount": 1,
+            }
+            path.write_text(json.dumps(row), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "invalid read-only discovery proof"):
+                select_next(root)
+
     def test_incomplete_staging_is_not_enqueued(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

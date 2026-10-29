@@ -26,7 +26,19 @@
   "identityReview": {
     "decision": "unresolved",
     "reason": "no_production_candidate_found_but_visual_identity_gate_not_completed",
-    "notes": "No published model matched Squirrel Girl, Garota Esquilo or Esquilo in name, slug or search_text. Source metadata identifies the Marvel character, but absence of a textual match is not sufficient proof against a renamed historical record."
+    "notes": "No published model matched Squirrel Girl, Garota Esquilo or Esquilo in name, slug or search_text. Source metadata identifies the Marvel character, but absence of a textual match is not sufficient proof against a renamed historical record.",
+    "reviewQueue": {
+      "phase": "historical_catalog_search_required",
+      "lastCheckedAt": "2026-10-29",
+      "discoveryRunId": 40822172147,
+      "discoveryUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40822172147",
+      "liveCandidateCount": 0,
+      "completeSourceGalleryVerified": "5/5",
+      "priority": "broaden_alias_and_franchise_historical_search",
+      "nextGate": "Read-only search across published model aliases, franchise and historical records. No new model approval until the visual/catalog identity gate is completed.",
+      "productionWrites": 0,
+      "stagingWrites": 0
+    }
   },
   "decision": {
     "identityResolved": false,

@@ -34,7 +34,19 @@
   "identityReview": {
     "decision": "unresolved",
     "reason": "no_production_candidate_found_but_visual_identity_gate_not_completed",
-    "notes": "Production contains 27 published League of Legends models, but none matched Nidalee in name, slug or search_text. The source page independently confirms Nidalee / League of Legends and the 1/4-scale figure metadata. The policy still requires the visual/catalog identity gate before authorizing a new model."
+    "notes": "Production contains 27 published League of Legends models, but none matched Nidalee in name, slug or search_text. The source page independently confirms Nidalee / League of Legends and the 1/4-scale figure metadata. The policy still requires the visual/catalog identity gate before authorizing a new model.",
+    "reviewQueue": {
+      "phase": "historical_catalog_search_required",
+      "lastCheckedAt": "2026-10-29",
+      "discoveryRunId": 40822172147,
+      "discoveryUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40822172147",
+      "liveCandidateCount": 0,
+      "completeSourceGalleryVerified": "6/6",
+      "priority": "broaden_alias_and_franchise_historical_search",
+      "nextGate": "Read-only search across published model aliases, franchise and historical records. No new model approval until the visual/catalog identity gate is completed.",
+      "productionWrites": 0,
+      "stagingWrites": 0
+    }
   },
   "decision": {
     "identityResolved": false,
