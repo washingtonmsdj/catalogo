@@ -95,6 +95,34 @@ class ReviewQueueTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "invalid read-only discovery proof"):
                 select_next(root)
 
+    def test_off_franchise_candidates_are_deferred_only_with_explicit_proof(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "external-source-001-iron-identity-preflight-2026-10-15.json"
+            write(root, path.name, 12458, identity="unresolved", candidates=2)
+            row = json.loads(path.read_text(encoding="utf-8"))
+            row["identityReview"]["reviewQueue"] = {
+                "phase": "historical_cross_franchise_search_required",
+                "discoveryRunId": 40825845722,
+                "liveCandidateCount": 2,
+                "rejectedOffFranchiseModelIds": ["mdl_marvel", "mdl_music"],
+                "sameFranchiseCandidateCount": 0,
+                "sourceFranchise": "Solo Leveling",
+            }
+            path.write_text(json.dumps(row), encoding="utf-8")
+            self.assertEqual(select_next(root), [])
+            self.assertFalse(row["decision"]["identityResolved"])
+            self.assertEqual(row["identityReview"]["decision"], "unresolved")
+            row["identityReview"]["reviewQueue"]["sameFranchiseCandidateCount"] = 1
+            path.write_text(json.dumps(row), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "invalid cross-franchise"):
+                select_next(root)
+            row["identityReview"]["reviewQueue"]["sameFranchiseCandidateCount"] = 0
+            row["identityReview"]["reviewQueue"]["rejectedOffFranchiseModelIds"] = ["mdl_marvel"]
+            path.write_text(json.dumps(row), encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "invalid cross-franchise"):
+                select_next(root)
+
     def test_incomplete_staging_is_not_enqueued(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

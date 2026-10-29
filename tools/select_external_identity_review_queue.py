@@ -90,6 +90,24 @@ def select_next(root: Path, limit: int = 3) -> list[int]:
                 ):
                     raise RuntimeError(f"invalid read-only discovery proof in {path.name}")
                 deferred.add(pid)
+            elif queue_gate.get("phase") == "historical_cross_franchise_search_required":
+                run_id = queue_gate.get("discoveryRunId")
+                count_now = queue_gate.get("liveCandidateCount")
+                rejected = queue_gate.get("rejectedOffFranchiseModelIds")
+                source_franchise = queue_gate.get("sourceFranchise")
+                same_franchise = queue_gate.get("sameFranchiseCandidateCount")
+                if (
+                    isinstance(run_id, bool) or not isinstance(run_id, int) or run_id <= 0
+                    or isinstance(count_now, bool) or not isinstance(count_now, int)
+                    or count_now <= 0 or count_now > 12
+                    or not isinstance(rejected, list) or len(rejected) != count_now
+                    or len(set(str(item) for item in rejected)) != count_now
+                    or any(not isinstance(item, str) or not item.startswith("mdl_") for item in rejected)
+                    or not isinstance(source_franchise, str) or not source_franchise.strip()
+                    or isinstance(same_franchise, bool) or same_franchise != 0
+                ):
+                    raise RuntimeError(f"invalid cross-franchise review proof in {path.name}")
+                deferred.add(pid)
         production = row.get("productionSearch") or {}
         count = production.get("exactOrTextualCandidateCount") if isinstance(production, dict) else None
         if count is None:
