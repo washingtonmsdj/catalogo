@@ -17,7 +17,8 @@ class EnrichExternalCandidateIdentityTests(unittest.TestCase):
         self.assertEqual(alias_hints("Groot and Rocket"), ["Groot", "Rocket"])
         self.assertEqual(alias_hints("Tom & Jerry"), ["Jerry"])  # Tom too short
         self.assertEqual(alias_hints("Bane"), [])
-        self.assertNotIn("%", sql_like_literal("Kai%Sa").replace("\\%", ""))
+        self.assertEqual(sql_like_literal("Kai%Sa"), r"%kai\%sa%")
+        self.assertEqual(sql_like_literal("A_B"), r"%a\_b%")
 
     def test_fallback_is_bounded_parameterized_and_never_authorizes_identity(self):
         fallback_model = {"id": "mdl_a", "name": "Kaisa", "slug": "kaisa"}
