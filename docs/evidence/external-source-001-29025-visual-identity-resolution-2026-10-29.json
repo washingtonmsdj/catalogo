@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 29025,
+  "productName": "Hiromi Higuruma STL — Jujutsu Kaisen",
+  "scope": "identity_only_no_media_promotion",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "5/5",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40821414434,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40821414434",
+    "artifactName": "external-candidate-discovery-40821414434-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "6d6176d6236ebd4d2ffefbe7bc8fc607cfbc2dbf7f940e7c5b18d3e09ce4a54a",
+    "sourcePositionBytes": 5621811,
+    "productionCoverSha256": "cfdbddd5aea3306a90ea9ab74f729cfbac5f90670f2523e9bc325e164fa7b7c3",
+    "productionCoverBytes": 97832,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "ccec68a5f5f4f4f1",
+    "productionCoverDhash": "ccec68a5f5f4f4f1",
+    "coverToSourceDhashDistance": 0,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Identical attorney Higuruma standing behind wooden rail, large black shrouded judge spirit with pale face and scales behind him, red courtroom backdrop and rocky floor. Source position 1 matches the canonical cover.",
+    "identityProofInterpretation": "Explicit visual comparison of sculpture, pose, base and framing; SHA-256 independently verified against the source artifact, and canonical dHash match corroborates rather than automatically determines identity."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_e3136677145529966ff7",
+    "slug": "jujutsu-kaisen-hiromi-higuruma-tribunal-diorama",
+    "coverStorageKey": "media/mdl_e3136677145529966ff7/img_c61fa3f03d854510bc0b/card.webp",
+    "published": true,
+    "coverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_e3136677145529966ff7",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "creatorBrandingVisible": true,
+    "notes": "Creator watermark and promotional reference visible. No new media promotion without rights verification. Do not crop, erase marks, replace public covers or import source gallery as part of this identity decision."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain one existing model; separately validate provenance, attribution and usage rights for existing and proposed imagery."
+  }
+}
