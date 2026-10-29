@@ -96,8 +96,11 @@ def fetch_source_products(origin: str, *, per_page: int = 100, max_pages: int = 
         total_pages = int(headers.get("X-WP-TotalPages") or headers.get("x-wp-totalpages") or 1)
     except ValueError as exc:
         raise CoverageError("headers de paginação inválidos") from exc
-    if total_pages < 1 or total_pages > max_pages:
-        raise CoverageError(f"total_pages fora do limite: {total_pages}")
+    if total < 1 or total_pages < 1 or total_pages > max_pages:
+        raise CoverageError(f"paginação de origem inválida: total={total} páginas={total_pages}")
+    expected_pages = (total + per_page - 1) // per_page
+    if total_pages != expected_pages:
+        raise CoverageError(f"paginação de origem inconsistente: páginas={total_pages}, esperado={expected_pages}")
     products = list(first)
     for page in range(2, total_pages + 1):
         params["page"] = page
@@ -105,9 +108,16 @@ def fetch_source_products(origin: str, *, per_page: int = 100, max_pages: int = 
         if not isinstance(payload, list):
             raise CoverageError(f"Store API página {page} inválida")
         products.extend(payload)
-    ids = [int(item.get("id") or 0) for item in products]
-    if any(value <= 0 for value in ids) or len(ids) != len(set(ids)):
-        raise CoverageError("IDs de produto inválidos/duplicados")
+    if len(products) != total:
+        raise CoverageError(f"snapshot incompleto da fonte: {len(products)} produtos != total informado {total}")
+    if any(not isinstance(item, dict) for item in products):
+        raise CoverageError("Store API contém item que não é objeto")
+    try:
+        ids = [int(item.get("id") or 0) for item in products]
+    except (TypeError, ValueError) as exc:
+        raise CoverageError("IDs de produto inválidos") from exc
+    if any(value <= 0 for value in ids) or any(left >= right for left, right in zip(ids, ids[1:])):
+        raise CoverageError("IDs de produto inválidos, duplicados ou fora de ordem id_asc")
     return products, {
         "reportedTotal": total,
         "totalPages": total_pages,
@@ -156,8 +166,10 @@ def batch_model_ids(root: Path) -> dict[int, str]:
     return result
 
 
-def review_states(root: Path) -> dict[int, set[str]]:
+def review_evidence(root: Path) -> tuple[dict[int, set[str]], dict[int, set[str]]]:
+    """Read evidence once, retaining only explicitly approved, unambiguous map targets."""
     states: dict[int, set[str]] = defaultdict(set)
+    existing_targets: dict[int, set[str]] = defaultdict(set)
     for path in sorted(root.glob("external-source-001-*.json")):
         try:
             payload = load_json(path)
@@ -180,7 +192,30 @@ def review_states(root: Path) -> dict[int, set[str]]:
             states[product_id].add("media_blocked_or_pending")
         if str(payload.get("watermarkStatus") or "") == "watermarked":
             states[product_id].add("media_blocked_or_pending")
-    return states
+        if decision == "map_existing":
+            approved = (
+                identity.get("mapExistingApproved") is True
+                or top_decision.get("mapExistingAuthorized") is True
+                or top_decision.get("mapExistingApproved") is True
+            )
+            if approved:
+                target_ids = {
+                    str(candidate or "").strip()
+                    for candidate in (
+                        identity.get("targetModelId"),
+                        top_decision.get("canonicalModelId"),
+                        (payload.get("productionEvidence") or {}).get("modelId"),
+                    )
+                    if str(candidate or "").strip()
+                }
+                if len(target_ids) > 1:
+                    raise CoverageError(f"alvos map_existing divergentes em {path.name}")
+                if target_ids:
+                    target_id = next(iter(target_ids))
+                    if not target_id.startswith("mdl_"):
+                        raise CoverageError(f"target map_existing inválido em {path.name}")
+                    existing_targets[product_id].add(target_id)
+    return states, existing_targets
 
 
 def category_names(product: dict[str, Any]) -> list[str]:
@@ -213,8 +248,10 @@ def classify(
     models: list[dict[str, Any]],
     reviews: dict[int, set[str]],
     batch_ids: dict[int, str],
+    existing_targets: dict[int, set[str]] | None = None,
 ) -> dict[str, Any]:
     published_ids = {str(row.get("id") or "") for row in models}
+    existing_targets = existing_targets or {}
     names: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in models:
         names[normalize(row.get("name"))].append(candidate_metadata(row))
@@ -227,7 +264,13 @@ def classify(
         states = reviews.get(product_id, set())
         expected_id = batch_ids.get(product_id)
         candidates = names.get(normalize(subject_hint(name)), [])
-        if "map_existing" in states:
+        approved_targets = existing_targets.get(product_id, set())
+        confirmed_target = (
+            next(iter(approved_targets))
+            if len(approved_targets) == 1 and next(iter(approved_targets)) in published_ids
+            else None
+        )
+        if "map_existing" in states and confirmed_target:
             state = "confirmed_present_map_existing"
         elif "new_model" in states and expected_id and expected_id in published_ids:
             state = "confirmed_present_reviewed_new_model"
@@ -250,6 +293,7 @@ def classify(
                 "sourceCategories": category_names(product),
                 "state": state,
                 "expectedModelId": expected_id,
+                "approvedExistingTargetModelId": confirmed_target,
                 "reviewStates": sorted(states),
                 "exactNameCandidates": candidates,
                 "candidateMetadataSemantics": "review_only",
@@ -294,11 +338,13 @@ def main() -> None:
         raise CoverageError("bindings Cloudflare ausentes")
     products, source_meta = fetch_source_products(origin)
     models = fetch_published_models(account_id, token, database_id)
+    reviews, existing_targets = review_evidence(Path(args.evidence_root))
     report = classify(
         products,
         models,
-        review_states(Path(args.evidence_root)),
+        reviews,
         batch_model_ids(Path(args.batch_root)),
+        existing_targets,
     )
     report["version"] = 2
     report["sourceId"] = str(descriptor.get("sourceId") or "")
