@@ -15,6 +15,8 @@ const markers = [
   'Sentinela Rubra',
   'Crônicas de Ferro',
   'mdl-000001',
+  'Arcade Legends',
+  'Órbita Distante',
 ]
 
 function filesUnder(directory) {
@@ -28,6 +30,8 @@ function filesUnder(directory) {
 }
 
 const files = filesUnder(root)
+const demoAssets = ['collectible-covers.png', 'hero-campaign.png']
+const demoAssetsFound = demoAssets.filter((asset) => fs.existsSync(path.join(root, 'demo', asset)))
 const hits = new Map(markers.map((marker) => [marker, []]))
 
 for (const file of files) {
@@ -40,6 +44,7 @@ for (const file of files) {
 }
 
 if (expectation === 'absent') {
+  if (demoAssetsFound.length) throw new Error(`Production artifact contains demo-only artwork: ${demoAssetsFound.join(', ')}`)
   const publicSourceMaps = files
     .map((file) => path.relative(root, file))
     .filter((file) => file.endsWith('.map'))
@@ -54,6 +59,8 @@ if (expectation === 'absent') {
   }
   console.log(`Production artifact has no public source maps and is free of ${markers.length} demo-only sentinels across ${files.length} files`)
 } else {
+  const missingDemoAssets = demoAssets.filter((asset) => !demoAssetsFound.includes(asset))
+  if (missingDemoAssets.length) throw new Error(`Explicit demo artifact is missing demo-only artwork: ${missingDemoAssets.join(', ')}`)
   const missing = [...hits].filter(([, locations]) => !locations.length).map(([marker]) => marker)
   if (missing.length) throw new Error(`Explicit demo artifact is missing demo sentinels: ${missing.join(', ')}`)
   console.log(`Explicit demo artifact contains all ${markers.length} demo-only sentinels`)

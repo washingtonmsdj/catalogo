@@ -1,7 +1,7 @@
 import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel } from '../types/catalog'
 import { catalogApiUrl, catalogRuntime } from '../config/catalogRuntime'
 import type { CatalogRuntimeMode } from '../config/catalogRuntimeContract'
-import { FRANCHISE_SEARCH_MIN_LENGTH, type CatalogListQuery, type CatalogModelCard, type CursorPage, type GalleryQuery } from './catalogRepository'
+import { FRANCHISE_SEARCH_MIN_LENGTH, normalizePageSize, type CatalogListQuery, type CatalogModelCard, type CursorPage, type GalleryQuery } from './catalogRepository'
 import { legacyCompositeGalleryVersion, planLegacyGalleryGroups, registeredLegacyGalleryForRow, uniqueLegacyGalleryImages, type LegacyGalleryOverride } from '../lib/legacyGalleryGrouping'
 
 export type { CatalogRuntimeMode } from '../config/catalogRuntimeContract'
@@ -18,6 +18,8 @@ export type ApiCatalogRow = {
   category_slug: string
   collection: string | null
   folder_path: string | null
+  material?: string | null
+  height_cm?: number | null
   image_count: number
   gallery_version: number
   cover_storage_key: string | null
@@ -74,6 +76,38 @@ const apiBase = catalogRuntime.apiBase
 const GALLERY_PAGE_CACHE_LIMIT = 40
 const GALLERY_PAGE_CACHE_TTL_MS = 5 * 60 * 1000
 const galleryPageCache = new Map<string, GalleryCacheEntry>()
+const CATALOG_PAGE_CURSOR_PREFIX = 'tcs-page-v1.'
+const MAX_CATALOG_PAGE_FILL_READS = 32
+
+type CatalogPageCursorState = {
+  workerCursor: string
+  legacyGroups: string[]
+}
+
+function decodeCatalogPageCursor(value?: string): CatalogPageCursorState {
+  if (!value?.startsWith(CATALOG_PAGE_CURSOR_PREFIX)) return { workerCursor: value ?? '', legacyGroups: [] }
+  try {
+    const encoded = value.slice(CATALOG_PAGE_CURSOR_PREFIX.length).replace(/-/g, '+').replace(/_/g, '/')
+    const padded = encoded.padEnd(Math.ceil(encoded.length / 4) * 4, '=')
+    const payload = JSON.parse(atob(padded)) as Partial<CatalogPageCursorState>
+    if (typeof payload.workerCursor !== 'string' || !Array.isArray(payload.legacyGroups)
+      || payload.legacyGroups.some((slug) => typeof slug !== 'string' || slug.length > 240)) {
+      throw new Error('invalid_catalog_page_cursor')
+    }
+    return { workerCursor: payload.workerCursor, legacyGroups: [...new Set(payload.legacyGroups)] }
+  } catch {
+    throw new Error('invalid_catalog_page_cursor')
+  }
+}
+
+function encodeCatalogPageCursor(workerCursor: string, legacyGroups: Set<string>) {
+  if (!legacyGroups.size) return workerCursor
+  const payload = btoa(JSON.stringify({ workerCursor, legacyGroups: [...legacyGroups] }))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '')
+  return `${CATALOG_PAGE_CURSOR_PREFIX}${payload}`
+}
 
 export function getCatalogRuntimeMode(): CatalogRuntimeMode {
   return catalogRuntime.mode
@@ -219,6 +253,8 @@ function catalogModelToCard(model: CatalogModel): CatalogModelCard {
     category: model.category,
     collection: model.collection,
     folderPath: model.folderPath,
+    material: model.material,
+    heightCm: model.heightCm,
     galleryCount: model.galleryCount,
     galleryVersion: model.galleryVersion,
     accent: model.accent,
@@ -316,6 +352,8 @@ function toCatalogModelCard(row: ApiCatalogRow): CatalogModelCard {
     category: row.category_slug,
     collection: row.collection ?? '',
     folderPath: row.folder_path ?? '',
+    material: row.material ?? '',
+    heightCm: Number(row.height_cm) || 0,
     galleryCount: row.image_count,
     galleryVersion: row.gallery_version,
     accent: '#c98a3d',
@@ -324,18 +362,52 @@ function toCatalogModelCard(row: ApiCatalogRow): CatalogModelCard {
 }
 
 export async function listCatalogModels(query: CatalogListQuery = {}): Promise<CursorPage<CatalogModelCard>> {
-  const result = await requestJson<{ items: ApiCatalogRow[]; nextCursor: string | null }>(endpoint('/api/catalog', {
-    category: query.category && query.category !== 'all' ? query.category : undefined,
-    franchise: query.franchise && query.franchise !== 'all' ? query.franchise : undefined,
-    folder: query.folder?.trim() || undefined,
-    q: liveSearchTerm(query.search),
-    cursor: query.cursor,
-    limit: query.limit,
-  }))
+  const pageSize = normalizePageSize(query.limit)
+  const cursorState = decodeCatalogPageCursor(query.cursor)
+  const seenLegacyGroups = new Set(cursorState.legacyGroups)
+  const seenCursors = new Set(cursorState.workerCursor ? [cursorState.workerCursor] : [])
+  const emittedModelIds = new Set<string>()
+  const items: CatalogModelCard[] = []
+  let workerCursor = cursorState.workerCursor
+  let nextCursor: string | null = null
 
+  for (let read = 0; read < MAX_CATALOG_PAGE_FILL_READS && items.length < pageSize; read += 1) {
+    const result = await requestJson<{ items: ApiCatalogRow[]; nextCursor: string | null }>(endpoint('/api/catalog', {
+      category: query.category && query.category !== 'all' ? query.category : undefined,
+      franchise: query.franchise && query.franchise !== 'all' ? query.franchise : undefined,
+      folder: query.folder?.trim() || undefined,
+      q: liveSearchTerm(query.search),
+      material: query.material?.trim() || undefined,
+      collection: query.collection?.trim() || undefined,
+      minHeight: query.minHeight,
+      maxHeight: query.maxHeight,
+      cursor: workerCursor || undefined,
+      limit: pageSize - items.length,
+    }))
+
+    const eligibleRows = result.items.filter((row) => {
+      const group = registeredLegacyGalleryForRow(row)
+      return !group || !seenLegacyGroups.has(group.canonicalSlug)
+    })
+    const pageItems = await collapseLegacyViewRowsAcrossPages(eligibleRows)
+    for (const item of pageItems) {
+      if (item.gallerySourceSlugs && item.gallerySourceSlugs.length > 1) seenLegacyGroups.add(item.slug)
+      if (emittedModelIds.has(item.id)) continue
+      emittedModelIds.add(item.id)
+      items.push(item)
+    }
+
+    nextCursor = result.nextCursor
+    if (nextCursor && seenCursors.has(nextCursor)) throw new Error('catalog_cursor_did_not_advance')
+    if (items.length >= pageSize || !nextCursor) break
+    seenCursors.add(nextCursor)
+    workerCursor = nextCursor
+  }
+
+  if (items.length < pageSize && nextCursor) throw new Error('catalog_page_fill_limit_reached')
   return {
-    items: await collapseLegacyViewRowsAcrossPages(result.items),
-    nextCursor: result.nextCursor,
+    items,
+    nextCursor: nextCursor ? encodeCatalogPageCursor(nextCursor, seenLegacyGroups) : null,
     totalApprox: 0,
   }
 }

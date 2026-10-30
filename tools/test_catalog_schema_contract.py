@@ -16,6 +16,42 @@ from catalog_schema_contract import (
 
 
 class CatalogSchemaContractTests(unittest.TestCase):
+    def test_height_range_uses_incremental_catalog_index_at_20k_scale(self) -> None:
+        db = sqlite3.connect(":memory:")
+        try:
+            db.executescript("""
+            CREATE TABLE models(
+              id TEXT PRIMARY KEY,
+              published INTEGER NOT NULL,
+              height_cm REAL,
+              name TEXT NOT NULL
+            );
+            CREATE INDEX idx_models_published_name_id
+              ON models(published, name COLLATE NOCASE, id);
+            """)
+            migration = Path(__file__).resolve().parents[1] / "migrations" / "0022_catalog_height_filter_index.sql"
+            db.executescript(migration.read_text(encoding="utf-8"))
+            db.executemany(
+                "INSERT INTO models(id,published,height_cm,name) VALUES(?,1,?,?)",
+                ((str(index), index % 200 + 1, f"Model {index:05}") for index in range(20_000)),
+            )
+            db.execute("ANALYZE")
+
+            plan = " ".join(
+                row[3]
+                for row in db.execute("""
+                    EXPLAIN QUERY PLAN
+                    SELECT id,name FROM models
+                    WHERE published=1 AND height_cm>=? AND height_cm<=?
+                    ORDER BY name COLLATE NOCASE,id
+                    LIMIT 49
+                """, (20, 60))
+            )
+
+            self.assertIn("idx_models_published_height", plan)
+        finally:
+            db.close()
+
     def test_contract_loads_and_latest_matches_last_required_migration(self) -> None:
         contract = load_schema_contract()
 

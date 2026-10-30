@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useRef, useState } from 'react'
-import { listCatalogFolders } from '../services/catalogApi'
+import { listCatalogFolders, type FolderDiscoveryPage } from '../services/catalogApi'
 import type { CatalogFolder } from '../types/catalog'
 
 const ROOT = '__root__'
@@ -12,6 +12,7 @@ type CatalogSidebarTreeProps = {
   activeFolder: string
   trail: Array<{ id: string; label: string }>
   activeFolderCount?: number
+  loadFolders?: (category: string, franchise: string, parent?: string) => Promise<FolderDiscoveryPage>
   onSelectFolder: (folder: string) => void
 }
 
@@ -26,7 +27,7 @@ function activeBranchPaths(folder: string, trail: Array<{ id: string }>) {
   return Array.from(paths)
 }
 
-export function CatalogSidebarTree({ category, franchise, activeFolder, trail = [], activeFolderCount, onSelectFolder }: CatalogSidebarTreeProps) {
+export function CatalogSidebarTree({ category, franchise, activeFolder, trail = [], activeFolderCount, loadFolders = listCatalogFolders, onSelectFolder }: CatalogSidebarTreeProps) {
   const [childrenByParent, setChildrenByParent] = useState<Record<string, CatalogFolder[]>>({})
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set(activeBranchPaths(activeFolder, trail)))
   const [loadingParents, setLoadingParents] = useState<Set<string>>(new Set())
@@ -53,7 +54,7 @@ export function CatalogSidebarTree({ category, franchise, activeFolder, trail = 
       return next
     })
 
-    const request = listCatalogFolders(category, franchise, parent || undefined)
+    const request = loadFolders(category, franchise, parent || undefined)
       .then((page) => {
         if (!mounted.current) return
         loadedParents.current.add(key)
@@ -75,7 +76,7 @@ export function CatalogSidebarTree({ category, franchise, activeFolder, trail = 
 
     pendingParents.current.set(key, request)
     return request
-  }, [category, franchise])
+  }, [category, franchise, loadFolders])
 
   useEffect(() => { void loadChildren('') }, [loadChildren])
 

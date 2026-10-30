@@ -3,15 +3,15 @@ import type { CatalogCategory, CatalogModel } from '../types/catalog'
 const demoEnabled = import.meta.env.VITE_CATALOG_MODE === 'demo'
 
 const demoCategories: CatalogCategory[] = [
-  { id: 'all', label: 'Todos', count: 100234 },
-  { id: 'games', label: 'Games', count: 18542 },
-  { id: 'anime', label: 'Animes & Desenhos', count: 15871 },
-  { id: 'movies', label: 'Filmes & Séries', count: 21408 },
-  { id: 'comics', label: 'Marvel & DC', count: 12963 },
-  { id: 'horror', label: 'Terror', count: 6728 },
-  { id: 'tokusatsu', label: 'Tokusatsu', count: 4315 },
-  { id: 'originals', label: 'Originais', count: 3102 },
-  { id: 'other', label: 'Outros', count: 17305 },
+  { id: 'all', label: 'Todos', count: 20347 },
+  { id: 'games', label: 'Games', count: 3764 },
+  { id: 'anime', label: 'Animes & Desenhos', count: 3222 },
+  { id: 'movies', label: 'Filmes & Séries', count: 4349 },
+  { id: 'comics', label: 'Marvel & DC', count: 2631 },
+  { id: 'horror', label: 'Terror', count: 1365 },
+  { id: 'tokusatsu', label: 'Tokusatsu', count: 876 },
+  { id: 'originals', label: 'Originais', count: 630 },
+  { id: 'other', label: 'Outros', count: 3510 },
 ]
 
 const makeImages = (prefix: string, count: number, base: number) =>
@@ -26,7 +26,7 @@ const makeImages = (prefix: string, count: number, base: number) =>
 
 const demoModels: CatalogModel[] = [
   {
-    id: 'mdl-000001', slug: 'sentinela-rubra', code: 'TS-000001', name: 'Sentinela Rubra',
+    id: 'mdl-000001', slug: 'sentinela-rubra', code: 'TS-000001', name: 'Sentinela Rubra', demoArtworkIndex: 0,
     variantName: '',
     franchise: 'Crônicas de Ferro', category: 'games', collection: 'Linha Prime', material: 'Resina',
     heightCm: 28, galleryCount: 24, accent: '#d35f42', tags: ['guerreiro', 'espada', 'fantasia'],
@@ -34,7 +34,7 @@ const demoModels: CatalogModel[] = [
     images: makeImages('sentinela-rubra', 8, 2600000),
   },
   {
-    id: 'mdl-000002', slug: 'cacadora-celeste', code: 'TS-000002', name: 'Caçadora Celeste',
+    id: 'mdl-000002', slug: 'cacadora-celeste', code: 'TS-000002', name: 'Caçadora Celeste', demoArtworkIndex: 1,
     variantName: '',
     franchise: 'Skybound', category: 'games', collection: 'Art Scale', material: 'Resina',
     heightCm: 31, galleryCount: 18, accent: '#d7b26d', tags: ['arqueira', 'fantasia', 'heroína'],
@@ -42,7 +42,7 @@ const demoModels: CatalogModel[] = [
     images: makeImages('cacadora-celeste', 7, 2300000),
   },
   {
-    id: 'mdl-000003', slug: 'guardiao-onix', code: 'TS-000003', name: 'Guardião Ônix',
+    id: 'mdl-000003', slug: 'guardiao-onix', code: 'TS-000003', name: 'Guardião Ônix', demoArtworkIndex: 2,
     variantName: '',
     franchise: 'Núcleo Ônix', category: 'games', collection: 'Master Collection', material: 'Resina',
     heightCm: 42, galleryCount: 36, accent: '#6383a8', tags: ['armadura', 'energia', 'colosso'],
@@ -50,7 +50,7 @@ const demoModels: CatalogModel[] = [
     images: makeImages('guardiao-onix', 10, 4100000),
   },
   {
-    id: 'mdl-000004', slug: 'samurai-neon', code: 'TS-000004', name: 'Samurai Neon',
+    id: 'mdl-000004', slug: 'samurai-neon', code: 'TS-000004', name: 'Samurai Neon', demoArtworkIndex: 3,
     variantName: '',
     franchise: 'Neo Edo', category: 'originals', collection: 'Linha Prime', material: 'Resina',
     heightCm: 30, galleryCount: 21, accent: '#9b5344', tags: ['samurai', 'katana', 'cyberpunk'],
@@ -58,7 +58,7 @@ const demoModels: CatalogModel[] = [
     images: makeImages('samurai-neon', 8, 2950000),
   },
   {
-    id: 'mdl-000005', slug: 'oraculo-mecanica', code: 'TS-000005', name: 'Oráculo Mecânica',
+    id: 'mdl-000005', slug: 'oraculo-mecanica', code: 'TS-000005', name: 'Oráculo Mecânica', demoArtworkIndex: 4,
     variantName: '',
     franchise: 'Clockwork', category: 'anime', collection: 'Edição Especial', material: 'Resina',
     heightCm: 26, galleryCount: 28, accent: '#cbbca2', tags: ['android', 'steampunk', 'fantasia'],
@@ -66,7 +66,7 @@ const demoModels: CatalogModel[] = [
     images: makeImages('oraculo-mecanica', 9, 2500000),
   },
   {
-    id: 'mdl-000006', slug: 'arcanja-solaris', code: 'TS-000006', name: 'Arcanja Solaris',
+    id: 'mdl-000006', slug: 'arcanja-solaris', code: 'TS-000006', name: 'Arcanja Solaris', demoArtworkIndex: 5,
     variantName: '',
     franchise: 'Solaris', category: 'originals', collection: 'Art Scale', material: 'Resina',
     heightCm: 36, galleryCount: 31, accent: '#d6d0bd', tags: ['asas', 'anjo', 'fantasia'],
@@ -74,7 +74,7 @@ const demoModels: CatalogModel[] = [
     images: makeImages('arcanja-solaris', 10, 3700000),
   },
   {
-    id: 'mdl-000007', slug: 'colosso-tirano', code: 'TS-000007', name: 'Colosso Tirano',
+    id: 'mdl-000007', slug: 'colosso-tirano', code: 'TS-000007', name: 'Colosso Tirano', demoArtworkIndex: 6,
     variantName: '',
     franchise: 'Bestiário', category: 'games', collection: 'Master Collection', material: 'Resina',
     heightCm: 45, galleryCount: 42, accent: '#8c735b', tags: ['monstro', 'armadura', 'besta'],
@@ -82,7 +82,7 @@ const demoModels: CatalogModel[] = [
     images: makeImages('colosso-tirano', 12, 4900000),
   },
   {
-    id: 'mdl-000008', slug: 'lobo-das-sombras', code: 'TS-000008', name: 'Lobo das Sombras',
+    id: 'mdl-000008', slug: 'lobo-das-sombras', code: 'TS-000008', name: 'Lobo das Sombras', demoArtworkIndex: 7,
     variantName: '',
     franchise: 'Nocturne', category: 'games', collection: 'Linha Prime', material: 'Resina',
     heightCm: 33, galleryCount: 27, accent: '#6b5b50', tags: ['caçador', 'lobo', 'sombrio'],
@@ -90,7 +90,7 @@ const demoModels: CatalogModel[] = [
     images: makeImages('lobo-das-sombras', 9, 3300000),
   },
   {
-    id: 'mdl-000009', slug: 'tita-arcano', code: 'TS-000009', name: 'Titã Arcano',
+    id: 'mdl-000009', slug: 'tita-arcano', code: 'TS-000009', name: 'Titã Arcano', demoArtworkIndex: 8,
     variantName: '',
     franchise: 'Forge Unit', category: 'games', collection: 'Art Scale', material: 'Resina',
     heightCm: 38, galleryCount: 19, accent: '#c28a43', tags: ['mecha', 'robô', 'industrial'],
@@ -98,7 +98,7 @@ const demoModels: CatalogModel[] = [
     images: makeImages('tita-arcano', 7, 3850000),
   },
   {
-    id: 'mdl-000010', slug: 'sereia-do-abismo', code: 'TS-000010', name: 'Sereia do Abismo',
+    id: 'mdl-000010', slug: 'sereia-do-abismo', code: 'TS-000010', name: 'Sereia do Abismo', demoArtworkIndex: 9,
     variantName: '',
     franchise: 'Abyss', category: 'originals', collection: 'Edição Especial', material: 'Resina',
     heightCm: 29, galleryCount: 33, accent: '#718aa8', tags: ['sereia', 'água', 'fantasia'],

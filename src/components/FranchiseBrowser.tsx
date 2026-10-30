@@ -18,6 +18,7 @@ type Props = {
   activeFranchise: string
   activeFolder: string
   folderTrail: Array<{ id: string; label: string }>
+  loadFolders: (category: string, franchise: string, parent?: string) => Promise<import('../services/catalogApi').FolderDiscoveryPage>
   initialQuery?: string
   onClose: () => void
   onSelectCategory: (category: string) => void
@@ -69,6 +70,8 @@ function demoModelResults(category: string, query: string): CatalogModelCard[] {
       category: model.category,
       collection: model.collection,
       folderPath: model.folderPath,
+      material: model.material,
+      heightCm: model.heightCm,
       galleryCount: model.galleryCount,
       galleryVersion: model.galleryVersion,
       gallerySourceSlugs: model.gallerySourceSlugs,
@@ -85,6 +88,7 @@ export function FranchiseBrowser({
   activeFranchise,
   activeFolder,
   folderTrail,
+  loadFolders,
   initialQuery = '',
   onClose,
   onSelectCategory,
@@ -254,6 +258,7 @@ export function FranchiseBrowser({
                 franchise={browsingFranchise.id}
                 activeFolder={browsingFranchise.category === activeCategory && browsingFranchise.id === activeFranchise ? activeFolder : ''}
                 trail={browsingFranchise.category === activeCategory && browsingFranchise.id === activeFranchise ? folderTrail : []}
+                loadFolders={loadFolders}
                 onSelectFolder={chooseFolder}
               />
             </div>

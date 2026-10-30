@@ -23,7 +23,8 @@
     "0018_gallery_alias_immutability.sql": "expand",
     "0019_model_variant_name.sql": "expand",
     "0020_gallery_member_explicit_approvals.sql": "expand",
-    "0021_quote_admin_audit_events.sql": "expand"
+    "0021_quote_admin_audit_events.sql": "expand",
+    "0022_catalog_height_filter_index.sql": "expand"
   },
   "approvedTriggerReplacements": {
     "0020_gallery_member_explicit_approvals.sql": {

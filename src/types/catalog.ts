@@ -56,6 +56,8 @@ export type CatalogModel = {
   tags: string[]
   accent: string
   coverUrl?: string
+  /** Tile index in the local demo cover sheet; absent in live catalog records. */
+  demoArtworkIndex?: number
   images: CatalogImage[]
 }
 

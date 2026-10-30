@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { categories as demoCategories, models as demoModels } from '../data/mockCatalog'
+import { demoFranchises as listDemoFranchises, listDemoFolders, listDemoModels } from '../data/demoCatalogPagination'
 import {
   checkCatalogApi,
   getCatalogModel,
@@ -16,7 +17,7 @@ import { uniqueLegacyGalleryImages } from '../lib/legacyGalleryGrouping'
 import type { CatalogModelCard } from '../services/catalogRepository'
 import type { CatalogCategory, CatalogFolder, CatalogFranchise, CatalogImage, CatalogModel, ModelRouteStatus } from '../types/catalog'
 
-const MODEL_PAGE_SIZE = 24
+const MODEL_PAGE_SIZE = 48
 const GALLERY_PAGE_SIZE = 12
 const FRANCHISE_STRIP_LIMIT = 24
 const LIVE_SEARCH_MIN_LENGTH = 3
@@ -49,20 +50,10 @@ const emptyModel: CatalogModel = {
 function cardToModel(card: CatalogModelCard): CatalogModel {
   return {
     ...card,
-    material: '',
-    heightCm: 0,
     description: '',
     tags: [],
     images: [],
   }
-}
-
-function demoFranchises(category: string): CatalogFranchise[] {
-  const scoped = category === 'all' ? demoModels : demoModels.filter((model) => model.category === category)
-  const counts = new Map<string, number>()
-  for (const model of scoped) counts.set(model.franchise, (counts.get(model.franchise) ?? 0) + 1)
-  return Array.from(counts, ([label, count]) => ({ id: label, label, count, category }))
-    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'pt-BR'))
 }
 
 function slugFromHash() {
@@ -83,6 +74,10 @@ export function useCatalogRuntime(initialSlug = '') {
   const [franchise, setFranchiseState] = useState(initialScope.franchise)
   const [folder, setFolderState] = useState(initialScope.folder)
   const [search, setSearch] = useState(initialScope.search)
+  const [material, setMaterialState] = useState(initialScope.material)
+  const [collection, setCollectionState] = useState(initialScope.collection)
+  const [minHeight, setMinHeightState] = useState(initialScope.minHeight)
+  const [maxHeight, setMaxHeightState] = useState(initialScope.maxHeight)
   const [debouncedSearch, setDebouncedSearch] = useState(() => {
     const trimmed = initialScope.search.trim()
     if (mode === 'live' && trimmed && Array.from(trimmed).length < LIVE_SEARCH_MIN_LENGTH) return ''
@@ -103,13 +98,22 @@ export function useCatalogRuntime(initialSlug = '') {
   const [folderTrail, setFolderTrail] = useState<Array<Pick<CatalogFolder, 'id' | 'label'>>>([])
   const [franchisesTruncated, setFranchisesTruncated] = useState(false)
   const [liveModels, setLiveModels] = useState<CatalogModel[]>([])
+  const [liveModelsRequestKey, setLiveModelsRequestKey] = useState('')
   const [selectedDetail, setSelectedDetail] = useState<CatalogModel | null>(null)
   const [cursorStack, setCursorStack] = useState<(string | undefined)[]>([undefined])
+  const [cursorScopeKey, setCursorScopeKey] = useState('')
   const [pageIndex, setPageIndex] = useState(0)
   const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [searchResultCount, setSearchResultCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(mode === 'live')
   const [error, setError] = useState('')
   const [apiHealthy, setApiHealthy] = useState(mode === 'demo')
+
+  const loadFolders = useCallback((folderCategory: string, folderFranchise: string, parent?: string) => (
+    mode === 'live'
+      ? listCatalogFolders(folderCategory, folderFranchise, parent)
+      : Promise.resolve(listDemoFolders(folderCategory, folderFranchise, parent))
+  ), [mode])
 
   useEffect(() => {
     selectedIdRef.current = selectedId
@@ -137,6 +141,10 @@ export function useCatalogRuntime(initialSlug = '') {
       setFranchiseState(next.franchise)
       setFolderState(next.folder)
       setSearch(next.search)
+      setMaterialState(next.material)
+      setCollectionState(next.collection)
+      setMinHeightState(next.minHeight)
+      setMaxHeightState(next.maxHeight)
       setSelectedDetail(null)
     }
     window.addEventListener('popstate', syncDiscovery)
@@ -144,8 +152,8 @@ export function useCatalogRuntime(initialSlug = '') {
   }, [])
 
   useEffect(() => {
-    replaceDiscoveryScope({ category, franchise, folder, search })
-  }, [category, franchise, folder, search])
+    replaceDiscoveryScope({ category, franchise, folder, search, material, collection, minHeight, maxHeight })
+  }, [category, franchise, folder, search, material, collection, minHeight, maxHeight])
 
   useEffect(() => {
     const trimmed = search.trim()
@@ -197,14 +205,14 @@ export function useCatalogRuntime(initialSlug = '') {
   }, [mode, category])
 
   useEffect(() => {
-    if (mode !== 'live' || category === 'all' || franchise === 'all') {
+    if (category === 'all' || franchise === 'all') {
       setLiveFolders([])
       setCurrentFolder(null)
       setFolderTrail([])
       return
     }
     let cancelled = false
-    listCatalogFolders(category, franchise, folder || undefined)
+    loadFolders(category, franchise, folder || undefined)
       .then((page) => {
         if (cancelled) return
         setLiveFolders(page.items)
@@ -221,15 +229,42 @@ export function useCatalogRuntime(initialSlug = '') {
         }
       })
     return () => { cancelled = true }
-  }, [mode, category, franchise, folder])
+  }, [mode, category, franchise, folder, loadFolders])
 
+  const searchLength = Array.from(search.trim()).length
+  const searchPending = mode === 'live' && searchLength > 0 && searchLength < LIVE_SEARCH_MIN_LENGTH
+  const currentCatalogScopeKey = JSON.stringify([
+    category,
+    franchise,
+    folder,
+    debouncedSearch,
+    material,
+    collection,
+    minHeight,
+    maxHeight,
+  ])
+  const currentCursor = cursorScopeKey === currentCatalogScopeKey ? cursorStack[pageIndex] : undefined
   useEffect(() => {
     setCursorStack([undefined])
+    setCursorScopeKey(currentCatalogScopeKey)
     setPageIndex(0)
+    setNextCursor(null)
+    setSearchResultCount(null)
     setSelectedDetail(null)
-  }, [category, franchise, folder, debouncedSearch])
+  }, [currentCatalogScopeKey])
 
-  const currentCursor = cursorStack[pageIndex]
+  const liveModelsRequestKeyForCurrentScope = JSON.stringify([
+    category,
+    franchise,
+    folder,
+    debouncedSearch,
+    material,
+    collection,
+    minHeight,
+    maxHeight,
+    currentCursor ?? null,
+  ])
+  const liveSearchHasSettled = search.trim() === debouncedSearch || searchPending
 
   useEffect(() => {
     if (mode !== 'live') return
@@ -241,6 +276,10 @@ export function useCatalogRuntime(initialSlug = '') {
       franchise,
       folder: folder || undefined,
       search: debouncedSearch || undefined,
+      material: material || undefined,
+      collection: collection || undefined,
+      minHeight: minHeight ? Number(minHeight) : undefined,
+      maxHeight: maxHeight ? Number(maxHeight) : undefined,
       cursor: currentCursor,
       limit: MODEL_PAGE_SIZE,
     })
@@ -248,7 +287,9 @@ export function useCatalogRuntime(initialSlug = '') {
         if (cancelled) return
         const items = page.items.map(cardToModel)
         setLiveModels(items)
+        setLiveModelsRequestKey(liveModelsRequestKeyForCurrentScope)
         setNextCursor(page.nextCursor)
+        setSearchResultCount(page.totalApprox > 0 ? page.totalApprox : null)
         if (!items.length) {
           if (!routeSlugRef.current) setSelectedDetail(null)
           return
@@ -261,7 +302,9 @@ export function useCatalogRuntime(initialSlug = '') {
       .catch((caught) => {
         if (!cancelled) {
           setLiveModels([])
+          setLiveModelsRequestKey(liveModelsRequestKeyForCurrentScope)
           setNextCursor(null)
+          setSearchResultCount(null)
           if (!routeSlugRef.current) setSelectedDetail(null)
           setError(caught instanceof Error && caught.message === 'folder_not_found'
             ? 'A pasta deste recorte não existe mais nesta franquia. Remova o filtro de pasta para continuar.'
@@ -270,7 +313,21 @@ export function useCatalogRuntime(initialSlug = '') {
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [mode, category, franchise, folder, debouncedSearch, currentCursor])
+  }, [mode, category, franchise, folder, debouncedSearch, material, collection, minHeight, maxHeight, currentCursor, liveModelsRequestKeyForCurrentScope])
+
+  const demoPage = useMemo(() => listDemoModels({
+    category,
+    franchise,
+    folder: folder || undefined,
+    search: debouncedSearch,
+    material,
+    collection,
+    minHeight: minHeight ? Number(minHeight) : undefined,
+    maxHeight: maxHeight ? Number(maxHeight) : undefined,
+    pageIndex,
+    limit: MODEL_PAGE_SIZE,
+  }), [category, franchise, folder, debouncedSearch, material, collection, minHeight, maxHeight, pageIndex])
+  const demoVisibleModels = demoPage.items
 
   useEffect(() => {
     if (!routeSlug) {
@@ -279,7 +336,8 @@ export function useCatalogRuntime(initialSlug = '') {
     }
 
     if (mode === 'demo') {
-      const model = demoModels.find((item) => item.slug === routeSlug)
+      const model = demoVisibleModels.find((item) => item.slug === routeSlug)
+        ?? demoModels.find((item) => item.slug === routeSlug)
       if (!model) {
         setRouteStatus('not_found')
         return
@@ -307,7 +365,7 @@ export function useCatalogRuntime(initialSlug = '') {
         if (!cancelled) setRouteStatus('error')
       })
     return () => { cancelled = true }
-  }, [mode, routeSlug])
+  }, [mode, routeSlug, demoVisibleModels])
 
   useEffect(() => {
     if (mode !== 'live') return
@@ -327,21 +385,14 @@ export function useCatalogRuntime(initialSlug = '') {
     return () => { cancelled = true }
   }, [mode, selectedId, liveModels])
 
-  const demoVisibleModels = useMemo(() => {
-    const needle = search.trim().toLocaleLowerCase('pt-BR')
-    return demoModels.filter((model) => {
-      const matchesCategory = category === 'all' || model.category === category
-      const matchesFranchise = franchise === 'all' || model.franchise === franchise
-      const haystack = `${model.name} ${model.franchise} ${model.collection} ${model.tags.join(' ')}`.toLocaleLowerCase('pt-BR')
-      return matchesCategory && matchesFranchise && (!needle || haystack.includes(needle))
-    })
-  }, [category, franchise, search])
-
   const categories = mode === 'live' ? liveCategories : demoCategories
-  const allDemoFranchises = useMemo(() => demoFranchises(category), [category])
+  const allDemoFranchises = useMemo(() => listDemoFranchises(category), [category])
   const franchises = mode === 'live' ? liveFranchises : allDemoFranchises.slice(0, FRANCHISE_STRIP_LIMIT)
   const demoFranchisesTruncated = mode === 'demo' && allDemoFranchises.length > FRANCHISE_STRIP_LIMIT
-  const models = mode === 'live' ? liveModels : demoVisibleModels
+  const livePageMatchesCurrentScope = liveModelsRequestKey === liveModelsRequestKeyForCurrentScope && liveSearchHasSettled
+  const models = mode === 'live'
+    ? (livePageMatchesCurrentScope ? liveModels : [])
+    : demoVisibleModels
   const selected = mode === 'live'
     ? selectedDetail ?? liveModels.find((model) => model.id === selectedId) ?? liveModels[0] ?? (loading ? loadingModel : emptyModel)
     : demoVisibleModels.find((model) => model.id === selectedId) ?? demoVisibleModels[0] ?? emptyModel
@@ -390,8 +441,17 @@ export function useCatalogRuntime(initialSlug = '') {
     setSelectedDetail(null)
   }
 
+  function setMaterial(next: string) { setMaterialState(next.slice(0, 120)) }
+  function setCollection(next: string) { setCollectionState(next.slice(0, 120)) }
+  function setMinHeight(next: string) { setMinHeightState(next.replace(/[^\d]/g, '').slice(0, 3)) }
+  function setMaxHeight(next: string) { setMaxHeightState(next.replace(/[^\d]/g, '').slice(0, 3)) }
+
   function resetDiscovery() {
     setSearch('')
+    setMaterialState('')
+    setCollectionState('')
+    setMinHeightState('')
+    setMaxHeightState('')
     setCategoryState('all')
     setFranchiseState('all')
     setFolderState('')
@@ -403,7 +463,13 @@ export function useCatalogRuntime(initialSlug = '') {
   }
 
   function goNextPage() {
-    if (mode !== 'live' || !nextCursor) return
+    if (mode === 'demo') {
+      if ((pageIndex + 1) * MODEL_PAGE_SIZE >= demoPage.totalApprox) return
+      setPageIndex((current) => current + 1)
+      setSelectedDetail(null)
+      return
+    }
+    if (!nextCursor) return
     const nextPage = pageIndex + 1
     setCursorStack((current) => [...current.slice(0, nextPage), nextCursor])
     setPageIndex(nextPage)
@@ -411,8 +477,15 @@ export function useCatalogRuntime(initialSlug = '') {
   }
 
   function goPreviousPage() {
-    if (mode !== 'live' || pageIndex === 0) return
+    if (pageIndex === 0) return
     setPageIndex((current) => Math.max(0, current - 1))
+    setSelectedDetail(null)
+  }
+
+  function restartAtFirstPage() {
+    setCursorStack([undefined])
+    setPageIndex(0)
+    setNextCursor(null)
     setSelectedDetail(null)
   }
 
@@ -420,9 +493,8 @@ export function useCatalogRuntime(initialSlug = '') {
   const franchiseCount = franchise === 'all' ? null : franchises.find((item) => item.id === franchise)?.count ?? null
   const folderCount = folder ? currentFolder?.count ?? null : null
   const totalCount = folderCount ?? franchiseCount ?? categoryCount
-  const searchLength = Array.from(search.trim()).length
-  const searchPending = mode === 'live' && searchLength > 0 && searchLength < LIVE_SEARCH_MIN_LENGTH
   const hasActiveFilters = Boolean(search.trim()) || category !== 'all' || franchise !== 'all' || Boolean(folder)
+    || Boolean(material || collection || minHeight || maxHeight)
   const folderBackPath = folder.includes('/') ? folder.split('/').slice(0, -1).join('/') : ''
 
   return {
@@ -435,14 +507,24 @@ export function useCatalogRuntime(initialSlug = '') {
     folderLabel: currentFolder?.label ?? '',
     folderTrail,
     search,
+    material,
+    collection,
+    minHeight,
+    maxHeight,
     setCategory,
     setFranchise,
     setFolder,
     setSearch,
+    setMaterial,
+    setCollection,
+    setMinHeight,
+    setMaxHeight,
     resetDiscovery,
+    restartAtFirstPage,
     categories,
     franchises,
-    folders: mode === 'live' ? liveFolders : [],
+    folders: mode === 'live' ? liveFolders : listDemoFolders(category, franchise, folder || undefined).items,
+    loadFolders,
     franchisesTruncated: mode === 'live' ? franchisesTruncated : demoFranchisesTruncated,
     models,
     selected,
@@ -451,14 +533,17 @@ export function useCatalogRuntime(initialSlug = '') {
     setSelectedId,
     pageIndex,
     totalCount,
+    searchResultCount: mode === 'demo' && (debouncedSearch || material || collection || minHeight || maxHeight) ? demoPage.totalApprox : searchResultCount,
     searchPending,
     searchMinLength: LIVE_SEARCH_MIN_LENGTH,
     hasActiveFilters,
-    hasPreviousPage: mode === 'live' && pageIndex > 0,
-    hasNextPage: mode === 'live' && Boolean(nextCursor),
+    hasPreviousPage: pageIndex > 0,
+    hasNextPage: mode === 'live'
+      ? Boolean(nextCursor)
+      : (pageIndex + 1) * MODEL_PAGE_SIZE < demoPage.totalApprox,
     goNextPage,
     goPreviousPage,
-    loading,
+    loading: mode === 'live' ? loading || !livePageMatchesCurrentScope : loading,
     error,
   }
 }

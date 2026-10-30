@@ -12,7 +12,7 @@ export type CursorPage<T> = {
 
 export type CatalogModelCard = Pick<
   CatalogModel,
-  'id' | 'slug' | 'code' | 'name' | 'variantName' | 'franchise' | 'category' | 'collection' | 'folderPath' | 'galleryCount' | 'galleryVersion' | 'gallerySourceSlugs' | 'accent'
+  'id' | 'slug' | 'code' | 'name' | 'variantName' | 'franchise' | 'category' | 'collection' | 'folderPath' | 'material' | 'heightCm' | 'galleryCount' | 'galleryVersion' | 'gallerySourceSlugs' | 'accent' | 'demoArtworkIndex'
 > & {
   franchiseSlug?: string
   coverUrl?: string
@@ -23,6 +23,10 @@ export type CatalogListQuery = {
   franchise?: string
   folder?: string
   search?: string
+  material?: string
+  collection?: string
+  minHeight?: number
+  maxHeight?: number
   cursor?: string
   limit?: number
 }
@@ -46,5 +50,6 @@ export interface CatalogRepository {
 }
 
 export function normalizePageSize(limit = DEFAULT_PAGE_SIZE) {
-  return Math.max(1, Math.min(MAX_PAGE_SIZE, Math.trunc(limit)))
+  const finiteLimit = Number.isFinite(limit) ? Math.trunc(limit) : DEFAULT_PAGE_SIZE
+  return Math.max(1, Math.min(MAX_PAGE_SIZE, finiteLimit))
 }
