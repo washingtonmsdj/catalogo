@@ -53,3 +53,16 @@ test('attribute filters have a keyboard accessible disclosure and named numeric 
   assert.match(css, /\.storefront-attribute-filters input:focus-visible/)
   assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.storefront-attribute-filters input,[\s\S]*?\.storefront-attribute-filters__actions button \{ min-height: 44px; \}/)
 })
+
+
+test('hero carousel controls keep 44px touch targets without enlarging decorative dots', () => {
+  assert.match(home, /className="storefront-hero__dots" role="group" aria-label=/)
+  const dotButtons = [...css.matchAll(/\.storefront-hero__dots button\s*\{([^}]*)\}/g)].map((match) => match[1])
+  const declaredWidths = dotButtons.map((rule) => rule.match(/\bwidth:\s*(\d+)px/)?.[1]).filter(Boolean)
+  assert.deepEqual(declaredWidths, ['44'])
+  assert.ok(dotButtons.some((rule) => /height:\s*44px/.test(rule)))
+  assert.match(css, /\.storefront-hero__dots button::before\s*\{[^}]*width:\s*6px;[^}]*height:\s*6px;/)
+  assert.match(css, /\.storefront-hero__dots button\[aria-current="true"\]::before\s*\{[^}]*width:\s*17px;/)
+  assert.match(css, /\.storefront-hero__nav\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;/)
+  assert.doesNotMatch(css, /\.storefront-hero__dots button\[aria-current="true"\]\s*\{[^}]*width:/)
+})
