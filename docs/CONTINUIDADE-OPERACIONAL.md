@@ -22,7 +22,7 @@
 - **PR #175** (draft, `catalog-content-20261015`, base #174): a integração de `main` e #174 em `e972d6086843bcdb0bf71b411066283df256ae21` passou **13/13 workflows**. O presente checkpoint atualiza a continuidade e incorpora a correção de dependências da #174; validar o novo HEAD em vez de reutilizar o resultado anterior.
 - Na reconciliação via árvores Git completas, a #174 não possuía arquivos conflitantes com a `main`; a #175 tinha apenas `package.json` e `.github/workflows/ci.yml` sobrepostos. Foram preservados tanto os testes de ingestão quanto os testes de administração, navegação e auditoria do CI principal, sem force-push.
 - **Não houve merge das PRs em `main`, deploy nem alteração de registros D1/R2.** Ambas devem permanecer draft até os gates finais e autorização de publicação correspondentes.
-- **Conteúdo:** a auditoria de cobertura da STL Forge e a fila de colisões trabalham em modo somente leitura, com identidade aprovada separada da elegibilidade de mídia. A cobertura integral de esculturas únicas não está comprovada.
+- **Conteúdo:** a auditoria de cobertura da fonte externa e a fila de colisões trabalham em modo somente leitura, com identidade aprovada separada da elegibilidade de mídia. A cobertura integral de esculturas únicas não está comprovada.
 
 O registro do Worker promovido na PR #161 e os respectivos smokes históricos continuam como **evidência conhecida boa, não substituto de medição atual**. Para decidir um deploy, medir novamente Worker, D1, R2 e estado dos workflows; não tomar IDs ou números deste checkpoint como estado vivo.
 
