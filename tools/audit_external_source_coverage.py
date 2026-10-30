@@ -128,7 +128,7 @@ def fetch_json(url: str, *, token: str | None = None, body: dict[str, Any] | Non
     raise CoverageError("anonymous source request exhausted retry budget")
 
 
-def fetch_source_products(origin: str, *, per_page: int = 100, max_pages: int = 100) -> tuple[list[dict[str, Any]], dict[str, int]]:
+def _fetch_source_products_once(origin: str, *, per_page: int, max_pages: int) -> tuple[list[dict[str, Any]], dict[str, int]]:
     if per_page < 1 or per_page > 100:
         raise CoverageError("per_page deve ficar entre 1 e 100")
     params = {
@@ -175,6 +175,30 @@ def fetch_source_products(origin: str, *, per_page: int = 100, max_pages: int = 
         "productsFetched": len(products),
         "ordering": "id_asc",
     }
+
+
+def fetch_source_products(
+    origin: str, *, per_page: int = 100, max_pages: int = 100,
+) -> tuple[list[dict[str, Any]], dict[str, int]]:
+    """Retry once if product count changes during pagination, never accept a partial snapshot.
+
+    WooCommerce is mutable. Its first-page X-WP-Total may become stale while
+    ordered pages are fetched. Retry from page one with fresh headers; if
+    the second pass is inconsistent, preserve the error instead of merging
+    pages from two different source states.
+    """
+    for attempt in range(2):
+        try:
+            products, metadata = _fetch_source_products_once(
+                origin, per_page=per_page, max_pages=max_pages
+            )
+        except CoverageError as exc:
+            if attempt == 0 and str(exc).startswith("snapshot incompleto da fonte:"):
+                continue
+            raise
+        metadata["snapshotRetries"] = attempt
+        return products, metadata
+    raise CoverageError("snapshot da fonte permaneceu inconsistente após nova leitura")
 
 
 def fetch_published_models(account_id: str, token: str, database_id: str) -> list[dict[str, Any]]:

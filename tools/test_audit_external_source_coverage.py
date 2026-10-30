@@ -378,6 +378,42 @@ class ExternalSourceCoverageTests(unittest.TestCase):
             with self.assertRaises(CoverageError):
                 review_evidence(Path(tmp))
 
+    def test_source_snapshot_count_drift_restarts_from_page_one(self):
+        moving = (
+            [{"id": 1}, {"id": 2}],
+            {"X-WP-Total": "1", "X-WP-TotalPages": "1"},
+        )
+        stable = (
+            [{"id": 1}, {"id": 2}],
+            {"X-WP-Total": "2", "X-WP-TotalPages": "1"},
+        )
+        with patch("audit_external_source_coverage.fetch_json", side_effect=[moving, stable]) as request:
+            products, metadata = fetch_source_products("https://example.test")
+        self.assertEqual([row["id"] for row in products], [1, 2])
+        self.assertEqual(metadata["reportedTotal"], 2)
+        self.assertEqual(metadata["snapshotRetries"], 1)
+        self.assertEqual(request.call_count, 2)
+
+    def test_source_continued_mutation_remains_blocked_without_partial_output(self):
+        moving = (
+            [{"id": 1}, {"id": 2}],
+            {"X-WP-Total": "1", "X-WP-TotalPages": "1"},
+        )
+        with patch("audit_external_source_coverage.fetch_json", side_effect=[moving, moving]) as request:
+            with self.assertRaisesRegex(CoverageError, "snapshot incompleto"):
+                fetch_source_products("https://example.test")
+        self.assertEqual(request.call_count, 2)
+
+    def test_source_snapshot_does_not_retry_invalid_order(self):
+        malformed = (
+            [{"id": 2}, {"id": 1}],
+            {"X-WP-Total": "2", "X-WP-TotalPages": "1"},
+        )
+        with patch("audit_external_source_coverage.fetch_json", return_value=malformed) as request:
+            with self.assertRaisesRegex(CoverageError, "fora de ordem"):
+                fetch_source_products("https://example.test")
+        request.assert_called_once()
+
     def test_source_pagination_fails_closed_when_total_or_order_drifts(self):
         def missing_product(_url, **_kwargs):
             return ([{"id": 1}], {"X-WP-Total": "2", "X-WP-TotalPages": "1"})
