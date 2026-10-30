@@ -31,7 +31,8 @@ class DriveReconciliationError(ValueError):
 
 
 def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
-              *, legacy_export_sha256: str, legacy_as_of: str) -> dict[str, Any]:
+              *, legacy_export_sha256: str, legacy_as_of: str,
+              active_sha_index: dict[str, Any] | None = None) -> dict[str, Any]:
     canonical = build_triage(coverage)  # one SSOT for current identity states
     if not SHA.fullmatch(legacy_export_sha256):
         raise DriveReconciliationError("invalid source CSV digest")
@@ -41,6 +42,44 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
     by_slug = {r["sourceSlug"]: r for r in coverage["products"]}
     if len(by_slug) != len(by_id):
         raise DriveReconciliationError("ambiguous current source slugs")
+    by_sha: dict[str, set[str]] = {}
+    index_summary = None
+    if active_sha_index is not None:
+        index = active_sha_index
+        summ = index.get("summary") if isinstance(index, dict) else None
+        pairs = index.get("modelShaPairs") if isinstance(index, dict) else None
+        if (not isinstance(summ, dict) or not isinstance(pairs, list)
+                or index.get("version") != 1
+                or index.get("scope") != "active_published_gallery_source_sha_read_only"
+                or index.get("identityApproved") is not False
+                or index.get("mediaPromotionAuthorized") is not False
+                or index.get("missingShaProvesMissingSculpture") is not False
+                or index.get("sourceShaProvesSculptureIdentity") is not False
+                or index.get("productionWrites") != 0
+                or index.get("stagingWrites") != 0
+                or index.get("imageBinariesDownloaded") != 0
+                or summ.get("publishedModels") != coverage["summary"]["publishedModels"]):
+            raise DriveReconciliationError("unsafe or incompatible D1 SHA index")
+        cursor = ("", "")
+        indexed_models: set[str] = set()
+        for pair in pairs:
+            if not isinstance(pair, dict):
+                raise DriveReconciliationError("invalid D1 SHA record")
+            sha, mid = pair.get("sourceSha256"), pair.get("modelId")
+            if (not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha)
+                    or not isinstance(mid, str) or not re.fullmatch(r"mdl_[0-9a-f]{20}", mid)
+                    or (sha, mid) <= cursor):
+                raise DriveReconciliationError("unsorted or malformed D1 SHA records")
+            cursor = sha, mid
+            by_sha.setdefault(sha, set()).add(mid)
+            indexed_models.add(mid)
+        if (len(pairs) != summ.get("indexedImageRows")
+                or len(indexed_models) != summ.get("indexedModels")
+                or not isinstance(summ.get("modelsWithoutIndex"), int)
+                or summ["modelsWithoutIndex"] != summ["publishedModels"] - len(indexed_models)
+                or summ.get("allPublishedModelsIndexed") is not (len(indexed_models) == summ["publishedModels"])):
+            raise DriveReconciliationError("inconsistent D1 SHA index summary")
+        index_summary = summ
     seen: set[tuple[str, str]] = set()
     output: list[dict[str, Any]] = []
     for i, row in enumerate(records, 1):
@@ -70,6 +109,7 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
                 else "id_slug_changed" if current_by_id is not None
                 else "slug_only" if current_by_slug is not None else "not_found")
         is_confirmed = bool(current and current["state"].startswith("confirmed_present_"))
+        sha_model_candidates = sorted(by_sha.get(digest.lower(), set()))
         output.append({
             "legacySlug": slug,
             "legacySourceProductId": int(raw_pid) if raw_pid else None,
@@ -86,6 +126,13 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
             "nextGate": ("already_confirmed_verify_gallery_if_needed" if is_confirmed
                          else STATES[state]),
             "imagePresentInCurrentD1Proven": False,
+            "shaIndexedInActivePublishedGallery": bool(sha_model_candidates),
+            "shaCandidateModelIds": sha_model_candidates,
+            "shaEvidenceStatus": (
+                "published_sha_candidate_requires_review" if sha_model_candidates
+                else "not_in_current_index_does_not_prove_missing_sculpture"
+                if index_summary else "index_not_supplied"
+            ),
             "sameSculptureProvenByDriveSha": False,
             "identityApprovedByThisReport": False,
             "mediaPromotionAuthorized": False,
@@ -120,6 +167,15 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
                 not r["currentIdentityConfirmed"] for r in output
             ),
             "unconfirmedByDriveStatus": dict(sorted(unconfirmed.items())),
+            "currentPublishedImageIndexSummary": index_summary,
+            "historicalShaMatchedActiveGallery": sum(bool(x["shaCandidateModelIds"]) for x in output),
+            "unconfirmedWithActiveGalleryShaCandidate": sum(
+                bool(x["shaCandidateModelIds"]) and not x["currentIdentityConfirmed"]
+                for x in output
+            ),
+            "casesWithMultipleShaModelCandidates": sum(
+                len(x["shaCandidateModelIds"]) > 1 for x in output
+            ),
             "productionWrites": 0, "stagingWrites": 0, "imagesDownloaded": 0,
             "identitiesApproved": 0, "mediaPromotionsAuthorized": 0,
         },
@@ -133,6 +189,7 @@ def main() -> None:
     p.add_argument("legacy_drive_csv", type=Path)
     p.add_argument("--legacy-as-of", required=True)
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--active-sha-index", type=Path, default=None)
     args = p.parse_args()
     raw = args.legacy_drive_csv.read_bytes()
     with args.legacy_drive_csv.open(encoding="utf-8-sig", newline="") as f:
@@ -142,8 +199,10 @@ def main() -> None:
             raise DriveReconciliationError("Drive CSV missing required columns")
         records = list(reader)
     coverage = json.loads(args.coverage.read_text(encoding="utf-8-sig"))
+    image_index = (json.loads(args.active_sha_index.read_text(encoding="utf-8"))
+                   if args.active_sha_index else None)
     data = reconcile(coverage, records, legacy_export_sha256=hashlib.sha256(raw).hexdigest(),
-                     legacy_as_of=args.legacy_as_of)
+                     legacy_as_of=args.legacy_as_of, active_sha_index=image_index)
     args.output.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(data["summary"], ensure_ascii=False))
 

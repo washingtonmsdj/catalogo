@@ -224,6 +224,7 @@ jobs:
             ${{ runner.temp }}/published-model-collisions.json
             ${{ runner.temp }}/published-shared-image-sha.json
             ${{ runner.temp }}/published-active-image-sha-index.json
+            ${{ runner.temp }}/published-models.json
             ${{ runner.temp }}/published-collision-review-queue.json
             ${{ runner.temp }}/external-source-identity-triage.json
             ${{ runner.temp }}/external-source-priority-review-batch.json

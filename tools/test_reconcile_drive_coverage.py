@@ -79,6 +79,57 @@ class DriveEvidenceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             report(data=data)
 
+    def test_published_sha_candidate_is_not_automatic_identity(self):
+        index = {"version": 1, "scope": "active_published_gallery_source_sha_read_only",
+                 "summary": {"publishedModels": 5, "indexedModels": 1,
+                             "indexedImageRows": 1, "modelsWithoutIndex": 4,
+                             "allPublishedModelsIndexed": False},
+                 "modelShaPairs": [{"sourceSha256": "a" * 64, "modelId": "mdl_" + "1" * 20}],
+                 "identityApproved": False, "mediaPromotionAuthorized": False,
+                 "missingShaProvesMissingSculpture": False,
+                 "sourceShaProvesSculptureIdentity": False,
+                 "productionWrites": 0, "stagingWrites": 0, "imageBinariesDownloaded": 0}
+        z = reconcile(source(), [row("COBERTO_CATALOGO_SHA", "11", "b")],
+                      legacy_export_sha256="b" * 64, legacy_as_of="2026-08-22",
+                      active_sha_index=index)
+        self.assertEqual(z["summary"]["unconfirmedWithActiveGalleryShaCandidate"], 1)
+        item = z["workItems"][0]
+        self.assertEqual(item["shaCandidateModelIds"], ["mdl_" + "1" * 20])
+        self.assertTrue(item["shaIndexedInActivePublishedGallery"])
+        self.assertFalse(item["identityApprovedByThisReport"])
+        self.assertFalse(item["mediaPromotionAuthorized"])
+
+    def test_missing_sha_must_not_mean_new_sculpture(self):
+        index = {"version": 1, "scope": "active_published_gallery_source_sha_read_only",
+                 "summary": {"publishedModels": 5, "indexedModels": 0,
+                             "indexedImageRows": 0, "modelsWithoutIndex": 5,
+                             "allPublishedModelsIndexed": False},
+                 "modelShaPairs": [], "identityApproved": False,
+                 "mediaPromotionAuthorized": False,
+                 "missingShaProvesMissingSculpture": False,
+                 "sourceShaProvesSculptureIdentity": False,
+                 "productionWrites": 0, "stagingWrites": 0, "imageBinariesDownloaded": 0}
+        z = reconcile(source(), [row("EM_NOVOS_SHA", "", "none")],
+                      legacy_export_sha256="b" * 64, legacy_as_of="2026-08-22",
+                      active_sha_index=index)
+        self.assertEqual(z["summary"]["unconfirmedWithActiveGalleryShaCandidate"], 0)
+        self.assertFalse(z["workItems"][0]["sameSculptureProvenByDriveSha"])
+
+    def test_malformed_sha_index_rejected(self):
+        index = {"version": 1, "scope": "active_published_gallery_source_sha_read_only",
+                 "summary": {"publishedModels": 5, "indexedModels": 1,
+                             "indexedImageRows": 1, "modelsWithoutIndex": 4,
+                             "allPublishedModelsIndexed": False},
+                 "modelShaPairs": [{"sourceSha256": "invalid", "modelId": "mdl_" + "1" * 20}],
+                 "identityApproved": False, "mediaPromotionAuthorized": False,
+                 "missingShaProvesMissingSculpture": False,
+                 "sourceShaProvesSculptureIdentity": False,
+                 "productionWrites": 0, "stagingWrites": 0, "imageBinariesDownloaded": 0}
+        with self.assertRaises(DriveReconciliationError):
+            reconcile(source(), [row("COBERTO_CATALOGO_SHA", "11", "b")],
+                      legacy_export_sha256="b" * 64, legacy_as_of="2026-08-22",
+                      active_sha_index=index)
+
     def test_no_drive_paths_or_names_leak_into_review_output(self):
         r = row("COBERTO_CATALOGO_SHA", "11", "b")
         r["imagem_privada"] = r"C:\Users\PRIVATE\picture.jpg"
