@@ -130,6 +130,33 @@ Regra principal: **modelo não é imagem**.
 - redução automática de galeria é proibida;
 - similaridade visual gera revisão, não exclusão automática.
 
+## Fronteira entre o acervo privado do Drive e as galerias Web
+
+O SSOT operacional do acervo no Google Drive, criado em 2026-08-26, determina
+**uma imagem representativa por escultura/versão distinta** nas árvores
+`Catalogo/Novos`. As renderizações adicionais de um mesmo post são
+**evidência privada**, preservada em `Dados/01-Originais` e trabalhada em
+`Dados/02-Renomeados`. Uma postagem pode conter várias versões distintas
+(Normal/NSFW, busto/estátua, poses ou esculturas materialmente diferentes);
+apenas quando a distinção for comprovada surge outra unidade de catálogo.
+A promoção do Drive não é automática, nem deve reiniciar snapshots SHA válidos.
+
+No site Web (`D1/R2`), a política de mídia versionada em
+`docs/operations/CATALOG-MEDIA-QUALITY-POLICY-2026-10-15.md` permite,
+**separadamente**, vistas adicionais na galeria de um mesmo modelo após
+análise explícita de identidade, watermark, procedência, qualidade e direitos.
+Isso não cria outro modelo público nem impõe copiar cada renderização privada.
+Não há conflito de SSOT: **árvore Drive = seleção representativa;
+galeria Web = vistas opcionais com gate próprio**.
+
+Para o lote de 14 posts preparado em 2026-10-30, foram identificadas
+52 referências de origem e 14 vistas já publicadas. A diferença de 38
+**não mede imagens públicas faltantes nem 38 modelos novos**. Os
+arquivos de revisão somente leitura devem verificar se há versões
+realmente distintas, se a representação atual é suficiente e se alguma
+vista adicional é elegível. Nenhuma identidade ou mídia é autorizada por
+essas contagens.
+
 ## Galerias legadas já reconciliadas
 
 `config/catalog-legacy-gallery-overrides.json` continua sendo o registro canônico dos grupos revisados.

@@ -22,7 +22,9 @@ def render(manifest: dict) -> str:
             or summary.get("products") != len(items)
             or summary.get("imageBytesDownloaded") != 0
             or summary.get("productionWrites") != 0
-            or summary.get("stagingWrites") != 0):
+            or summary.get("stagingWrites") != 0
+            or summary.get("mandatoryMissingPublicImagesProven") is not False
+            or summary.get("distinctSculptureVersionsMissingProven") is not False):
         raise ValueError("invalid read-only gallery review")
     e = lambda val: html.escape(str(val), quote=True)
     cards: list[str] = []
@@ -31,6 +33,10 @@ def render(manifest: dict) -> str:
         if (not isinstance(item, dict) or item.get("identityApproved") is not False
                 or item.get("creatorRightsVerified") is not False
                 or item.get("mediaPromotionAuthorized") is not False
+                or item.get("driveRepresentativePolicy") != "one_per_distinct_sculpture_version"
+                or item.get("webAdditionalViews") != "separate_explicit_quality_rights_and_identity_review"
+                or item.get("distinctSculptureVariantsProven") is not False
+                or item.get("sourceViewsRequiredInPublicGallery") is not False
                 or not isinstance(item.get("images"), list)
                 or item.get("sourceImageCount") != len(item["images"])):
             raise ValueError("unsafe gallery review item")
@@ -45,10 +51,13 @@ def render(manifest: dict) -> str:
             '<section><div class="heading"><h2>' + e(item["sourceProductId"]) + ' · ' + e(item["sourceName"])
             + '</h2><p>Modelo publicado: ' + e(item["publishedModelName"]) + ' · ' + e(item["publishedFranchiseName"])
             + ' · <code>' + e(item["targetModelId"]) + '</code></p>'
-            + '<p>Fonte: ' + e(item["sourceImageCount"]) + ' imagem(ns) · Publicado: '
-            + e(item["publishedImageCount"]) + ' · Identidade/galeria/direitos: pendentes</p></div>'
+            + '<p>Renderizações privadas na origem: ' + e(item["sourceImageCount"])
+            + ' · Vistas atualmente na galeria do site: ' + e(item["publishedImageCount"])
+            + ' · Não representam déficit obrigatório de imagens públicas.</p></div>'
             + '<div class="images">' + "".join(sources) + '</div>'
-            + '<p class="foot">Conferir mesma escultura e variante, todas as vistas, marca d’água e direitos do criador. Não aprovar apenas pela capa.</p></section>'
+            + '<p class="foot">Drive: selecionar uma imagem representativa por escultura/versão distinta. '
+            + 'Site: vistas adicionais são opcionais e exigem aprovação individual de identidade, qualidade, procedência e direitos. '
+            + 'Separar apenas versões realmente diferentes; não transformar renderizações em novos modelos.</p></section>'
         )
         cards.append(card)
     if image_total != summary.get("sourceImages"):
@@ -66,7 +75,8 @@ def render(manifest: dict) -> str:
         'code{font-size:12px;overflow-wrap:anywhere}@media(max-width:600px){body{margin:16px auto}section{padding:12px}}'
         '</style></head><body><h1>Revisão visual de galerias · Catálogo</h1>'
         f'<p class="subtitle">{len(items)} produtos · {image_total} referências de imagens. '
-        'Somente leitura; nenhum vínculo ou direito aprovado. As imagens são carregadas diretamente da fonte ao abrir esta página.</p>'
+        'Somente leitura; nenhum vínculo ou direito aprovado. Contagens de renderizações não indicam modelos ou imagens faltando. '
+        'As imagens são carregadas diretamente da fonte ao abrir esta página.</p>'
         + "".join(cards) + '</body></html>'
     )
 

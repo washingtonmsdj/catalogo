@@ -604,6 +604,13 @@ def build_gallery_review_manifest(
             "publishedFranchiseName": str(published_model.get("franchise_name") or ""),
             "sourceImageCount": len(urls),
             "publishedImageCount": int(published_model.get("image_count") or 0),
+            # The Drive catalog selects one representative per distinct sculpture.
+            # The website may show additional audited gallery views separately.
+            # Source renderings do NOT imply new public models or missing images.
+            "driveRepresentativePolicy": "one_per_distinct_sculpture_version",
+            "webAdditionalViews": "separate_explicit_quality_rights_and_identity_review",
+            "distinctSculptureVariantsProven": False,
+            "sourceViewsRequiredInPublicGallery": False,
             "images": urls,
             "identityApproved": False, "fullGalleryReviewed": False,
             "creatorRightsVerified": False, "mediaPromotionAuthorized": False,
@@ -617,6 +624,9 @@ def build_gallery_review_manifest(
         "summary": {"products": len(result),
                     "sourceImages": sum(row["sourceImageCount"] for row in result),
                     "publishedImages": sum(row["publishedImageCount"] for row in result),
+                    "existingPublishedModels": sum(row["publishedImageCount"] > 0 for row in result),
+                    "mandatoryMissingPublicImagesProven": False,
+                    "distinctSculptureVersionsMissingProven": False,
                     "imageBytesDownloaded": 0, "productionWrites": 0, "stagingWrites": 0},
         "identityApproved": False, "mediaPromotionAuthorized": False,
     }

@@ -14,6 +14,20 @@ Media similarity never authorizes model identity by itself.
 - two external products must not silently collapse into one public model.
 - a staged cover that equals a production cover is a strong anchor for review, not automatic identity approval.
 
+## Two distinct catalog media surfaces
+
+The private Google Drive catalog keeps **one chosen representative per distinct
+sculpture/version** in its catalog/arrival folders. All other renders stay as
+private, immutable acquisition and visual-review evidence. A source post may
+contain multiple independently sculpted variants, which must receive separate
+identity reviews rather than becoming extra entries by image count.
+
+The public D1/R2 site can expose multiple gallery views **of the same model**
+under the separate policy below, but does not require a public copy of every
+source image. Neither the number of source renders nor the difference from the
+current published `image_count` proves missing products or mandatory gallery
+enrichment. Decisions stay fail-closed until model and media evidence is reviewed.
+
 ## Image deduplication
 
 1. Exact SHA-256 duplicate: keep one logical image; do not add a duplicate gallery entry.

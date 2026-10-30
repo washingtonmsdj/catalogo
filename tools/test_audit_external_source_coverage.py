@@ -176,6 +176,12 @@ class ExternalSourceCoverageTests(unittest.TestCase):
         report = build_gallery_review_manifest("https://example.test", [product], [target], cohort)
         self.assertEqual(report["summary"]["sourceImages"], 2)
         self.assertEqual(report["summary"]["publishedImages"], 1)
+        self.assertEqual(report["summary"]["existingPublishedModels"], 1)
+        self.assertFalse(report["summary"]["mandatoryMissingPublicImagesProven"])
+        self.assertFalse(report["summary"]["distinctSculptureVersionsMissingProven"])
+        self.assertEqual(report["items"][0]["driveRepresentativePolicy"],
+                         "one_per_distinct_sculpture_version")
+        self.assertFalse(report["items"][0]["sourceViewsRequiredInPublicGallery"])
         self.assertEqual(report["summary"]["imageBytesDownloaded"], 0)
         self.assertFalse(report["items"][0]["creatorRightsVerified"])
         self.assertFalse(report["items"][0]["identityApproved"])
