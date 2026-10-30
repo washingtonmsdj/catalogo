@@ -252,6 +252,57 @@ class ExternalSourceCoverageTests(unittest.TestCase):
             with self.assertRaisesRegex(CoverageError, "inválida"):
                 batch_model_ids(root)
 
+    def test_corrupted_identity_json_fails_closed_instead_of_becoming_unreviewed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "external-source-001-broken-review.json").write_text(
+                "{ broken", encoding="utf-8"
+            )
+            with self.assertRaisesRegex(CoverageError, "ilegível"):
+                review_evidence(Path(tmp))
+
+    def test_malformed_product_id_fails_closed(self):
+        for invalid in (True, 0, -2, 12.5, "12.5", " 12 ", "abc", []):
+            with self.subTest(invalid=invalid), tempfile.TemporaryDirectory() as tmp:
+                (Path(tmp) / "external-source-001-identity.json").write_text(
+                    json.dumps({"sourceProductId": invalid, "identityReview": {"decision": "unresolved"}}),
+                    encoding="utf-8",
+                )
+                with self.assertRaisesRegex(CoverageError, "ID de produto inválido"):
+                    review_evidence(Path(tmp))
+
+    def test_numeric_ascii_id_and_nonproduct_report_remain_supported(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "external-source-001-summary.json").write_text(
+                json.dumps({"summary": {"sourceProducts": 10}}), encoding="utf-8"
+            )
+            (Path(tmp) / "external-source-001-identity.json").write_text(
+                json.dumps({
+                    "sourceProductId": "10",
+                    "identityReview": {"decision": "map_existing", "targetModelId": "mdl_a"},
+                    "decision": {"mapExistingApproved": True},
+                }), encoding="utf-8"
+            )
+            states, targets = review_evidence(Path(tmp))
+            self.assertEqual(targets[10], {"mdl_a"})
+            self.assertIn("map_existing", states[10])
+
+    def test_malformed_review_metadata_fails_closed(self):
+        for key, value in (("identityReview", ["new_model"]),
+                           ("decision", ["mapExistingApproved"]),
+                           ("productionEvidence", ["mdl_a"])):
+            with self.subTest(key=key), tempfile.TemporaryDirectory() as tmp:
+                payload = {
+                    "sourceProductId": 10,
+                    "identityReview": {"decision": "map_existing",
+                                       "targetModelId": "mdl_a", "mapExistingApproved": True},
+                }
+                payload[key] = value
+                (Path(tmp) / "external-source-001-invalid-review.json").write_text(
+                    json.dumps(payload), encoding="utf-8"
+                )
+                with self.assertRaises(CoverageError):
+                    review_evidence(Path(tmp))
+
     def test_identity_proven_but_media_blocked_is_still_present(self):
         # A blocked gallery never grants media promotion, but does not erase
         # a reviewed identity that points to a currently published model.

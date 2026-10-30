@@ -233,13 +233,25 @@ def review_evidence(root: Path) -> tuple[dict[int, set[str]], dict[int, set[str]
     for path in sorted(root.glob("external-source-001-*.json")):
         try:
             payload = load_json(path)
-        except (OSError, json.JSONDecodeError):
-            continue
-        try:
-            product_id = int(payload.get("sourceProductId"))
-        except (TypeError, ValueError):
-            continue
-        identity = payload.get("identityReview") or {}
+        except (OSError, json.JSONDecodeError) as exc:
+            # A damaged identity review cannot safely be mistaken for an
+            # unreviewed product and must not silently disappear from coverage.
+            raise CoverageError(f"evidência de identidade ilegível: {path.name}") from exc
+        if not isinstance(payload, dict) or "sourceProductId" not in payload:
+            continue  # valid non-product reports are not identity reviews
+        raw_id = payload["sourceProductId"]
+        if isinstance(raw_id, bool) or not (
+            isinstance(raw_id, int)
+            or (isinstance(raw_id, str) and raw_id.isascii() and raw_id.isdecimal())
+        ):
+            raise CoverageError(f"ID de produto inválido em {path.name}")
+        product_id = int(raw_id)
+        if product_id <= 0:
+            raise CoverageError(f"ID de produto inválido em {path.name}")
+        raw_identity = payload.get("identityReview")
+        if raw_identity is not None and not isinstance(raw_identity, dict):
+            raise CoverageError(f"revisão de identidade inválida em {path.name}")
+        identity = raw_identity or {}
         decision = str(identity.get("decision") or "").strip()
         if decision in {"map_existing", "unresolved"}:
             states[product_id].add(decision)
@@ -261,6 +273,9 @@ def review_evidence(root: Path) -> tuple[dict[int, set[str]], dict[int, set[str]
         if str(payload.get("watermarkStatus") or "") == "watermarked":
             states[product_id].add("media_blocked_or_pending")
         if decision == "map_existing":
+            production_evidence = payload.get("productionEvidence")
+            if production_evidence is not None and not isinstance(production_evidence, dict):
+                raise CoverageError(f"prova de produção inválida em {path.name}")
             approved = (
                 identity.get("mapExistingApproved") is True
                 or top_decision.get("mapExistingAuthorized") is True
@@ -275,7 +290,7 @@ def review_evidence(root: Path) -> tuple[dict[int, set[str]], dict[int, set[str]
                     for candidate in (
                         identity.get("targetModelId"),
                         top_decision.get("canonicalModelId"),
-                        (payload.get("productionEvidence") or {}).get("modelId"),
+                        (production_evidence or {}).get("modelId"),
                     )
                     if str(candidate or "").strip()
                 }
