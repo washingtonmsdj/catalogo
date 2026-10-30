@@ -65,6 +65,13 @@ jobs:
       - name: Validate active Worker health and schema
         run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
 
+      # A green health does not mean there is room for full D1 integrity and
+      # gallery-index scans. Reserve the free-tier quota for public visitors.
+      # Public hierarchy checks remain bounded by their own API contract.
+      - name: Reserve D1 quota before database maintenance
+        if: ${{ inputs.operation != 'verify-public-hierarchy' }}
+        run: python tools/check_d1_editorial_audit_budget.py
+
       - name: Verify public hierarchy (read-only)
         if: ${{ inputs.operation == 'verify-public-hierarchy' }}
         run: node tools/check_public_catalog_hierarchy.mjs "$CATALOG_API_URL"

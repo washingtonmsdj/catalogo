@@ -55,7 +55,11 @@ de **5 milhões de linhas** para visitantes normais.
 
 Os workflows compartilham concurrency.group cloudflare-api com cloudflare.yml
 e usam cancel-in-progress: false, impedindo auditorias concorrentes ou a
-sobreposição com a implantação de produção. Se o token, analytics ou
+sobreposição com a implantação de produção. A manutenção canônica
+catalog-maintenance.yml também verifica o mesmo orçamento **antes** das
+operações que consultam diretamente o D1, inclusive auditoria estrutural,
+índice SHA e reparos revisados. A verificação pública de hierarquia,
+limitada pelos contratos da API, permanece liberada após o health. Se o token, analytics ou
 resposta completa não estiver disponível, a verificação **falha fechada**.
 Não usa um banco paralelo, bypass, fallback SQL ou repetição automática.
 
