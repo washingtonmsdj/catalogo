@@ -380,6 +380,18 @@ Leitura direta dos metadados e filhos no Google Drive, sem mutações:
 
 As cinco pastas de destino `OK - ...` consultadas não apresentaram filhos na listagem atual; isso confirma apenas o vazio físico desses destinos. Os arquivos candidatos acima não foram comparados visualmente nesta passagem; nomes e identificadores não constituem prova de identidade ou autoria. Não mover, renomear, promover ou preencher contagens. A próxima decisão exige comparação visual documentada, proveniência e preflight SHA V4 antes de qualquer atualização canônica.
 
+### Gate de lançamento — verificação em 2026-10-30
+
+**Lançamento ainda não homologado.** A aprovação de testes não implica aprovação de produção.
+
+- PR #175, HEAD `603e0d68`: 14 checks success e dois jobs de escrita skipped; draft sobre #174.
+- PR #174, HEAD `138f3e04`: três checks success e um skipped; draft sobre main.
+- Conexão Cloudflare verificada: somente conta `ordax-platform`, não a conta Tonecos do Catálogo. Portanto D1, R2 e Worker de produção não foram auditados nesta passagem.
+- Dez imagens em Novos, cinco destinos adicionais sem imagem e nove grupos provisórios na raiz continuam sujeitos à comprovação de identidade e direitos. Cinco subdivisões Alien não representam falta confirmada.
+- A cobertura da fonte externa continua sem comprovação integral (`coverage100Proven=false`).
+
+**Para homologar:** verificar os SHAs integrados e seus gates; inspecionar D1/R2/Worker e smoke público na conta de produção correta; validar schema, mídia e colisões; promover somente arquivos com identidade e direitos aprovados, usando o pipeline oficial. Itens ainda não aprovados permanecem fora do conteúdo publicado, sem bloquear indefinidamente um catálogo existente cuja integridade esteja comprovada. Não criar segundo gate, SSOT paralelo ou exceção silenciosa.
+
 ## Próxima sequência de conteúdo e fechamento estrutural
 
 1. Validar CI/coverage do HEAD atual nas PRs #174 e #175; não declarar gates anteriores como aprovados para um commit novo.
