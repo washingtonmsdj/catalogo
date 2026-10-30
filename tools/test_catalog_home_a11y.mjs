@@ -3,6 +3,8 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 const home = readFileSync(new URL('../src/components/CatalogHome.tsx', import.meta.url), 'utf8')
+const runtime = readFileSync(new URL('../src/hooks/useCatalogRuntime.ts', import.meta.url), 'utf8')
+const worker = readFileSync(new URL('../worker/index.ts', import.meta.url), 'utf8')
 const css = readFileSync(new URL('../src/catalog-home.css', import.meta.url), 'utf8')
 
 test('keyboard users can skip navigation to a focusable main landmark', () => {
@@ -65,4 +67,23 @@ test('hero carousel controls keep 44px touch targets without enlarging decorativ
   assert.match(css, /\.storefront-hero__dots button\[aria-current="true"\]::before\s*\{[^}]*width:\s*17px;/)
   assert.match(css, /\.storefront-hero__nav\s*\{[^}]*width:\s*44px;[^}]*height:\s*44px;/)
   assert.doesNotMatch(css, /\.storefront-hero__dots button\[aria-current="true"\]\s*\{[^}]*width:/)
+})
+
+
+test('unavailable catalog is not displayed as zero results or a fake demo', () => {
+  assert.match(home, /catalogPageIsUnavailable\(catalog\)/)
+  assert.match(home, /catalogUnavailable \? \([\s\S]*?Catálogo temporariamente indisponível/)
+  assert.match(home, /Isso não significa que o acervo esteja vazio/)
+  assert.match(home, /onClick=\{\(\) => window\.location\.reload\(\)\}>Tentar novamente/)
+  assert.match(home, /catalogUnavailable \? 'Modelos temporariamente indisponíveis'/)
+  assert.match(home, /catalogUnavailable \? '—' : formatter\.format\(catalogTotal\)/)
+  assert.doesNotMatch(home, /catalogUnavailable[^\n]*demoModels/)
+})
+
+
+test('live catalog startup avoids a redundant D1 health preflight', () => {
+  assert.doesNotMatch(runtime, /checkCatalogApi\(/)
+  assert.match(runtime, /listCatalogCategories\(\)/)
+  assert.match(runtime, /setApiHealthy\(true\)/)
+  assert.match(worker, /const schema = await catalogSchemaStatus\(env\.DB\)[\s\S]*?if \(!schema\.ready\) \{[\s\S]*?url\.pathname === '\/api\/categories'/)
 })
