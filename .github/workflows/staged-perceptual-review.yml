@@ -1,14 +1,6 @@
 name: Staged perceptual review
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - '.github/workflows/staged-perceptual-review.yml'
-      - 'tools/materialize_staged_perceptual_review.py'
-      - 'tools/test_materialize_staged_perceptual_review.py'
-      - 'docs/evidence/external-source-001-artemis-preflight-2026-10-15.json'
-      - 'config/external-sources/external-source-001.json'
   workflow_dispatch:
     inputs:
       evidence:

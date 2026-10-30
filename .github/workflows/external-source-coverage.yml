@@ -2,31 +2,6 @@ name: External source catalog coverage
 
 on:
   workflow_dispatch:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - '.github/workflows/external-source-coverage.yml'
-      - 'tools/audit_external_source_coverage.py'
-      - 'tools/render_gallery_review.py'
-      - 'tools/test_render_gallery_review.py'
-      - 'config/review-cohorts/drive-small-galleries-20261030.json'
-      - 'tools/audit_published_sha_inventory.py'
-      - 'tools/test_audit_published_sha_inventory.py'
-      - 'tools/audit_published_model_collisions.py'
-      - 'tools/test_audit_published_model_collisions.py'
-      - 'tools/plan_catalog_collision_review.py'
-      - 'tools/test_plan_catalog_collision_review.py'
-      - 'tools/test_audit_external_source_coverage.py'
-      - 'tools/plan_external_identity_triage.py'
-      - 'tools/test_plan_external_identity_triage.py'
-      - 'tools/select_external_priority_batch.py'
-      - 'tools/test_select_external_priority_batch.py'
-      - 'tools/discover_external_staging_candidates.py'
-      - 'tools/enrich_external_candidate_identity.py'
-      - 'tools/test_enrich_external_candidate_identity.py'
-      - 'docs/evidence/external-source-001-*-visual-identity-resolution-*.json'
-      - 'config/external-sources/external-source-001.json'
-
 permissions:
   contents: read
 

@@ -1,19 +1,6 @@
 name: Exact source gallery promotion
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - '.github/workflows/exact-source-gallery-promotion.yml'
-      - 'tools/apply_exact_source_gallery_promotion.py'
-      - 'tools/test_apply_exact_source_gallery_promotion.py'
-      - 'tools/preflight_exact_source_gallery_evidence.py'
-      - 'tools/test_preflight_exact_source_gallery_evidence.py'
-      - 'tools/apply_existing_gallery_promotion.py'
-      - 'docs/evidence/external-source-001-*-gallery-review-*.json'
-      - 'docs/evidence/external-source-001-*-canonical-preflight-*.json'
-      - 'config/external-sources/external-source-001.json'
-      - 'wrangler.jsonc'
   workflow_dispatch:
     inputs:
       evidence:

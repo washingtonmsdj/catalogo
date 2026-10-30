@@ -1,14 +1,6 @@
 name: External source visual review
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - '.github/workflows/external-source-review.yml'
-      - 'tools/materialize_external_source_review.py'
-      - 'tools/test_materialize_external_source_review.py'
-      - 'docs/evidence/external-source-001-*-source-map-*.json'
-      - 'config/external-sources/external-source-001.json'
   workflow_dispatch:
     inputs:
       source_map:

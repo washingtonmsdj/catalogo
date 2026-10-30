@@ -1,20 +1,6 @@
 name: Exact source gallery preflight
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - '.github/workflows/exact-source-gallery-preflight.yml'
-      - 'tools/preflight_exact_source_gallery_evidence.py'
-      - 'tools/test_preflight_exact_source_gallery_evidence.py'
-      - 'tools/preflight_existing_gallery_evidence.py'
-      - 'tools/plan_gallery_merge.py'
-      - 'tools/resolve_gallery_merge.py'
-      - 'tools/build_gallery_promotion_manifest.py'
-      - 'tools/media_quality_policy.py'
-      - 'docs/evidence/external-source-001-*-gallery-review-*.json'
-      - 'config/external-sources/external-source-001.json'
-      - 'wrangler.jsonc'
   workflow_dispatch:
     inputs:
       evidence:

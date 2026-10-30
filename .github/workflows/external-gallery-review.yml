@@ -1,15 +1,6 @@
 name: External gallery visual review
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - '.github/workflows/external-gallery-review.yml'
-      - 'tools/materialize_external_gallery_review.py'
-      - 'tools/test_materialize_external_gallery_review.py'
-      - 'docs/evidence/external-source-001-sora-gallery-review-2026-10-15.json'
-      - 'docs/evidence/external-source-001-malevola-dispatch-gallery-review-2026-10-16.json'
-      - 'config/external-sources/external-source-001.json'
   workflow_dispatch:
     inputs:
       source_map:

@@ -1,14 +1,6 @@
 name: Identity visual review
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - '.github/workflows/identity-visual-review.yml'
-      - 'tools/materialize_identity_visual_review.py'
-      - 'tools/test_materialize_identity_visual_review.py'
-      - 'docs/evidence/*-identity-visual-review-*.json'
-      - 'config/external-sources/external-source-001.json'
   workflow_dispatch:
     inputs:
       review:

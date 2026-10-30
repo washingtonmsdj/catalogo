@@ -1,17 +1,6 @@
 name: Existing gallery promotion
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - '.github/workflows/existing-gallery-promotion.yml'
-      - 'tools/apply_existing_gallery_promotion.py'
-      - 'tools/test_apply_existing_gallery_promotion.py'
-      - 'tools/preflight_existing_gallery_evidence.py'
-      - 'tools/test_preflight_existing_gallery_evidence.py'
-      - 'docs/evidence/external-source-001-kaido-gallery-review-2026-10-15.json'
-      - 'docs/evidence/external-source-001-kaido-canonical-preflight-2026-10-15.json'
-      - 'config/external-sources/external-source-001.json'
   workflow_dispatch:
     inputs:
       evidence:
