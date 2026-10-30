@@ -1,3 +1,4 @@
+import sqlite3
 import unittest
 from unittest.mock import patch
 
@@ -23,6 +24,65 @@ class PublishedShaInventoryTests(unittest.TestCase):
         self.assertEqual(call.call_count, 2)
         self.assertIn("m.published=1", call.call_args_list[0].args[2])
         self.assertIn("s.gallery_version=m.gallery_version", call.call_args_list[0].args[2])
+
+    def test_sha_keyset_uses_existing_index_without_losing_entries(self):
+        selected = []
+        def record(_endpoint, _token, sql, _params):
+            if sql.startswith("SELECT s.source_sha256"):
+                selected.append(sql)
+                return []
+            return [{"published_models": 1, "indexed_models": 0, "indexed_images": 0}]
+        with patch("audit_published_sha_inventory.query_rows", side_effect=record):
+            inventory("account", "token", "db", 1)
+        self.assertEqual(len(selected), 1)
+        sql = selected[0]
+        self.assertIn("(s.source_sha256,s.model_id)>(?,?)", sql)
+
+        db = sqlite3.connect(":memory:")
+        try:
+            db.executescript("""
+                CREATE TABLE models(id TEXT PRIMARY KEY,published INTEGER,gallery_version INTEGER);
+                CREATE TABLE model_image_sources(model_id TEXT,source_sha256 TEXT,gallery_version INTEGER);
+                CREATE INDEX idx_model_image_sources_sha
+                    ON model_image_sources(source_sha256,model_id,gallery_version);
+            """)
+            db.executemany("INSERT INTO models VALUES(?,?,?)", [
+                (f"mdl_{i:020x}", int(i % 11 != 0), 1) for i in range(1, 751)
+            ])
+            db.executemany("INSERT INTO model_image_sources VALUES(?,?,?)", [
+                (f"mdl_{(i % 750)+1:020x}", f"{i // 3:064x}",
+                 2 if i % 37 == 0 else 1) for i in range(1, 1701)
+            ])
+            plan = [row[3] for row in db.execute(
+                "EXPLAIN QUERY PLAN " + sql, ("", "", 400)
+            )]
+            self.assertTrue(any(
+                "SEARCH s USING COVERING INDEX idx_model_image_sources_sha" in row
+                for row in plan
+            ), plan)
+            self.assertFalse(any("SCAN s" in row for row in plan), plan)
+            cursor, actual = ("", ""), []
+            for _ in range(10):
+                page = db.execute(sql, (*cursor, 400)).fetchall()
+                if not page:
+                    break
+                self.assertGreater(page[0], cursor)
+                actual.extend(page)
+                cursor = page[-1]
+                if len(page) < 400:
+                    break
+            else:
+                self.fail("SHA pagination did not converge")
+            expected = db.execute("""
+                SELECT s.source_sha256,s.model_id FROM model_image_sources s
+                JOIN models m ON m.id=s.model_id
+                WHERE m.published=1 AND s.gallery_version=m.gallery_version
+                ORDER BY s.source_sha256,s.model_id
+            """).fetchall()
+            self.assertGreater(len(actual), 1000)
+            self.assertEqual(actual, expected)
+        finally:
+            db.close()
 
     def test_invalid_rows_and_drifting_counts_fail_closed(self):
         mid = "mdl_" + "f" * 20

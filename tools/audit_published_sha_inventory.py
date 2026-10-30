@@ -37,14 +37,16 @@ def inventory(account_id: str, token: str, database_id: str,
     pairs: list[dict[str, str]] = []
     cursor = ("", "")
     while True:
+        # Composite keyset comparison is an index range search; the old OR
+        # predicate scanned earlier pages again, inflating D1 rowsRead.
         sql = (
             "SELECT s.source_sha256 AS sha, s.model_id AS model_id "
             "FROM model_image_sources s JOIN models m ON m.id=s.model_id "
             "WHERE m.published=1 AND s.gallery_version=m.gallery_version "
-            "AND (s.source_sha256>? OR (s.source_sha256=? AND s.model_id>?)) "
+            "AND (s.source_sha256,s.model_id)>(?,?) "
             "ORDER BY s.source_sha256, s.model_id LIMIT ?"
         )
-        page = query_rows(endpoint, token, sql, [cursor[0], cursor[0], cursor[1], 400])
+        page = query_rows(endpoint, token, sql, [cursor[0], cursor[1], 400])
         if len(page) > 400:
             raise CoverageError("D1 SHA page exceeded limit")
         for row in page:
