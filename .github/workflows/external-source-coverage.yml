@@ -6,8 +6,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: external-source-coverage-${{ github.ref }}
-  cancel-in-progress: true
+  # Shares a lock with Cloudflare Worker deployments; optional audits must
+  # never race one another or a production release over the same D1 quota.
+  group: cloudflare-api
+  cancel-in-progress: false
 
 jobs:
   audit:
@@ -41,6 +43,8 @@ jobs:
           echo "CLOUDFLARE_ACCOUNT_ID=$ACCOUNT_ID" >> "$GITHUB_ENV"
           echo "CLOUDFLARE_API_TOKEN=$API_TOKEN" >> "$GITHUB_ENV"
           echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
+      - name: Reserve D1 quota for live visitors before optional production audit
+        run: python tools/check_d1_editorial_audit_budget.py
       - name: Audit source coverage without media downloads or writes
         run: >-
           python tools/audit_external_source_coverage.py
