@@ -1,4 +1,5 @@
 import json
+import hashlib
 import tempfile
 import urllib.error
 import urllib.parse
@@ -170,7 +171,7 @@ class ExternalSourceCoverageTests(unittest.TestCase):
                   "image_count": 1}
         cohort = {"version": 1, "kind": "historical_drive_small_gallery_review_cohort",
                   "identityApproved": False, "mediaPromotionAuthorized": False,
-                  "items": [{"sourceProductId": 10, "sourceSlug": "test",
+                  "items": [{"sourceProductId": 10, "sourceSlugSha256": hashlib.sha256(b"test").hexdigest(),
                              "targetModelId": target["id"], "expectedSourceImageCount": 2}]}
         report = build_gallery_review_manifest("https://example.test", [product], [target], cohort)
         self.assertEqual(report["summary"]["sourceImages"], 2)
@@ -180,7 +181,7 @@ class ExternalSourceCoverageTests(unittest.TestCase):
         self.assertFalse(report["items"][0]["identityApproved"])
         self.assertEqual(len(report["items"][0]["images"]), 2)
         for bad in (
-            {"sourceSlug": "changed"},
+            {"sourceSlugSha256": "0" * 64},
             {"expectedSourceImageCount": 3},
             {"targetModelId": "mdl_" + "b" * 20},
         ):

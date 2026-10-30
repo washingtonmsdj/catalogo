@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import base64
 import html
+import hashlib
 import json
 import os
 import re
@@ -566,7 +567,11 @@ def build_gallery_review_manifest(
         source_product, published_model = source.get(product_id), published.get(model_id)
         if source_product is None or published_model is None:
             raise CoverageError(f"gallery review source/target no longer exists: {product_id}")
-        if item.get("sourceSlug") != source_product.get("slug"):
+        current_slug = source_product.get("slug")
+        pinned_sha = item.get("sourceSlugSha256")
+        if (not isinstance(current_slug, str) or not isinstance(pinned_sha, str)
+                or not re.fullmatch(r"[0-9a-f]{64}", pinned_sha)
+                or hashlib.sha256(current_slug.encode("utf-8")).hexdigest() != pinned_sha):
             raise CoverageError(f"gallery review slug drift: {product_id}")
         images = source_product.get("images")
         if not isinstance(images, list) or len(images) != expected_count:

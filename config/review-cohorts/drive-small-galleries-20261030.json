@@ -7,87 +7,87 @@
   "items": [
     {
       "sourceProductId": 1196,
-      "sourceSlug": "angewomon-digimon-stl-files",
       "targetModelId": "mdl_97dee1e9e5e58f71edc4",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "f3b0fa6b862523554b98d76f1d3ec0f784fdb89fa10e1860a95baef7c14b22a5"
     },
     {
       "sourceProductId": 1244,
-      "sourceSlug": "leon-s-kennedy-resident-evil-stl-files",
       "targetModelId": "mdl_1d55644779795b4c59d6",
-      "expectedSourceImageCount": 3
+      "expectedSourceImageCount": 3,
+      "sourceSlugSha256": "51d119f44676459129c4009baea320ef3519b95225ca315cab8734848d22d53e"
     },
     {
       "sourceProductId": 1524,
-      "sourceSlug": "maomao-the-apothecary-diaries-stl-files",
       "targetModelId": "mdl_1d7680cb5309e3cdecfe",
-      "expectedSourceImageCount": 3
+      "expectedSourceImageCount": 3,
+      "sourceSlugSha256": "ff284ea67c4625b18efd6a6bdc6c796b448b98e77182d0fb076d82c24f2eca14"
     },
     {
       "sourceProductId": 1719,
-      "sourceSlug": "aki-hayakawa-chainsaw-man-stl-files",
       "targetModelId": "mdl_c985c8a392041ddffad5",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "aa19a48b86de09c64f986d2f706058b6f1de0b405d53f79924fd900b11adb50d"
     },
     {
       "sourceProductId": 1750,
-      "sourceSlug": "poseidon-fantasia-stl-files",
       "targetModelId": "mdl_343d72feae86559df3fc",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "38031be092cba512efd5acb539d7231bf952fb0f7c92a8ce0d5204f8f60b4157"
     },
     {
       "sourceProductId": 1790,
-      "sourceSlug": "lilith-diablo-stl-files",
       "targetModelId": "mdl_072f5eca0f2e868d5fc0",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "6208e522d2c7828aa007e169f8542142a17dd872ebce31fa49ac6e95ca06a64d"
     },
     {
       "sourceProductId": 1853,
-      "sourceSlug": "marin-kitagawa-my-dress-up-darling-stl-files",
       "targetModelId": "mdl_c4f0519258d7fce52938",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "b8991cc78d52a0182ad639e85a4d0249b39d5f267c1fda6493eeaa9a51dd6276"
     },
     {
       "sourceProductId": 3787,
-      "sourceSlug": "alexandrina-sebastiane-rina-zenless-zone-zero-stl-files",
       "targetModelId": "mdl_80521f34261d8dd97040",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "07e3870aee98e5ae0aacc4cf4f96c089d542f28678d48da48ec6c0bf3baf8188"
     },
     {
       "sourceProductId": 6799,
-      "sourceSlug": "calcifer-howls-moving-castle-stl-files-stl-forge",
       "targetModelId": "mdl_a4a5cb6316a2ca8cfa8a",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "1d0d3c379034e60774addf7cd57f522c752a8bb20c8469657b499123cf252659"
     },
     {
       "sourceProductId": 7442,
-      "sourceSlug": "caterpie-pokemon-stl-files-stl-forge",
       "targetModelId": "mdl_8b4e39f925bad2f35167",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "a1fe64d4a78ca61e539d3980e9b83179591f90dd59be655952e4b87bdf7cde4d"
     },
     {
       "sourceProductId": 8829,
-      "sourceSlug": "momo-ayase-5-dandadan-stl-files",
       "targetModelId": "mdl_adb5c8620edfb55559ca",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "fbc77db85629be03362ebb6ba2bec907af3b86c35924a92f705ed559b415e008"
     },
     {
       "sourceProductId": 8857,
-      "sourceSlug": "basil-hawkins-one-piece-stl-files",
       "targetModelId": "mdl_95c2ff80261d6885f3f8",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "02acd553d8a95ae89e87227a73028706dafc2b30beae5bf3a43227ea"
     },
     {
       "sourceProductId": 8882,
-      "sourceSlug": "darth-revan-star-wars-stl-files",
       "targetModelId": "mdl_e7ab7e85237249ca1afb",
-      "expectedSourceImageCount": 2
+      "expectedSourceImageCount": 2,
+      "sourceSlugSha256": "6ce7c906c63de79ce8b250b816c81b8c70d0df276c428e01d639dcaf5058b801"
     },
     {
       "sourceProductId": 20000,
-      "sourceSlug": "atsu-stl-2-ghost-of-yotei",
       "targetModelId": "mdl_7f8c375ddc5e8893742c",
-      "expectedSourceImageCount": 4
+      "expectedSourceImageCount": 4,
+      "sourceSlugSha256": "4b2b2e8b178748ce6088a8e4ded2fbaffb54cd685ec47599e5d64763c6bf6e72"
     }
   ]
 }
