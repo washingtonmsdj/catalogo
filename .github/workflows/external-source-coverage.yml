@@ -66,6 +66,7 @@ jobs:
           python tools/audit_external_source_coverage.py
           --output "$RUNNER_TEMP/external-source-coverage.json"
           --published-models-output "$RUNNER_TEMP/published-models.json"
+          --shared-image-sha-output "$RUNNER_TEMP/published-shared-image-sha.json"
       - name: Audit collisions across published models from the same D1 snapshot
         run: >-
           python tools/audit_published_model_collisions.py
@@ -75,6 +76,7 @@ jobs:
         run: >-
           python tools/plan_catalog_collision_review.py
           "$RUNNER_TEMP/published-model-collisions.json"
+          --shared-image-sha "$RUNNER_TEMP/published-shared-image-sha.json"
           --output "$RUNNER_TEMP/published-collision-review-queue.json"
       - name: Generate entire backlog triage from canonical coverage (read-only)
         run: >-
@@ -100,6 +102,9 @@ jobs:
           assert queue['summary']['publishedRecords']==summary['publishedModels']
           assert queue['summary']['collisionGroups']==len(collisions['sameFranchiseNormalizedNameCollisions'])
           assert queue['summary']['slugConflictGroups']==len(collisions['exactSlugCollisions'])
+          assert queue['summary']['imageShaIndexStatus']=='positive_matches_only_index_completeness_unknown'
+          assert queue['summary']['imageShaProvesSculptureIdentity'] is False
+          assert all(not pair['mergeAuthorized'] for group in queue['groups'] for pair in group['sharedImageShaReviewPairs'])
           assert all(not group['mergeAuthorized'] for group in queue['slugConflictGroups'])
           assert queue['summary']['mutations']==0
           assert queue['summary']['confirmedDuplicateSculptures'] is None
@@ -205,6 +210,7 @@ jobs:
           path: |
             ${{ runner.temp }}/external-source-coverage.json
             ${{ runner.temp }}/published-model-collisions.json
+            ${{ runner.temp }}/published-shared-image-sha.json
             ${{ runner.temp }}/published-collision-review-queue.json
             ${{ runner.temp }}/external-source-identity-triage.json
             ${{ runner.temp }}/external-source-priority-review-batch.json

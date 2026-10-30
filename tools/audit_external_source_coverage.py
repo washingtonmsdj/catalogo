@@ -199,6 +199,64 @@ def fetch_published_models(account_id: str, token: str, database_id: str) -> lis
     return rows
 
 
+def fetch_shared_published_sha_groups(account_id: str, token: str, database_id: str) -> dict[str, Any]:
+    """Read-only positive shared-SHA hints in active galleries; never download media."""
+    endpoint = f"https://api.cloudflare.com/client/v4/accounts/{account_id}/d1/database/{database_id}/query"
+    groups: list[dict[str, Any]] = []
+    cursor = ""
+    while True:
+        payload, _ = fetch_json(endpoint, token=token, body={
+            "sql": (
+                "SELECT s.source_sha256 AS sha, "
+                "GROUP_CONCAT(DISTINCT s.model_id) AS model_ids "
+                "FROM model_image_sources s JOIN models m ON m.id=s.model_id "
+                "WHERE m.published=1 AND s.gallery_version=m.gallery_version "
+                "AND s.source_sha256>? GROUP BY s.source_sha256 "
+                "HAVING COUNT(DISTINCT s.model_id)>1 "
+                "ORDER BY s.source_sha256 LIMIT ?"
+            ),
+            "params": [cursor, 200],
+        })
+        if not isinstance(payload, dict) or payload.get("success") is not True:
+            raise CoverageError("consulta SHA do catálogo falhou")
+        statements = payload.get("result")
+        if (not isinstance(statements, list) or len(statements) != 1
+                or not isinstance(statements[0], dict)
+                or statements[0].get("success") is not True
+                or not isinstance(statements[0].get("results"), list)):
+            raise CoverageError("resposta SHA do D1 inválida")
+        rows = statements[0]["results"]
+        if len(rows) > 200:
+            raise CoverageError("página SHA excedeu limite")
+        for row in rows:
+            if not isinstance(row, dict):
+                raise CoverageError("registro SHA inválido")
+            sha, ids = row.get("sha"), row.get("model_ids")
+            if not isinstance(sha, str) or re.fullmatch(r"[0-9a-f]{64}", sha) is None or sha <= cursor:
+                raise CoverageError("SHA inválido ou paginação sem avanço")
+            if not isinstance(ids, str):
+                raise CoverageError("lista de modelos SHA inválida")
+            models = ids.split(",")
+            if (len(models) < 2 or len(models) != len(set(models))
+                    or any(not mid.startswith("mdl_") or len(mid) <= 4 for mid in models)):
+                raise CoverageError("identidades inválidas no índice SHA")
+            groups.append({"sourceSha256": sha, "modelIds": sorted(models)})
+            cursor = sha
+        if len(rows) < 200:
+            break
+    return {
+        "version": 1,
+        "scope": "active_published_gallery_shared_sha_positive_evidence_only",
+        "groups": groups,
+        "imageIndexCompletenessProven": False,
+        "identityApproved": False,
+        "mergeAuthorized": False,
+        "productionWrites": 0,
+        "stagingWrites": 0,
+        "imageBinariesDownloaded": 0,
+    }
+
+
 def batch_model_ids(root: Path) -> dict[int, str]:
     """Require a single unambiguous canonical model target across every release batch."""
     result: dict[int, str] = {}
@@ -432,6 +490,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch-root", default="config/external-batches")
     parser.add_argument("--output", required=True)
     parser.add_argument("--published-models-output", default=None)
+    parser.add_argument("--shared-image-sha-output", default=None)
     return parser.parse_args()
 
 
@@ -449,6 +508,11 @@ def main() -> None:
     if args.published_models_output:
         Path(args.published_models_output).write_text(
             json.dumps(models, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+    if args.shared_image_sha_output:
+        sha_index = fetch_shared_published_sha_groups(account_id, token, database_id)
+        Path(args.shared_image_sha_output).write_text(
+            json.dumps(sha_index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
     reviews, existing_targets = review_evidence(Path(args.evidence_root))
     report = classify(

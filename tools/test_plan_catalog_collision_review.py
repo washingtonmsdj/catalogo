@@ -48,6 +48,47 @@ class CollisionReviewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "missing slug"):
             plan(d)
 
+    def test_shared_sha_prioritizes_without_automatic_merges(self):
+        sha_index = {
+            "version": 1, "scope": "active_published_gallery_shared_sha_positive_evidence_only",
+            "groups": [{"sourceSha256": "a" * 64, "modelIds": ["mdl_a", "mdl_b"]}],
+            "imageIndexCompletenessProven": False, "identityApproved": False,
+            "mergeAuthorized": False, "productionWrites": 0, "stagingWrites": 0,
+            "imageBinariesDownloaded": 0,
+        }
+        out = plan(sample(), sha_index)
+        self.assertEqual(out["groups"][0]["normalizedName"], "iron")
+        self.assertEqual(out["summary"]["nameGroupsWithSharedImageSha"], 1)
+        self.assertEqual(out["summary"]["namePairsWithSharedImageSha"], 1)
+        self.assertFalse(out["summary"]["imageShaProvesSculptureIdentity"])
+        pair = out["groups"][0]["sharedImageShaReviewPairs"][0]
+        self.assertEqual(pair["modelIds"], ["mdl_a", "mdl_b"])
+        self.assertFalse(pair["identityApproved"])
+        self.assertFalse(out["groups"][0]["mergeAuthorized"])
+        self.assertEqual(out["groups"][1]["shaReviewSignal"],
+                         "no_positive_sha_signal_index_completeness_unknown")
+
+    def test_sha_index_conflicting_or_unsafe_data_fails_closed(self):
+        for changed in [
+            {"imageIndexCompletenessProven": True},
+            {"mergeAuthorized": True},
+            {"productionWrites": 1},
+            {"groups": [{"sourceSha256": "bad", "modelIds": ["mdl_a", "mdl_b"]}]},
+            {"groups": [{"sourceSha256": "a" * 64, "modelIds": ["mdl_a", "mdl_a"]}]},
+        ]:
+            with self.subTest(changed=changed):
+                index = {
+                    "version": 1,
+                    "scope": "active_published_gallery_shared_sha_positive_evidence_only",
+                    "groups": [], "imageIndexCompletenessProven": False,
+                    "identityApproved": False, "mergeAuthorized": False,
+                    "productionWrites": 0, "stagingWrites": 0,
+                    "imageBinariesDownloaded": 0,
+                }
+                index.update(changed)
+                with self.assertRaises(ValueError):
+                    plan(sample(), index)
+
     def test_priority_and_review_only(self):
         r = plan(sample())
         self.assertEqual(r["summary"]["potentialPairwiseComparisons"], 4)

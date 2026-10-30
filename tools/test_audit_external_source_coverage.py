@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from audit_external_source_coverage import CoverageError, batch_model_ids, classify, fetch_json, fetch_source_products, review_alias_hints, review_evidence, subject_hint
+from audit_external_source_coverage import CoverageError, batch_model_ids, classify, fetch_json, fetch_shared_published_sha_groups, fetch_source_products, review_alias_hints, review_evidence, subject_hint
 
 
 class ExternalSourceCoverageTests(unittest.TestCase):
@@ -33,6 +33,36 @@ class ExternalSourceCoverageTests(unittest.TestCase):
                 "franchise_slug": "one-piece",
             },
         ]
+
+    def test_shared_sha_index_query_is_read_only_and_active_gallery_only(self):
+        sha = "a" * 64
+        payload = {"success": True, "result": [{"success": True, "results": [
+            {"sha": sha, "model_ids": "mdl_b,mdl_a"},
+        ]}]}
+        with patch("audit_external_source_coverage.fetch_json",
+                   return_value=(payload, {})) as query:
+            result = fetch_shared_published_sha_groups("account", "token", "db")
+        self.assertEqual(result["groups"], [{"sourceSha256": sha, "modelIds": ["mdl_a", "mdl_b"]}])
+        self.assertFalse(result["imageIndexCompletenessProven"])
+        self.assertFalse(result["mergeAuthorized"])
+        self.assertEqual(result["imageBinariesDownloaded"], 0)
+        sql = query.call_args.kwargs["body"]["sql"]
+        self.assertIn("m.published=1", sql)
+        self.assertIn("s.gallery_version=m.gallery_version", sql)
+        self.assertIn("HAVING COUNT(DISTINCT s.model_id)>1", sql)
+
+    def test_bad_sha_index_cannot_advance_identity(self):
+        for row in [
+            {"sha": "invalid", "model_ids": "mdl_a,mdl_b"},
+            {"sha": "a" * 64, "model_ids": "mdl_a,mdl_a"},
+            {"sha": "a" * 64, "model_ids": "mdl_a"},
+            {"sha": "a" * 64, "model_ids": "mdl_a,not-model"},
+        ]:
+            with self.subTest(row=row), patch("audit_external_source_coverage.fetch_json",
+                   return_value=({"success": True, "result": [
+                       {"success": True, "results": [row]}]}, {})):
+                with self.assertRaises(CoverageError):
+                    fetch_shared_published_sha_groups("account", "token", "db")
 
     def test_subject_hint_is_review_only_character_hint(self):
         self.assertEqual(subject_hint("Ryu STL 3 – Street Fighter"), "Ryu")
