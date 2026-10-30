@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import csv
 import hashlib
+from datetime import date
 import json
 import re
 import unicodedata
@@ -244,6 +245,161 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
     }
 
 
+
+REVIEW_DECISION_FIELDS = [
+    "sourceProductId", "targetModelId", "sourceImageSha256", "sourceSnapshotSha256",
+    "decision", "visualReviewed", "provenanceReviewed", "fullGalleryReviewed",
+    "reviewer", "reviewedAt",
+]
+
+
+def _snapshot_digest(report: dict[str, Any]) -> str:
+    snapshot = report.get("currentSourceSnapshot")
+    if not isinstance(snapshot, dict):
+        raise DriveReconciliationError("canonical source snapshot required for operator decisions")
+    encoded = json.dumps(snapshot, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def build_operator_review_template(report: dict[str, Any]) -> list[dict[str, str]]:
+    """Only strong, unique, currently unreviewed mappings enter the bulk review.
+
+    This produces empty approval fields. Evidence is not authorized by a
+    coincident name, franchise or SHA until an operator independently attests
+    visual identity, origin and full source gallery coverage.
+    """
+    snapshot_sha = _snapshot_digest(report)
+    rows: list[dict[str, str]] = []
+    for item in report.get("workItems", []):
+        if not isinstance(item, dict):
+            raise DriveReconciliationError("malformed Drive work item")
+        mid = item.get("shaCandidateModelIds")
+        if not (
+            item.get("shaReviewTier") == "A_exact_name_and_franchise"
+            and item.get("currentIdentityConfirmed") is False
+            and item.get("sourceLinkage") == "id_and_slug"
+            and str(item.get("currentD1IdentityState") or "").startswith("unreviewed_")
+            and isinstance(mid, list) and len(mid) == 1
+            and item.get("currentSourceProductId") == item.get("legacySourceProductId")
+            and type(item.get("currentSourceProductId")) is int
+            and item["currentSourceProductId"] > 0
+            and item.get("identityApprovedByThisReport") is False
+            and item.get("mediaPromotionAuthorized") is False
+        ):
+            continue
+        sha = item.get("legacyImageSha256")
+        if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{64}", sha):
+            raise DriveReconciliationError("invalid approved-cohort image SHA")
+        rows.append({
+            "sourceProductId": str(item["currentSourceProductId"]),
+            "targetModelId": mid[0],
+            "sourceImageSha256": sha,
+            "sourceSnapshotSha256": snapshot_sha,
+            "decision": "", "visualReviewed": "", "provenanceReviewed": "",
+            "fullGalleryReviewed": "", "reviewer": "", "reviewedAt": "",
+        })
+    ids = [int(row["sourceProductId"]) for row in rows]
+    targets = [row["targetModelId"] for row in rows]
+    if len(set(ids)) != len(ids) or len(set(targets)) != len(targets):
+        raise DriveReconciliationError("ambiguous source or target within bulk review")
+    return sorted(rows, key=lambda x: int(x["sourceProductId"]))
+
+
+def render_operator_approved_evidence(
+    report: dict[str, Any], decisions: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    """Convert only explicitly attested operator decisions into offline evidence.
+
+    Caller may write this output to a local review directory, never directly
+    to D1/R2. Existing identityReview parser remains the only canonical owner.
+    """
+    template = {row["sourceProductId"]: row for row in build_operator_review_template(report)}
+    approved: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in decisions:
+        if not isinstance(row, dict):
+            raise DriveReconciliationError("invalid operator decision row")
+        pid = row.get("sourceProductId")
+        if not isinstance(pid, str) or pid not in template or pid in seen:
+            raise DriveReconciliationError("unexpected or repeated operator source ID")
+        seen.add(pid)
+        original = template[pid]
+        for key in ("targetModelId", "sourceImageSha256", "sourceSnapshotSha256"):
+            if row.get(key) != original[key]:
+                raise DriveReconciliationError("operator decision does not match current snapshot")
+        decision = row.get("decision", "")
+        if decision in ("", "hold", "reject"):
+            continue
+        if decision != "approve_map_existing":
+            raise DriveReconciliationError("unsupported operator decision")
+        if any(row.get(key) != "yes" for key in
+               ("visualReviewed", "provenanceReviewed", "fullGalleryReviewed")):
+            raise DriveReconciliationError("operator visual, origin and gallery review required")
+        reviewer = row.get("reviewer")
+        reviewed_at = row.get("reviewedAt")
+        if (not isinstance(reviewer, str) or not 2 <= len(reviewer.strip()) <= 120
+                or not isinstance(reviewed_at, str)):
+            raise DriveReconciliationError("explicit reviewer and date required")
+        try:
+            if date.fromisoformat(reviewed_at).isoformat() != reviewed_at:
+                raise ValueError("noncanonical date")
+        except ValueError as exc:
+            raise DriveReconciliationError("invalid operator review date") from exc
+        approved.append({
+            "version": 1, "sourceId": report["sourceId"],
+            "sourceProductId": int(pid),
+            "reviewedAt": reviewed_at,
+            "sourceSnapshotSha256": original["sourceSnapshotSha256"],
+            "historicalCsvSha256": report["legacyCsvSha256"],
+            "sourceImageSha256": original["sourceImageSha256"],
+            "identityReview": {
+                "decision": "map_existing",
+                "targetModelId": original["targetModelId"],
+                "mapExistingApproved": True,
+                "evidence": "exact active published image SHA plus explicitly reviewed full source gallery and sculpture identity",
+                "operatorVisualReview": True,
+                "operatorProvenanceReview": True,
+                "operatorFullGalleryReview": True,
+                "reviewer": reviewer.strip(),
+            },
+            "decision": {"mapExistingAuthorized": True, "identityResolved": True,
+                         "mediaPromotionAuthorized": False,
+                         "productionWrites": 0, "stagingWrites": 0},
+        })
+    return sorted(approved, key=lambda row: row["sourceProductId"])
+
+
+def write_operator_review_template(report: dict[str, Any], path: Path) -> None:
+    rows = build_operator_review_template(report)
+    with path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=REVIEW_DECISION_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+def write_approved_evidence(
+    report: dict[str, Any], decisions_csv: Path, output_dir: Path,
+) -> int:
+    with decisions_csv.open(encoding="utf-8-sig", newline="") as file:
+        reader = csv.DictReader(file)
+        if reader.fieldnames != REVIEW_DECISION_FIELDS:
+            raise DriveReconciliationError("operator CSV must preserve exact template columns")
+        decisions = list(reader)
+    approved = render_operator_approved_evidence(report, decisions)
+    if not approved:
+        raise DriveReconciliationError("no explicitly reviewed identity decisions")
+    paths = [
+        output_dir / f"external-source-001-drive-map-existing-{row['sourceProductId']}-{row['reviewedAt']}.json"
+        for row in approved
+    ]
+    if len(set(paths)) != len(paths) or any(path.exists() for path in paths):
+        raise DriveReconciliationError("refusing to overwrite any existing identity evidence")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for path, row in zip(paths, approved):
+        path.write_text(json.dumps(row, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return len(approved)
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Bulk-review dated Drive evidence against canonical coverage")
     p.add_argument("coverage", type=Path)
@@ -252,6 +408,9 @@ def main() -> None:
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--active-sha-index", type=Path, default=None)
     p.add_argument("--published-models", type=Path, default=None)
+    p.add_argument("--review-template-csv", type=Path, default=None)
+    p.add_argument("--operator-decisions-csv", type=Path, default=None)
+    p.add_argument("--approved-evidence-dir", type=Path, default=None)
     args = p.parse_args()
     raw = args.legacy_drive_csv.read_bytes()
     with args.legacy_drive_csv.open(encoding="utf-8-sig", newline="") as f:
@@ -268,6 +427,15 @@ def main() -> None:
     data = reconcile(coverage, records, legacy_export_sha256=hashlib.sha256(raw).hexdigest(),
                      legacy_as_of=args.legacy_as_of, active_sha_index=image_index,
                      published_models=published_models)
+    if args.review_template_csv:
+        write_operator_review_template(data, args.review_template_csv)
+    if args.operator_decisions_csv:
+        if not args.approved_evidence_dir:
+            raise DriveReconciliationError("--approved-evidence-dir is mandatory with operator decisions")
+        count = write_approved_evidence(data, args.operator_decisions_csv, args.approved_evidence_dir)
+        print(json.dumps({"operatorApprovedEvidenceFiles": count, "productionWrites": 0}))
+    elif args.approved_evidence_dir:
+        raise DriveReconciliationError("--operator-decisions-csv required")
     args.output.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(data["summary"], ensure_ascii=False))
 

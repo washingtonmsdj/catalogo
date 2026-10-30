@@ -1,7 +1,8 @@
 import copy
 import unittest
 
-from reconcile_drive_coverage import DriveReconciliationError, reconcile
+from reconcile_drive_coverage import (DriveReconciliationError, reconcile, build_operator_review_template,
+                                     render_operator_approved_evidence)
 
 
 def source():
@@ -170,6 +171,80 @@ class DriveEvidenceTests(unittest.TestCase):
             report(rows=[row("COBERTO_CATALOGO_SHA", "11", "b")]) if False else reconcile(
                 source(), [], legacy_export_sha256="b" * 64,
                 legacy_as_of="2026-08-22", published_models=[])
+
+    def fixture_bulk_report(self):
+        report_data = report()
+        item = report_data["workItems"][0]
+        item.update({
+            "shaReviewTier": "A_exact_name_and_franchise",
+            "shaCandidateModelIds": ["mdl_" + "1" * 20],
+            "sourceLinkage": "id_and_slug",
+            "legacySourceProductId": 11,
+            "currentSourceProductId": 11,
+            "currentD1IdentityState": "unreviewed_no_exact_name_candidate",
+            "currentIdentityConfirmed": False,
+            "identityApprovedByThisReport": False,
+            "mediaPromotionAuthorized": False,
+        })
+        return report_data
+
+    def test_bulk_template_never_approves_automatically(self):
+        sample = self.fixture_bulk_report()
+        template = build_operator_review_template(sample)
+        self.assertEqual(len(template), 1)
+        self.assertEqual(template[0]["sourceProductId"], "11")
+        self.assertEqual(template[0]["decision"], "")
+        self.assertEqual(template[0]["visualReviewed"], "")
+        self.assertEqual(template[0]["fullGalleryReviewed"], "")
+        approved = render_operator_approved_evidence(sample, template)
+        self.assertEqual(approved, [])
+
+    def test_bulk_review_accepts_only_explicit_three_gate_decision(self):
+        sample = self.fixture_bulk_report()
+        reviewed = build_operator_review_template(sample)[0]
+        reviewed.update({
+            "decision": "approve_map_existing", "visualReviewed": "yes",
+            "provenanceReviewed": "yes", "fullGalleryReviewed": "yes",
+            "reviewer": "Catalog curator", "reviewedAt": "2026-10-29",
+        })
+        evidence = render_operator_approved_evidence(sample, [reviewed])
+        self.assertEqual(len(evidence), 1)
+        self.assertEqual(evidence[0]["identityReview"]["targetModelId"], "mdl_" + "1" * 20)
+        self.assertTrue(evidence[0]["identityReview"]["mapExistingApproved"])
+        self.assertFalse(evidence[0]["decision"]["mediaPromotionAuthorized"])
+        self.assertEqual(evidence[0]["decision"]["productionWrites"], 0)
+
+    def test_bulk_decisions_reject_stale_or_unreviewed_attestations(self):
+        sample = self.fixture_bulk_report()
+        base = build_operator_review_template(sample)[0]
+        for change in (
+            {"sourceSnapshotSha256": "0" * 64},
+            {"targetModelId": "mdl_" + "f" * 20},
+            {"sourceImageSha256": "0" * 64},
+            {"decision": "approve_map_existing"},
+            {"decision": "approve_map_existing", "visualReviewed": "yes"},
+        ):
+            candidate = {**base, **change}
+            with self.subTest(change=change), self.assertRaises(DriveReconciliationError):
+                render_operator_approved_evidence(sample, [candidate])
+        with self.assertRaises(DriveReconciliationError):
+            render_operator_approved_evidence(sample, [base, base])
+
+    def test_bulk_review_excludes_unresolved_ambiguous_or_conflicting(self):
+        sample = self.fixture_bulk_report()
+        item = sample["workItems"][0]
+        for mutation in (
+            {"shaReviewTier": "B_compatible_labels"},
+            {"shaCandidateModelIds": ["mdl_" + "1" * 20, "mdl_" + "2" * 20]},
+            {"sourceLinkage": "slug_only"},
+            {"currentD1IdentityState": "reviewed_unresolved"},
+            {"currentIdentityConfirmed": True},
+        ):
+            altered = dict(item)
+            altered.update(mutation)
+            copy_report = {**sample, "workItems": [altered]}
+            with self.subTest(mutation=mutation):
+                self.assertEqual(build_operator_review_template(copy_report), [])
 
     def test_no_drive_paths_or_names_leak_into_review_output(self):
         r = row("COBERTO_CATALOGO_SHA", "11", "b")
