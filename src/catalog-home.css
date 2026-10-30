@@ -1416,22 +1416,23 @@ body {
   font-weight: 760;
 }
 .storefront-hero__nav {
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   border: 1px solid rgba(216,226,220,.9);
   background: rgba(255,255,255,.84);
   color: #455a51;
   box-shadow: 0 5px 14px rgba(23,48,39,.06);
   backdrop-filter: blur(10px);
 }
-.storefront-hero__dots { bottom: 14px; gap: 6px; }
+.storefront-hero__dots { bottom: 8px; gap: 0; }
 .storefront-hero__dots button {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(23,79,64,.22);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: transparent;
 }
-.storefront-hero__dots button[aria-current="true"] { width: 20px; background: var(--concept-green); }
+.storefront-hero__dots button::before { background: rgba(23,79,64,.35); }
+.storefront-hero__dots button[aria-current="true"]::before { background: var(--concept-green); }
 
 /* Make the utility strip feel secondary to the hero. */
 .storefront-commandbar {
@@ -1841,8 +1842,8 @@ body { background: #111110; color: #f3eee8; }
 .storefront-hero__metrics small { color: #b0a79d; }
 .storefront-button--ghost { border-color: #51473e; background: rgba(37,36,33,.86); color: #eee6dc; }
 .storefront-hero__nav { border-color: #51473e; background: rgba(28,27,25,.86); color: #eee6dc; }
-.storefront-hero__dots button { background: #696056; }
-.storefront-hero__dots button[aria-current="true"] { background: #f06b24; }
+.storefront-hero__dots button::before { background: #696056; }
+.storefront-hero__dots button[aria-current="true"]::before { background: #f06b24; }
 @media (max-width: 760px) {
   .storefront-search-wrap { grid-column: 1; width: 100%; }
   .storefront-search-suggestions {
