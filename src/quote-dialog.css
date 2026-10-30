@@ -348,3 +348,19 @@
   outline: 2px solid var(--store-accent);
   outline-offset: 2px;
 }
+
+/* R24: receipt-only local continuity, no contact information. */
+.quote-request-last-receipt {
+  display: grid; gap: 7px; padding: 13px;
+  border: 1px solid rgba(87,168,141,.35); border-radius: 9px; background: rgba(25,65,50,.2);
+}
+.quote-request-last-receipt strong { font-size: 11px; color: #d6f0e3; }
+.quote-request-last-receipt code { font-size: 12px; color: #f0c889; overflow-wrap: anywhere; }
+.quote-request-last-receipt small, .quote-request-last-receipt > span { font-size: 10px; line-height: 1.4; color: #acbdb6; }
+.quote-request-last-receipt > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.quote-request-last-receipt button {
+  min-height: 40px; padding: 8px 11px; border: 1px solid rgba(120,186,159,.4);
+  border-radius: 7px; background: #18382f; color: #ecf5ee; cursor: pointer; font-size: 11px;
+}
+.quote-request-last-receipt button:focus-visible { outline: 2px solid var(--store-accent); outline-offset: 2px; }
+.quote-receipt__note { color: #a6c8b9; font-size: 11px; }

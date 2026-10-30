@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { models as demoModels } from '../data/mockCatalog'
-import { listCatalogFranchises, type CatalogRuntimeMode } from '../services/catalogApi'
-import { FRANCHISE_SEARCH_MIN_LENGTH } from '../services/catalogRepository'
+import { listCatalogFranchises, listCatalogModels, type CatalogRuntimeMode } from '../services/catalogApi'
+import { FRANCHISE_SEARCH_MIN_LENGTH, type CatalogModelCard } from '../services/catalogRepository'
+import { explorerScopeKey, resolveExplorerSnapshot, type ExplorerSnapshot } from '../lib/explorerDiscovery'
+import { CatalogSidebarTree } from './CatalogSidebarTree'
 import type { CatalogCategory, CatalogFranchise } from '../types/catalog'
 
 const DISCOVERY_LIMIT = 48
+const MODEL_DISCOVERY_LIMIT = 12
 const numberFormatter = new Intl.NumberFormat('pt-BR')
 
 type Props = {
@@ -12,14 +15,22 @@ type Props = {
   mode: CatalogRuntimeMode
   categories: CatalogCategory[]
   activeCategory: string
+  activeFranchise: string
+  activeFolder: string
+  folderTrail: Array<{ id: string; label: string }>
   initialQuery?: string
   onClose: () => void
   onSelectCategory: (category: string) => void
   onSelectFranchise: (category: string, franchise: string) => void
+  onSelectFolder: (category: string, franchise: string, folder: string) => void
+}
+
+function normalize(value: string) {
+  return value.trim().toLocaleLowerCase('pt-BR')
 }
 
 function demoFranchises(category: string, query: string): CatalogFranchise[] {
-  const needle = query.trim().toLocaleLowerCase('pt-BR')
+  const needle = normalize(query)
   const scoped = category === 'all' ? demoModels : demoModels.filter((model) => model.category === category)
   const grouped = new Map<string, CatalogFranchise>()
 
@@ -31,9 +42,39 @@ function demoFranchises(category: string, query: string): CatalogFranchise[] {
   }
 
   return [...grouped.values()]
-    .filter((item) => !needle || item.label.toLocaleLowerCase('pt-BR').includes(needle))
+    .filter((item) => !needle || normalize(item.label).includes(needle))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label, 'pt-BR'))
     .slice(0, DISCOVERY_LIMIT)
+}
+
+function demoModelResults(category: string, query: string): CatalogModelCard[] {
+  const needle = normalize(query)
+  if (Array.from(needle).length < FRANCHISE_SEARCH_MIN_LENGTH) return []
+
+  return demoModels
+    .filter((model) => {
+      if (category !== 'all' && model.category !== category) return false
+      const haystack = normalize(`${model.name} ${model.variantName} ${model.franchise} ${model.collection} ${model.code} ${model.tags.join(' ')}`)
+      return haystack.includes(needle)
+    })
+    .slice(0, MODEL_DISCOVERY_LIMIT)
+    .map((model) => ({
+      id: model.id,
+      slug: model.slug,
+      code: model.code,
+      name: model.name,
+      variantName: model.variantName,
+      franchise: model.franchise,
+      franchiseSlug: model.franchiseSlug,
+      category: model.category,
+      collection: model.collection,
+      folderPath: model.folderPath,
+      galleryCount: model.galleryCount,
+      galleryVersion: model.galleryVersion,
+      gallerySourceSlugs: model.gallerySourceSlugs,
+      accent: model.accent,
+      coverUrl: model.coverUrl,
+    }))
 }
 
 export function FranchiseBrowser({
@@ -41,73 +82,108 @@ export function FranchiseBrowser({
   mode,
   categories,
   activeCategory,
+  activeFranchise,
+  activeFolder,
+  folderTrail,
   initialQuery = '',
   onClose,
   onSelectCategory,
   onSelectFranchise,
+  onSelectFolder,
 }: Props) {
   const searchRef = useRef<HTMLInputElement>(null)
+  const backRef = useRef<HTMLButtonElement>(null)
+  const [browsingFranchise, setBrowsingFranchise] = useState<CatalogFranchise | null>(null)
   const [category, setCategory] = useState(activeCategory)
   const [query, setQuery] = useState('')
-  const [items, setItems] = useState<CatalogFranchise[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [truncated, setTruncated] = useState(false)
+  // Atomic snapshot: results and errors always belong to the same query+category.
+  const [liveSnapshot, setLiveSnapshot] = useState<ExplorerSnapshot<CatalogFranchise, CatalogModelCard> | null>(null)
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      setLiveSnapshot(null)
+      setBrowsingFranchise(null)
+      return
+    }
+    setBrowsingFranchise(null)
     setCategory(activeCategory)
     setQuery(initialQuery.trim())
-    setError('')
+    setLiveSnapshot(null)
     const frame = window.requestAnimationFrame(() => searchRef.current?.focus())
     return () => window.cancelAnimationFrame(frame)
   }, [open, activeCategory, initialQuery])
 
+  useEffect(() => {
+    if (!open || !browsingFranchise) return
+    const frame = window.requestAnimationFrame(() => backRef.current?.focus())
+    return () => window.cancelAnimationFrame(frame)
+  }, [open, browsingFranchise])
+
   const demoItems = useMemo(() => demoFranchises(category, query), [category, query])
+  const demoModelsFound = useMemo(() => demoModelResults(category, query), [category, query])
   const queryLength = Array.from(query.trim()).length
-  const searchPending = mode === 'live' && queryLength > 0 && queryLength < FRANCHISE_SEARCH_MIN_LENGTH
+  const searchPending = queryLength > 0 && queryLength < FRANCHISE_SEARCH_MIN_LENGTH
+  const modelSearchActive = queryLength >= FRANCHISE_SEARCH_MIN_LENGTH
+  const scopeKey = explorerScopeKey(category, query)
+  const discovery = resolveExplorerSnapshot(scopeKey, liveSnapshot)
+  // Pending begins on the same render as a new term/category, before debounce.
+  const loading = mode === 'live' && !searchPending && !discovery.ready
+  const error = mode === 'live' ? discovery.error : ''
+  const truncated = mode === 'live' ? discovery.truncated : false
 
   useEffect(() => {
-    if (!open || mode !== 'live') return
-    if (queryLength > 0 && queryLength < FRANCHISE_SEARCH_MIN_LENGTH) {
-      setLoading(false)
-      setError('')
-      setItems([])
-      setTruncated(false)
-      return
-    }
+    if (!open || mode !== 'live' || browsingFranchise) return
+    if (searchPending || discovery.ready) return
 
     let cancelled = false
     const timer = window.setTimeout(() => {
-      setLoading(true)
-      setError('')
-      listCatalogFranchises(category, DISCOVERY_LIMIT, query.trim() || undefined)
-        .then((page) => {
+      const franchiseRequest = listCatalogFranchises(category, DISCOVERY_LIMIT, query.trim() || undefined)
+      const modelRequest = modelSearchActive
+        ? listCatalogModels({
+            category,
+            search: query.trim(),
+            limit: MODEL_DISCOVERY_LIMIT,
+          })
+        : Promise.resolve({ items: [] as CatalogModelCard[], nextCursor: null, totalApprox: 0 })
+
+      Promise.all([franchiseRequest, modelRequest])
+        .then(([franchisePage, modelPage]) => {
           if (cancelled) return
-          setItems(page.items)
-          setTruncated(page.truncated)
+          setLiveSnapshot({
+            scopeKey,
+            franchises: franchisePage.items,
+            models: modelPage.items,
+            truncated: franchisePage.truncated,
+            error: '',
+          })
         })
         .catch(() => {
           if (cancelled) return
-          setItems([])
-          setTruncated(false)
-          setError('Não foi possível carregar as franquias agora.')
+          setLiveSnapshot({
+            scopeKey,
+            franchises: [],
+            models: [],
+            truncated: false,
+            error: 'Não foi possível carregar a descoberta do catálogo agora.',
+          })
         })
-        .finally(() => { if (!cancelled) setLoading(false) })
     }, query.trim() ? 220 : 0)
+
     return () => {
       cancelled = true
       window.clearTimeout(timer)
     }
-  }, [open, mode, category, query, queryLength])
+  }, [open, mode, category, query, scopeKey, modelSearchActive, searchPending, browsingFranchise, discovery.ready])
 
   if (!open) return null
 
-  const needle = query.trim().toLocaleLowerCase('pt-BR')
+  const needle = normalize(query)
   const visible = mode === 'live'
-    ? items.filter((item) => !needle || item.label.toLocaleLowerCase('pt-BR').includes(needle))
+    ? discovery.franchises.filter((item) => !needle || normalize(item.label).includes(needle))
     : demoItems
+  const visibleModels = mode === 'live' ? discovery.models : demoModelsFound
   const selectedCategoryLabel = categories.find((item) => item.id === category)?.label ?? 'Todos'
+  const hasDiscoveryResults = visibleModels.length > 0 || visible.length > 0
 
   function chooseCategory(next: string) {
     setCategory(next)
@@ -119,23 +195,71 @@ export function FranchiseBrowser({
     onClose()
   }
 
+  function chooseFolder(folder: string) {
+    if (!browsingFranchise) return
+    onSelectFolder(browsingFranchise.category, browsingFranchise.id, folder)
+    onClose()
+  }
+
+  function returnToFranchises() {
+    setBrowsingFranchise(null)
+    window.requestAnimationFrame(() => searchRef.current?.focus())
+  }
+
+  function chooseModel(model: CatalogModelCard) {
+    onClose()
+    window.location.hash = `modelo=${encodeURIComponent(model.slug)}`
+  }
+
   function showCategory() {
     onSelectCategory(category)
     onClose()
   }
 
+  function handleSearchKey(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter' || loading || searchPending || error) return
+    if (visibleModels[0]) {
+      event.preventDefault()
+      chooseModel(visibleModels[0])
+      return
+    }
+    if (visible[0] && modelSearchActive) {
+      event.preventDefault()
+      chooseFranchise(visible[0])
+    }
+  }
+
   return (
     <div className="modal-backdrop explorer-backdrop" onMouseDown={onClose}>
-      <section className="explorer-modal" role="dialog" aria-modal="true" aria-labelledby="explorer-title" onMouseDown={(event) => event.stopPropagation()}>
+      <section className={`explorer-modal ${browsingFranchise ? "explorer-modal--folders" : ""}`} role="dialog" aria-modal="true" aria-labelledby="explorer-title" onMouseDown={(event) => event.stopPropagation()}>
         <div className="modal-head explorer-head">
           <div>
-            <span>NAVEGADOR DO ACERVO</span>
-            <h2 id="explorer-title">Explorar franquias</h2>
-            <p>Escolha uma categoria e encontre rapidamente uma coleção sem percorrer milhares de modelos.</p>
+            <span>{browsingFranchise ? 'ESTRUTURA DA FRANQUIA' : 'NAVEGADOR DO ACERVO'}</span>
+            <h2 id="explorer-title">{browsingFranchise ? browsingFranchise.label : 'Encontrar modelos e franquias'}</h2>
+            <p>{browsingFranchise ? 'Explore as pastas existentes desta franquia ou abra todos os seus modelos.' : 'Pesquise no mesmo índice do catálogo ou navegue por categoria para chegar ao modelo sem percorrer milhares de itens.'}</p>
           </div>
           <button type="button" aria-label="Fechar navegador" onClick={onClose}>×</button>
         </div>
 
+        {browsingFranchise ? (
+          <div className="explorer-folder-workspace">
+            <div className="explorer-folder-navigation">
+              <button ref={backRef} type="button" onClick={returnToFranchises}>‹ Voltar às franquias</button>
+              <button type="button" className="explorer-folder-all" onClick={() => chooseFranchise(browsingFranchise)}>Ver todos os modelos da franquia ›</button>
+            </div>
+            <div className="explorer-folder-structure" aria-label={`Pastas de ${browsingFranchise.label}`}>
+              <CatalogSidebarTree
+                key={`${browsingFranchise.category}:${browsingFranchise.id}`}
+                category={browsingFranchise.category}
+                franchise={browsingFranchise.id}
+                activeFolder={browsingFranchise.category === activeCategory && browsingFranchise.id === activeFranchise ? activeFolder : ''}
+                trail={browsingFranchise.category === activeCategory && browsingFranchise.id === activeFranchise ? folderTrail : []}
+                onSelectFolder={chooseFolder}
+              />
+            </div>
+          </div>
+        ) : (
+          <>
         <div className="explorer-toolbar">
           <label className={`explorer-search ${searchPending ? 'is-pending' : ''}`}>
             <span aria-hidden="true">⌕</span>
@@ -143,8 +267,9 @@ export function FranchiseBrowser({
               ref={searchRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Buscar franquia, série ou universo..."
-              aria-label="Buscar franquias"
+              onKeyDown={handleSearchKey}
+              placeholder="Buscar modelo, personagem, franquia ou código..."
+              aria-label="Buscar modelos e franquias"
             />
             {query && <button type="button" onClick={() => setQuery('')} aria-label="Limpar busca">×</button>}
           </label>
@@ -168,13 +293,13 @@ export function FranchiseBrowser({
           ))}
         </div>
 
-        <div className="explorer-results" aria-busy={loading}>
+        <div className="explorer-results" aria-busy={loading} aria-live="polite">
           <div className="explorer-results__head">
             <div>
               <span>{selectedCategoryLabel}</span>
               <strong>{searchPending ? `Digite ${FRANCHISE_SEARCH_MIN_LENGTH}+ caracteres` : query.trim() ? `Resultados para “${query.trim()}”` : 'Franquias em destaque'}</strong>
             </div>
-            <small>{loading ? 'Carregando…' : searchPending ? 'Busca indexada' : `${visible.length} exibidas`}</small>
+            <small>{loading ? 'Carregando…' : searchPending ? 'Busca indexada' : query.trim() ? `${visibleModels.length} modelos · ${visible.length} franquias` : `${visible.length} franquias`}</small>
           </div>
 
           {error && <p className="runtime-alert" role="alert">{error}</p>}
@@ -183,38 +308,96 @@ export function FranchiseBrowser({
             <div className="explorer-empty explorer-empty--hint">
               <span>⌕</span>
               <strong>Continue digitando</strong>
-              <p>Use pelo menos {FRANCHISE_SEARCH_MIN_LENGTH} caracteres para pesquisar rapidamente em todas as franquias.</p>
+              <p>Use pelo menos {FRANCHISE_SEARCH_MIN_LENGTH} caracteres para pesquisar rapidamente no índice do catálogo.</p>
             </div>
-          ) : !loading && !error && visible.length === 0 ? (
+          ) : loading ? (
+            <div className="explorer-empty explorer-empty--hint" role="status">
+              <span aria-hidden="true">⌕</span>
+              <strong>Buscando no acervo…</strong>
+              <p>Consultando modelos e franquias deste recorte.</p>
+            </div>
+          ) : !error && !hasDiscoveryResults ? (
             <div className="explorer-empty">
               <span>⌕</span>
-              <strong>Nenhuma franquia encontrada</strong>
+              <strong>Nenhum resultado encontrado</strong>
               <p>Tente outro termo ou volte para “Todos”.</p>
               <button type="button" onClick={() => { setQuery(''); setCategory('all') }}>Limpar recorte</button>
             </div>
-          ) : (
-            <div className="explorer-grid">
-              {visible.map((item, index) => (
-                <button type="button" key={`${item.category}:${item.id}`} onClick={() => chooseFranchise(item)}>
-                  <span className="explorer-grid__rank">{String(index + 1).padStart(2, '0')}</span>
-                  <span className="explorer-grid__body">
-                    <strong>{item.label}</strong>
-                    <small>{categories.find((entry) => entry.id === item.category)?.label ?? item.category}</small>
-                  </span>
-                  <span className="explorer-grid__count">
-                    <strong>{numberFormatter.format(item.count)}</strong>
-                    <small>modelos</small>
-                  </span>
-                  <span className="explorer-grid__arrow">›</span>
-                </button>
-              ))}
-            </div>
+          ) : error ? null : (
+            <>
+              {modelSearchActive && visibleModels.length > 0 && (
+                <>
+                  <div className="explorer-results__head">
+                    <div><span>MODELOS</span><strong>Correspondências diretas</strong></div>
+                    <small>Enter abre o primeiro</small>
+                  </div>
+                  <div className="explorer-grid">
+                    {visibleModels.map((model, index) => (
+                      <button type="button" key={model.id} onClick={() => chooseModel(model)}>
+                        <span
+                          className="explorer-grid__rank"
+                          style={model.coverUrl ? { backgroundImage: `url("${model.coverUrl}")`, backgroundSize: 'cover', backgroundPosition: 'center', color: 'transparent' } : undefined}
+                          aria-hidden="true"
+                        >
+                          {String(index + 1).padStart(2, '0')}
+                        </span>
+                        <span className="explorer-grid__body">
+                          <strong>{model.name}</strong>
+                          <small>{model.variantName || model.franchise || model.code}</small>
+                        </span>
+                        <span className="explorer-grid__count">
+                          <strong>{model.code}</strong>
+                          <small>{numberFormatter.format(model.galleryCount)} imagens</small>
+                        </span>
+                        <span className="explorer-grid__arrow">›</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {visible.length > 0 && (
+                <>
+                  {modelSearchActive && (
+                    <div className="explorer-results__head">
+                      <div><span>FRANQUIAS</span><strong>Coleções relacionadas</strong></div>
+                      <small>{visible.length} exibidas</small>
+                    </div>
+                  )}
+                  <div className="explorer-grid">
+                    {visible.map((item, index) => (
+                      <div className="explorer-grid__franchise" key={`${item.category}:${item.id}`}>
+                        <button type="button" onClick={() => chooseFranchise(item)} aria-label={`Ver modelos de ${item.label}`}>
+                          <span className="explorer-grid__rank">{String(index + 1).padStart(2, '0')}</span>
+                          <span className="explorer-grid__body">
+                            <strong>{item.label}</strong>
+                            <small>{categories.find((entry) => entry.id === item.category)?.label ?? item.category}</small>
+                          </span>
+                          <span className="explorer-grid__count">
+                            <strong>{numberFormatter.format(item.count)}</strong>
+                            <small>modelos</small>
+                          </span>
+                          <span className="explorer-grid__arrow">›</span>
+                        </button>
+                        {mode === 'live' && (
+                          <button type="button" className="explorer-grid__browse" onClick={() => setBrowsingFranchise(item)} aria-label={`Navegar pastas de ${item.label}`}>
+                            Navegar pastas <span aria-hidden="true">›</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           )}
 
           {truncated && !loading && !searchPending && (
             <div className="explorer-more">Mostrando as {DISCOVERY_LIMIT} franquias de maior volume neste recorte. Refine a busca para localizar outras coleções.</div>
           )}
         </div>
+          </>
+        )}
       </section>
     </div>
   )

@@ -118,45 +118,42 @@ def _required_structure_keys(contract: dict[str, Any]) -> list[str]:
 
 
 def schema_structure_statement(contract: dict[str, Any]) -> dict[str, Any]:
-    required_objects = contract["requiredObjects"]
-    selects: list[str] = []
-    params: list[str] = []
+    """Check all SSOT structures without D1's compound SELECT/bind limits.
 
-    for plural, sqlite_type in (
-        ("tables", "table"),
-        ("indexes", "index"),
-        ("triggers", "trigger"),
-    ):
-        names = [str(item).strip() for item in required_objects[plural]]
-        if not names:
-            continue
-        placeholders = ",".join("?" for _ in names)
-        selects.append(
-            "SELECT ? || ':' || name AS structure_key "
-            f"FROM sqlite_schema WHERE type=? AND name IN ({placeholders})"
-        )
-        params.extend([sqlite_type, sqlite_type, *names])
-
-    for table, raw_names in required_objects["columns"].items():
-        table_name = str(table).strip()
-        if not table_name.replace("_", "").isalnum() or not table_name[0].isalpha():
-            raise RuntimeError(f"nome de tabela inválido no contrato: {table_name!r}")
-        names = [str(item).strip() for item in raw_names]
-        if not names:
-            continue
-        placeholders = ",".join("?" for _ in names)
-        selects.append(
-            "SELECT ? || name AS structure_key "
-            f"FROM pragma_table_info('{table_name}') WHERE name IN ({placeholders})"
-        )
-        params.extend([f"column:{table_name}.", *names])
-
-    if not selects:
+    SQL literals are exclusively generated from the versioned schema contract.
+    A VALUES relation scales without UNION ALL, with the same output shape.
+    """
+    _required_structure_keys(contract)
+    objects = contract["requiredObjects"]
+    rows: list[tuple[str, str, str]] = []
+    for plural, kind in (("tables", "table"), ("indexes", "index"), ("triggers", "trigger")):
+        rows.extend((kind, "", str(name).strip()) for name in objects[plural])
+    for table, columns in objects["columns"].items():
+        rows.extend(("column", str(table).strip(), str(name).strip()) for name in columns)
+    if not rows:
         raise RuntimeError("contrato de schema não possui estruturas obrigatórias")
-    return {
-        "sql": " UNION ALL ".join(selects),
-        "params": params,
-    }
+
+    def sql_literal(value: str) -> str:
+        return "'" + value.replace("'", "''") + "'"
+
+    values = ",".join(
+        "(" + ",".join(map(sql_literal, row)) + ")" for row in rows
+    )
+    sql = (
+        "WITH requirements(kind,table_name,name) AS (VALUES " + values + ") "
+        "SELECT CASE WHEN requirements.kind='column' "
+        "THEN 'column:' || requirements.table_name || '.' || requirements.name "
+        "ELSE requirements.kind || ':' || requirements.name END AS structure_key "
+        "FROM requirements "
+        "WHERE (requirements.kind<>'column' AND EXISTS ("
+        "SELECT 1 FROM sqlite_schema AS item "
+        "WHERE item.type=requirements.kind AND item.name=requirements.name"
+        ")) OR (requirements.kind='column' AND EXISTS ("
+        "SELECT 1 FROM pragma_table_info(requirements.table_name) AS item "
+        "WHERE item.name=requirements.name"
+        "))"
+    )
+    return {"sql": sql, "params": []}
 
 
 def validate_schema_structures(

@@ -4,6 +4,7 @@ import App from './App'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
 import { CatalogPublicationBanner } from './components/CatalogPublicationBanner'
 import { CollectionsDock } from './components/CollectionsDock'
+import { CollectionActionsProvider } from './components/CollectionActionsContext'
 import { ConnectivityBanner } from './components/ConnectivityBanner'
 import { SharedCollectionsDock } from './components/SharedCollectionsDock'
 import { installDialogAccessibility } from './installDialogAccessibility'
@@ -65,9 +66,13 @@ createRoot(document.getElementById('root')!).render(
     <AppErrorBoundary>
       <ConnectivityBanner />
       <CatalogPublicationBanner />
-      <App />
-      <CollectionsDock />
-      <SharedCollectionsDock />
+      <CollectionActionsProvider>
+        <App />
+        <div className="collections-action-dock" role="group" aria-label="Ações de coleções">
+          <CollectionsDock />
+          <SharedCollectionsDock />
+        </div>
+      </CollectionActionsProvider>
     </AppErrorBoundary>
   </StrictMode>,
 )
