@@ -296,6 +296,66 @@ Nenhum dos 31 SHA consta do índice D1 de referência; diferenças de
 arquivo, ângulo ou compressão não provam esculturas distintas.
 Conservar todos os originais no lugar até resolver identidade e direitos.
 
+
+### Inventário físico das seis categorias — 2026-10-30
+
+Varredura **somente leitura** em DESKTOP-PNUHUA0, com enumeração recursiva
+das imagens reais (JPEG, PNG, WebP, GIF, JFIF e BMP) nas seis categorias
+principais. Os sufixos numéricos dos nomes de pastas são apresentação
+histórica, não prova do conteúdo atual.
+
+| Categoria | Sufixo da pasta | Imagens reais | Folhas com sufixo positivo e sem imagem |
+| --- | ---: | ---: | ---: |
+| Pessoas | 9 | 9 | 0 |
+| Games | 539 | 534 | 2 |
+| Tokusatsu e Cultura Japonesa | 15 | 15 | 0 |
+| Animes e Desenhos | 1.062 | 1.062 | 2 |
+| Marvel e DC | 716 | 714 | 6 |
+| Filmes e Séries | 255 | 261 | 10 |
+| **Total** | **2.596** | **2.595** | **20** |
+
+**A diferença líquida de uma imagem não significa apenas um modelo
+faltando.** Há compensações entre categorias e múltiplas fotografias
+da mesma escultura. O número de arquivos não é a contagem de identidades
+únicas do D1.
+
+Dentre as 20 pastas finais vazias, há três classes verificadas:
+
+- **10 destinos correspondentes ao conteúdo atualmente em Novos:**
+  Matt e Gabumon; Tai e Agumon; A Freira; Chucky; Hannibal Lecter;
+  Jason Voorhees; Leatherface; Huntress; Lucifer Morningstar; Rorschach.
+  Cada destino nominal está vazio e a imagem ainda está em Novos.
+  A existência do arquivo não substitui aprovação da identidade,
+  procedência, qualidade e direitos.
+- **5 destinos adicionais sem imagem na pasta e sem imagem diretamente
+  na pasta-pai:** Warcraft / Lady Vashj (sufixo 1),
+  Mortal Kombat / Motaro (sufixo 2),
+  Quarteto Fantástico / Mulher Invisível (sufixo 1),
+  Senhor Fantástico (sufixo 1), Tocha Humana (sufixo 1).
+  Existem arquivos com esses nomes em outros lugares do Drive,
+  mas os nomes não provam identidade da escultura.
+  Há também outra pasta Mulher Invisível na área Heróis Individuais,
+  esta com uma imagem, distinta da pasta vazia do Quarteto Fantástico.
+- **5 subdivisões de Alien com arquivos na pasta superior:**
+  Dog Alien (2), Xenomorfo (6), Ellen Ripley (3),
+  Facehugger (2), Rainha Alien (1).
+  A pasta Alien possui 14 arquivos diretos correspondentes
+  a esses personagens, de modo que as subdivisões vazias não são
+  evidência de 14 imagens ou esculturas faltantes.
+
+A rotina canônica atualizar-indice-publico-catalogo.ps1 já conta
+arquivos físicos e só pode atualizar os sufixos depois do preflight
+SHA V4. Portanto: não criar outro contador, não renomear
+pastas manualmente e não promover mídia de terceiros sem evidência
+e autorização correspondentes.
+
+**Execução seguinte de conteúdo:** reconciliar os dez itens de Novos
+com aprovação de curadoria, os cinco destinos adicionais com as
+representações encontradas em outras áreas e os nove grupos visuais
+da raiz. Tratar os itens Alien como referências já situadas na pasta
+superior, não como arquivos ausentes. Permanecem separadas as
+pendências de ingestão em escala da fonte externa.
+
 **Ordem operacional revisada:** (1) sanar a discrepância de dez
 pastas vazias sem mascarar a contagem; (2) revisar autorizações e
 preflight do executor para os dez itens de `Novos`; (3) avaliar os
