@@ -23,6 +23,27 @@ class AuditWorkflowBudgetTests(unittest.TestCase):
                 self.assertLess(verify, budget)
                 self.assertLess(budget, d1_read)
 
+    def test_database_maintenance_reserves_quota_before_its_first_read(self):
+        workflow = (WORKFLOWS / "catalog-maintenance.yml").read_text(encoding="utf-8")
+        self.assertIn("default: audit", workflow)
+        self.assertIn("group: cloudflare-api", workflow)
+        self.assertIn("cancel-in-progress: false", workflow)
+        budget = workflow.index("- name: Reserve public D1 quota before database maintenance")
+        next_step = workflow.index("- name: Validate active Worker health and schema")
+        budget_block = workflow[budget:next_step]
+        self.assertIn("inputs.operation != 'verify-public-hierarchy'", budget_block)
+        self.assertIn("run: python tools/check_d1_editorial_audit_budget.py", budget_block)
+        self.assertLess(budget, next_step)
+        for step in (
+            "- name: Audit D1 structural integrity",
+            "- name: Plan reviewed legacy gallery repairs",
+            "- name: Measure image SHA index coverage",
+            "- name: Backfill image SHA index",
+            "- name: Apply reviewed legacy gallery repairs",
+        ):
+            with self.subTest(step=step):
+                self.assertLess(budget, workflow.index(step))
+
     def test_deploy_uses_same_concurrency_group(self):
         workflow = (WORKFLOWS / "cloudflare.yml").read_text(encoding="utf-8")
         self.assertIn("group: cloudflare-api", workflow)

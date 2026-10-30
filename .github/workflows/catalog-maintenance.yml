@@ -62,6 +62,9 @@ jobs:
           set -euo pipefail
           database_id="$(node tools/read_wrangler_d1_id.mjs)"
           echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
+      - name: Reserve public D1 quota before database maintenance
+        if: ${{ inputs.operation != 'verify-public-hierarchy' }}
+        run: python tools/check_d1_editorial_audit_budget.py
       - name: Validate active Worker health and schema
         run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
 
