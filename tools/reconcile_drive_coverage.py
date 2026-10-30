@@ -11,6 +11,7 @@ import csv
 import hashlib
 import json
 import re
+import unicodedata
 from collections import Counter
 from pathlib import Path
 from typing import Any
@@ -30,9 +31,24 @@ class DriveReconciliationError(ValueError):
     pass
 
 
+def compare_review_label(source: str, published: str) -> str:
+    """Normalized text is a review hint, not an identity or similarity approval."""
+    def norm(value: str) -> str:
+        decomposed = unicodedata.normalize("NFKD", value.casefold())
+        plain = "".join(c for c in decomposed if not unicodedata.combining(c))
+        return re.sub(r"[^a-z0-9]+", " ", plain).strip()
+    a, b = norm(source), norm(published)
+    if a and a == b:
+        return "exact"
+    if a and b and (a in b or b in a):
+        return "partial"
+    return "different"
+
+
 def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
               *, legacy_export_sha256: str, legacy_as_of: str,
-              active_sha_index: dict[str, Any] | None = None) -> dict[str, Any]:
+              active_sha_index: dict[str, Any] | None = None,
+              published_models: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     canonical = build_triage(coverage)  # one SSOT for current identity states
     if not SHA.fullmatch(legacy_export_sha256):
         raise DriveReconciliationError("invalid source CSV digest")
@@ -80,6 +96,23 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
                 or summ.get("allPublishedModelsIndexed") is not (len(indexed_models) == summ["publishedModels"])):
             raise DriveReconciliationError("inconsistent D1 SHA index summary")
         index_summary = summ
+    metadata_by_id: dict[str, dict[str, Any]] | None = None
+    if published_models is not None:
+        if active_sha_index is None or not isinstance(published_models, list):
+            raise DriveReconciliationError("published model metadata requires active SHA index")
+        metadata_by_id = {}
+        for m in published_models:
+            if not isinstance(m, dict):
+                raise DriveReconciliationError("invalid published model metadata")
+            mid = m.get("id")
+            if (not isinstance(mid, str) or not re.fullmatch(r"mdl_[0-9a-f]{20}", mid)
+                    or mid in metadata_by_id
+                    or any(not isinstance(m.get(key), str) or not m[key].strip()
+                           for key in ("name", "franchise_name", "slug"))):
+                raise DriveReconciliationError("inconsistent published model metadata")
+            metadata_by_id[mid] = m
+        if len(metadata_by_id) != coverage["summary"]["publishedModels"]:
+            raise DriveReconciliationError("published model metadata count mismatch")
     seen: set[tuple[str, str]] = set()
     output: list[dict[str, Any]] = []
     for i, row in enumerate(records, 1):
@@ -110,6 +143,26 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
                 else "slug_only" if current_by_slug is not None else "not_found")
         is_confirmed = bool(current and current["state"].startswith("confirmed_present_"))
         sha_model_candidates = sorted(by_sha.get(digest.lower(), set()))
+        review_tier = "not_classified"
+        target_metadata = None
+        label_matches = None
+        if metadata_by_id is not None and len(sha_model_candidates) == 1:
+            mid = sha_model_candidates[0]
+            target_metadata = metadata_by_id.get(mid)
+            if target_metadata is None:
+                raise DriveReconciliationError("SHA candidate is not in published model snapshot")
+            person, franchise = row.get("personagem"), row.get("franquia")
+            if not isinstance(person, str) or not isinstance(franchise, str):
+                raise DriveReconciliationError("historical Drive labels are required for metadata review")
+            name_match = compare_review_label(person, target_metadata["name"])
+            franchise_match = compare_review_label(franchise, target_metadata["franchise_name"])
+            label_matches = {"name": name_match, "franchise": franchise_match}
+            review_tier = (
+                "A_exact_name_and_franchise" if name_match == franchise_match == "exact"
+                else "B_compatible_labels" if name_match in ("exact", "partial")
+                and franchise_match in ("exact", "partial")
+                else "C_metadata_difference_requires_visual_review"
+            )
         output.append({
             "legacySlug": slug,
             "legacySourceProductId": int(raw_pid) if raw_pid else None,
@@ -128,6 +181,13 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
             "imagePresentInCurrentD1Proven": False,
             "shaIndexedInActivePublishedGallery": bool(sha_model_candidates),
             "shaCandidateModelIds": sha_model_candidates,
+            "shaReviewTier": review_tier,
+            "publishedModelName": target_metadata["name"] if target_metadata else None,
+            "publishedFranchiseName": target_metadata["franchise_name"] if target_metadata else None,
+            "publishedModelSlug": target_metadata["slug"] if target_metadata else None,
+            "historicalCharacterLabel": row.get("personagem") if target_metadata else None,
+            "historicalFranchiseLabel": row.get("franquia") if target_metadata else None,
+            "shaLabelComparisons": label_matches,
             "shaEvidenceStatus": (
                 "published_sha_candidate_requires_review" if sha_model_candidates
                 else "not_in_current_index_does_not_prove_missing_sculpture"
@@ -173,6 +233,7 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
                 bool(x["shaCandidateModelIds"]) and not x["currentIdentityConfirmed"]
                 for x in output
             ),
+            "shaReviewTierCounts": dict(sorted(Counter(x["shaReviewTier"] for x in output).items())),
             "casesWithMultipleShaModelCandidates": sum(
                 len(x["shaCandidateModelIds"]) > 1 for x in output
             ),
@@ -190,6 +251,7 @@ def main() -> None:
     p.add_argument("--legacy-as-of", required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--active-sha-index", type=Path, default=None)
+    p.add_argument("--published-models", type=Path, default=None)
     args = p.parse_args()
     raw = args.legacy_drive_csv.read_bytes()
     with args.legacy_drive_csv.open(encoding="utf-8-sig", newline="") as f:
@@ -201,8 +263,11 @@ def main() -> None:
     coverage = json.loads(args.coverage.read_text(encoding="utf-8-sig"))
     image_index = (json.loads(args.active_sha_index.read_text(encoding="utf-8"))
                    if args.active_sha_index else None)
+    published_models = (json.loads(args.published_models.read_text(encoding="utf-8"))
+                        if args.published_models else None)
     data = reconcile(coverage, records, legacy_export_sha256=hashlib.sha256(raw).hexdigest(),
-                     legacy_as_of=args.legacy_as_of, active_sha_index=image_index)
+                     legacy_as_of=args.legacy_as_of, active_sha_index=image_index,
+                     published_models=published_models)
     args.output.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps(data["summary"], ensure_ascii=False))
 

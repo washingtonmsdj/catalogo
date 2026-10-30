@@ -130,6 +130,47 @@ class DriveEvidenceTests(unittest.TestCase):
                       legacy_export_sha256="b" * 64, legacy_as_of="2026-08-22",
                       active_sha_index=index)
 
+    def test_review_tiers_use_current_metadata_without_approving_identity(self):
+        mid = "mdl_" + "1" * 20
+        index = {"version": 1, "scope": "active_published_gallery_source_sha_read_only",
+                 "summary": {"publishedModels": 5, "indexedModels": 1,
+                             "indexedImageRows": 1, "modelsWithoutIndex": 4,
+                             "allPublishedModelsIndexed": False},
+                 "modelShaPairs": [{"sourceSha256": "a" * 64, "modelId": mid}],
+                 "identityApproved": False, "mediaPromotionAuthorized": False,
+                 "missingShaProvesMissingSculpture": False,
+                 "sourceShaProvesSculptureIdentity": False,
+                 "productionWrites": 0, "stagingWrites": 0, "imageBinariesDownloaded": 0}
+        metadata = [
+            {"id": "mdl_" + str(i) * 20, "name": "Esdeath" if i == 1 else "Other",
+             "franchise_name": "Akame ga Kill" if i == 1 else "Other", "slug": str(i)}
+            for i in range(1, 6)
+        ]
+        legacy = row("COBERTO_CATALOGO_SHA", "11", "b")
+        legacy["personagem"] = "Esdeath"
+        legacy["franquia"] = "Akame Ga Kill"
+        data = reconcile(source(), [legacy], legacy_export_sha256="b" * 64,
+                         legacy_as_of="2026-08-22", active_sha_index=index,
+                         published_models=metadata)
+        item = data["workItems"][0]
+        self.assertEqual(item["shaReviewTier"], "A_exact_name_and_franchise")
+        self.assertEqual(item["publishedModelName"], "Esdeath")
+        self.assertFalse(item["identityApprovedByThisReport"])
+        self.assertEqual(data["summary"]["shaReviewTierCounts"]["A_exact_name_and_franchise"], 1)
+
+        legacy["personagem"] = "Another unrelated name"
+        mismatch = reconcile(source(), [legacy], legacy_export_sha256="b" * 64,
+                             legacy_as_of="2026-08-22", active_sha_index=index,
+                             published_models=metadata)
+        self.assertEqual(mismatch["workItems"][0]["shaReviewTier"],
+                         "C_metadata_difference_requires_visual_review")
+
+    def test_published_metadata_mismatch_fails_closed(self):
+        with self.assertRaisesRegex(DriveReconciliationError, "requires active SHA index"):
+            report(rows=[row("COBERTO_CATALOGO_SHA", "11", "b")]) if False else reconcile(
+                source(), [], legacy_export_sha256="b" * 64,
+                legacy_as_of="2026-08-22", published_models=[])
+
     def test_no_drive_paths_or_names_leak_into_review_output(self):
         r = row("COBERTO_CATALOGO_SHA", "11", "b")
         r["imagem_privada"] = r"C:\Users\PRIVATE\picture.jpg"
