@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/external-source-coverage.yml'
       - 'tools/audit_external_source_coverage.py'
+      - 'tools/audit_published_sha_inventory.py'
+      - 'tools/test_audit_published_sha_inventory.py'
       - 'tools/audit_published_model_collisions.py'
       - 'tools/test_audit_published_model_collisions.py'
       - 'tools/plan_catalog_collision_review.py'
@@ -46,7 +48,7 @@ jobs:
           node-version: 22
       - name: Test conservative coverage semantics
         working-directory: tools
-        run: python -m unittest -v test_audit_external_source_coverage.py test_plan_external_identity_triage.py test_audit_published_model_collisions.py test_plan_catalog_collision_review.py
+        run: python -m unittest -v test_audit_external_source_coverage.py test_audit_published_sha_inventory.py test_plan_external_identity_triage.py test_audit_published_model_collisions.py test_plan_catalog_collision_review.py
       - name: Verify read-only bindings
         shell: bash
         env:
@@ -67,6 +69,11 @@ jobs:
           --output "$RUNNER_TEMP/external-source-coverage.json"
           --published-models-output "$RUNNER_TEMP/published-models.json"
           --shared-image-sha-output "$RUNNER_TEMP/published-shared-image-sha.json"
+      - name: Index published gallery SHA metadata without image downloads
+        run: >-
+          python tools/audit_published_sha_inventory.py
+          --published-models "$RUNNER_TEMP/published-models.json"
+          --output "$RUNNER_TEMP/published-active-image-sha-index.json"
       - name: Audit collisions across published models from the same D1 snapshot
         run: >-
           python tools/audit_published_model_collisions.py
@@ -104,6 +111,11 @@ jobs:
           assert queue['summary']['slugConflictGroups']==len(collisions['exactSlugCollisions'])
           assert queue['summary']['imageShaIndexStatus']=='positive_matches_only_index_completeness_unknown'
           assert queue['summary']['imageShaProvesSculptureIdentity'] is False
+          index=json.loads(Path(__import__('os').environ['RUNNER_TEMP'], 'published-active-image-sha-index.json').read_text(encoding='utf-8'))
+          assert index['summary']['publishedModels']==summary['publishedModels']
+          assert index['summary']['modelsWithoutIndex']>=0
+          assert index['identityApproved'] is False and index['mediaPromotionAuthorized'] is False
+          assert index['productionWrites']==index['stagingWrites']==0
           assert all(not pair['mergeAuthorized'] for group in queue['groups'] for pair in group['sharedImageShaReviewPairs'])
           assert all(not group['mergeAuthorized'] for group in queue['slugConflictGroups'])
           assert queue['summary']['mutations']==0
@@ -211,6 +223,7 @@ jobs:
             ${{ runner.temp }}/external-source-coverage.json
             ${{ runner.temp }}/published-model-collisions.json
             ${{ runner.temp }}/published-shared-image-sha.json
+            ${{ runner.temp }}/published-active-image-sha-index.json
             ${{ runner.temp }}/published-collision-review-queue.json
             ${{ runner.temp }}/external-source-identity-triage.json
             ${{ runner.temp }}/external-source-priority-review-batch.json
