@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from audit_external_source_coverage import CoverageError, classify, fetch_json, fetch_source_products, review_alias_hints, review_evidence, subject_hint
+from audit_external_source_coverage import CoverageError, batch_model_ids, classify, fetch_json, fetch_source_products, review_alias_hints, review_evidence, subject_hint
 
 
 class ExternalSourceCoverageTests(unittest.TestCase):
@@ -186,6 +186,71 @@ class ExternalSourceCoverageTests(unittest.TestCase):
             self.assertEqual(targets[10], {"mdl_a"})
             report = classify([{"id": 10, "name": "Azula"}], self.models, states, {}, targets)
             self.assertEqual(report["summary"]["confirmedPresent"], 1)
+
+    def test_unapproved_new_model_identity_cannot_prove_published_presence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "external-source-001-new-model.json").write_text(json.dumps({
+                "sourceProductId": 12,
+                "identityReview": {"decision": "new_model"},
+                "decision": {"identityResolved": False, "newModelIdentityAuthorized": False},
+            }), encoding="utf-8")
+            states, targets = review_evidence(Path(tmp))
+            report = classify(
+                [{"id": 12, "name": "Zoro 3 Diorama"}],
+                self.models, states, {12: "mdl_new"}, targets,
+            )
+            self.assertEqual(report["summary"]["confirmedPresent"], 0)
+            self.assertEqual(report["products"][0]["state"], "reviewed_unresolved")
+
+    def test_contradictory_identity_approvals_fail_closed(self):
+        for identity, decision in (
+            ({"decision": "new_model"}, {"identityResolved": False, "newModelIdentityAuthorized": True}),
+            ({"decision": "map_existing", "targetModelId": "mdl_a", "mapExistingApproved": True},
+             {"identityResolved": False}),
+        ):
+            with self.subTest(identity=identity), tempfile.TemporaryDirectory() as tmp:
+                (Path(tmp) / "external-source-001-contradiction.json").write_text(json.dumps({
+                    "sourceProductId": 10, "identityReview": identity, "decision": decision,
+                }), encoding="utf-8")
+                with self.assertRaisesRegex(CoverageError, "contradiz"):
+                    review_evidence(Path(tmp))
+
+    def test_conflicting_targets_across_evidence_files_fail_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            for suffix, target in (("a", "mdl_a"), ("b", "mdl_r1")):
+                (Path(tmp) / f"external-source-001-{suffix}.json").write_text(json.dumps({
+                    "sourceProductId": 10,
+                    "identityReview": {"decision": "map_existing", "mapExistingApproved": True,
+                                       "targetModelId": target},
+                }), encoding="utf-8")
+            with self.assertRaisesRegex(CoverageError, "entre evidências"):
+                review_evidence(Path(tmp))
+
+    def test_batch_model_targets_fail_closed_on_corruption_or_conflict(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first = root / "external-source-001-batch-002.json"
+            second = root / "external-source-001-batch-003.json"
+            first.write_text(json.dumps({"products": [
+                {"productId": 10, "expectedModelId": "mdl_a"},
+            ]}), encoding="utf-8")
+            second.write_text(json.dumps({"products": [
+                {"productId": 10, "expectedModelId": "mdl_a"},
+            ]}), encoding="utf-8")
+            self.assertEqual(batch_model_ids(root), {10: "mdl_a"})
+            second.write_text(json.dumps({"products": [
+                {"productId": 10, "expectedModelId": "mdl_other"},
+            ]}), encoding="utf-8")
+            with self.assertRaisesRegex(CoverageError, "divergentes"):
+                batch_model_ids(root)
+            second.write_text("{invalid", encoding="utf-8")
+            with self.assertRaisesRegex(CoverageError, "ilegível"):
+                batch_model_ids(root)
+            second.write_text(json.dumps({"products": [
+                {"productId": True, "expectedModelId": "mdl_a"},
+            ]}), encoding="utf-8")
+            with self.assertRaisesRegex(CoverageError, "inválida"):
+                batch_model_ids(root)
 
     def test_identity_proven_but_media_blocked_is_still_present(self):
         # A blocked gallery never grants media promotion, but does not erase

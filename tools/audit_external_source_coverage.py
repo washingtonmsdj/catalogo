@@ -200,20 +200,29 @@ def fetch_published_models(account_id: str, token: str, database_id: str) -> lis
 
 
 def batch_model_ids(root: Path) -> dict[int, str]:
+    """Require a single unambiguous canonical model target across every release batch."""
     result: dict[int, str] = {}
     for path in sorted(root.glob("external-source-001-batch-*.json")):
         try:
             payload = load_json(path)
-        except (OSError, json.JSONDecodeError):
-            continue
-        for product in payload.get("products") or []:
-            try:
-                product_id = int(product.get("productId"))
-            except (TypeError, ValueError):
-                continue
-            model_id = str(product.get("expectedModelId") or "").strip()
-            if model_id:
-                result[product_id] = model_id
+        except (OSError, json.JSONDecodeError) as exc:
+            raise CoverageError(f"descritor de batch ilegível: {path.name}") from exc
+        if not isinstance(payload, dict) or not isinstance(payload.get("products"), list):
+            raise CoverageError(f"estrutura de batch inválida: {path.name}")
+        for product in payload["products"]:
+            if not isinstance(product, dict):
+                raise CoverageError(f"produto de batch inválido: {path.name}")
+            product_id = product.get("productId")
+            model_id = product.get("expectedModelId")
+            if (isinstance(product_id, bool) or not isinstance(product_id, int)
+                    or product_id <= 0 or not isinstance(model_id, str)
+                    or not model_id.startswith("mdl_") or len(model_id) <= 4
+                    or model_id != model_id.strip()):
+                raise CoverageError(f"identidade de batch inválida: {path.name}")
+            previous = result.get(product_id)
+            if previous is not None and previous != model_id:
+                raise CoverageError(f"modelos divergentes para produto {product_id} entre batches")
+            result[product_id] = model_id
     return result
 
 
@@ -232,11 +241,19 @@ def review_evidence(root: Path) -> tuple[dict[int, set[str]], dict[int, set[str]
             continue
         identity = payload.get("identityReview") or {}
         decision = str(identity.get("decision") or "").strip()
-        if decision in {"map_existing", "new_model", "unresolved"}:
+        if decision in {"map_existing", "unresolved"}:
             states[product_id].add(decision)
         top_decision = payload.get("decision") or {}
-        if top_decision.get("newModelAuthorized") is True or top_decision.get("newModelIdentityAuthorized") is True:
+        if not isinstance(top_decision, dict):
+            raise CoverageError(f"decisão de identidade inválida em {path.name}")
+        approved_new_model = (top_decision.get("newModelAuthorized") is True
+                              or top_decision.get("newModelIdentityAuthorized") is True)
+        if approved_new_model and top_decision.get("identityResolved") is False:
+            raise CoverageError(f"aprovação new_model contradiz identidade não resolvida em {path.name}")
+        if approved_new_model:
             states[product_id].add("new_model")
+        elif decision == "new_model":
+            states[product_id].add("unresolved")
         if top_decision.get("identityResolved") is False:
             states[product_id].add("unresolved")
         if top_decision.get("galleryMediaReviewApproved") is False:
@@ -250,6 +267,8 @@ def review_evidence(root: Path) -> tuple[dict[int, set[str]], dict[int, set[str]
                 or top_decision.get("mapExistingApproved") is True
                 or top_decision.get("identityResolved") is True
             )
+            if approved and top_decision.get("identityResolved") is False:
+                raise CoverageError(f"aprovação map_existing contradiz identidade não resolvida em {path.name}")
             if approved:
                 target_ids = {
                     str(candidate or "").strip()
@@ -267,6 +286,9 @@ def review_evidence(root: Path) -> tuple[dict[int, set[str]], dict[int, set[str]
                     if not target_id.startswith("mdl_"):
                         raise CoverageError(f"target map_existing inválido em {path.name}")
                     existing_targets[product_id].add(target_id)
+    for product_id, target_ids in existing_targets.items():
+        if len(target_ids) > 1:
+            raise CoverageError(f"alvos map_existing divergentes entre evidências para produto {product_id}")
     return states, existing_targets
 
 
