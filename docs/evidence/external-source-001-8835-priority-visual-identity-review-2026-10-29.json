@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 8835,
+  "productName": "Bomberman — STL Files",
+  "scope": "read_only_identity_only_no_new_gallery",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "sourceFilesVerifiedBySha256": true,
+    "completeStaging": false,
+    "stagingNote": "Source bytes were downloaded only for review; canonical private staging was not demonstrated."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40835396027,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40835396027",
+    "artifactName": "external-priority-visual-review-40835396027-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "34b719f9b2dbd677bd196d4e3e7dac094afbb12d857de81efda34ac8bb70a730",
+    "sourcePositionBytes": 2501841,
+    "sourcePositionDhash": "1353321a71e0e172",
+    "productionCoverSha256": "6d8b1dd156623c2c8a529517ad4401cd54ce5fb85ba7f42caf6c58bf03d2f8bb",
+    "productionCoverBytes": 30870,
+    "productionCoverDhash": "1353321a71e0e172",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Identical white square Bomberman helmet and pink sphere, blue outfit with black belt and yellow buckle, pink boots, spherical bomb with yellow lightning effect on a round gray plinth. Source view 1 and published cover match exactly in pose, props, camera, and background; source print-test photos corroborate same statue.",
+    "identityProofInterpretation": "Visual sculptural identity verified across available views and source/candidate image SHA-256; dHash agrees exactly but is not sufficient alone."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_ecf93cb9b53b2fbad59d",
+    "slug": "bomberman-bomberman",
+    "coverStorageKey": "media/mdl_ecf93cb9b53b2fbad59d/img_829227e3437fd4d66797/card.webp",
+    "published": true,
+    "coverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_ecf93cb9b53b2fbad59d",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "External promotional renders show third-party studio branding, a marketplace reference and print-test images. Review only, not permission for gallery import, removal of branding, or media replacement."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep only the existing published canonical model. Verify rights, author attribution and watermark policy independently before any image import, crop, replacement or publication."
+  }
+}

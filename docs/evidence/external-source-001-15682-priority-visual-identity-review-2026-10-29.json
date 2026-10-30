@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 15682,
+  "productName": "Crossbreed Priscilla — Dark Souls",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "stagingCoverage": "0/6",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40892556102,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40892556102",
+    "artifactName": "external-priority-visual-review-40892556102-1",
+    "reviewedSourcePosition": 3,
+    "sourcePositionSha256": "fb0794b0b6a21c25fe1144c58ad4e23439befa4a2cdcf8fbcf8b57fd0cc63804",
+    "sourcePositionBytes": 552556,
+    "sourcePositionDhash": "06c4c8e0e1b0b033",
+    "productionCoverSha256": "100448ef63ef366955c6c3e39495b8c1dd88cae6e292560fc936aca271a1813d",
+    "productionCoverBytes": 71764,
+    "productionCoverDhash": "06c4c8e0e1b0b033",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Same pale white-haired Crossbreed Priscilla carrying large curved scythe, layered white-blue fur dress and tail, on identical engraved oval plinth. Source position 3 matches the public cover including camera framing and fur folds; rear views confirm. Source image SHA-256 also has model_image_sources owner equal to this published model.",
+    "identityProofInterpretation": "Visual sculpture, pose and base comparison corroborated by verified SHA-256, identical dHash and same-model source provenance; none alone can license media."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_cede383c9b593a2c49a1",
+    "reviewedCandidateModelId": "mdl_cede383c9b593a2c49a1",
+    "reviewedCandidateSlug": "dark-souls-crossbreed-priscilla",
+    "coverStorageKey": "media/mdl_cede383c9b593a2c49a1/img_f449010d53fdb70cc3b3/card.webp",
+    "published": true,
+    "sourceShaOwnerIsSamePublishedTarget": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [
+      "mdl_cede383c9b593a2c49a1"
+    ]
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_cede383c9b593a2c49a1",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Third-party studio and Patreon promotional marks on source and/or canonical cover; verify rights and attribution separately."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep single canonical published model; independently verify media rights, provenance, and private staging before any image use."
+  }
+}

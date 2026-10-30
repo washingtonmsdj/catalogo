@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 673,
+  "productName": "Angemon STL — Digimon",
+  "scope": "read_only_identity_only_no_new_gallery",
+  "sourceGallery": {
+    "positionsDownloaded": 4,
+    "totalSourcePositions": 4,
+    "sourceFilesVerifiedBySha256": true,
+    "completeStaging": false,
+    "stagingNote": "Source bytes downloaded for review only; private staging inventory did not demonstrate ownership."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40834913148,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40834913148",
+    "artifactName": "external-priority-visual-review-40834913148-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "eef28ad5303ac656b42f84aedfb96e3051aee00058aa3d3781b4be7972793ff2",
+    "sourcePositionBytes": 316850,
+    "sourcePositionDhash": "3c6764d89d99c8c4",
+    "productionCoverSha256": "1115a75a9704df09b7d2e73aa60b31af921c735db9238510b29ead8f7513f47e",
+    "productionCoverBytes": 78018,
+    "productionCoverDhash": "3c6764d89d99c8c4",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Same winged Angemon statue in an airborne pose with orange flowing hair and mask, one raised knee, blue-and-gold mechanical tower pedestal with bright yellow light effects. Canonical cover and source view 1 match in sculpture and framing; other views corroborate reverse and detail geometry.",
+    "identityProofInterpretation": "Manual sculpture/view comparison corroborated by verified SHA-256 bytes and identical canonical dHash; never auto-map by name or hash alone."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_03e08d2f1c282b7ef998",
+    "slug": "digimon-angemon",
+    "coverStorageKey": "media/mdl_03e08d2f1c282b7ef998/img_4c0579e08fa88053cd43/card.webp",
+    "published": true,
+    "coverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_03e08d2f1c282b7ef998",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Prominent creator branding, promotional platform handles and URLs appear on the external source and already published cover. Origin and distribution license not verified by this review."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain canonical model; separately audit creator rights, promotional branding and already published cover before importing or replacing any external media."
+  }
+}

@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 26178,
+  "productName": "Death STL — Darksiders",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "5/5",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40818793034,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40818793034",
+    "artifactName": "external-candidate-discovery-40818793034-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "5d95df9f8db856428ade2460e31a18cfe4ef932f9a9954d73c09974dfffdf0bc",
+    "sourcePositionBytes": 4525846,
+    "productionCoverSha256": "21e329875e82a6b3cbd720f84fa97e91d93f0df482478c7ca4d9742032f22279",
+    "productionCoverBytes": 80950,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "68f0a09cb0d2f1b9",
+    "productionCoverDhash": "68f0a09cb0d2f1b9",
+    "coverToSourceDhashDistance": 0,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Same masked green-lit Death of Darksiders standing on dark stepped rock/candle base, oversized scythe, skeletal ornaments and frontal camera angle. The 8 additional broad-text candidates are unrelated franchises/titles and not the sculpture match.",
+    "identityProofInterpretation": "Manual sculpture and view comparison supported by SHA-256 verified source and public media images, corroborated by bounded dHash distance."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_df1f54dac25d23ee5dc7",
+    "modelName": "Death",
+    "slug": "darksiders-death-darksiders-death-stl-darksiders-principal",
+    "code": "TS-DF1F54DAC25D",
+    "coverStorageKey": "media/mdl_df1f54dac25d23ee5dc7/img_6460cd4ffe04dca22ccf/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true,
+    "numberOfTextualSearchCandidates": 9
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_df1f54dac25d23ee5dc7",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "notAutomaticallyChosenFromText": true
+  },
+  "mediaReview": {
+    "creatorAttributionOrPromotionalBrandingVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_branding_visible",
+    "promotableMedia": false,
+    "notes": "Creator emblem/logo visible on source and candidate, requiring attribution/rights check. No new source media is authorized; existing cover requires separate quality/rights review."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep single canonical model; do not import, crop or replace media until attribution and promotion policy are independently approved."
+  }
+}

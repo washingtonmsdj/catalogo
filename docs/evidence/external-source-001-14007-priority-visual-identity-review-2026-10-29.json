@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 14007,
+  "productName": "Raiden STL + Extras — Mortal Kombat",
+  "scope": "identity_review_only_no_media_promotion",
+  "sourceGallery": {
+    "positionsDownloaded": 8,
+    "totalSourcePositions": 8,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "0/8",
+    "completeStaging": false,
+    "stagingNote": "Partial/absent private staging; review images downloaded read-only do not establish ownership or media usage rights."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40840314622,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40840314622",
+    "artifactName": "external-priority-visual-review-40840314622-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "56853876a01266952a901f8c80dcb789d3b55d7f1ba2d713809ed60e52ada975",
+    "sourcePositionBytes": 822736,
+    "sourcePositionDhash": "3829e87a72b0b272",
+    "productionCoverSha256": "f1bc57200c89a2c01208f93b0d3237c668e115a1bc733a45430ed36a0458cad5",
+    "productionCoverBytes": 25812,
+    "productionCoverDhash": "30b024b852315a24",
+    "coverToSourceDhashDistance": 23,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "The canonical cover is a gray Raiden with feet apart, BOTH arms spread at waist level, no obvious staff, standing on a round stone temple pedestal flanked by symmetric braziers. Source images 1–8 show a blue-clad Raiden raising ONE arm over his head to hold a skull or lightning effect, the other hand holding a staff angled diagonally over a narrow jagged rocky base. Pose, hand props, clothing silhouette, base shape and additional lightning accessories differ. These are not proven identical sculptures; historic Mortal Kombat variants must still be investigated.",
+    "identityProofInterpretation": "Human visual comparison of physical sculpture, geometry, pose and base. Verified SHA-256 source bytes and public R2 cover; perceptual hash is corroboration only and never automatic identity proof."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_62529ec865ce8d755e11",
+    "reviewedCandidateSlug": "mortal-kombat-raiden",
+    "coverStorageKey": "media/mdl_62529ec865ce8d755e11/img_e31b0194d7242f62a694/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_62529ec865ce8d755e11",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "reason": "same_character_but_different_physical_sculpture_not_excluded_from_all_published_variants",
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source images have creator insignia and promotional rendering/print marks; rights and source staging are unverified. Never import/crop/retouch branded source assets or replace published cover from identity decision."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Read-only search of historical aliases and other same-franchise published variants; do not approve new model from one distinct current name match."
+  }
+}

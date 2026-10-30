@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 18437,
+  "productName": "Kaido STL + Bust — One Piece",
+  "scope": "read_only_identity_review_no_media_publication",
+  "sourceGallery": {
+    "positionsDownloaded": 7,
+    "totalSourcePositions": 7,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "0/7",
+    "completeStaging": false,
+    "stagingNote": "Source images downloaded temporarily for manual inspection, not evidence of R2 staging, ownership or license."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40896452674,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40896452674",
+    "artifactName": "external-priority-visual-review-40896452674-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "7b0046bbfa32efe6227f803472255d9cabd172069ea30a59dc5ad5bc3eeedf90",
+    "sourcePositionBytes": 847354,
+    "sourcePositionDhash": "8f0f1f1b1d693b16",
+    "productionCoverSha256": "4ff163d8ee16bab4b1836bc63c8cd91b6c4f30d9842536441d685813717ff637",
+    "productionCoverBytes": 126946,
+    "productionCoverDhash": "ac9c322c0bb22232",
+    "coverToSourceDhashDistance": 30,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "External Kaido is standing upright with massive club resting on shoulder, lilac fur cloak, purple rope belt, black trousers and an orange gourd on a gray smoke/cracked stone base. Published nominal Kaido is seated/crouching, blue dragon-scale chest/arms on a red volcanic base, with different outfit, head gear and weapon framing. The sculptural pose, arm geometry and base are distinctly different across all seven source views. Do not map by name.",
+    "identityProofInterpretation": "Human cross-view comparison of sculpt, pose, accessories and base; verified source SHA and canonical R2 cover dHash are supporting evidence, never standalone automatic approval."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_7c3000129caaf2e102f9",
+    "reviewedCandidateSlug": "one-piece-kaido-estatua-colorida-com-chamas",
+    "coverStorageKey": "media/mdl_7c3000129caaf2e102f9/img_1aacef725447073b922d/card.webp",
+    "published": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [],
+    "sourceShaOwnerIsSamePublishedTarget": false
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_7c3000129caaf2e102f9",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "sameNameIsNotDuplicateProof": true,
+    "reason": "published_same_name_candidate_has_different_sculpture_and_base"
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source has artist/studio branding Tanuki Figures; published cover is from a different third-party studio, with Patreon and watermark. No watermark removal, crop, image replacement, source gallery ingestion, or publication approved."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Search other published same-franchise/historical aliases read-only; exclude current sculpture as identity match but do not assume complete absence or approve new model."
+  }
+}

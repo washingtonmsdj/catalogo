@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 12379,
+  "productName": "Gambit STL 2 + Bust — Marvel",
+  "scope": "identity_distinct_from_all_currently_retrieved_candidates_without_media_promotion",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "8/8",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40823387092,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40823387092",
+    "artifactName": "external-candidate-discovery-40823387092-1",
+    "comparedPublishedCoverCandidates": 8,
+    "sourcePositionsReviewed": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "sourcePosition": 3,
+    "sourcePositionSha256": "016960ba9e3fa8ee808a844527440c2a9c43e6d3712981b1bbd31a67322bd129",
+    "sourcePositionBytes": 3912517,
+    "sourcePositionDhash": "14d878b260c4c03b",
+    "closestDhashCandidateModelId": "mdl_6db837300a44422962a3",
+    "closestDhashDistance": 16,
+    "closestStructuralCandidateModelId": "mdl_bfc3295a0b7670d2b2ab",
+    "closestStructuralCandidateSha256": "d11cc402276def6bde780cbcb690355e610cf55b958614b6e610681fda7c1490",
+    "closestStructuralCandidateBytes": 32682,
+    "closestStructuralCandidateDhash": "91b47c1c36310824",
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "The external source sculpture shows Gambit lunging horizontally over a large upturned blue robotic HAND, wielding a staff with pink projected energy and a flowing long trenchcoat. Eight published Gambit covers were reviewed. The closest thematic grayscale candidate mdl_bfc3295a0b7670d2b2ab depicts Gambit running upright along a robot HEAD with tubes, different robot geometry, foot placement, arm gestures and coat composition; other seven covers use standing, couple, separate diorama, bust, or different base/pose. Same character does not mean same 3D sculpture.",
+    "identityProofInterpretation": "Manual source-to-candidate shape and base comparison with hashed images and multiple viewing angles. dHash differences corroborate but do not automatically establish distinctness."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelIds": [
+      "mdl_c7ecf45ad8689d738f49",
+      "mdl_671406d754e5e2483430",
+      "mdl_79fcc826f423486f599d",
+      "mdl_209e99cf0f6d2edfc188",
+      "mdl_6db837300a44422962a3",
+      "mdl_bfc3295a0b7670d2b2ab",
+      "mdl_a080ec5d85ffdfc35944",
+      "mdl_632946b761e0f649b9d0"
+    ],
+    "candidatesPublished": true,
+    "publicCoverReviewReadOnly": true,
+    "noMatchingSculptureAmongReviewedCandidates": true,
+    "absenceFromFullCatalogNotProven": true
+  },
+  "identityReview": {
+    "decision": "new_model",
+    "newModelIdentityAuthorized": true,
+    "reason": "distinct_three_dimensional_sculpture_from_eight_currently_retrieved_gambit_variants",
+    "sameCharacterIsNotDuplicateProof": true,
+    "publishedCandidateRejectedForIdentity": "mdl_bfc3295a0b7670d2b2ab"
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "watermarkOrCreatorBrandingVisible": true,
+    "promotableMedia": false,
+    "notes": "ZEZ Studio marks and Patreon promotion visible on external images. Identity approval never authorizes gallery import, cropping, watermark removal or use of publisher content."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": true,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Review rights, licensing, attribution and exact production identity before assigning deterministic model ID or publishing any source imagery."
+  }
+}

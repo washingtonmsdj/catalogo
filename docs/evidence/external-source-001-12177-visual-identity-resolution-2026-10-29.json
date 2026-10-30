@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 12177,
+  "productName": "Aquaman STL + Bust + Extras — DC",
+  "scope": "identity_only_no_media_promotion",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "7/7",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40822506445,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40822506445",
+    "artifactName": "external-candidate-discovery-40822506445-1",
+    "sourcePosition": 5,
+    "sourcePositionSha256": "e85f5cb67124319bb9a6de73f5bba1f788446e2767d74d49f9200f93980b1689",
+    "sourcePositionBytes": 4705084,
+    "productionCoverSha256": "f32c835c20d5dc08fb5d4eb82f11ba92e2ac0f28bcbd108a04984370ba612797",
+    "productionCoverBytes": 115246,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "b4f4e8e8e2f8e862",
+    "productionCoverDhash": "b5f4e8e8eaf8e8e2",
+    "coverToSourceDhashDistance": 3,
+    "manualVisualComparison": "Source gallery view 5 and canonical published cover depict precisely the same Aquaman mounted on green sea-horse creature, holding golden trident, with curling blue-purple wave/ruins on the same sculpted base. Other textual Aquaman candidates depict distinct sculptures (standing, shark, throne, classical pose).",
+    "exactSourceShaOverlap": false,
+    "identityProofInterpretation": "Explicit visual matching of sculpture, pose, base and staging, corroborated by verified source SHA-256 and canonical dHash. Other source name matches were not auto-approved."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_df7b9a1a71cb2ccd957d",
+    "slug": "aquaman-aquaman-montado-em-cavalo-marinho",
+    "coverStorageKey": "media/mdl_df7b9a1a71cb2ccd957d/img_78d5a1102770c3f0abab/card.webp",
+    "published": true,
+    "readFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_df7b9a1a71cb2ccd957d",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "creatorBrandingVisible": true,
+    "promotableMedia": false,
+    "notes": "ZZ studio watermark and creator graphics appear on the source and public cover; rights for additional media are unverified. Do not import/crop/alter promotional marks, add gallery or replace current cover based on identity approval."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep one canonical model and review source media rights/branding separately before publication."
+  }
+}

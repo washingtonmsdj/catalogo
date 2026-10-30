@@ -1,0 +1,109 @@
+name: External source visual review
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_map:
+        description: Optional single external source review map
+        required: true
+        default: docs/evidence/external-source-001-laura-source-map-2026-10-15.json
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: external-source-review-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SOURCE_MAP: ${{ github.event_name == 'workflow_dispatch' && inputs.source_map || '' }}
+
+jobs:
+  review:
+    name: Materialize exact source review bytes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Test source review guards
+        working-directory: tools
+        run: python -m unittest -v test_materialize_external_source_review.py
+      - name: Select pending source review maps
+        id: source_state
+        shell: bash
+        run: |
+          set -euo pipefail
+          list="$RUNNER_TEMP/external-source-review-list.txt"
+          if [[ -n "$SOURCE_MAP" ]]; then
+            printf '%s\n' "$SOURCE_MAP" > "$list"
+          else
+            python - "$list" <<'PY'
+          import glob, json, sys
+          from pathlib import Path
+          selected=[]
+          for raw in sorted(glob.glob('docs/evidence/external-source-001-*-source-map-*.json')):
+              path=Path(raw)
+              data=json.loads(path.read_text(encoding='utf-8'))
+              review_sources=data.get('reviewSources')
+              missing=data.get('missingSource')
+              pending=(isinstance(review_sources,list) and bool(review_sources)) or isinstance(missing,dict)
+              if pending:
+                  selected.append(raw)
+          Path(sys.argv[1]).write_text('\n'.join(selected)+('\n' if selected else ''), encoding='utf-8')
+          print(json.dumps({'selected':selected}, ensure_ascii=False))
+          PY
+          fi
+          count="$(grep -cve '^$' "$list" || true)"
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+      - name: Materialize pending reviewed sources
+        if: steps.source_state.outputs.count != '0'
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/external-source-review"
+          mkdir -p "$root"
+          while IFS= read -r source_map; do
+            [[ -n "$source_map" ]] || continue
+            name="$(basename "$source_map" .json)"
+            python tools/materialize_external_source_review.py "$source_map" \
+              --source-contract config/external-sources/external-source-001.json \
+              --output "$root/$name"
+          done < "${{ steps.source_state.outputs.list }}"
+      - name: Assert read-only results
+        if: steps.source_state.outputs.count != '0'
+        shell: bash
+        run: |
+          python - "$RUNNER_TEMP/external-source-review" <<'PY'
+          import json, sys
+          from pathlib import Path
+          root=Path(sys.argv[1])
+          summaries=[]
+          for path in sorted(root.glob('*/review-manifest.json')):
+              data=json.loads(path.read_text(encoding='utf-8'))
+              assert data['visualDecisionMade'] is False
+              assert data['productionWrites'] == 0
+              assert data['stagingWrites'] == 0
+              assert isinstance(data.get('reviewFiles'),list) and data['reviewFiles']
+              summaries.append(data)
+          assert summaries
+          batch={'version':1,'sourceMaps':len(summaries),'reviewFiles':sum(len(x['reviewFiles']) for x in summaries),'productionWrites':0,'stagingWrites':0,'summaries':summaries}
+          (root/'batch-summary.json').write_text(json.dumps(batch, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+          print(json.dumps(batch, ensure_ascii=False))
+          PY
+      - name: Confirm no pending source review
+        if: steps.source_state.outputs.count == '0'
+        run: echo 'No pending source review maps.'
+      - name: Upload short-lived source review artifact
+        if: steps.source_state.outputs.count != '0'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: external-source-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/external-source-review
+          if-no-files-found: error
+          retention-days: 1

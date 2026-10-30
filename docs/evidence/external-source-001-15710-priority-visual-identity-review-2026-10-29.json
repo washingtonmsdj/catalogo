@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 15710,
+  "productName": "Cartethyia — Wuthering Waves",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 7,
+    "totalSourcePositions": 7,
+    "stagingCoverage": "0/7",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40892556102,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40892556102",
+    "artifactName": "external-priority-visual-review-40892556102-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "cfa647d5aa683237d83ca6e13bf91069b52e1ef08b9863bd7c87382ccc698d70",
+    "sourcePositionBytes": 333120,
+    "sourcePositionDhash": "f0f060f0d0f8f0b3",
+    "productionCoverSha256": "53a2ee1a25f2a5cc2a3f469e1135a823d097d2ad7e9cf179a7adfbeca6d670d5",
+    "productionCoverBytes": 63040,
+    "productionCoverDhash": "f0f060f0d0f8f0b3",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Same blonde Cartethyia with raised arm, white/blue embroidered dress, flowing blue-gold ribbon fabric and rocky base with stone column and small companion. Source position 2 and published cover share composition and physical sculpture; exact SHA source owner points to this same published model.",
+    "identityProofInterpretation": "Visual sculpture, pose and base comparison corroborated by verified SHA-256, identical dHash and same-model source provenance; none alone can license media."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_503d094c68f876aaa3db",
+    "reviewedCandidateModelId": "mdl_503d094c68f876aaa3db",
+    "reviewedCandidateSlug": "wuthering-waves-cartethyia-wuthering-waves",
+    "coverStorageKey": "media/mdl_503d094c68f876aaa3db/img_8c836a5e421c25f93d95/card.webp",
+    "published": true,
+    "sourceShaOwnerIsSamePublishedTarget": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [
+      "mdl_503d094c68f876aaa3db"
+    ]
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_503d094c68f876aaa3db",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Third-party studio and Patreon promotional marks on source and/or canonical cover; verify rights and attribution separately."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep single canonical published model; independently verify media rights, provenance, and private staging before any image use."
+  }
+}

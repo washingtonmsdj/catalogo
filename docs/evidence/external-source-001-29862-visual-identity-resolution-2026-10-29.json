@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 29862,
+  "productName": "Jin Kazama STL + Bust — Tekken",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "7/7",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40818209292,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40818209292",
+    "artifactName": "external-candidate-discovery-40818209292-1",
+    "sourcePosition": 4,
+    "sourcePositionSha256": "f34e6c6aa06a02b24d6de63ff8483b2cba231f7eb285ff31fe591428da1f2e86",
+    "sourcePositionBytes": 4788638,
+    "productionCoverSha256": "7bec2b17c9b030d0d321e690ac9413dbb7adedea56d94adc83d2466fc88c637d",
+    "productionCoverBytes": 71742,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "9c9c5498d8e4e4f2",
+    "productionCoverDhash": "9c9c5498d8e4e4f2",
+    "coverToSourceDhashDistance": 0,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Same black-haired Jin Kazama bust view with raised red-gloved arm, visible shoulder tattoo and electric pink effects; source position 4 matches published cropped composition.",
+    "identityProofInterpretation": "Manual comparison of same sculpture, view and setting, corroborated by identical canonical dHash across independently SHA-256 verified source and production images; not a name-based mapping."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_9bbe835d48b5cd0a3aee",
+    "modelName": "Jin Kazama",
+    "slug": "tekken-jin-kazama-tekken-jin-kazama-stl-bust-tekken-principal",
+    "code": "TS-9BBE835D48B5",
+    "coverStorageKey": "media/mdl_9bbe835d48b5cd0a3aee/img_dccc10bc41e6a0db4fc0/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_9bbe835d48b5cd0a3aee",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "oneCandidateReviewed": true
+  },
+  "mediaReview": {
+    "creatorAttributionOrPromotionalBrandingVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_branding_visible",
+    "promotableMedia": false,
+    "notes": "Source and production cover contain creator-style branding / watermark symbols; retain media blocked pending rights review. No image import, replacement, cropping or removal of marks is authorized. Existing published cover needs separate provenance review."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep canonical model; separately review source and already published cover for rights/quality before any media action."
+  }
+}

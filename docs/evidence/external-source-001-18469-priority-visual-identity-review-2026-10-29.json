@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 18469,
+  "productName": "Griffith STL — Berserk",
+  "scope": "read_only_identity_review_no_media_publication",
+  "sourceGallery": {
+    "positionsDownloaded": 7,
+    "totalSourcePositions": 7,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingCoverage": "0/7",
+    "completeStaging": false,
+    "stagingNote": "Source images downloaded temporarily for manual inspection, not evidence of R2 staging, ownership or license."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40896452674,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40896452674",
+    "artifactName": "external-priority-visual-review-40896452674-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "c0fb7810f2c6f0022cf4444038851dbc2c619bfd2416fcc2a8388b56f86cadf3",
+    "sourcePositionBytes": 471832,
+    "sourcePositionDhash": "cd09026269681130",
+    "productionCoverSha256": "26628141ab6120eae2e1b4350e33bca300467c0e4353f5c5084f3f6b35ad57ff",
+    "productionCoverBytes": 54748,
+    "productionCoverDhash": "cd09026269681130",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Identical long white-haired Griffith in layered silver plate armor holding a helmet under left arm, right hand on ornate sword, one leg lifted onto a broken stone outcrop and windblown long cloak. Published cover and source view 2 have the same figure, sword, foot/base arrangement and camera framing. Source image SHA-256 position 2 is owned by the identical canonical published model in model_image_sources.",
+    "identityProofInterpretation": "Human cross-view comparison of sculpt, pose, accessories and base; verified source SHA and canonical R2 cover dHash are supporting evidence, never standalone automatic approval."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_1a11822d2f779f0d5daa",
+    "reviewedCandidateSlug": "berserk-griffith-estatua-com-armadura",
+    "coverStorageKey": "media/mdl_1a11822d2f779f0d5daa/img_6c57292357aadf5193b5/card.webp",
+    "published": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [
+      "mdl_1a11822d2f779f0d5daa"
+    ],
+    "sourceShaOwnerIsSamePublishedTarget": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_1a11822d2f779f0d5daa",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source promotional images include Bulkamancer Sculpts, Patreon references and other third-party creator marks; match does not grant license to distribute renders. No watermark removal, crop, image replacement, source gallery ingestion, or publication approved."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain single canonical published model; separately prove image rights/attribution and private staging before any gallery action."
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 29474,
+  "productName": "Ultralisk STL — StarCraft",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "6/6",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40818482983,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40818482983",
+    "artifactName": "external-candidate-discovery-40818482983-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "67a3c697d03ae81e5131605ebe913fe1fdc0ca26a618d72b8fcad6981b462c05",
+    "sourcePositionBytes": 6869232,
+    "productionCoverSha256": "7715c9264a0f6f3f78494cec9b8d1814acdfcc439cd18398fc8c2d7321fe0ab9",
+    "productionCoverBytes": 75954,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "7ad6158ce5e6fa7f",
+    "productionCoverDhash": "7ad6158ce5e6fa7f",
+    "coverToSourceDhashDistance": 0,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Identical StarCraft Ultralisk sculpture, overlapping curved forelimb tusks, horned armored head and rocky battlefield base; exact matching front composition.",
+    "identityProofInterpretation": "Explicit review of identical sculpture and source view, supported by canonical dHash match and SHA-256 of both independently verified media sources."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_7c864229a0cc263570b4",
+    "modelName": "Ultralisk",
+    "slug": "starcraft-ultralisk-starcraft-ultralisk-stl-starcraft-principal",
+    "code": "TS-7C864229A0CC",
+    "coverStorageKey": "media/mdl_7c864229a0cc263570b4/img_396466d25ba8fbb4a53d/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_7c864229a0cc263570b4",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "oneCandidateReviewed": true
+  },
+  "mediaReview": {
+    "creatorAttributionOrPromotionalBrandingVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_branding_visible",
+    "promotableMedia": false,
+    "notes": "Source and published cover display promotional Patreon/creator-brand marks and attribution; rights not corroborated. Do not crop or replace existing/public images or publish new source media based solely on identity."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep one canonical model; separately verify creator rights and promotional branding before any media replacement or import."
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 12554,
+  "productName": "Castorice STL — Honkai Star Rail",
+  "scope": "read_only_identity_review_no_media_promotion",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "sourceFilesVerifiedBySha256": true,
+    "completeStaging": false,
+    "stagingNote": "The images were collected only for review; private staging coverage is not established."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40836373377,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40836373377",
+    "artifactName": "external-priority-visual-review-40836373377-1",
+    "reviewedSourcePosition": 4,
+    "sourcePositionSha256": "74e24187def2be4f3a89825500b890e39fca290e9b6f539151c4866ef6ada8e2",
+    "sourcePositionBytes": 2092566,
+    "sourcePositionDhash": "6971d1906830f052",
+    "productionCoverSha256": "4da50aeaca16ffdb91cb566e085a1afd5467ea8a8741ca924bd0fb2ea7c7f070",
+    "productionCoverBytes": 51252,
+    "productionCoverDhash": "6971d1906830f052",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Same purple-haired Castorice wearing a white and purple butterfly-inspired dress, extending her right arm while standing on a small rocky base between gray branch-like structures, with a very large purple curved scythe at the right. Source view 4 and canonical cover are identical in framing and sculpture; additional reverse and closeup source views corroborate.",
+    "identityProofInterpretation": "Manual comparison of pose, sculptural geometry, colors and base; source and R2 cover SHA-256 verified, dHash is only supporting evidence."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_92c1cc7ff0cf862631c6",
+    "reviewedCandidateSlug": "honkai-star-rail-castorice-honkai-star-rail",
+    "coverStorageKey": "media/mdl_92c1cc7ff0cf862631c6/img_e5d1cc15a8cbc6b47dd1/card.webp",
+    "published": true,
+    "coverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_92c1cc7ff0cf862631c6",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Creator/studio attribution and promotional marks appear on the source images, and selected published covers may include third-party branding. Do not import, crop, remove marks, replace covers or promote without separate rights review."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Maintain one existing canonical published model; independently validate creator/usage rights for all new source media."
+  }
+}

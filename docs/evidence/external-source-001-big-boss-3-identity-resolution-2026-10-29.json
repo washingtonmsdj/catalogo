@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 27486,
+  "productName": "Big Boss STL 3 — Metal Gear",
+  "scope": "identity_only_no_media_promotion",
+  "reviewProvenance": {
+    "workflowRunId": 40816238089,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40816238089",
+    "artifactName": "identity-visual-review-40816238089-1",
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourceGalleryVerified": "7/7",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "8e39337317bdf55d6af5d98573743e1d76526f341861b93209c88f0bca0dc429",
+    "sourcePositionBytes": 3321609,
+    "sourcePositionDhash": "2cecece8d0d0f0f3",
+    "productionCoverSha256": "86302a4e8a5b5948c334e130d4e34d40558d8ba1e8a1f546edd5ec46c0820b04",
+    "productionCoverBytes": 45248,
+    "productionCoverDhash": "2cecece8d0d0f0f3",
+    "coverToSourceDhashDistance": 0,
+    "exactSourceShaOverlap": false,
+    "visualReview": "same sculpture, pose, headband, right-hand pistol, raised left hand, uniform, equipment, rocky base, white flowers, lighting and frontal camera composition; additional source views show the same sculpture from other angles",
+    "evidenceInterpretation": "A visually identical frontal view is corroborated by canonical dHash distance 0 and seven verified source files. Similarity is not treated as automatic identity; the documented visual comparison resolves this specific model only."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_bccd5cff1c3fafa4763f",
+    "slug": "metal-gear-big-boss-metal-gear-big-boss-stl-3-metal-gear-principal",
+    "coverStorageKey": "media/mdl_bccd5cff1c3fafa4763f/img_2bdd9e845f2a6a255498/card.webp",
+    "published": true,
+    "publicGatewayVerified": true,
+    "checkedByWorkflow": 40816238089
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_bccd5cff1c3fafa4763f",
+    "mapExistingApproved": true,
+    "basis": "explicit_manual_sculpture_comparison_plus_verified_frontal_dhash",
+    "sameNameIsNotDuplicateProof": true,
+    "candidateCountReviewed": 1
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "mediaStatus": "review_only_awaiting_explicit_rights_branding_and_creator_review",
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Maintain one existing model identity; separately audit every external image for branding, provenance and media eligibility. Do not publish, replace, crop, or remove brand marks without explicit approval."
+  }
+}

@@ -2,7 +2,7 @@
 
 > **SSOT de continuidade.** Leia este arquivo antes de continuar o projeto em outra conversa, máquina ou sessão.
 >
-> Atualizado em **2026-10-11**. Este arquivo registra somente o estado operacional necessário para a próxima execução. Histórico detalhado pertence aos runbooks e documentos de migração; não acumular aqui gates encerrados, PRs antigas ou bloqueios expirados.
+> Atualizado em **2026-10-29**. Este arquivo registra somente o estado operacional necessário para a próxima execução. Histórico detalhado pertence aos runbooks e documentos de migração; não acumular aqui gates encerrados, PRs antigas ou bloqueios expirados.
 
 ## Autoridade
 
@@ -15,27 +15,16 @@
 - O resolvedor de runtime do frontend deve continuar explícito/fail-closed; não recriar fallback implícito nem segunda origem paralela.
 - Mudança de runtime só é concluída quando os gates do escopo realmente afetado ficam verdes.
 
-## Estado reconciliado
+## Estado reconciliado — integração de 2026-10-29
 
-No momento desta reconciliação:
+- **`main` observada:** `581341faa23174adb0c4eedf5628adf366a84c0f`. O contrato de schema da `main` exige a migration `0021_quote_admin_audit_events.sql` (versão 5). Esse é o estado do Git, não prova de migrations aplicadas no D1 de produção.
+- **PR #174** (draft, base de ingestão externa): `138f3e045dae531eb71dd20fcbb894ecdca500b5`, base atualizada com os 94 commits que faltavam da `main`. A auditoria de dependências encontrou Wrangler anterior vulnerável; versão 4.155.0 e lockfile idêntico ao já homologado na frente #175 foram incorporados. Gates dessa nova revisão precisam ser consultados.
+- **PR #175** (draft, `catalog-content-20261015`, base #174): a integração de `main` e #174 em `e972d6086843bcdb0bf71b411066283df256ae21` passou **13/13 workflows**. O presente checkpoint atualiza a continuidade e incorpora a correção de dependências da #174; validar o novo HEAD em vez de reutilizar o resultado anterior.
+- Na reconciliação via árvores Git completas, a #174 não possuía arquivos conflitantes com a `main`; a #175 tinha apenas `package.json` e `.github/workflows/ci.yml` sobrepostos. Foram preservados tanto os testes de ingestão quanto os testes de administração, navegação e auditoria do CI principal, sem force-push.
+- **Não houve merge das PRs em `main`, deploy nem alteração de registros D1/R2.** Ambas devem permanecer draft até os gates finais e autorização de publicação correspondentes.
+- **Conteúdo:** a auditoria de cobertura da fonte externa e a fila de colisões trabalham em modo somente leitura, com identidade aprovada separada da elegibilidade de mídia. A cobertura integral de esculturas únicas não está comprovada.
 
-- `main`: **`2c3d3b76fcc0d70b30ba1d7fb5ecb9939c97e946`** — PR **#166**, runtime do Catálogo fail-closed e SSOT;
-- CI **#1016**: verde;
-- Pages **#739**: verde;
-- a #166 não alterou Worker/schema e, corretamente, não abriu deploy Cloudflare desnecessário.
-
-A última linhagem que alterou e promoveu o Worker é o commit **`5134897ff4a387a5302e16d78124bf39e46ab56e`**, PR **#161**:
-
-- Deploy Cloudflare API **#117** verde;
-- staged smoke verde;
-- promoção 100% verde;
-- gateway de mídia real verde;
-- Workers Cache verde;
-- rollback não executado;
-- D1 migrations/auditoria estrutural corretamente puladas por ausência de mudança de schema;
-- Worker promovido: **`ac611817-e85c-4cba-a4a0-87551cbf702f`**, 100% no momento da validação.
-
-Esses IDs são evidência conhecida boa, não substituto de medição atual.
+O registro do Worker promovido na PR #161 e os respectivos smokes históricos continuam como **evidência conhecida boa, não substituto de medição atual**. Para decidir um deploy, medir novamente Worker, D1, R2 e estado dos workflows; não tomar IDs ou números deste checkpoint como estado vivo.
 
 ## Superfície pública
 
@@ -118,7 +107,7 @@ Runbook detalhado: `docs/CLOUDFLARE_DEPLOY.md`.
 
 ## Schema e migrations
 
-Produção está aplicada até `0019_model_variant_name.sql`.
+O contrato versionado atual da `main` exige migrações até `0021_quote_admin_audit_events.sql` (versão 5); o estado de aplicação no D1 de produção deve ser aferido na conta Tonecos, não inferido por Git, CI ou por este documento.
 
 Regras:
 
@@ -140,6 +129,33 @@ Regra principal: **modelo não é imagem**.
 - R2, manifests e D1 precisam concordar em identidade, `imageCount`, `galleryVersion` e variantes;
 - redução automática de galeria é proibida;
 - similaridade visual gera revisão, não exclusão automática.
+
+## Fronteira entre o acervo privado do Drive e as galerias Web
+
+O SSOT operacional do acervo no Google Drive, criado em 2026-08-26, determina
+**uma imagem representativa por escultura/versão distinta** nas árvores
+`Catalogo/Novos`. As renderizações adicionais de um mesmo post são
+**evidência privada**, preservada em `Dados/01-Originais` e trabalhada em
+`Dados/02-Renomeados`. Uma postagem pode conter várias versões distintas
+(Normal/NSFW, busto/estátua, poses ou esculturas materialmente diferentes);
+apenas quando a distinção for comprovada surge outra unidade de catálogo.
+A promoção do Drive não é automática, nem deve reiniciar snapshots SHA válidos.
+
+No site Web (`D1/R2`), a política de mídia versionada em
+`docs/operations/CATALOG-MEDIA-QUALITY-POLICY-2026-10-15.md` permite,
+**separadamente**, vistas adicionais na galeria de um mesmo modelo após
+análise explícita de identidade, watermark, procedência, qualidade e direitos.
+Isso não cria outro modelo público nem impõe copiar cada renderização privada.
+Não há conflito de SSOT: **árvore Drive = seleção representativa;
+galeria Web = vistas opcionais com gate próprio**.
+
+Para o lote de 14 posts preparado em 2026-10-30, foram identificadas
+52 referências de origem e 14 vistas já publicadas. A diferença de 38
+**não mede imagens públicas faltantes nem 38 modelos novos**. Os
+arquivos de revisão somente leitura devem verificar se há versões
+realmente distintas, se a representação atual é suficiente e se alguma
+vista adicional é elegível. Nenhuma identidade ou mídia é autorizada por
+essas contagens.
 
 ## Galerias legadas já reconciliadas
 
@@ -177,7 +193,7 @@ Ferramentas centrais:
 
 O catálogo mestre operacional permanece fora do repositório público. Antes de qualquer mutação local, localizar o caminho real no dispositivo e conferir o estado atual; não assumir equivalência entre unidade sincronizada e cópia local.
 
-Último checkpoint local conhecido:
+Checkpoint local histórico (2026-10-11), **não revalidado nesta reconciliação**:
 
 - SHA V4: 3.649 / 3.649;
 - `catalog_complete=true`;
@@ -191,23 +207,201 @@ O catálogo mestre operacional permanece fora do repositório público. Antes de
 
 Não reiniciar SHA V4 por conveniência. Reaproveitar hashes válidos e migrar/revalidar estado existente.
 
-## Próxima sequência de conteúdo
+## Auditoria física mais recente — 2026-10-30 (somente leitura)
 
-Quando houver acesso ao catálogo mestre/local:
+Acesso autorizado via Desktop Commander ao `DESKTOP-PNUHUA0`, com o
+Google Drive sincronizado em `G:\Meu Drive\Catalogo`, confirmou:
 
-1. confirmar que helpers locais ainda consomem `config/public-catalog-roots.json`;
-2. revalidar o checkpoint SHA sem reset total;
-3. revalidar 40 itens de promoção e 16 de quarentena;
-4. auditar nova fonte por produto, com mapeamento explícito `incoming_model,target_model`;
-5. usar `tools/plan_gallery_merge.py --mapping` e resolver revisões conscientemente;
-6. gerar e validar manifesto de promoção;
-7. preservar arquivos mestres e nunca apagar fonte antiga por substituição de vista;
-8. gerar bundle/mídia;
-9. executar `publish_d1.py --check-production` antes de writes;
-10. publicar somente delta R2 necessário;
-11. aplicar D1 de forma idempotente;
-12. validar produção com `verify_public_catalog.py --exhaustive --all-galleries`;
-13. atualizar este checkpoint apenas com fatos realmente medidos.
+- **`Catalogo/Novos`: 10 imagens físicas** em subpastas:
+  2 Digimon, 5 personagens de filmes de terror e 3 personagens DC.
+- **Raiz de `Catalogo`: 31 imagens soltas**, fora das categorias,
+  sendo 3 com nome reconhecível, 5 WebP técnicos e 23 arquivos com
+  nomes numéricos/opacos. É necessário determinar se são referências,
+  outras vistas ou modelos ainda sem destino canônico.
+- SHA-256 calculado de todos os **41 arquivos** no computador autorizado
+  e comparado com as **2.645 entradas SHA** do índice ativo de
+  `model_image_sources` (snapshot da auditoria do HEAD `004bc8e5`,
+  com 2.575 modelos publicados): **0 SHA exatos coincidentes** com D1.
+  Os 31 arquivos soltos têm SHA mutuamente distintos.
+- Os 10 arquivos de `Novos` tampouco possuem correspondência exata
+  de nome de modelo no snapshot D1. **Isso não comprova 10 esculturas
+  novas**, pois podem existir outros nomes, vistas e variantes.
+- Não foi feito move, delete, upload, promoção de mídia nem escrita
+  no D1/R2/Drive.
+
+**Obsolescência de números históricos:** o arquivo de 2026-10-07
+`indice-publico-catalogo-resumo.json` listava 72 entradas técnicas em
+`Novos` e 4.123 no Catálogo, mas era *plano, não aplicação* e já
+discordava do sufixo público da pasta de estatísticas (`Novos [0]`).
+O checkpoint anterior com 56 entradas também é histórico. Para a
+**fila física atual de `Novos`**, usar a observação de 10 arquivos,
+não os contadores antigos. Não somar entradas técnicas do Drive com
+modelos D1 como se fossem a mesma unidade de contagem.
+
+### Conferência física e visual específica — 2026-10-30, segunda passagem
+
+**As dez entradas atuais de `Catalogo/Novos` têm destinos nominais
+já criados em `Catalogo`, mas vazios.** Isso foi conferido em duas
+fontes independentes: listagem física do Desktop Commander em
+`DESKTOP-PNUHUA0` (somente `desktop.ini` em cada destino) e
+listagem de filhos dos dez IDs de pastas pelo conector do Google Drive
+(0 arquivos e 0 subpastas em cada destino). Portanto, os sufixos
+`[1]` nesses dez destinos são **rótulos históricos desatualizados**,
+não prova de uma imagem incorporada. Uma amostra separada de cinco
+pastas antigas de Digimon, Terror e DC continha imagens normalmente.
+
+| Grupo | Novos, com uma imagem representativa cada | Pastas equivalentes vazias |
+| --- | --- | ---: |
+| Digimon | Matt e Gabumon; Tai e Agumon | 2 |
+| Terror | A Freira; Chucky; Hannibal Lecter; Jason Voorhees; Leatherface | 5 |
+| DC | Huntress; Lucifer Morningstar; Rorschach | 3 |
+| **Total** | **10 candidatos físicos** | **10** |
+
+- As dez imagens foram abertas e inspecionadas; são esculturas/renderizações
+  de personagens identificáveis. Sete mostram marca/atribuição comercial
+  visível (incluindo LA Figures, Julles ou B3DSERK). A ausência de
+  logotipo nas outras três **não** demonstra direitos de publicação.
+- Nenhum dos dez SHA consta das 2.645 imagens publicadas no snapshot D1
+  auditado anteriormente, nem da cópia do `Controle/galeria-posts.csv`
+  com 12.123 linhas. Isso demonstra ausência de **SHA exato e de
+  aprovação correspondente nesse manifesto**, não ausência global
+  de escultura com outra imagem ou outro nome.
+- **Não copiar/mover para as pastas vazias apenas para corrigir `[1]`.**
+  Antes da promoção: confirmar variantes contra a coleção atual,
+  autorização/procedência do criador, imagem escolhida e preflight
+  SHA V4 do executor canônico. Não registrar mídia de terceiros no
+  D1/R2 sem a autorização exigida pelo projeto.
+
+**As 31 imagens soltas na raiz representam aproximadamente nove conjuntos
+visuais, não 31 unidades de catálogo.** Revisão visual de todos os JPEG
+em uma prancha temporária, mais as cinco imagens WebP:
+
+| Conjunto visual provisório | Arquivos | Evidência |
+| --- | ---: | --- |
+| Feiticeiro com capa e energia mágica | 5 JPEG | cinco renderizações da mesma figura |
+| Mulher de vestido claro | 5 JPEG | corpo inteiro, perfil e detalhes |
+| Criatura estilo Predador, render fotorrealista | 4 JPEG | quatro vistas da mesma escultura provável |
+| Mulher sentada, roupa avermelhada | 4 JPEG | frente, perfil e detalhes |
+| Mulher sobre base mecânica/industrial | 5 JPEG | frente, verso e recortes |
+| Personagem identificado no arquivo como Chun-Li | 1 JPEG | render de escultura |
+| Figura indicada como Monstro da Lagoa Negra | 1 JPEG | fotografia de escultura com interface de telefone |
+| Figura colorida denominada `Predator.jpg` | 1 JPEG | identidade exata da escultura ainda não confirmada |
+| Diorama Alien com duas criaturas | 5 WebP | vistas e recortes do mesmo conjunto de base |
+| **Total** | **31** | **nove grupos apenas provisórios** |
+
+A comparação visual com `OK - Predador [4]` e amostras de
+`OK - Alien [14]` não mostrou a mesma escultura evidente para as
+duas séries soltas, mas não há prova de unicidade no acervo inteiro.
+Nenhum dos 31 SHA consta do índice D1 de referência; diferenças de
+arquivo, ângulo ou compressão não provam esculturas distintas.
+Conservar todos os originais no lugar até resolver identidade e direitos.
+
+
+### Inventário físico das seis categorias — 2026-10-30
+
+Varredura **somente leitura** em DESKTOP-PNUHUA0, com enumeração recursiva
+das imagens reais (JPEG, PNG, WebP, GIF, JFIF e BMP) nas seis categorias
+principais. Os sufixos numéricos dos nomes de pastas são apresentação
+histórica, não prova do conteúdo atual.
+
+| Categoria | Sufixo da pasta | Imagens reais | Folhas com sufixo positivo e sem imagem |
+| --- | ---: | ---: | ---: |
+| Pessoas | 9 | 9 | 0 |
+| Games | 539 | 534 | 2 |
+| Tokusatsu e Cultura Japonesa | 15 | 15 | 0 |
+| Animes e Desenhos | 1.062 | 1.062 | 2 |
+| Marvel e DC | 716 | 714 | 6 |
+| Filmes e Séries | 255 | 261 | 10 |
+| **Total** | **2.596** | **2.595** | **20** |
+
+**A diferença líquida de uma imagem não significa apenas um modelo
+faltando.** Há compensações entre categorias e múltiplas fotografias
+da mesma escultura. O número de arquivos não é a contagem de identidades
+únicas do D1.
+
+Dentre as 20 pastas finais vazias, há três classes verificadas:
+
+- **10 destinos correspondentes ao conteúdo atualmente em Novos:**
+  Matt e Gabumon; Tai e Agumon; A Freira; Chucky; Hannibal Lecter;
+  Jason Voorhees; Leatherface; Huntress; Lucifer Morningstar; Rorschach.
+  Cada destino nominal está vazio e a imagem ainda está em Novos.
+  A existência do arquivo não substitui aprovação da identidade,
+  procedência, qualidade e direitos.
+- **5 destinos adicionais sem imagem na pasta e sem imagem diretamente
+  na pasta-pai:** Warcraft / Lady Vashj (sufixo 1),
+  Mortal Kombat / Motaro (sufixo 2),
+  Quarteto Fantástico / Mulher Invisível (sufixo 1),
+  Senhor Fantástico (sufixo 1), Tocha Humana (sufixo 1).
+  Existem arquivos com esses nomes em outros lugares do Drive,
+  mas os nomes não provam identidade da escultura.
+  Há também outra pasta Mulher Invisível na área Heróis Individuais,
+  esta com uma imagem, distinta da pasta vazia do Quarteto Fantástico.
+- **5 subdivisões de Alien com arquivos na pasta superior:**
+  Dog Alien (2), Xenomorfo (6), Ellen Ripley (3),
+  Facehugger (2), Rainha Alien (1).
+  A pasta Alien possui 14 arquivos diretos correspondentes
+  a esses personagens, de modo que as subdivisões vazias não são
+  evidência de 14 imagens ou esculturas faltantes.
+
+A rotina canônica atualizar-indice-publico-catalogo.ps1 já conta
+arquivos físicos e só pode atualizar os sufixos depois do preflight
+SHA V4. Portanto: não criar outro contador, não renomear
+pastas manualmente e não promover mídia de terceiros sem evidência
+e autorização correspondentes.
+
+**Execução seguinte de conteúdo:** reconciliar os dez itens de Novos
+com aprovação de curadoria, os cinco destinos adicionais com as
+representações encontradas em outras áreas e os nove grupos visuais
+da raiz. Tratar os itens Alien como referências já situadas na pasta
+superior, não como arquivos ausentes. Permanecem separadas as
+pendências de ingestão em escala da fonte externa.
+
+**Ordem operacional revisada:** (1) sanar a discrepância de dez
+pastas vazias sem mascarar a contagem; (2) revisar autorizações e
+preflight do executor para os dez itens de `Novos`; (3) avaliar os
+**nove conjuntos**, não os 31 arquivos individualmente, contra
+representantes da coleção organizada; (4) promover somente identidades
+comprovadas e autorizadas, sem escrita direta pela auditoria.
+O manifesto de 30 candidatos de 2026-09-08 permanece histórico; não
+reabrir o lote encerrado de 309 imagens (307 incorporadas, 2 em quarentena).
+
+
+### Conferência de candidatos do Drive — 2026-10-30, terceira passagem
+
+Leitura direta dos metadados e filhos no Google Drive, sem mutações:
+
+| Destino público vazio | Fonte candidata identificada | Estado |
+| --- | --- | --- |
+| Lady Vashj | Pasta externa `lady-vashj-stl-nsfw-warcraft`, 7 WebP | Identidade, direitos e elegibilidade pendentes |
+| Motaro | JPEG `motaro mortal kombat statue 66375.jpg` e JPEG `PENDENTE_IDENTIFICACAO__origem-Motaro.jpg` em pastas distintas | Revisão de identidade obrigatória |
+| Mulher Invisível | Pasta externa `invisible-woman-stl-marvel`, 5 WebP | Não equiparar automaticamente à pasta vazia do Quarteto Fantástico |
+| Senhor Fantástico | JPEG `mr fantastic c27 miniature 24771.jpg` | Identidade pendente |
+| Tocha Humana | 8 JPEGs de diferentes identificadores numa pasta e 2 WebPs `human-torch-standing-figure-74394.webp` em pastas externas | Segregar variantes antes de deduplicação |
+
+As cinco pastas de destino `OK - ...` consultadas não apresentaram filhos na listagem atual; isso confirma apenas o vazio físico desses destinos. Os arquivos candidatos acima não foram comparados visualmente nesta passagem; nomes e identificadores não constituem prova de identidade ou autoria. Não mover, renomear, promover ou preencher contagens. A próxima decisão exige comparação visual documentada, proveniência e preflight SHA V4 antes de qualquer atualização canônica.
+
+### Gate de lançamento — verificação em 2026-10-30
+
+**Lançamento ainda não homologado.** A aprovação de testes não implica aprovação de produção.
+
+- PR #175, HEAD `603e0d68`: 14 checks success e dois jobs de escrita skipped; draft sobre #174.
+- PR #174, HEAD `138f3e04`: três checks success e um skipped; draft sobre main.
+- Conexão Cloudflare verificada: somente conta `ordax-platform`, não a conta Tonecos do Catálogo. Portanto D1, R2 e Worker de produção não foram auditados nesta passagem.
+- Dez imagens em Novos, cinco destinos adicionais sem imagem e nove grupos provisórios na raiz continuam sujeitos à comprovação de identidade e direitos. Cinco subdivisões Alien não representam falta confirmada.
+- A cobertura da fonte externa continua sem comprovação integral (`coverage100Proven=false`).
+
+**Para homologar:** verificar os SHAs integrados e seus gates; inspecionar D1/R2/Worker e smoke público na conta de produção correta; validar schema, mídia e colisões; promover somente arquivos com identidade e direitos aprovados, usando o pipeline oficial. Itens ainda não aprovados permanecem fora do conteúdo publicado, sem bloquear indefinidamente um catálogo existente cuja integridade esteja comprovada. Não criar segundo gate, SSOT paralelo ou exceção silenciosa.
+
+## Próxima sequência de conteúdo e fechamento estrutural
+
+1. Validar CI/coverage do HEAD atual nas PRs #174 e #175; não declarar gates anteriores como aprovados para um commit novo.
+2. Executar auditorias somente leitura contra o D1 e a API da fonte na conta correta; conferir também schema `0021`, manifests e imagens publicadas no Worker/R2. Se o acesso à conta Tonecos estiver ausente, registrar o bloqueio e não simular sucesso.
+3. Consumir a fila canônica `external-source-identity-triage.json` e a fila `published-collision-review-queue.json` dos artefatos da mesma execução, sem interpretar igualdade de nome, alias, dHash ou SHA isolados como escultura idêntica.
+4. Reconciliar visualmente e com procedência os candidatos reais; registrar `map_existing` ou `new_model` somente com provas versionadas e sem conflitos. Uma identidade distinta não autoriza publicação de imagem.
+5. Para publicação, exigir direitos, atribuição e cobertura integral de staging privado, SHA/tamanho, preflight de R2/D1 e verificação pública; promover apenas deltas explicitamente aprovados.
+6. Só integrar as PRs empilhadas na `main` após análise do diff final e dos gates, sem force-push, duplicação de modelos, rebuild de mídia sem necessidade ou descarte de evidências.
+
+O cache local e as filas do checkpoint de 11/10 são históricos, não autoridade para promover novos itens. Preservar invariantes de SSOT e nunca repetir ingestões completas para apenas atualizar status.
 
 ## O que não fazer
 

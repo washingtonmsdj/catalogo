@@ -1,0 +1,127 @@
+name: Exact source gallery preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      evidence:
+        description: Optional single exact-source gallery review evidence
+        required: true
+        default: docs/evidence/external-source-001-artemis-gallery-review-2026-10-15.json
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: exact-source-gallery-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  GALLERY_EVIDENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.evidence || '' }}
+
+jobs:
+  preflight:
+    name: Canonical exact-source gallery preflight
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+      - name: Install ingestion dependencies
+        run: python -m pip install -r tools/requirements.txt
+      - name: Resolve D1 database binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::CLOUDFLARE_ACCOUNT_ID ausente'; exit 1; }
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::CLOUDFLARE_API_TOKEN ausente'; exit 1; }
+          database_id="$(node tools/read_wrangler_d1_id.mjs)"
+          test -n "$database_id" || { echo '::error::D1 database id ausente'; exit 1; }
+          echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
+      - name: Test exact-source preflight guards
+        working-directory: tools
+        run: >-
+          python -m unittest -v
+          test_preflight_exact_source_gallery_evidence.py
+          test_plan_gallery_merge.py
+          test_resolve_gallery_merge.py
+          test_build_gallery_promotion_manifest.py
+      - name: Run approved exact-source preflights
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$RUNNER_TEMP/exact-source-gallery-preflight"
+          mkdir -p "$root"
+          evidence_list="$RUNNER_TEMP/exact-source-evidence-list.txt"
+          if [[ -n "$GALLERY_EVIDENCE" ]]; then
+            printf '%s\n' "$GALLERY_EVIDENCE" > "$evidence_list"
+          else
+            python - "$evidence_list" <<'PY'
+          import glob, json, sys
+          from pathlib import Path
+          selected=[]
+          for raw in sorted(glob.glob('docs/evidence/external-source-001-*-gallery-review-*.json')):
+              path=Path(raw)
+              data=json.loads(path.read_text(encoding='utf-8'))
+              identity=data.get('identityReview') or {}
+              decision=data.get('decision') or {}
+              if (
+                  identity.get('decision') == 'map_existing'
+                  and identity.get('mapExistingApproved') is True
+                  and identity.get('exactSourceShaOverlap') is True
+                  and decision.get('galleryMediaReviewApproved') is True
+              ):
+                  selected.append(raw)
+          if not selected:
+              raise SystemExit('no approved exact-source gallery evidence found')
+          Path(sys.argv[1]).write_text('\n'.join(selected)+'\n', encoding='utf-8')
+          print(json.dumps({'selected': selected}, ensure_ascii=False))
+          PY
+          fi
+          while IFS= read -r evidence; do
+            [[ -n "$evidence" ]] || continue
+            name="$(basename "$evidence" .json)"
+            python tools/preflight_exact_source_gallery_evidence.py "$evidence" \
+              --source-contract config/external-sources/external-source-001.json \
+              --production-bucket tonecos-catalogo-media \
+              --output "$root/$name"
+          done < "$evidence_list"
+      - name: Assert zero writes and exact-source shape
+        shell: bash
+        run: |
+          python - "$RUNNER_TEMP/exact-source-gallery-preflight" <<'PY'
+          import json, sys
+          from pathlib import Path
+          root=Path(sys.argv[1])
+          summaries=[]
+          for path in sorted(root.glob('*/summary.json')):
+              summary=json.loads(path.read_text(encoding='utf-8'))
+              assert summary['ready'] is True
+              assert summary['productionWrites'] == 0
+              assert summary['stagingWrites'] == 0
+              assert summary['planCounts'].get('skip_exact') == 1
+              assert summary['promotionSummary']['replaceExisting'] == 0
+              assert summary['promotionSummary']['addView'] == summary['incomingImages'] - 1
+              summaries.append(summary)
+          assert summaries
+          batch={'version':1,'models':len(summaries),'summaries':summaries,'productionWrites':0,'stagingWrites':0}
+          (root/'batch-summary.json').write_text(json.dumps(batch, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+          print(json.dumps(batch, ensure_ascii=False))
+          PY
+      - name: Upload canonical exact-source preflight
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: exact-source-gallery-preflight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/exact-source-gallery-preflight
+          if-no-files-found: error
+          retention-days: 3

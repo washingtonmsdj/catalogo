@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 28409,
+  "productName": "Mega Man X STL 2 — Mega Man",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "5/5",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40818793034,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40818793034",
+    "artifactName": "external-candidate-discovery-40818793034-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "eb33c9f7d93fb5938c07b3a7719d7dcdda9bcb0c5d65d3b40a846607490d6cd3",
+    "sourcePositionBytes": 3142135,
+    "productionCoverSha256": "9bacbe7a7360a70e7eb1282710c5d853f97175176561090a21612e6950650041",
+    "productionCoverBytes": 41880,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "84c490c9c9daa282",
+    "productionCoverDhash": "8cc490c9c9daa282",
+    "coverToSourceDhashDistance": 1,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Same blue Mega Man X pose extending arm cannon with raised support hand against cracked wall, mechanical base, identical framing and angle.",
+    "identityProofInterpretation": "Manual sculpture and view comparison supported by SHA-256 verified source and public media images, corroborated by bounded dHash distance."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_2693693cbb7e6f4fbe53",
+    "modelName": "Mega Man X",
+    "slug": "mega-man-mega-man-x-mega-man-mega-man-x-stl-2-mega-man-principal",
+    "code": "TS-2693693CBB7E",
+    "coverStorageKey": "media/mdl_2693693cbb7e6f4fbe53/img_a5f8540fbcb846a4bb52/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true,
+    "numberOfTextualSearchCandidates": 1
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_2693693cbb7e6f4fbe53",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "notAutomaticallyChosenFromText": true
+  },
+  "mediaReview": {
+    "creatorAttributionOrPromotionalBrandingVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_branding_visible",
+    "promotableMedia": false,
+    "notes": "Zenith / Patreon / creator promotional marks are visible in source and published cover. No new source media is authorized; existing cover requires separate quality/rights review."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep single canonical model; do not import, crop or replace media until attribution and promotion policy are independently approved."
+  }
+}

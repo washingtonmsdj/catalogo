@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 14428,
+  "productName": "Toji Fushiguro STL 2 — Jujutsu Kaisen",
+  "scope": "read_only_identity_review_no_external_media_promotion",
+  "sourceGallery": {
+    "positionsDownloaded": 5,
+    "totalSourcePositions": 5,
+    "stagingCoverage": "0/5",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true,
+    "stagingNote": "Temporary reviewed source bytes do not prove private staging, ownership or rights."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40841222677,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40841222677",
+    "artifactName": "external-priority-visual-review-40841222677-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "41971c22f275566f7add374ea471ae1e1f8f028192670f8da49caa4deeb86148",
+    "sourcePositionBytes": 467676,
+    "sourcePositionDhash": "8c341aa6150e3425",
+    "productionCoverSha256": "f84f8e0e59aa492196165be5665fc4fc4c0859dd025d4409752d8869bc2d52d7",
+    "productionCoverBytes": 70658,
+    "productionCoverDhash": "f1dc99d42573732f",
+    "coverToSourceDhashDistance": 31,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "Source Toji has black T-shirt, pale rolled pants, a large purple worm across the shoulders, and a long dark blade raised above his head on a damaged stone/wood base. The published candidate depicts Toji in a white top and black trousers wielding a red-black weapon, with a bright blue surf-like effect on a sandy pedestal. Props, outfit, pose and base differ across the five source angles. Name match is not sculpture identity.",
+    "identityProofInterpretation": "Human source-to-R2 cover comparison of sculptural pose, outfit, accessories and base. Verified bytes and canonical perceptual distance are supporting evidence only."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_5b8110c2df1e431a14b8",
+    "reviewedCandidateSlug": "jujutsu-kaisen-toji-fushiguro-com-armas",
+    "coverStorageKey": "media/mdl_5b8110c2df1e431a14b8/img_9341388ba546990c7c01/card.webp",
+    "published": true,
+    "publicCoverReadFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_5b8110c2df1e431a14b8",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "sameNameIsNotDuplicateProof": true,
+    "reason": "distinct_sculpture_from_nominal_candidate_full_catalog_absence_not_proven"
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Source images include third-party studio and Patreon promotional branding; no license or staging of the source gallery is proven. No image transfer, watermark removal, cover replacement or public gallery promotion authorized."
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Search other current/historical published sculpture variants; nominal name mismatch cannot authorize a new model."
+  }
+}

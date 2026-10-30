@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 30242,
+  "productName": "Stark STL 2 — Frieren: Beyond Journey's End",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "5/5",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40817885500,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40817885500",
+    "artifactName": "external-candidate-discovery-40817885500-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "48c0f753d3c480fa75d6c294925b714ef48db14d51146e12ae96d26191f63f62",
+    "sourcePositionBytes": 4771079,
+    "productionCoverSha256": "bb7e15f10f385b0e854f060986433e1d9003819a5571c83ab65604a820a83d55",
+    "productionCoverBytes": 41552,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "68dac4e46062e4c1",
+    "productionCoverDhash": "e8dac4e46062e4c3",
+    "coverToSourceDhashDistance": 2,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Same sculpture: red-haired Stark holding the long-handled axe across his shoulder, red coat, black pants, laced boots and flowered rocky base; same front camera view.",
+    "identityProofInterpretation": "Explicit sculpture comparison supported by verified source SHA-256 and production cover bytes; dHash is corroboration, not automatic mapping."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_2153a0762034502bc4cb",
+    "modelName": "Stark",
+    "slug": "frieren-stark-estatua-com-machado",
+    "code": "TS-2153A0762034",
+    "coverStorageKey": "media/mdl_2153a0762034502bc4cb/img_f67aa4209bfc4704dcf1/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_2153a0762034502bc4cb",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "oneCandidateReviewed": true
+  },
+  "mediaReview": {
+    "sourcePromotionalLogosVisible": true,
+    "sourcePatreonPromotionVisible": true,
+    "productionCoverPromotionalLogoVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_promotional_branding_visible",
+    "promotableMedia": false,
+    "notes": "Source renders and already published cover display third-party branding. Identity mapping does not authorize reuse, editing, deletion or re-publication of any media. Existing public cover needs separate quality/rights follow-up."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain single canonical model; independently review rights and promotional branding before any further media action; no cropping/removal/automatic promotion."
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 24094,
+  "productName": "Leeloo STL — The Fifth Element",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "5/5",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40821082657,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40821082657",
+    "artifactName": "external-candidate-discovery-40821082657-1",
+    "sourcePosition": 5,
+    "sourcePositionSha256": "f2d9227dba264185531dabb81ca8df04e73f63ce90d9395ee089fc1f27896628",
+    "sourcePositionBytes": 3127749,
+    "productionCoverSha256": "9baadbf443c81373368abfe760a248c42cb97a0bb49db460c0b7f7224a8ae8de",
+    "productionCoverBytes": 28780,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "e1d1c94872b471a1",
+    "productionCoverDhash": "e1d1c84872b4f1a1",
+    "coverToSourceDhashDistance": 2,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Exactly matching red-haired Leeloo in white strappy garment, both arms raised, wide-legged stance atop the same rectangular gray plinth and identical frontal camera composition in source position 5.",
+    "identityProofInterpretation": "Human comparison of sculpt geometry, pose, outfit and base, corroborated by source/cover SHA-256 and dHash; perceptual hash and text matches alone never authorize merging."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_856e3f6f997cfa789cb7",
+    "reviewedCandidateSlug": "o-quinto-elemento-leeloo-stl-the-fifth-element",
+    "reviewedCandidatePublished": true,
+    "modelId": "mdl_856e3f6f997cfa789cb7",
+    "coverStorageKey": "media/mdl_856e3f6f997cfa789cb7/img_bf7490c00856fb51817b/card.webp"
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_856e3f6f997cfa789cb7",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "watermarkOrCreatorBrandingPresent": true,
+    "promotableMedia": false,
+    "notes": "Creator/promotional branding appears in source and/or public images; no reuse, watermark editing, replacement or gallery import authorized."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Keep one canonical published model; evaluate media use rights separately."
+  }
+}

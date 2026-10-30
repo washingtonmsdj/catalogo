@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 27784,
+  "productName": "Amo Empool STL — Gachiakuta",
+  "scope": "identity_only_media_publication_prohibited",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "6/6",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40817885500,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40817885500",
+    "artifactName": "external-candidate-discovery-40817885500-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "adc838b688c8b997a24e26466f9f7c1d381667d18957a65aa878d4379d94d7c3",
+    "sourcePositionBytes": 5928555,
+    "productionCoverSha256": "26e855d8df7fc4b2041f3d57dd1466099b924fbb35093b76977b00f4367cd9d5",
+    "productionCoverBytes": 67568,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "38707c12d0c4f9d3",
+    "productionCoverDhash": "38707c12d0c4f9d3",
+    "coverToSourceDhashDistance": 0,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Same diorama: black/orange flowing hair, fur-edged coat, white legwear with orange markings, rocky base and seated teddy bear; identical front camera view.",
+    "identityProofInterpretation": "Explicit sculpture comparison supported by verified source SHA-256 and production cover bytes; dHash is corroboration, not automatic mapping."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_982b4b9913297e015654",
+    "modelName": "Amo Empool",
+    "slug": "gachiakuta-amo-empool-diorama-com-casaco-e-acessorios",
+    "code": "TS-982B4B991329",
+    "coverStorageKey": "media/mdl_982b4b9913297e015654/img_a3575403a9239921e106/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_982b4b9913297e015654",
+    "mapExistingApproved": true,
+    "sameNameIsNotDuplicateProof": true,
+    "visualMatchApproved": true,
+    "oneCandidateReviewed": true
+  },
+  "mediaReview": {
+    "sourcePromotionalLogosVisible": true,
+    "sourcePatreonPromotionVisible": true,
+    "productionCoverPromotionalLogoVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_promotional_branding_visible",
+    "promotableMedia": false,
+    "notes": "Source renders and already published cover display third-party branding. Identity mapping does not authorize reuse, editing, deletion or re-publication of any media. Existing public cover needs separate quality/rights follow-up."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain single canonical model; independently review rights and promotional branding before any further media action; no cropping/removal/automatic promotion."
+  }
+}

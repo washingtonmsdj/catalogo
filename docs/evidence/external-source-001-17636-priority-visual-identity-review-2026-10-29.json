@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 17636,
+  "productName": "Chrollo Lucifer — Hunter x Hunter",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 8,
+    "totalSourcePositions": 8,
+    "stagingCoverage": "0/8",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40895809416,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40895809416",
+    "artifactName": "external-priority-visual-review-40895809416-1",
+    "reviewedSourcePosition": 2,
+    "sourcePositionSha256": "a437862ce2cfb5ebcf5a5692162a8a14b722211f4318c2fab384210cd8e85910",
+    "sourcePositionBytes": 363154,
+    "sourcePositionDhash": "60d89c9aaad27003",
+    "productionCoverSha256": "3bd9eb6aaaa7207d3c0beea55b8cbad447f933473f39b346cc2787fb9089c517",
+    "productionCoverBytes": 75660,
+    "productionCoverDhash": "e0d89c9aaad27003",
+    "coverToSourceDhashDistance": 1,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Same pale-faced dark-haired Chrollo holding a red book in one hand with purple swirled aura, two silver skeletal dragon-head arcs, black coat with pale fur collar and small rough rocky foot platform. Source image 2 and public cover have matching camera view, robe and sculptural effect geometry.",
+    "identityProofInterpretation": "Manually reviewed physical sculpture, props and base from multiple source views; published cover identity corroborated by SHA-256 provenance and dHash."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_67e8ebcab26d355c227a",
+    "reviewedCandidateModelId": "mdl_67e8ebcab26d355c227a",
+    "reviewedCandidateSlug": "hunter-x-hunter-chrollo-lucifer-diorama-com-energia-roxa",
+    "coverStorageKey": "media/mdl_67e8ebcab26d355c227a/img_9d800b8e67d4bbad6f83/card.webp",
+    "published": true,
+    "sourceShaOwnerIsSamePublishedTarget": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [
+      "mdl_67e8ebcab26d355c227a"
+    ]
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_67e8ebcab26d355c227a",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Third-party studio/publisher watermarks, artist labels or Patreon branding are visible. Source images, extra package assets and additional gallery rights remain unapproved."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain only existing canonical model. No gallery changes without verified author license, attribution and staging."
+  }
+}

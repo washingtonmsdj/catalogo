@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 23110,
+  "productName": "Satoru Gojo STL 5 — Jujutsu Kaisen",
+  "scope": "identity_review_only_no_media_promotion",
+  "stagingEvidence": {
+    "completeStaging": true,
+    "verifiedPositions": "6/6",
+    "comparisonSource": "read_only_discovery_artifact",
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40819113596,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40819113596",
+    "artifactName": "external-candidate-discovery-40819113596-1",
+    "sourcePosition": 1,
+    "sourcePositionSha256": "a3647da80229dff22248c528cbe92f37b0e9aa1a004a65fa6686d960bc70db0a",
+    "sourcePositionBytes": 4864982,
+    "productionCoverSha256": "851693002dbaec25f4c102c1b31b9ed7be473c7953ef676b2049f400b54a54e4",
+    "productionCoverBytes": 59266,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "sourcePositionDhash": "7070f0d0e0f0f0b3",
+    "productionCoverDhash": "060c3ca696883236",
+    "coverToSourceDhashDistance": 34,
+    "exactByteShaOverlap": false,
+    "manualVisualComparison": "Source depicts fully clothed black-uniform Gojo inside a glowing purple energy ring on a rocky base. The sole published candidate is a different Gojo sculpture, with sleeveless dark top, light trousers and small plain pedestal in a studio/photo setting. Distinct sculptural composition, pose, outfit and base; reject map_existing.",
+    "identityProofInterpretation": "Explicit comparison of sculpture/pose/base and franchise; dHash is corroboration only, not identity authorization by itself."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_19191b5f633e12d319c6",
+    "reviewedCandidateSlug": "jujutsu-kaisen-satoru-gojo-estatua-em-pe",
+    "reviewedCandidatePublished": true,
+    "productionCoverSha256": "851693002dbaec25f4c102c1b31b9ed7be473c7953ef676b2049f400b54a54e4",
+    "otherCandidateModelIdsRejected": []
+  },
+  "identityReview": {
+    "decision": "new_model",
+    "reason": "same_character_but_distinct_sculpture",
+    "publishedCandidateRejectedForIdentity": "mdl_19191b5f633e12d319c6",
+    "newModelIdentityAuthorized": true,
+    "notes": "Distinct sculpture established by explicit visual comparison; no batch authorized, no new model published, no final deterministic model ID yet."
+  },
+  "mediaReview": {
+    "creatorAttributionOrPromotionalBrandingVisible": true,
+    "creatorRightsVerified": false,
+    "watermarkStatus": "third_party_branding_visible",
+    "promotableMedia": false,
+    "notes": "Creator-style branding and promotional attribution on both gallery sets. Source media must not be published without independent rights review. No crop, import, replacement or removal of branding authorized."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": true,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Investigate creator provenance and exact gallery rights before a new model can be assigned ID and published."
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 19908,
+  "productName": "Judy STL — Cyberpunk",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 8,
+    "totalSourcePositions": 8,
+    "stagingCoverage": "0/8",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40898907944,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40898907944",
+    "artifactName": "external-priority-visual-review-40898907944-1",
+    "reviewedSourcePosition": 3,
+    "sourcePositionSha256": "7bdb4be9c0a9d3a26198549baa8f18126b1b24b778a0417762eb6e763e3d4361",
+    "sourcePositionBytes": 414088,
+    "sourcePositionDhash": "ce0f0f1733317174",
+    "productionCoverSha256": "305c6e7446cc7253755c29c72d0969338694a1ea24497d3a80c76442d83e6c51",
+    "productionCoverBytes": 39536,
+    "productionCoverDhash": "ce0f0f1733317174",
+    "coverToSourceDhashDistance": 0,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Same turquoise short-haired Judy sitting on tall bar stool beside rectangular cyberpunk counter, knees raised, tattooed sleeveless upper body, tank top, dark trousers and sneakers; identical paper, glass and bottle props, lower platform, camera framing and purple backdrop in source position 3 and published cover. The source image SHA-256 is owned by the same canonical model in model_image_sources.",
+    "identityProofInterpretation": "Human comparison of sculpture pose, props and base from source views and canonical R2 cover. SHA-256 source ownership supports only the published matching identity and provides no media rights."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_5a39e86d60a914b7f38f",
+    "reviewedCandidateSlug": "cyberpunk-judy",
+    "coverStorageKey": "media/mdl_5a39e86d60a914b7f38f/img_da3c3e1def214bcd7a14/card.webp",
+    "published": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [
+      "mdl_5a39e86d60a914b7f38f"
+    ],
+    "sourceShaOwnerIsSamePublishedTarget": true
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_5a39e86d60a914b7f38f",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "External images display Bulkamancer/artist logos and Patreon promotion; source ownership and rights not established. Private staging 0/N, no rights proof for any externally downloaded gallery."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Preserve single published canonical Judy; independently verify creator rights and provenance before any new gallery media."
+  }
+}

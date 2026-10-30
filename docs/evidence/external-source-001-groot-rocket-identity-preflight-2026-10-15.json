@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-15",
+  "sourceId": "external-source-001",
+  "sourceProductId": 12371,
+  "productName": "Groot and Rocket – Marvel",
+  "scope": "identity_preflight_only",
+  "stagingEvidence": {
+    "coverage": "6/6",
+    "completeStaging": true,
+    "reverseIndexRunId": 38825743609,
+    "productionWrites": 0,
+    "stagingWrites": 0
+  },
+  "productionSearch": {
+    "exactOrTextualCandidateCount": 0,
+    "candidateModelIds": [],
+    "database": "tonecos-catalogo",
+    "readOnly": true
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "reason": "no_exact_name_candidate_combined_subject_requires_alias_review",
+    "notes": "No exact-name candidate was found. Because this is a combined Groot + Rocket subject, the catalog may contain the same sculpture under a shortened, translated, or single-character title.",
+    "reviewQueue": {
+      "phase": "historical_catalog_search_required",
+      "lastCheckedAt": "2026-10-29",
+      "discoveryRunId": 40823387092,
+      "discoveryUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40823387092",
+      "liveCandidateCount": 0,
+      "completeSourceGalleryVerified": "6/6",
+      "priority": "search_combined_groot_rocket_subject_and_franchise_aliases",
+      "knownSourceFranchise": "Marvel",
+      "nextGate": "Apply bounded alias/combined-subject lookup to published catalog metadata, then compare actual covers if a candidate is found; no new-model approval from zero current candidates.",
+      "productionWrites": 0,
+      "stagingWrites": 0
+    }
+  },
+  "decision": {
+    "identityResolved": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "visual and alias review against Groot, Rocket and combined Marvel records"
+  }
+}

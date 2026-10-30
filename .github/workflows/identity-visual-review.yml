@@ -1,0 +1,117 @@
+name: Identity visual review
+
+on:
+  workflow_dispatch:
+    inputs:
+      review:
+        description: Versioned identity visual review evidence
+        required: true
+        default: docs/evidence/external-source-001-big-boss-3-identity-visual-review-2026-10-16.json
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: identity-visual-review-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REVIEW_EVIDENCE: ${{ github.event_name == 'workflow_dispatch' && inputs.review || 'docs/evidence/external-source-001-big-boss-3-identity-visual-review-2026-10-16.json' }}
+  CATALOG_API_URL: ${{ vars.VITE_API_BASE_URL }}
+
+jobs:
+  review:
+    name: Exact source vs public candidate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.13'
+      - name: Run identity visual review guards
+        working-directory: tools
+        run: python -m unittest -v test_materialize_identity_visual_review.py
+      - name: Assert public API binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CATALOG_API_URL" || { echo '::error::VITE_API_BASE_URL ausente'; exit 1; }
+      - name: Materialize exact comparison bytes
+        run: >-
+          python tools/materialize_identity_visual_review.py "$REVIEW_EVIDENCE"
+          --source-contract config/external-sources/external-source-001.json
+          --api-base "$CATALOG_API_URL"
+          --output "$RUNNER_TEMP/identity-visual-review"
+      - name: Diagnose canonical R2 cover after a failed comparison (read-only)
+        if: failure()
+        shell: bash
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.error, urllib.parse, urllib.request
+          from pathlib import Path
+          review=json.loads(Path(os.environ["REVIEW_EVIDENCE"]).read_text(encoding="utf-8"))
+          candidate=review["productionCandidate"]
+          config=json.loads(Path("wrangler.jsonc").read_text(encoding="utf-8"))
+          buckets=[row["bucket_name"] for row in config["r2_buckets"] if row["binding"]=="MEDIA"]
+          account_id=os.environ.get("CLOUDFLARE_ACCOUNT_ID","").strip()
+          token=os.environ.get("CLOUDFLARE_API_TOKEN","").strip()
+          if not account_id or not token or len(buckets)!=1:
+              raise SystemExit("R2 diagnostic unavailable: missing credentials or canonical MEDIA binding")
+          key=candidate["coverStorageKey"]
+          if not key.startswith("media/") or any(p in ("", ".", "..") for p in key.split("/")):
+              raise SystemExit("R2 diagnostic rejected unsafe cover storage key")
+          url=(f"https://api.cloudflare.com/client/v4/accounts/{account_id}/r2/buckets/"
+               f"{urllib.parse.quote(buckets[0],safe='')}/objects/{urllib.parse.quote(key,safe='/')}")
+          req=urllib.request.Request(url,headers={
+              "Authorization":f"Bearer {token}", "User-Agent":"catalog-canonical-cover-diagnostic/1"
+          })
+          try:
+              with urllib.request.urlopen(req,timeout=20) as response:
+                  sample=response.read(12)
+                  is_webp=len(sample)==12 and sample[:4]==b"RIFF" and sample[8:12]==b"WEBP"
+                  status="present_webp" if is_webp else "unexpected_or_empty_content"
+                  print(json.dumps({"modelId":candidate["modelId"],"r2Object":status,
+                      "r2HttpStatus":response.status,"bucket":buckets[0],"publicGatewayPassed":False}))
+          except urllib.error.HTTPError as exc:
+              status="missing" if exc.code==404 else "authorization_or_api_error"
+              print(json.dumps({"modelId":candidate["modelId"],"r2Object":status,
+                  "r2HttpStatus":exc.code,"bucket":buckets[0],"publicGatewayPassed":False}))
+          except urllib.error.URLError:
+              print(json.dumps({"modelId":candidate["modelId"],
+                  "r2Object":"unverified_network_error","publicGatewayPassed":False}))
+          PY
+      - name: Validate remote Worker bindings after failed public media check (read-only)
+        if: failure()
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: node tools/check_remote_worker_config.mjs
+      - name: Assert review remained read-only and undecided
+        shell: bash
+        run: |
+          python - "$RUNNER_TEMP/identity-visual-review/identity-review-manifest.json" <<'PY'
+          import json, sys
+          from pathlib import Path
+          data=json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
+          assert data['allSourceBytesVerified'] is True
+          assert data['candidateFetchedFromCanonicalPublicStorageKey'] is True
+          assert data['visualDecisionMade'] is False
+          assert data['identityResolved'] is False
+          assert data['productionWrites'] == 0
+          assert data['stagingWrites'] == 0
+          assert data['sourceImageCount'] > 0
+          print(json.dumps({'sourceProductId':data['sourceProductId'],'sourceImages':data['sourceImageCount'],'candidate':data['productionCandidate']['modelId'],'productionWrites':0,'stagingWrites':0},ensure_ascii=False))
+          PY
+      - name: Upload short-lived comparison artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: identity-visual-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/identity-visual-review
+          if-no-files-found: error
+          retention-days: 1

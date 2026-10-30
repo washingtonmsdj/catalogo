@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "reviewedAt": "2026-10-29",
+  "sourceId": "external-source-001",
+  "sourceProductId": 255,
+  "productName": "Warrior Lady STL — Fantasy",
+  "scope": "read_only_identity_review_no_media_publication",
+  "sourceGallery": {
+    "positionsDownloaded": 7,
+    "totalSourcePositions": 7,
+    "sourceFilesVerifiedBySha256": true,
+    "completeStaging": false,
+    "stagingNote": "The read-only discovery reported incomplete private staging; downloaded source images are NOT proof of staged ownership."
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40834424109,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40834424109",
+    "artifactName": "external-priority-visual-review-40834424109-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "28b78d1410c5d34948f42a0f12251ce9bcd61a756b2caec363fa08fb9f70b4bf",
+    "sourcePositionBytes": 207018,
+    "sourcePositionDhash": "e071b0f2b2f0f0b0",
+    "productionCoverSha256": "30a18877600f3f091d937b5b9aaff6643832f95951692ea27ec9c7f71e098eb4",
+    "productionCoverBytes": 27600,
+    "productionCoverDhash": "3c74333b32b2f232",
+    "coverToSourceDhashDistance": 20,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "exactShaOverlap": false,
+    "manualVisualComparison": "One nominal Fantasy candidate was inspected and rejected as same-sculpt proof. The published cover depicts a different pose with an outstretched horizontal blade, alternative thigh/leg armor silhouette and a hand-shaped base; source view 1 depicts a blade raised over the shoulder, standing figure and cracked-rock base. Source views 2–7 corroborate the source sculpt. Different sculpture from the only exact-name candidate, but absence of further alias/historical models is not proven.",
+    "identityProofInterpretation": "Human review of geometry, props, pose and base with SHA-256 verified source images; dHash corroborates and never decides identity automatically."
+  },
+  "productionEvidence": {
+    "reviewedCandidateModelId": "mdl_ffa1a1b11e3b5ca28db8",
+    "reviewedCandidateSlug": "fantasy-warrior-lady",
+    "coverStorageKey": "media/mdl_ffa1a1b11e3b5ca28db8/img_bbdfd3c66eec5b71cbf2/card.webp",
+    "published": true,
+    "publicCoverDownloadedFromCanonicalR2": true
+  },
+  "identityReview": {
+    "decision": "unresolved",
+    "candidateReviewedAndRejected": "mdl_ffa1a1b11e3b5ca28db8",
+    "reason": "single_nominal_candidate_is_distinct_but_catalog_wide_absence_not_proven",
+    "visualMatchApproved": false,
+    "historicalAliasSearchRequired": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "brandingOrProvenanceNote": "Source renders carry third-party artist marks in multiple closeups. Rights and provenance remain unverified; no media action is authorized.",
+    "galleryMediaReviewApproved": false
+  },
+  "decision": {
+    "identityResolved": false,
+    "mapExistingAuthorized": false,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Search additional published aliases/franchise and historical images read-only; never create a new model merely because the single literal candidate is visually different."
+  }
+}

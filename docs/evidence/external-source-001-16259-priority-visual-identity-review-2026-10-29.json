@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "sourceId": "external-source-001",
+  "reviewedAt": "2026-10-29",
+  "sourceProductId": 16259,
+  "productName": "Chihiro & Haku + Bust — Spirited Away",
+  "scope": "identity_only_media_publication_prohibited",
+  "sourceGallery": {
+    "positionsDownloaded": 6,
+    "totalSourcePositions": 6,
+    "stagingCoverage": "0/6",
+    "completeStaging": false,
+    "sourceFilesVerifiedBySha256": true
+  },
+  "reviewProvenance": {
+    "workflowRunId": 40895809416,
+    "workflowUrl": "https://github.com/washingtonmsdj/catalogo/actions/runs/40895809416",
+    "artifactName": "external-priority-visual-review-40895809416-1",
+    "reviewedSourcePosition": 1,
+    "sourcePositionSha256": "9aea0dc01634f34eb475bdea68e750c3164802259d10c5b260b578b9d2e2edb6",
+    "sourcePositionBytes": 470516,
+    "sourcePositionDhash": "4cf0f0f8f8d0d0e1",
+    "productionCoverSha256": "bb2d850b4e13e0e9a9fc5bd7d4b3f74fe49dd46809297f8b637b80c00f282b03",
+    "productionCoverBytes": 84942,
+    "productionCoverDhash": "4cf0d0f8f8d0d0e1",
+    "coverToSourceDhashDistance": 1,
+    "canonicalDhashImplementation": "tools/ingest_catalog.py::dhash_image",
+    "manualVisualComparison": "Same Haku dragon coiled into a circular teal loop above an East Asian roof/stone structure, with Chihiro inside reaching towards his snout. The public cover matches source view 1, with identical coil, Chihiro's pose and base architecture; other views confirm geometry. Companion bust or print-only views are not separately licensed or authorized.",
+    "identityProofInterpretation": "Manually reviewed physical sculpture, props and base from multiple source views; published cover identity corroborated by SHA-256 provenance and dHash."
+  },
+  "productionEvidence": {
+    "modelId": "mdl_eb70e116480ba36530d0",
+    "reviewedCandidateModelId": "mdl_eb70e116480ba36530d0",
+    "reviewedCandidateSlug": "spirited-away-chihiro-haku-spirited-away",
+    "coverStorageKey": "media/mdl_eb70e116480ba36530d0/img_8ead61b8c8d0805fccfd/card.webp",
+    "published": true,
+    "sourceShaOwnerIsSamePublishedTarget": true,
+    "sourceShaOverlapModelImageSourcesOwnerIds": [
+      "mdl_eb70e116480ba36530d0"
+    ]
+  },
+  "identityReview": {
+    "decision": "map_existing",
+    "targetModelId": "mdl_eb70e116480ba36530d0",
+    "mapExistingApproved": true,
+    "visualMatchApproved": true,
+    "sameNameIsNotDuplicateProof": true
+  },
+  "mediaReview": {
+    "creatorRightsVerified": false,
+    "promotableMedia": false,
+    "notes": "Third-party studio/publisher watermarks, artist labels or Patreon branding are visible. Source images, extra package assets and additional gallery rights remain unapproved."
+  },
+  "decision": {
+    "identityResolved": true,
+    "mapExistingAuthorized": true,
+    "newModelIdentityAuthorized": false,
+    "batchCreationAuthorized": false,
+    "galleryMediaReviewApproved": false,
+    "galleryPromotionApproved": false,
+    "productionWrites": 0,
+    "stagingWrites": 0,
+    "nextGate": "Retain only existing canonical model. No gallery changes without verified author license, attribution and staging."
+  }
+}
