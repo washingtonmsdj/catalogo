@@ -1,4 +1,6 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { useCollectionActions } from './CollectionActionsContext'
+import { useCollectionDialogFocus } from './useCollectionDialogFocus'
 import { BRAND_FILE_SLUG } from '../config/brand'
 import {
   COLLECTION_STORAGE_KEY,
@@ -77,7 +79,8 @@ function normalizedSearch(value: string) {
 
 export function CollectionsDock() {
   const importInputRef = useRef<HTMLInputElement>(null)
-  const [open, setOpen] = useState(false)
+  const { collectionsOpen: open, setCollectionsOpen: setOpen } = useCollectionActions()
+  const dialogRef = useCollectionDialogFocus(open, () => setOpen(false))
   const [collections, setCollections] = useState<UserCollection[]>(loadCollections)
   const [activeId, setActiveId] = useState('')
   const [sources, setSources] = useState<LocalSources>(loadSources)
@@ -110,15 +113,6 @@ export function CollectionsDock() {
     setMessage('')
     setActiveId(nextActive?.id ?? '')
     setRenameValue(nextActive?.name ?? '')
-  }, [open])
-
-  useEffect(() => {
-    if (!open) return
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
   }, [open])
 
   const active = collections.find((item) => item.id === activeId) ?? null
@@ -259,8 +253,8 @@ export function CollectionsDock() {
       </button>
 
       {open && <div className="modal-backdrop collections-backdrop" onMouseDown={() => setOpen(false)}>
-        <section className="collections-modal" role="dialog" aria-modal="true" aria-labelledby="collections-title" onMouseDown={(event) => event.stopPropagation()}>
-          <div className="modal-head collections-head"><div><span>LISTAS LOCAIS</span><h2 id="collections-title">Minhas coleções</h2><p>Organize modelos por tema, pedido ou ideia. Tudo fica somente neste navegador.</p></div><button type="button" aria-label="Fechar coleções" onClick={() => setOpen(false)}>×</button></div>
+        <section ref={dialogRef} tabIndex={-1} className="collections-modal" role="dialog" aria-modal="true" aria-labelledby="collections-title" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="modal-head collections-head"><div><span>LISTAS LOCAIS</span><h2 id="collections-title">Minhas coleções</h2><p>Organize modelos por tema, pedido ou ideia. Tudo fica somente neste navegador.</p></div><button type="button" data-dialog-initial-focus aria-label="Fechar coleções" onClick={() => setOpen(false)}>×</button></div>
 
           <div className="collections-layout">
             <aside className="collections-sidebar">

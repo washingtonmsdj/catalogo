@@ -88,7 +88,11 @@ export function useCatalogRuntime(initialSlug = '') {
     if (mode === 'live' && trimmed && Array.from(trimmed).length < LIVE_SEARCH_MIN_LENGTH) return ''
     return trimmed
   })
-  const [selectedId, setSelectedId] = useState(() => demoModels.find((model) => model.slug === initialSlug)?.id ?? demoModels[0].id)
+  // Live builds deliberately exclude demo fixtures. Selection starts empty and
+  // is resolved from the first published API page, never from a demo record.
+  const [selectedId, setSelectedId] = useState(() => mode === 'demo'
+    ? (demoModels.find((model) => model.slug === initialSlug)?.id ?? demoModels[0]?.id ?? '')
+    : '')
   const selectedIdRef = useRef(selectedId)
   const routeSlugRef = useRef(routeSlug)
   const prefetchedCoverUrls = useRef(new Set<string>())

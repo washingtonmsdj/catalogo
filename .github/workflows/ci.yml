@@ -37,6 +37,8 @@ jobs:
         run: npm ci
       - name: Audit dependencies
         run: npm audit --audit-level=high
+      - name: Test fail-closed Cloudflare Access quote admin foundation
+        run: npm run test:quote-admin
       - name: Test bounded browser metadata cache
         run: npm run test:known-cache
       - name: Test canonical Wrangler config
@@ -133,7 +135,7 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          python -m unittest -v test_catalog_schema_contract.py test_migration_deploy_policy.py test_gallery_member_integrity_migration.py test_audit_d1_integrity.py test_ingest_catalog.py test_import_woocommerce_catalog.py test_import_woocommerce_catalog_identity_hardening.py test_build_external_image_manifest.py test_propose_external_identity_matches.py test_resolve_external_identity_matches.py test_audit_model_identity.py test_build_media_bundle.py test_apply_legacy_gallery_repairs.py test_backfill_image_source_index.py test_plan_gallery_merge.py test_creator_attribution_policy.py test_resolve_gallery_merge.py test_build_gallery_promotion_manifest.py test_verify_gallery_promotion_manifest.py test_multi_image_release_contract.py test_publish_r2.py test_reconcile_r2_state.py test_publish_d1.py test_publish_readiness.py test_verify_public_catalog.py test_catalog_folders_schema.py test_search_schema.py test_quote_schema.py test_quote_dedup.py test_shared_collections_schema.py test_pages_workflow_config.py test_cloudflare_workflow_config.py test_cloudflare_d1_scope_contract.py test_cloudflare_runtime_trigger_scope.py test_main_push_provenance_workflows.py test_github_actions_pins.py test_brand_identity.py test_verify_r2_recovery.py test_materialize_r2_recovery.py test_apply_r2_recovery_registry.py test_apply_r2_recovery_registry_partial.py test_preflight_catalog_closeout.py test_index_external_staging_products.py test_index_external_staging_products_oversize.py test_index_external_staging_products_prefetch.py test_discover_external_staging_candidates_http.py test_external_batch_005_contract.py test_external_batch_006_contract.py test_external_batch_007_contract.py test_external_batch_008_contract.py test_external_batch_009_contract.py test_external_batch_010_contract.py test_external_batch_011_contract.py test_external_batch_012_contract.py 2>&1 | tee "$RUNNER_TEMP/catalog-python-tests.log"
+          python -m unittest -v test_catalog_schema_contract.py test_migration_deploy_policy.py test_gallery_member_integrity_migration.py test_audit_d1_integrity.py test_ingest_catalog.py test_import_woocommerce_catalog.py test_import_woocommerce_catalog_identity_hardening.py test_build_external_image_manifest.py test_propose_external_identity_matches.py test_resolve_external_identity_matches.py test_audit_model_identity.py test_build_media_bundle.py test_apply_legacy_gallery_repairs.py test_backfill_image_source_index.py test_plan_gallery_merge.py test_creator_attribution_policy.py test_resolve_gallery_merge.py test_build_gallery_promotion_manifest.py test_verify_gallery_promotion_manifest.py test_multi_image_release_contract.py test_publish_r2.py test_reconcile_r2_state.py test_publish_d1.py test_publish_readiness.py test_verify_public_catalog.py test_catalog_folders_schema.py test_search_schema.py test_quote_schema.py test_quote_audit_schema.py test_quote_dedup.py test_shared_collections_schema.py test_pages_workflow_config.py test_cloudflare_workflow_config.py test_cloudflare_d1_scope_contract.py test_cloudflare_runtime_trigger_scope.py test_main_push_provenance_workflows.py test_github_actions_pins.py test_brand_identity.py test_verify_r2_recovery.py test_materialize_r2_recovery.py test_apply_r2_recovery_registry.py test_apply_r2_recovery_registry_partial.py test_preflight_catalog_closeout.py test_index_external_staging_products.py test_index_external_staging_products_oversize.py test_index_external_staging_products_prefetch.py test_discover_external_staging_candidates_http.py test_external_batch_005_contract.py test_external_batch_006_contract.py test_external_batch_007_contract.py test_external_batch_008_contract.py test_external_batch_009_contract.py test_external_batch_010_contract.py test_external_batch_011_contract.py test_external_batch_012_contract.py 2>&1 | tee "$RUNNER_TEMP/catalog-python-tests.log"
       - name: Upload Python failure diagnostics
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -142,3 +144,62 @@ jobs:
           path: ${{ runner.temp }}/catalog-python-tests.log
           if-no-files-found: error
           retention-days: 1
+
+  visual-audit:
+    name: Browser visual audit (demo)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+      - name: Verify visual audit workflow contract
+        run: node --test tools/test_catalog_visual_ci_contract.mjs
+      - name: Install frontend dependencies
+        run: npm ci
+      - name: Install pinned ephemeral browser driver
+        run: npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+      - name: Install Chromium and browser dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Build isolated catalog demo
+        env:
+          VITE_CATALOG_MODE: demo
+          DEMO_ARTIFACT_DIR: ${{ runner.temp }}/catalog-visual-demo
+        run: npx vite build --outDir "$DEMO_ARTIFACT_DIR"
+      - name: Verify demo isolation
+        env:
+          DEMO_ARTIFACT_DIR: ${{ runner.temp }}/catalog-visual-demo
+        run: node tools/check_demo_catalog_artifact.mjs "$DEMO_ARTIFACT_DIR" present
+      - name: Test responsive browser journeys
+        env:
+          DEMO_ARTIFACT_DIR: ${{ runner.temp }}/catalog-visual-demo
+          CATALOG_VISUAL_DIR: ${{ runner.temp }}/catalog-visual-evidence
+        run: node tools/test_catalog_visual.mjs
+      - name: Build isolated live-contract catalog
+        env:
+          VITE_CATALOG_MODE: live
+          VITE_API_BASE_URL: http://127.0.0.1:4174/__catalog_contract__
+          CATALOG_LIVE_ARTIFACT_DIR: ${{ runner.temp }}/catalog-live-contract
+        run: npx vite build --outDir "$CATALOG_LIVE_ARTIFACT_DIR"
+      - name: Verify live-contract build excludes demo data
+        env:
+          CATALOG_LIVE_ARTIFACT_DIR: ${{ runner.temp }}/catalog-live-contract
+        run: node tools/check_demo_catalog_artifact.mjs "$CATALOG_LIVE_ARTIFACT_DIR" absent
+      - name: Test mobile live-contract hierarchy journey
+        env:
+          CATALOG_LIVE_ARTIFACT_DIR: ${{ runner.temp }}/catalog-live-contract
+          CATALOG_VISUAL_DIR: ${{ runner.temp }}/catalog-visual-evidence
+        run: node tools/test_catalog_live_navigation.mjs
+      - name: Upload browser evidence even on failure
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: catalog-visual-${{ github.sha }}
+          path: ${{ runner.temp }}/catalog-visual-evidence
+          if-no-files-found: warn
+          retention-days: 7

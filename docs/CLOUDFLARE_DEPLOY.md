@@ -83,17 +83,20 @@ O CI de PR continua executando dry-run estrito do Wrangler com segredo sintétic
 4. validar drift remoto;
 5. capturar o Version ID que serve 100% do tráfego;
 6. validar o bucket R2 read-only;
-7. criar uma versão staged sem tráfego, com código + secret juntos;
-8. validar política migration-first;
-9. aplicar migrations D1 somente quando o diff realmente altera schema;
-10. registrar `previous@100% + staged@0%`;
-11. executar smoke completo da versão staged por Version Override;
-12. promover `staged@100%`;
-13. confirmar bounded que o plano de controle aponta exatamente para a versão staged e que o contrato público convergiu;
-14. **provar um objeto de mídia real em `/media/<storage-key>` pela mesma origem do Worker**;
-15. provar `Workers Cache` com HIT real dentro da janela bounded;
-16. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
-17. executar auditoria D1 somente quando o escopo de schema exigir.
+7. para deploy sem mudança de schema, verificar `/api/health` do Worker ativo usando o mesmo cliente de health do smoke staged;
+8. validar a leitura das estruturas canônicas do D1 pelo auditor antes de criar versão staged;
+9. criar uma versão staged sem tráfego, com código + secret juntos;
+10. validar política migration-first;
+11. aplicar migrations D1 somente quando o diff realmente altera schema;
+12. registrar `previous@100% + staged@0%`;
+13. executar smoke completo da versão staged por Version Override;
+14. promover `staged@100%`;
+15. confirmar bounded que o plano de controle aponta exatamente para a versão staged e que o contrato público convergiu;
+16. **provar um objeto de mídia real em `/media/<storage-key>` pela mesma origem do Worker**;
+17. validar a navegação pública real `categoria → franquia → pasta → modelo → detalhe` com o verificador canônico de até 12 GETs, sem escrita D1;
+18. provar `Workers Cache` com HIT real dentro da janela bounded;
+19. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
+20. executar auditoria D1 read-only em todo deploy, sem depender de mudança de schema.
 
 Upload, migrations, deployment, promoção e rollback não são repetidos automaticamente. Retry bounded existe apenas para verificações read-only.
 
@@ -120,6 +123,14 @@ Auditoria completa:
 ```powershell
 python tools/verify_public_catalog.py --api-base https://<worker> --exhaustive --all-galleries
 ```
+
+### Gate real de hierarquia (R32)
+
+`tools/check_public_catalog_hierarchy.mjs` reutiliza `verifyWorkerHealth` e só consulta os endpoints públicos quando a integridade do esquema for comprovada. São, no máximo, **12 GETs por execução**, incluindo o health; não há leitura direta via API administrativa D1, escrita de dados, inventário fictício ou tentativas automáticas em loop.
+
+O workflow de publicação executa o gate **após** a promoção e a validação da mídia e **antes** do gate de cache. Qualquer falha mantém o deploy reprovado e aciona o rollback existente. Na manutenção, a opção manual `verify-public-hierarchy` executa a mesma prova apenas após o health obrigatório, sem aplicar migrações nem alterações de dados. Quando a quota estiver esgotada, ambos falham fechado; **não executar repetidamente** esperando que o limite seja contornado.
+
+A inclusão do gate apenas nos arquivos de orquestração e documentação não deve acionar um deploy do Worker por si só. Não executar `workflow_dispatch` de deploy enquanto a API estiver em 503.
 
 ## Workers Cache
 
@@ -151,3 +162,15 @@ O frontend recebe somente valores públicos. O Turnstile secret nunca vai para o
 - Não enfraquecer gates para fazer deploy passar.
 - Divergência entre dashboard e SSOT deve ser reconciliada conscientemente.
 - Não reintroduzir `VITE_MEDIA_BASE_URL`, `r2.dev` ou custom domain R2 como segunda origem de mídia sem uma decisão arquitetural explícita.
+
+## Quota D1 — diagnóstico R26b
+
+Em 18/10/2026, a API D1 devolveu erro Cloudflare `7500`: limite diário de leituras de linhas do plano gratuito excedido. O antigo `schema_not_ready` mascarava a exceção como se nenhuma migração existisse, mesmo com 21 migrações e 55 estruturas previamente verificadas. A indisponibilidade de consulta **não equivale à ausência de schema**.
+
+O preflight passou a executar `python tools/audit_d1_integrity.py --preflight-schema-readability`, que reutiliza **as mesmas consultas SSOT** de migrações e estruturas da auditoria D1. A antiga sondagem de uma linha era insuficiente: passou enquanto a validação completa no Worker recebeu quota 7500. O preflight de metadados evita upload quando a API D1 recusa essas consultas; porém **o endpoint administrativo do D1 pode aceitar a auditoria quando o binding D1 do Worker ainda retorna 7500**. Para deploy sem mudança de schema, agora também é obrigatório health real do Worker ativo antes do upload; retorna só um código seguro, sem headers ou dados pessoais. Em mudanças de schema, aceita migrações ainda pendentes porque serão aplicadas pelo gate migration-first. O smoke staged completo continua obrigatório; leituras podem se esgotar depois do preflight. Não há bypass de quota, rollback ou auditoria.
+
+O health do Worker diferencia `d1_daily_read_quota_exceeded` de `schema_query_unavailable` e de ausências realmente verificadas; não divulga mensagens de erro SQL nem dados privados.
+
+### Distinção API de administração x binding do Worker — R26d
+
+A auditoria estrutural canônica via endpoint administrativo D1 passou em 18/10/2026, enquanto a versão staged seguia retornando `d1_daily_read_quota_exceeded` no binding do Worker. Por isso, em deploy **sem alteração de schema**, o fluxo também executa `node tools/check_worker_health.mjs "$CATALOG_API_URL"` no Worker **atualmente ativo**, antes do upload. Falha de disponibilidade nessa leitura bloqueia a tentativa sem criar Worker version. Essa prova também não garante que uma versão staged nova terá quota suficiente; o smoke staged e rollback continuam incondicionais. Em deploy com migração, a validação do novo schema só se torna possível após aplicar as migrações e continua protegida por staging.

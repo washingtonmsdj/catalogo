@@ -18,6 +18,7 @@ import {
   type KnownModelSummary,
 } from './services/knownModelCache'
 import { submitQuoteRequest } from './services/quotes'
+import { clearLastLiveQuoteReceipt, readLastLiveQuoteReceipt, receiptFromQuoteSubmission, saveLastLiveQuoteReceipt, type LiveQuoteReceipt } from './services/quoteReceipt'
 import type { CatalogImage, CatalogModel } from './types/catalog'
 
 const formatter = new Intl.NumberFormat('pt-BR')
@@ -127,6 +128,9 @@ export default function App() {
   const [sent, setSent] = useState(false)
   const [quoteMode, setQuoteMode] = useState<'live' | 'demo' | null>(null)
   const [quoteReference, setQuoteReference] = useState('')
+  const [lastQuoteReceipt, setLastQuoteReceipt] = useState<LiveQuoteReceipt | null>(readLastLiveQuoteReceipt)
+  const [reopenedReceipt, setReopenedReceipt] = useState(false)
+  const [receiptStorageWarning, setReceiptStorageWarning] = useState('')
   const [submittedQuoteCount, setSubmittedQuoteCount] = useState(0)
   const [quoteSubmitting, setQuoteSubmitting] = useState(false)
   const [quoteError, setQuoteError] = useState('')
@@ -224,8 +228,8 @@ export default function App() {
       if (galleryOpen && !previewImage && event.key === 'End') { event.preventDefault(); gallery.goToPage(gallery.totalPages - 1); return }
       const target = event.target
       const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable)
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !anyModalOpen) { event.preventDefault(); searchInputRef.current?.focus(); return }
-      if (event.key === '/' && !isTyping && !anyModalOpen) { event.preventDefault(); searchInputRef.current?.focus(); return }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !anyModalOpen) { event.preventDefault(); openExplorer(catalog.search); return }
+      if (event.key === '/' && !isTyping && !anyModalOpen) { event.preventDefault(); openExplorer(catalog.search); return }
       if (isTyping || anyModalOpen) return
       if (event.key.toLowerCase() === 'e') openExplorer()
     }
@@ -265,10 +269,10 @@ export default function App() {
       window.dispatchEvent(new Event('hashchange'))
     }
   }
-  function openKnownModel(id: string, close: () => void) {
+  function openKnownModel(id: string, close?: () => void) {
     const slug = knownModels[id]?.slug
     if (!slug) return
-    close()
+    close?.()
     setModelDetailOpen(true)
     window.location.hash = `modelo=${encodeURIComponent(slug)}`
   }
@@ -276,6 +280,12 @@ export default function App() {
   function addComparisonToQuote(ids: string[]) { setQuoteList((current) => { const next = [...current]; for (const id of ids) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setCompareOpen(false); setQuoteOpen(true) }
   function chooseExplorerCategory(category: string) { catalog.setSearch(''); catalog.setCategory(category) }
   function chooseExplorerFranchise(category: string, franchise: string) { catalog.setSearch(''); catalog.setCategory(category); catalog.setFranchise(franchise) }
+  function chooseExplorerFolder(category: string, franchise: string, folder: string) {
+    catalog.setSearch('')
+    catalog.setCategory(category)
+    catalog.setFranchise(franchise)
+    catalog.setFolder(folder)
+  }
   function handleGalleryGridKey(event: ReactKeyboardEvent<HTMLDivElement>) {
     const directionByKey: Partial<Record<string, GalleryDirection>> = {
       ArrowLeft: 'left',
@@ -328,6 +338,15 @@ export default function App() {
     try {
       const result = await submitQuoteRequest({ name: String(data.get('name') ?? '').trim(), email: String(data.get('email') ?? '').trim(), notes: String(data.get('notes') ?? '').trim(), modelIds: quoteList, turnstileToken })
       setQuoteMode(result.mode); setQuoteReference(result.reference); setSubmittedQuoteCount(submittedCount)
+      setReopenedReceipt(false)
+      setReceiptStorageWarning('')
+      const receipt = receiptFromQuoteSubmission(result, submittedCount)
+      if (receipt) {
+        if (saveLastLiveQuoteReceipt(receipt)) setLastQuoteReceipt(receipt)
+        else setReceiptStorageWarning('O navegador não conseguiu guardar o protocolo. Anote-o antes de fechar.')
+      } else if (result.mode === 'live') {
+        setReceiptStorageWarning('O servidor confirmou o envio, mas o comprovante não pôde ser salvo. Anote o protocolo.')
+      }
       if (result.mode === 'live') setQuoteList([])
       setSent(true)
     } catch (error) {
@@ -344,6 +363,8 @@ export default function App() {
         searchInputRef={searchInputRef}
         favorites={favorites}
         quoteList={quoteList}
+        knownModels={knownModels}
+        onOpenKnownModel={(id) => openKnownModel(id)}
         onOpenExplorer={openExplorer}
         onOpenUpdates={() => setUpdatesOpen(true)}
         onOpenFavorites={() => setFavoritesOpen(true)}
@@ -366,7 +387,7 @@ export default function App() {
         onToggleCompare={() => toggleCompare(selected.id)}
         onToggleQuote={() => safeToggleQuote(selected.id)}
       />
-      <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} initialQuery={explorerInitialQuery} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} />
+      <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} activeFranchise={catalog.franchise} activeFolder={catalog.folder} folderTrail={catalog.folderTrail} initialQuery={explorerInitialQuery} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} onSelectFolder={chooseExplorerFolder} />
 
       <ModelComparison open={compareOpen} mode={catalog.mode} ids={compareIds} knownModels={knownModels} onClose={() => setCompareOpen(false)} onRemove={(id) => setCompareIds((current) => current.filter((item) => item !== id))} onClear={() => setCompareIds([])} onOpenModel={(id) => openKnownModel(id, () => setCompareOpen(false))} onAddToQuote={addComparisonToQuote} />
 
@@ -407,10 +428,25 @@ export default function App() {
         quoteMode={quoteMode}
         quoteReference={quoteReference}
         submittedQuoteCount={submittedQuoteCount}
+        lastReceipt={lastQuoteReceipt}
+        reopenedReceipt={reopenedReceipt}
+        receiptStorageWarning={receiptStorageWarning}
+        onShowLastReceipt={() => {
+          if (!lastQuoteReceipt) return
+          setQuoteMode('live')
+          setQuoteReference(lastQuoteReceipt.reference)
+          setSubmittedQuoteCount(lastQuoteReceipt.modelCount)
+          setReopenedReceipt(true)
+          setSent(true)
+        }}
+        onForgetLastReceipt={() => {
+          if (clearLastLiveQuoteReceipt()) { setLastQuoteReceipt(null); setReceiptStorageWarning('') }
+          else setReceiptStorageWarning('Não foi possível apagar o comprovante deste navegador.')
+        }}
         submitting={quoteSubmitting}
         error={quoteError}
         turnstileResetKey={turnstileResetKey}
-        onClose={() => setQuoteOpen(false)}
+        onClose={() => { setQuoteOpen(false); setSent(false); setReopenedReceipt(false) }}
         onRemove={safeToggleQuote}
         onOpenModel={(id) => openKnownModel(id, () => setQuoteOpen(false))}
         onSubmit={submitQuote}

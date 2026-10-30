@@ -21,6 +21,7 @@ on:
       - 'tools/check_worker_cache_hit.mjs'
       - 'tools/verify_public_catalog.py'
       - 'tools/check_migration_deploy_policy.py'
+      - 'tools/catalog_schema_contract.py'
       - 'tools/check_worker_health.mjs'
       - 'tools/audit_d1_integrity.py'
       - 'config/catalog-schema-contract.json'
@@ -164,6 +165,11 @@ jobs:
           echo "PREVIOUS_WORKER_VERSION_ID=$previous_version" >> "$GITHUB_ENV"
       - name: Verify R2 bucket
         run: npx wrangler r2 bucket info tonecos-catalogo-media --json
+      - name: Verify currently serving Worker health before runtime-only deploy
+        if: ${{ steps.d1_scope.outputs.run_d1_schema != 'true' }}
+        run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
+      - name: Verify canonical D1 schema queries before uploading any Worker version
+        run: python tools/audit_d1_integrity.py --preflight-schema-readability
       - name: Upload Worker version with required secret and no traffic
         shell: bash
         env:
@@ -212,6 +218,8 @@ jobs:
         run: node tools/check_promoted_worker_version.mjs "$CATALOG_API_URL" "$STAGED_WORKER_VERSION_ID"
       - name: Verify public media gateway after promotion
         run: python tools/verify_public_catalog.py --api-base "$CATALOG_API_URL"
+      - name: Verify live public catalog hierarchy after promotion
+        run: node tools/check_public_catalog_hierarchy.mjs "$CATALOG_API_URL"
       - name: Verify Workers Cache hit after promotion
         run: node tools/check_worker_cache_hit.mjs "$CATALOG_API_URL"
       - name: Restore previous Worker after failed staged or production smoke
@@ -221,5 +229,4 @@ jobs:
           --message "automatic restore after failed deploy validation ${GITHUB_SHA}"
           --config .wrangler.deploy.jsonc
       - name: Audit D1 structural integrity
-        if: ${{ steps.d1_scope.outputs.run_d1_schema == 'true' }}
         run: python tools/audit_d1_integrity.py
