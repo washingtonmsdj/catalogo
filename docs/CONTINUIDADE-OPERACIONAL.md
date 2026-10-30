@@ -240,13 +240,13 @@ modelos D1 como se fossem a mesma unidade de contagem.
 
 ### Conferência física e visual específica — 2026-10-30, segunda passagem
 
-**As dez entradas atuais de \`Catalogo/Novos\` têm destinos nominais
-já criados em \`Catalogo\`, mas vazios.** Isso foi conferido em duas
+**As dez entradas atuais de `Catalogo/Novos` têm destinos nominais
+já criados em `Catalogo`, mas vazios.** Isso foi conferido em duas
 fontes independentes: listagem física do Desktop Commander em
-\`DESKTOP-PNUHUA0\` (somente \`desktop.ini\` em cada destino) e
+`DESKTOP-PNUHUA0` (somente `desktop.ini` em cada destino) e
 listagem de filhos dos dez IDs de pastas pelo conector do Google Drive
 (0 arquivos e 0 subpastas em cada destino). Portanto, os sufixos
-\`[1]\` nesses dez destinos são **rótulos históricos desatualizados**,
+`[1]` nesses dez destinos são **rótulos históricos desatualizados**,
 não prova de uma imagem incorporada. Uma amostra separada de cinco
 pastas antigas de Digimon, Terror e DC continha imagens normalmente.
 
@@ -262,11 +262,11 @@ pastas antigas de Digimon, Terror e DC continha imagens normalmente.
   visível (incluindo LA Figures, Julles ou B3DSERK). A ausência de
   logotipo nas outras três **não** demonstra direitos de publicação.
 - Nenhum dos dez SHA consta das 2.645 imagens publicadas no snapshot D1
-  auditado anteriormente, nem da cópia do \`Controle/galeria-posts.csv\`
+  auditado anteriormente, nem da cópia do `Controle/galeria-posts.csv`
   com 12.123 linhas. Isso demonstra ausência de **SHA exato e de
   aprovação correspondente nesse manifesto**, não ausência global
   de escultura com outra imagem ou outro nome.
-- **Não copiar/mover para as pastas vazias apenas para corrigir \`[1]\`.**
+- **Não copiar/mover para as pastas vazias apenas para corrigir `[1]`.**
   Antes da promoção: confirmar variantes contra a coleção atual,
   autorização/procedência do criador, imagem escolhida e preflight
   SHA V4 do executor canônico. Não registrar mídia de terceiros no
@@ -285,12 +285,12 @@ em uma prancha temporária, mais as cinco imagens WebP:
 | Mulher sobre base mecânica/industrial | 5 JPEG | frente, verso e recortes |
 | Personagem identificado no arquivo como Chun-Li | 1 JPEG | render de escultura |
 | Figura indicada como Monstro da Lagoa Negra | 1 JPEG | fotografia de escultura com interface de telefone |
-| Figura colorida denominada \`Predator.jpg\` | 1 JPEG | identidade exata da escultura ainda não confirmada |
+| Figura colorida denominada `Predator.jpg` | 1 JPEG | identidade exata da escultura ainda não confirmada |
 | Diorama Alien com duas criaturas | 5 WebP | vistas e recortes do mesmo conjunto de base |
 | **Total** | **31** | **nove grupos apenas provisórios** |
 
-A comparação visual com \`OK - Predador [4]\` e amostras de
-\`OK - Alien [14]\` não mostrou a mesma escultura evidente para as
+A comparação visual com `OK - Predador [4]` e amostras de
+`OK - Alien [14]` não mostrou a mesma escultura evidente para as
 duas séries soltas, mas não há prova de unicidade no acervo inteiro.
 Nenhum dos 31 SHA consta do índice D1 de referência; diferenças de
 arquivo, ângulo ou compressão não provam esculturas distintas.
@@ -298,7 +298,7 @@ Conservar todos os originais no lugar até resolver identidade e direitos.
 
 **Ordem operacional revisada:** (1) sanar a discrepância de dez
 pastas vazias sem mascarar a contagem; (2) revisar autorizações e
-preflight do executor para os dez itens de \`Novos\`; (3) avaliar os
+preflight do executor para os dez itens de `Novos`; (3) avaliar os
 **nove conjuntos**, não os 31 arquivos individualmente, contra
 representantes da coleção organizada; (4) promover somente identidades
 comprovadas e autorizadas, sem escrita direta pela auditoria.
