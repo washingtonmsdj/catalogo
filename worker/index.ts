@@ -197,25 +197,23 @@ function quoteResponse(request: Request, env: Env, quote: QuoteRecord, deduplica
 const encodeOffsetCursor = (offset: number) => btoa(String(offset))
 
 async function listCategories(request: Request, env: Env) {
-  const result = await env.DB.prepare(`WITH ranked_franchises AS (
-      SELECT f.id,f.category_id,
-        ROW_NUMBER() OVER (PARTITION BY f.category_id ORDER BY f.model_count DESC,f.name COLLATE NOCASE,f.id) AS rank_in_category
-      FROM franchises f
-    ), representative AS (
-      SELECT rf.category_id,
-        (SELECT m.cover_storage_key
-         FROM models m
-         WHERE m.franchise_id=rf.id
-           AND m.published=1
-           AND m.cover_storage_key IS NOT NULL
-         ORDER BY m.image_count DESC,m.name COLLATE NOCASE,m.id
-         LIMIT 1) AS cover_storage_key
-      FROM ranked_franchises rf
-      WHERE rf.rank_in_category=1
-    )
-    SELECT c.slug AS id,c.name AS label,c.model_count AS count,representative.cover_storage_key
+  // Select only the top franchise per category using the canonical discovery index.
+  // Ranking the entire franchise table with ROW_NUMBER() scans every franchise on
+  // each cache miss; these correlated lookups use existing covering indexes instead.
+  const result = await env.DB.prepare(`SELECT c.slug AS id,c.name AS label,c.model_count AS count,
+      (SELECT m.cover_storage_key
+       FROM models m
+       WHERE m.franchise_id=(
+         SELECT f.id FROM franchises f
+         WHERE f.category_id=c.id
+         ORDER BY f.model_count DESC,f.name COLLATE NOCASE,f.id
+         LIMIT 1
+       )
+         AND m.published=1
+         AND m.cover_storage_key IS NOT NULL
+       ORDER BY m.image_count DESC,m.name COLLATE NOCASE,m.id
+       LIMIT 1) AS cover_storage_key
     FROM categories c
-    LEFT JOIN representative ON representative.category_id=c.id
     ORDER BY c.sort_order,c.name COLLATE NOCASE`)
     .all<{ id: string; label: string; count: number; cover_storage_key: string | null }>()
   const total = result.results.reduce((sum, item) => sum + Number(item.count || 0), 0)
