@@ -139,6 +139,18 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
         if current_by_id is not None and current_by_slug is not None and current_by_id is not current_by_slug:
             raise DriveReconciliationError(f"conflicting current source IDs for Drive row {i}")
         current = current_by_id or current_by_slug
+        if current is not None:
+            gallery_count = current.get("sourceGalleryImageCount")
+            metadata_available = current.get("sourceGalleryMetadataAvailable")
+            if metadata_available is not None and not isinstance(metadata_available, bool):
+                raise DriveReconciliationError("invalid source gallery metadata flag")
+            if (gallery_count is not None and (
+                    isinstance(gallery_count, bool)
+                    or not isinstance(gallery_count, int) or gallery_count < 0
+                    or metadata_available is False)):
+                raise DriveReconciliationError("invalid source gallery image count")
+        else:
+            gallery_count = None
         link = ("id_and_slug" if current_by_id is not None and current_by_slug is current_by_id
                 else "id_slug_changed" if current_by_id is not None
                 else "slug_only" if current_by_slug is not None else "not_found")
@@ -147,6 +159,13 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
         review_tier = "not_classified"
         target_metadata = None
         label_matches = None
+        gallery_gate = "no_current_gallery_metadata"
+        if gallery_count == 0:
+            gallery_gate = "source_gallery_empty"
+        elif gallery_count == 1:
+            gallery_gate = "single_source_image_historical_sha_not_currently_rehashed"
+        elif isinstance(gallery_count, int) and gallery_count > 1:
+            gallery_gate = "multiple_source_images_require_full_gallery_identity_review"
         if metadata_by_id is not None and len(sha_model_candidates) == 1:
             mid = sha_model_candidates[0]
             target_metadata = metadata_by_id.get(mid)
@@ -172,6 +191,7 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
             "legacyDriveStatus": state,
             "legacyImageSha256": digest.lower(),
             "currentD1IdentityState": current["state"] if current else None,
+            "currentSourceGalleryImageCount": gallery_count,
             "currentIdentityConfirmed": is_confirmed,
             "currentModelId": (
                 current.get("approvedExistingTargetModelId") or current.get("expectedModelId")
@@ -183,6 +203,8 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
             "shaIndexedInActivePublishedGallery": bool(sha_model_candidates),
             "shaCandidateModelIds": sha_model_candidates,
             "shaReviewTier": review_tier,
+            "sourceGalleryReviewGate": gallery_gate,
+            "sourceGalleryFullyProven": False,
             "publishedModelName": target_metadata["name"] if target_metadata else None,
             "publishedFranchiseName": target_metadata["franchise_name"] if target_metadata else None,
             "publishedModelSlug": target_metadata["slug"] if target_metadata else None,
@@ -242,6 +264,7 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
                 for x in output
             ),
             "shaReviewTierCounts": dict(sorted(Counter(x["shaReviewTier"] for x in output).items())),
+            "sourceGalleryReviewGateCounts": dict(sorted(Counter(x["sourceGalleryReviewGate"] for x in output).items())),
             "casesWithMultipleShaModelCandidates": sum(
                 len(x["shaCandidateModelIds"]) > 1 for x in output
             ),

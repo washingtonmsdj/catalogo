@@ -166,6 +166,29 @@ class DriveEvidenceTests(unittest.TestCase):
         self.assertEqual(mismatch["workItems"][0]["shaReviewTier"],
                          "C_metadata_difference_requires_visual_review")
 
+    def test_source_gallery_count_classifies_full_gallery_review_work(self):
+        for images, expected in (
+            (1, "single_source_image_historical_sha_not_currently_rehashed"),
+            (5, "multiple_source_images_require_full_gallery_identity_review"),
+            (0, "source_gallery_empty"),
+            (None, "no_current_gallery_metadata"),
+        ):
+            data = source()
+            data["products"][1]["sourceGalleryImageCount"] = images
+            row_data = row("COBERTO_CATALOGO_SHA", "11", "b")
+            with self.subTest(image_count=images):
+                result = reconcile(data, [row_data], legacy_export_sha256="a" * 64,
+                                   legacy_as_of="2026-08-22")
+                item = result["workItems"][0]
+                self.assertEqual(item["currentSourceGalleryImageCount"], images)
+                self.assertEqual(item["sourceGalleryReviewGate"], expected)
+                self.assertFalse(item["sourceGalleryFullyProven"])
+        invalid = source()
+        invalid["products"][1]["sourceGalleryImageCount"] = True
+        with self.assertRaisesRegex(DriveReconciliationError, "invalid source gallery image count"):
+            reconcile(invalid, [row("COBERTO_CATALOGO_SHA", "11", "b")],
+                      legacy_export_sha256="a" * 64, legacy_as_of="2026-08-22")
+
     def test_published_metadata_mismatch_fails_closed(self):
         with self.assertRaisesRegex(DriveReconciliationError, "requires active SHA index"):
             report(rows=[row("COBERTO_CATALOGO_SHA", "11", "b")]) if False else reconcile(

@@ -176,7 +176,29 @@ class ExternalSourceCoverageTests(unittest.TestCase):
         self.assertEqual(query["orderby"], ["id"])
         self.assertEqual(query["order"], ["asc"])
         self.assertIn("categories", query["_fields"][0])
+        self.assertIn("images", query["_fields"][0])
         self.assertEqual(meta["ordering"], "id_asc")
+
+    def test_source_image_count_metadata_is_separate_from_identity_approval(self):
+        products = [
+            {"id": 10, "name": "Azula", "slug": "azula", "images": [{"id": 2}, {"id": 3}]},
+            {"id": 20, "name": "Ryu", "slug": "ryu", "images": [{"id": 4}]},
+            {"id": 30, "name": "Unknown", "slug": "unknown"},
+        ]
+        report = classify(products, self.models, {}, {})
+        by_id = {x["sourceProductId"]: x for x in report["products"]}
+        self.assertEqual(by_id[10]["sourceGalleryImageCount"], 2)
+        self.assertEqual(by_id[20]["sourceGalleryImageCount"], 1)
+        self.assertIsNone(by_id[30]["sourceGalleryImageCount"])
+        self.assertEqual(report["summary"]["sourceGalleryMetadataAvailable"], 2)
+        self.assertEqual(report["summary"]["sourceGallerySingleImageProducts"], 1)
+        self.assertEqual(report["summary"]["sourceGalleryMetadataMissing"], 1)
+        self.assertEqual(report["summary"]["confirmedPresent"], 0)
+        for invalid in ({"images": "cover.webp"}, {"images": [None]}, {"images": True}):
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(
+                CoverageError, "galeria de origem inválidos"
+            ):
+                classify([{"id": 1, "name": "A", **invalid}], self.models, {}, {})
 
     def test_map_existing_is_confirmed_present(self):
         report = classify(

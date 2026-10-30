@@ -136,7 +136,7 @@ def _fetch_source_products_once(origin: str, *, per_page: int, max_pages: int) -
         "page": 1,
         "orderby": "id",
         "order": "asc",
-        "_fields": "id,name,slug,categories",
+        "_fields": "id,name,slug,categories,images",
     }
     first_url = f"{origin}/wp-json/wc/store/v1/products?{urllib.parse.urlencode(params)}"
     first, headers = fetch_json(first_url)
@@ -434,6 +434,13 @@ def classify(
     for product in products:
         product_id = int(product["id"])
         name = str(product.get("name") or "")
+        source_images = product.get("images")
+        if source_images is not None and (
+            not isinstance(source_images, list)
+            or any(not isinstance(image, dict) for image in source_images)
+        ):
+            raise CoverageError(f"metadados da galeria de origem inválidos: {product_id}")
+        source_image_count = len(source_images) if source_images is not None else None
         states = reviews.get(product_id, set())
         expected_id = batch_ids.get(product_id)
         candidates = names.get(normalize(subject_hint(name)), [])
@@ -475,6 +482,8 @@ def classify(
                 "sourceName": name,
                 "sourceSlug": str(product.get("slug") or ""),
                 "sourceCategories": source_categories,
+                "sourceGalleryImageCount": source_image_count,
+                "sourceGalleryMetadataAvailable": source_images is not None,
                 "state": state,
                 "expectedModelId": expected_id,
                 "approvedExistingTargetModelId": confirmed_target,
@@ -487,11 +496,16 @@ def classify(
             }
         )
 
+    source_gallery_known = sum(row["sourceGalleryMetadataAvailable"] for row in rows)
+    source_gallery_single = sum(row["sourceGalleryImageCount"] == 1 for row in rows)
     confirmed = counts["confirmed_present_map_existing"] + counts["confirmed_present_reviewed_new_model"]
     confirmed_missing = counts["reviewed_new_model_not_published"]
     return {
         "summary": {
             "sourceProducts": len(products),
+            "sourceGalleryMetadataAvailable": source_gallery_known,
+            "sourceGalleryMetadataMissing": len(products) - source_gallery_known,
+            "sourceGallerySingleImageProducts": source_gallery_single,
             "publishedModels": len(models),
             "confirmedPresent": confirmed,
             "confirmedReviewedNewModelsNotPublished": confirmed_missing,
