@@ -46,3 +46,17 @@ export function quoteRailItems<T extends { id: string; name: string }>(
     return { id, model, name: model?.name || known?.name, slug: known?.slug }
   })
 }
+
+
+export type CatalogAvailabilityInput = {
+  mode: 'demo' | 'live'
+  loading: boolean
+  apiHealthy: boolean
+  modelPageStatus: 'loading' | 'ready' | 'error' | 'not_found'
+}
+
+export function catalogPageIsUnavailable(input: CatalogAvailabilityInput) {
+  return input.mode === 'live'
+    && !input.loading
+    && (!input.apiHealthy || input.modelPageStatus === 'error')
+}

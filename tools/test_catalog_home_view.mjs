@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  catalogPageIsUnavailable,
   hasResolvedCatalogDiscovery,
   isCatalogResultsMode,
   modelsForCatalogHome,
@@ -73,4 +74,15 @@ test('quote rail keeps four items maximum without changing source selection', ()
   assert.deepEqual(quoteRailItems(ids, [], {}).map((item) => item.id), ['a', 'b', 'c', 'd'])
   assert.equal(ids.length, 5)
   assert.deepEqual(quoteRailItems([], [], {}), [])
+})
+
+
+test('API failures never masquerade as a genuinely empty catalog', () => {
+  const normal = { mode: 'live', loading: false, apiHealthy: true, modelPageStatus: 'ready' }
+  assert.equal(catalogPageIsUnavailable(normal), false)
+  assert.equal(catalogPageIsUnavailable({ ...normal, modelPageStatus: 'not_found' }), false)
+  assert.equal(catalogPageIsUnavailable({ ...normal, modelPageStatus: 'error' }), true)
+  assert.equal(catalogPageIsUnavailable({ ...normal, apiHealthy: false }), true)
+  assert.equal(catalogPageIsUnavailable({ ...normal, loading: true, apiHealthy: false }), false)
+  assert.equal(catalogPageIsUnavailable({ ...normal, mode: 'demo', apiHealthy: false }), false)
 })

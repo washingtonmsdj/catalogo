@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { categories as demoCategories, models as demoModels } from '../data/mockCatalog'
 import { demoFranchises as listDemoFranchises, listDemoFolders, listDemoModels } from '../data/demoCatalogPagination'
 import {
-  checkCatalogApi,
   getCatalogModel,
   getCatalogRuntimeMode,
   listCatalogCategories,
@@ -106,6 +105,8 @@ export function useCatalogRuntime(initialSlug = '') {
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [searchResultCount, setSearchResultCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(mode === 'live')
+  const [taxonomyLoading, setTaxonomyLoading] = useState(mode === 'live')
+  const [modelPageStatus, setModelPageStatus] = useState<'loading' | 'ready' | 'error' | 'not_found'>(mode === 'live' ? 'loading' : 'ready')
   const [error, setError] = useState('')
   const [apiHealthy, setApiHealthy] = useState(mode === 'demo')
 
@@ -168,21 +169,23 @@ export function useCatalogRuntime(initialSlug = '') {
   useEffect(() => {
     if (mode !== 'live') return
     let cancelled = false
-    setLoading(true)
-    Promise.all([checkCatalogApi(), listCatalogCategories()])
-      .then(([health, items]) => {
+    setTaxonomyLoading(true)
+    // The Worker gates /api/categories with the same canonical schema check as
+    // /api/health. A second health request per visitor duplicates this check.
+    listCatalogCategories()
+      .then((items) => {
         if (cancelled) return
-        setApiHealthy(health.ok)
+        setApiHealthy(true)
         setLiveCategories(items)
-        setError(health.ok ? '' : 'A API do catálogo não respondeu ao health check.')
       })
       .catch(() => {
         if (!cancelled) {
           setApiHealthy(false)
+          setLiveCategories([])
           setError('Não foi possível carregar a taxonomia do catálogo.')
         }
       })
-      .finally(() => { if (!cancelled) setLoading(false) })
+      .finally(() => { if (!cancelled) setTaxonomyLoading(false) })
     return () => { cancelled = true }
   }, [mode])
 
@@ -270,6 +273,7 @@ export function useCatalogRuntime(initialSlug = '') {
     if (mode !== 'live') return
     let cancelled = false
     setLoading(true)
+    setModelPageStatus('loading')
     setError('')
     listCatalogModels({
       category,
@@ -286,6 +290,7 @@ export function useCatalogRuntime(initialSlug = '') {
       .then((page) => {
         if (cancelled) return
         const items = page.items.map(cardToModel)
+        setModelPageStatus('ready')
         setLiveModels(items)
         setLiveModelsRequestKey(liveModelsRequestKeyForCurrentScope)
         setNextCursor(page.nextCursor)
@@ -301,6 +306,7 @@ export function useCatalogRuntime(initialSlug = '') {
       })
       .catch((caught) => {
         if (!cancelled) {
+          setModelPageStatus(caught instanceof Error && caught.message === 'folder_not_found' ? 'not_found' : 'error')
           setLiveModels([])
           setLiveModelsRequestKey(liveModelsRequestKeyForCurrentScope)
           setNextCursor(null)
@@ -500,6 +506,7 @@ export function useCatalogRuntime(initialSlug = '') {
   return {
     mode,
     apiHealthy,
+    modelPageStatus,
     category,
     franchise,
     folder,
@@ -543,7 +550,7 @@ export function useCatalogRuntime(initialSlug = '') {
       : (pageIndex + 1) * MODEL_PAGE_SIZE < demoPage.totalApprox,
     goNextPage,
     goPreviousPage,
-    loading: mode === 'live' ? loading || !livePageMatchesCurrentScope : loading,
+    loading: mode === 'live' ? loading || taxonomyLoading || !livePageMatchesCurrentScope : loading,
     error,
   }
 }

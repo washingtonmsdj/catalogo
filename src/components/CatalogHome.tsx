@@ -4,7 +4,7 @@ import { useCatalogRuntime } from '../hooks/useCatalogRuntime'
 import { listCatalogFranchises } from '../services/catalogApi'
 import { FRANCHISE_SEARCH_MIN_LENGTH } from '../services/catalogRepository'
 import { discoveryShareUrl } from '../services/catalogNavigation'
-import { hasResolvedCatalogDiscovery, isCatalogResultsMode, modelsForCatalogHome, quoteRailItems } from '../lib/catalogHomeView'
+import { catalogPageIsUnavailable, hasResolvedCatalogDiscovery, isCatalogResultsMode, modelsForCatalogHome, quoteRailItems } from '../lib/catalogHomeView'
 import { normalizeSavedCatalogFilters, savedCatalogFilterId, savedCatalogFilterLabel, type SavedCatalogFilter } from '../lib/savedCatalogFilters'
 import type { KnownModelSummary } from '../services/knownModelCache'
 import { CatalogSidebarTree } from './CatalogSidebarTree'
@@ -196,6 +196,8 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
   const selected = catalog.selected
   const models = catalog.models
   const catalogTotal = catalog.categories.find((item) => item.id === 'all')?.count ?? catalog.totalCount
+  const catalogUnavailable = catalogPageIsUnavailable(catalog)
+  const visibleCatalogTotal = catalogUnavailable ? '—' : formatter.format(catalogTotal)
   const homeModeInput = {
     showFullCatalogPage,
     pageIndex: catalog.pageIndex,
@@ -301,11 +303,13 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
     : undefined
   const runtimeStatus = catalog.mode === 'demo'
     ? { label: 'Prévia local', tone: 'demo' }
-    : catalog.apiHealthy
-      ? { label: 'Catálogo online', tone: 'live' }
-      : catalog.loading
-        ? { label: 'Conectando...', tone: 'pending' }
-        : { label: 'Catálogo indisponível', tone: 'error' }
+    : catalogUnavailable
+      ? { label: 'Catálogo indisponível', tone: 'error' }
+      : catalog.apiHealthy
+        ? { label: 'Catálogo online', tone: 'live' }
+        : catalog.loading
+          ? { label: 'Conectando...', tone: 'pending' }
+          : { label: 'Catálogo indisponível', tone: 'error' }
 
   useEffect(() => {
     try { localStorage.setItem(SAVED_FILTERS_STORAGE_KEY, JSON.stringify(savedFilters)) } catch { /* Search remains available when storage is disabled. */ }
@@ -822,9 +826,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
           </div>
         </header>
         <main id="catalogo" tabIndex={-1} className="storefront-content" aria-busy={catalog.loading}>
-          {catalog.error && <div className="storefront-alert" role="alert">{catalog.error}</div>}
+          {catalog.error && !catalogUnavailable && <div className="storefront-alert" role="alert">{catalog.error}</div>}
 
-          {resultsMode && <section className={`storefront-results-hero ${!hasResolvedDiscovery ? 'storefront-results-hero--global' : ''}`} aria-label="Resumo dos resultados">
+          {resultsMode && !catalogUnavailable && <section className={`storefront-results-hero ${!hasResolvedDiscovery ? 'storefront-results-hero--global' : ''}`} aria-label="Resumo dos resultados">
             {models[0]?.coverUrl ? <img src={models[0].coverUrl} alt="" loading="eager" fetchPriority="high" decoding="async" /> : models[0]?.demoArtworkIndex !== undefined && <span className="storefront-results-hero__sprite" aria-hidden="true" style={{ backgroundPosition: `${(models[0].demoArtworkIndex % 4) * 33.333}% ${Math.floor(models[0].demoArtworkIndex / 4) * 50}%` }} />}
             <div className="storefront-results-hero__copy">
               <span>{resultScope || 'ACERVO TONECOS'} · CATÁLOGO</span>
@@ -869,9 +873,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
               <h1>Encontre o modelo certo <em>sem se perder no catálogo.</em></h1>
               <p>Explore por franquia, personagem ou categoria, abra cada ficha e compare as vistas disponíveis antes de adicionar o modelo à sua lista.</p>
               <div className="storefront-hero__metrics" role="group" aria-label="Resumo do acervo">
-                <span><strong>{formatter.format(catalogTotal)}</strong><small>modelos</small></span>
-                <span><strong>{formatter.format(publicCategories.length)}</strong><small>categorias</small></span>
-                <span><strong>{heroCampaignCategory ? formatter.format(heroCampaignCategory.count) : '—'}</strong><small>na coleção</small></span>
+                <span><strong>{visibleCatalogTotal}</strong><small>modelos</small></span>
+                <span><strong>{catalogUnavailable ? '—' : formatter.format(publicCategories.length)}</strong><small>categorias</small></span>
+                <span><strong>{catalogUnavailable ? '—' : heroCampaignCategory ? formatter.format(heroCampaignCategory.count) : '—'}</strong><small>na coleção</small></span>
               </div>
               <div className="storefront-hero__actions">
                 <button type="button" className="storefront-button storefront-button--primary" onClick={exploreHeroCampaign}>Explorar coleção <Icon name="chevron" /></button>
@@ -887,9 +891,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
 
           {!resultsMode && <section className="storefront-commandbar" aria-label="Acesso rápido ao catálogo">
             <div className="storefront-commandbar__stats">
-              <span><strong>{formatter.format(catalogTotal)}</strong><small>modelos</small></span>
-              <span><strong>{formatter.format(catalog.franchises.length)}</strong><small>franquias carregadas</small></span>
-              <span><strong>{formatter.format(publicCategories.length)}</strong><small>categorias</small></span>
+              <span><strong>{visibleCatalogTotal}</strong><small>modelos</small></span>
+              <span><strong>{catalogUnavailable ? '—' : formatter.format(catalog.franchises.length)}</strong><small>franquias carregadas</small></span>
+              <span><strong>{catalogUnavailable ? '—' : formatter.format(publicCategories.length)}</strong><small>categorias</small></span>
             </div>
             <div className="storefront-commandbar__actions">
               <button type="button" onClick={showCatalogPage}><Icon name="grid" /> Ver catálogo completo</button>
@@ -955,7 +959,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
                 <span className="storefront-section__icon"><Icon name={resultsMode ? 'grid' : 'star'} /></span>
                 <div>
                   <h2 tabIndex={resultsMode ? -1 : undefined}>{resultsMode ? resultTitle : 'Em destaque'}</h2>
-                  <p aria-live={resultsMode ? 'polite' : undefined} aria-atomic={resultsMode ? 'true' : undefined}>{resultsMode ? `${resultScope ? `${resultScope} · ` : ''}${formatter.format(resultModelCount)} modelos${resultModelCountIsApproximate ? ' aprox.' : ''} · ${formatter.format(models.length)} nesta página · página ${catalog.pageIndex + 1}` : 'Uma seleção do acervo para começar a explorar.'}</p>
+                  <p aria-live={resultsMode ? 'polite' : undefined} aria-atomic={resultsMode ? 'true' : undefined}>{catalogUnavailable ? 'O catálogo está temporariamente indisponível.' : resultsMode ? `${resultScope ? `${resultScope} · ` : ''}${formatter.format(resultModelCount)} modelos${resultModelCountIsApproximate ? ' aprox.' : ''} · ${formatter.format(models.length)} nesta página · página ${catalog.pageIndex + 1}` : 'Uma seleção do acervo para começar a explorar.'}</p>
                 </div>
               </div>
               <div className="storefront-section__actions">
@@ -982,6 +986,14 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
             ) : catalog.loading ? (
               <div className={`storefront-model-grid storefront-model-grid--skeleton ${resultsMode ? 'is-results' : ''}`} role="status" aria-label="Carregando modelos">
                 {Array.from({ length: resultsMode ? 12 : 6 }, (_, index) => <ModelCardSkeleton key={index} index={index} />)}
+              </div>
+            ) : catalogUnavailable ? (
+              <div className="storefront-empty storefront-empty--unavailable" role="alert">
+                <strong>Catálogo temporariamente indisponível</strong>
+                <span>Não foi possível consultar os modelos agora. Isso não significa que o acervo esteja vazio.</span>
+                <div className="storefront-empty__actions">
+                  <button type="button" onClick={() => window.location.reload()}>Tentar novamente</button>
+                </div>
               </div>
             ) : (
               <div className="storefront-empty">
@@ -1028,7 +1040,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
           </div>
           </>}
 
-          <footer className="storefront-footer"><span role="status" aria-live="polite"><b className={`is-${runtimeStatus.tone}`} />{runtimeStatus.label}</span><strong>{formatter.format(catalogTotal)} modelos organizados</strong><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b> <Icon name="chevron" /></button></footer>
+          <footer className="storefront-footer"><span role="status" aria-live="polite"><b className={`is-${runtimeStatus.tone}`} />{runtimeStatus.label}</span><strong>{catalogUnavailable ? 'Modelos temporariamente indisponíveis' : `${formatter.format(catalogTotal)} modelos organizados`}</strong><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b> <Icon name="chevron" /></button></footer>
         </main>
       </div>
     </div>
