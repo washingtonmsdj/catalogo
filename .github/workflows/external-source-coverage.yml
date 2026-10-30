@@ -99,6 +99,8 @@ jobs:
           queue=json.loads(Path(__import__('os').environ['RUNNER_TEMP'], 'published-collision-review-queue.json').read_text(encoding='utf-8'))
           assert queue['summary']['publishedRecords']==summary['publishedModels']
           assert queue['summary']['collisionGroups']==len(collisions['sameFranchiseNormalizedNameCollisions'])
+          assert queue['summary']['slugConflictGroups']==len(collisions['exactSlugCollisions'])
+          assert all(not group['mergeAuthorized'] for group in queue['slugConflictGroups'])
           assert queue['summary']['mutations']==0
           assert queue['summary']['confirmedDuplicateSculptures'] is None
           assert all(not group['mergeAuthorized'] for group in queue['groups'])

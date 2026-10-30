@@ -31,6 +31,26 @@ class CollisionAuditTests(unittest.TestCase):
         ]
         self.assertEqual(len(audit(rows)["exactSlugCollisions"]), 1)
 
+    def test_missing_slug_does_not_hide_same_name_collision(self):
+        rows = [
+            {"id": "mdl_a", "name": "Gambit", "slug": "", "franchise_id": 1},
+            {"id": "mdl_b", "name": "gambit", "slug": "gambit-two", "franchise_id": 1},
+        ]
+        result = audit(rows)
+        self.assertEqual(result["missingNameOrSlug"], ["mdl_a"])
+        self.assertEqual(result["sameFranchiseNormalizedNameCollisions"][0]["modelIds"], ["mdl_a", "mdl_b"])
+        self.assertEqual(result["exactSlugCollisions"], [])
+
+    def test_missing_name_does_not_hide_duplicate_public_slug(self):
+        rows = [
+            {"id": "mdl_a", "name": "", "slug": "same-slug", "franchise_id": 1},
+            {"id": "mdl_b", "name": "Other", "slug": "same-slug", "franchise_id": 2},
+        ]
+        result = audit(rows)
+        self.assertEqual(result["missingNameOrSlug"], ["mdl_a"])
+        self.assertEqual(result["exactSlugCollisions"][0]["modelIds"], ["mdl_a", "mdl_b"])
+        self.assertEqual(result["sameFranchiseNormalizedNameCollisions"], [])
+
     def test_duplicate_record_id_fails_closed(self):
         rows = [{"id": "mdl_1", "name": "A", "slug": "a"},
                 {"id": "mdl_1", "name": "B", "slug": "b"}]

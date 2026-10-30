@@ -4,11 +4,50 @@ from plan_catalog_collision_review import plan
 def sample():
     return {"schemaVersion": 1, "classification": "review_only", "mutationAuthorized": False,
             "sculptureUniquenessProven": False, "totalRecords": 5, "uniqueRecordIds": 5,
+            "exactSlugCollisions": [],
             "sameFranchiseNormalizedNameCollisions": [
                 {"key": ["marvel", "iron"], "modelIds": ["mdl_b", "mdl_a"]},
                 {"key": ["dc", "flash"], "modelIds": ["mdl_d", "mdl_c", "mdl_e"]}]}
 
 class CollisionReviewTests(unittest.TestCase):
+    def test_slug_conflicts_are_reviewed_without_assuming_same_sculpture(self):
+        d = sample()
+        d["exactSlugCollisions"] = [
+            {"key": "same-slug", "modelIds": ["mdl_a", "mdl_c"],
+             "modelMetadata": [{"modelId": "mdl_a", "imageCount": 2},
+                               {"modelId": "mdl_c", "imageCount": 2}]}
+        ]
+        out = plan(d)
+        self.assertEqual(out["summary"]["collisionGroups"], 2)
+        self.assertEqual(out["summary"]["slugConflictGroups"], 1)
+        self.assertEqual(out["summary"]["slugConflictRecords"], 2)
+        self.assertEqual(out["summary"]["slugPotentialPairwiseComparisons"], 1)
+        self.assertEqual(out["slugConflictGroups"][0]["normalizedSlug"], "same-slug")
+        self.assertFalse(out["slugConflictGroups"][0]["mergeAuthorized"])
+        self.assertFalse(out["slugConflictGroups"][0]["visualEvidenceVerified"])
+
+    def test_invalid_slug_collision_group_fails_closed(self):
+        for key in ("", 3, ["unexpected"], None):
+            d = sample()
+            d["exactSlugCollisions"] = [{"key": key, "modelIds": ["mdl_a", "mdl_c"]}]
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                plan(d)
+
+    def test_overlapping_slug_groups_fail_closed(self):
+        d = sample()
+        d["exactSlugCollisions"] = [
+            {"key": "first", "modelIds": ["mdl_a", "mdl_c"]},
+            {"key": "second", "modelIds": ["mdl_c", "mdl_d"]},
+        ]
+        with self.assertRaisesRegex(ValueError, "overlapping"):
+            plan(d)
+
+    def test_missing_slug_collisions_field_fails_closed(self):
+        d = sample()
+        del d["exactSlugCollisions"]
+        with self.assertRaisesRegex(ValueError, "missing slug"):
+            plan(d)
+
     def test_priority_and_review_only(self):
         r = plan(sample())
         self.assertEqual(r["summary"]["potentialPairwiseComparisons"], 4)

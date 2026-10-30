@@ -41,9 +41,12 @@ def audit(models: list[dict]) -> dict:
         franchise = normalize(model.get("franchise_id"))
         if not name or not slug:
             missing.append(mid)
-            continue
-        names[(franchise, name)].append(mid)
-        slugs[slug].append(mid)
+        # Name and slug are independent collision indices: a missing slug
+        # cannot hide a valid same-name collision (or vice versa).
+        if name:
+            names[(franchise, name)].append(mid)
+        if slug:
+            slugs[slug].append(mid)
 
     def groups(index):
         return [{"key": list(key) if isinstance(key, tuple) else key,
