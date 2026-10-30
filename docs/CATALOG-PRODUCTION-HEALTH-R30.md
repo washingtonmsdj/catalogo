@@ -36,3 +36,32 @@ Testes exercitam 40 pedidos simultâneos na primeira validação, 30 concorrente
 O mesmo script `tools/check_public_catalog_hierarchy.mjs` da R30 foi ligado ao **workflow já existente** de produção, depois da verificação de versão promovida e da mídia pública, antes do cache; falhas usam o rollback pós-stage já existente. O menu `Maintain Catalog Data` ganhou `verify-public-hierarchy`, operação manual que executa exclusivamente GETs após o health canônico e nunca aciona manutenção de dados. A suíte de contrato de workflows garante a ordem, o gatilho estritamente manual e o não acionamento de deploy por mudanças apenas na orquestração. Nenhum script paralelo de descoberta foi criado.
 
 A R31 ainda está pendente de promoção enquanto o health do Worker continuar 503. Essa R32 **não comprova** recuperação real do D1. Evitar reruns periódicos do deploy em quota esgotada.
+
+
+## R33 — Proteção da cota D1 nas auditorias editoriais
+
+Diagnóstico baseado nas métricas **reais** da conta Tonecos em 30/10/2026:
+5.340.557 linhas lidas em 1.130 consultas D1. Uma parte relevante foi
+consumida por inventários de hashes e cobertura, sem provar qual usuário
+individual iniciou cada consulta.
+
+O comando tools/check_d1_editorial_audit_budget.py verifica a cota de
+**auditorias opcionais** antes de qualquer leitura D1 nos workflows
+external-source-coverage.yml e external-candidate-discovery.yml. Usa apenas
+GraphQL Analytics da conta para somar rowsRead de todos os bancos no dia UTC,
+sem consultar tabelas D1. Se o consumo superar **250.000 linhas**,
+a auditoria é bloqueada para reservar a maior parte da cota diária gratuita
+de **5 milhões de linhas** para visitantes normais.
+
+Os workflows compartilham concurrency.group cloudflare-api com cloudflare.yml
+e usam cancel-in-progress: false, impedindo auditorias concorrentes ou a
+sobreposição com a implantação de produção. Se o token, analytics ou
+resposta completa não estiver disponível, a verificação **falha fechada**.
+Não usa um banco paralelo, bypass, fallback SQL ou repetição automática.
+
+**Limitação:** GraphQL Analytics pode ter atraso e uma auditoria em andamento
+ainda pode consumir linhas. Trata-se de uma reserva operacional, não de um
+limite transacional nem de garantia absoluta contra estouro. Auditorias
+integrais exigem orçamento estimado e coordenação. Repetir workflows para
+tentar contornar o bloqueio é proibido. Nenhuma migração ou publicação
+automática é autorizada pela aprovação dessa verificação.

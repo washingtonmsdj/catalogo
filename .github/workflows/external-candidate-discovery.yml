@@ -32,8 +32,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: external-candidate-discovery-${{ github.ref }}
-  cancel-in-progress: true
+  # Shares a lock with Cloudflare Worker deployments; optional audits must
+  # never race one another or a production release over the same D1 quota.
+  group: cloudflare-api
+  cancel-in-progress: false
 
 env:
   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -77,6 +79,8 @@ jobs:
           test_enrich_external_candidate_identity.py
           test_incomplete_identity_review.py
           test_select_external_identity_review_queue.py
+      - name: Reserve D1 quota for live visitors before optional identity queries
+        run: python tools/check_d1_editorial_audit_budget.py
       - name: Discover candidates without writes
         if: env.DISCOVERY_READY == 'true'
         shell: bash
