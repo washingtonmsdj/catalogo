@@ -365,6 +365,21 @@ comprovadas e autorizadas, sem escrita direta pela auditoria.
 O manifesto de 30 candidatos de 2026-09-08 permanece histórico; não
 reabrir o lote encerrado de 309 imagens (307 incorporadas, 2 em quarentena).
 
+
+### Conferência de candidatos do Drive — 2026-10-30, terceira passagem
+
+Leitura direta dos metadados e filhos no Google Drive, sem mutações:
+
+| Destino público vazio | Fonte candidata identificada | Estado |
+| --- | --- | --- |
+| Lady Vashj | Pasta externa `lady-vashj-stl-nsfw-warcraft`, 7 WebP | Identidade, direitos e elegibilidade pendentes |
+| Motaro | JPEG `motaro mortal kombat statue 66375.jpg` e JPEG `PENDENTE_IDENTIFICACAO__origem-Motaro.jpg` em pastas distintas | Revisão de identidade obrigatória |
+| Mulher Invisível | Pasta externa `invisible-woman-stl-marvel`, 5 WebP | Não equiparar automaticamente à pasta vazia do Quarteto Fantástico |
+| Senhor Fantástico | JPEG `mr fantastic c27 miniature 24771.jpg` | Identidade pendente |
+| Tocha Humana | 8 JPEGs de diferentes identificadores numa pasta e 2 WebPs `human-torch-standing-figure-74394.webp` em pastas externas | Segregar variantes antes de deduplicação |
+
+As cinco pastas de destino `OK - ...` consultadas não apresentaram filhos na listagem atual; isso confirma apenas o vazio físico desses destinos. Os arquivos candidatos acima não foram comparados visualmente nesta passagem; nomes e identificadores não constituem prova de identidade ou autoria. Não mover, renomear, promover ou preencher contagens. A próxima decisão exige comparação visual documentada, proveniência e preflight SHA V4 antes de qualquer atualização canônica.
+
 ## Próxima sequência de conteúdo e fechamento estrutural
 
 1. Validar CI/coverage do HEAD atual nas PRs #174 e #175; não declarar gates anteriores como aprovados para um commit novo.
