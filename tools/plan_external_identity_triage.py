@@ -36,6 +36,22 @@ class TriageError(ValueError):
     pass
 
 
+def validated_model_ids(candidates: Any, product_id: int, kind: str) -> list[str]:
+    """Reject malformed or repeated review hints instead of silently exporting IDs."""
+    if not isinstance(candidates, list):
+        raise TriageError(f"invalid {kind} candidates: {product_id}")
+    result: list[str] = []
+    for item in candidates:
+        model_id = item.get("modelId") if isinstance(item, dict) else None
+        if (not isinstance(model_id, str) or not model_id.startswith("mdl_")
+                or len(model_id) <= 4 or model_id != model_id.strip()):
+            raise TriageError(f"invalid {kind} candidate model ID: {product_id}")
+        result.append(model_id)
+    if len(set(result)) != len(result):
+        raise TriageError(f"duplicate {kind} candidate model IDs: {product_id}")
+    return result
+
+
 def build_triage(coverage: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(coverage, dict) or not isinstance(coverage.get("summary"), dict):
         raise TriageError("coverage summary missing")
@@ -45,7 +61,9 @@ def build_triage(coverage: dict[str, Any]) -> dict[str, Any]:
         raise TriageError("coverage products missing")
     if summary.get("sourceProducts") != len(products):
         raise TriageError("incomplete source snapshot")
-    if not isinstance(summary.get("publishedModels"), int) or summary["publishedModels"] <= 0:
+    if (isinstance(summary.get("publishedModels"), bool)
+            or not isinstance(summary.get("publishedModels"), int)
+            or summary["publishedModels"] <= 0):
         raise TriageError("published catalog missing")
     if summary.get("productionWrites") != 0 or summary.get("stagingWrites") != 0:
         raise TriageError("unexpected production or staging writes")
@@ -75,25 +93,20 @@ def build_triage(coverage: dict[str, Any]) -> dict[str, Any]:
             confirmed += 1
             continue
         candidates = row.get("exactNameCandidates", [])
-        if not isinstance(candidates, list):
-            raise TriageError(f"invalid candidate metadata: {pid}")
-        if state == "unreviewed_single_exact_name_candidate" and len(candidates) != 1:
+        candidate_ids = validated_model_ids(candidates, pid, "exact")
+        if state == "unreviewed_single_exact_name_candidate" and len(candidate_ids) != 1:
             raise TriageError(f"single-candidate state disagrees with metadata: {pid}")
-        if state == "unreviewed_multiple_exact_name_candidates" and len(candidates) <= 1:
+        if state == "unreviewed_multiple_exact_name_candidates" and len(candidate_ids) <= 1:
             raise TriageError(f"multiple-candidate state disagrees with metadata: {pid}")
-        if state == "unreviewed_no_exact_name_candidate" and candidates:
+        if state == "unreviewed_no_exact_name_candidate" and candidate_ids:
             raise TriageError(f"no-candidate state disagrees with metadata: {pid}")
         alias_candidates = row.get("reviewAliasCandidates", [])
         alias_truncated = row.get("reviewAliasCandidatesTruncated", False)
-        if not isinstance(alias_candidates, list) or not isinstance(alias_truncated, bool):
+        if not isinstance(alias_truncated, bool):
             raise TriageError(f"invalid review alias metadata: {pid}")
-        if alias_candidates and state != "unreviewed_no_exact_name_candidate":
+        alias_ids = validated_model_ids(alias_candidates, pid, "alias")
+        if alias_ids and state != "unreviewed_no_exact_name_candidate":
             raise TriageError(f"alias candidates cannot override other states: {pid}")
-        if any(not isinstance(item, dict) or not str(item.get("modelId") or "").startswith("mdl_")
-               for item in alias_candidates):
-            raise TriageError(f"invalid review alias candidate IDs: {pid}")
-        if len({item["modelId"] for item in alias_candidates}) != len(alias_candidates):
-            raise TriageError(f"duplicate review alias candidates: {pid}")
         if alias_candidates:
             alias_sources_with_candidates += 1
         if state == "unreviewed_no_exact_name_candidate" and alias_candidates and not alias_truncated:
@@ -107,9 +120,9 @@ def build_triage(coverage: dict[str, Any]) -> dict[str, Any]:
             "state": state,
             "phase": phase,
             "nextGate": next_gate,
-            "exactNameCandidateCount": len(candidates),
-            "candidateModelIds": [str(c.get("modelId") or "") for c in candidates],
-            "aliasCandidateModelIds": [c["modelId"] for c in alias_candidates],
+            "exactNameCandidateCount": len(candidate_ids),
+            "candidateModelIds": candidate_ids,
+            "aliasCandidateModelIds": alias_ids,
             "aliasCandidatesTruncated": alias_truncated,
             "identityApproved": False,
             "mediaPromotionAuthorized": False,

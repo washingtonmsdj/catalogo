@@ -64,6 +64,34 @@ class IdentityTriageTests(unittest.TestCase):
         with self.assertRaisesRegex(TriageError, "cannot override"):
             build_triage(data)
 
+    def test_exact_candidates_reject_invalid_or_duplicate_model_ids(self):
+        for invalid in (None, {}, "mdl_", "not-a-model", " mdl_123 "):
+            data = fixture()
+            data["products"][3]["exactNameCandidates"] = [{"modelId": invalid}]
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(TriageError, "invalid exact candidate"):
+                build_triage(data)
+        data = fixture()
+        data["products"][4]["exactNameCandidates"] = [{"modelId": "mdl_a"}, {"modelId": "mdl_a"}]
+        with self.assertRaisesRegex(TriageError, "duplicate exact candidate"):
+            build_triage(data)
+
+    def test_alias_candidates_reject_invalid_or_duplicate_model_ids(self):
+        for invalid in (None, {"modelId": ""}, {"modelId": "mdl_"}, {"modelId": "  mdl_a"}):
+            data = fixture()
+            data["products"][5]["reviewAliasCandidates"] = [invalid]
+            with self.subTest(invalid=invalid), self.assertRaisesRegex(TriageError, "invalid alias candidate"):
+                build_triage(data)
+        data = fixture()
+        data["products"][5]["reviewAliasCandidates"] = [{"modelId": "mdl_a"}, {"modelId": "mdl_a"}]
+        with self.assertRaisesRegex(TriageError, "duplicate alias candidate"):
+            build_triage(data)
+
+    def test_boolean_published_count_fails_closed(self):
+        data = fixture()
+        data["summary"]["publishedModels"] = True
+        with self.assertRaisesRegex(TriageError, "published catalog missing"):
+            build_triage(data)
+
     def test_duplicate_id_fails_closed(self):
         data = fixture()
         data["products"][1]["sourceProductId"] = 10
