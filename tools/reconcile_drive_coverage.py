@@ -213,6 +213,13 @@ def reconcile(coverage: dict[str, Any], records: list[dict[str, str]],
     return {
         "version": 1,
         "sourceId": canonical["sourceId"],
+        "currentCoverageSha256": _stable_content_sha256(coverage),
+        "activeImageIndexSha256": (
+            _stable_content_sha256(active_sha_index) if active_sha_index is not None else None
+        ),
+        "publishedModelsSnapshotSha256": (
+            _stable_content_sha256(published_models) if published_models is not None else None
+        ),
         "policy": "historical_drive_evidence_read_only_no_auto_identity_or_media_promotion",
         "legacyAsOf": legacy_as_of,
         "legacyCsvSha256": legacy_export_sha256.lower(),
@@ -253,12 +260,30 @@ REVIEW_DECISION_FIELDS = [
 ]
 
 
+def _stable_content_sha256(value: Any) -> str:
+    canonical = json.dumps(value, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def _snapshot_digest(report: dict[str, Any]) -> str:
     snapshot = report.get("currentSourceSnapshot")
-    if not isinstance(snapshot, dict):
-        raise DriveReconciliationError("canonical source snapshot required for operator decisions")
-    encoded = json.dumps(snapshot, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+    required_hashes = (
+        "currentCoverageSha256", "activeImageIndexSha256",
+        "publishedModelsSnapshotSha256", "legacyCsvSha256",
+    )
+    if (not isinstance(snapshot, dict)
+            or any(not isinstance(report.get(k), str)
+                   or not re.fullmatch(r"[0-9a-f]{64}", report[k]) for k in required_hashes)):
+        raise DriveReconciliationError(
+            "bulk operator decisions require complete versioned coverage, active gallery SHA and published model snapshots"
+        )
+    return _stable_content_sha256({
+        "sourceSnapshot": snapshot,
+        "currentCoverageSha256": report["currentCoverageSha256"],
+        "activeImageIndexSha256": report["activeImageIndexSha256"],
+        "publishedModelsSnapshotSha256": report["publishedModelsSnapshotSha256"],
+        "legacyCsvSha256": report["legacyCsvSha256"],
+    })
 
 
 def build_operator_review_template(report: dict[str, Any]) -> list[dict[str, str]]:

@@ -175,6 +175,11 @@ class DriveEvidenceTests(unittest.TestCase):
     def fixture_bulk_report(self):
         report_data = report()
         item = report_data["workItems"][0]
+        report_data.update({
+            "currentCoverageSha256": "c" * 64,
+            "activeImageIndexSha256": "a" * 64,
+            "publishedModelsSnapshotSha256": "b" * 64,
+        })
         item.update({
             "shaReviewTier": "A_exact_name_and_franchise",
             "shaCandidateModelIds": ["mdl_" + "1" * 20],
@@ -229,6 +234,28 @@ class DriveEvidenceTests(unittest.TestCase):
                 render_operator_approved_evidence(sample, [candidate])
         with self.assertRaises(DriveReconciliationError):
             render_operator_approved_evidence(sample, [base, base])
+
+    def test_bulk_review_requires_content_pinned_current_snapshots(self):
+        report_data = self.fixture_bulk_report()
+        current = build_operator_review_template(report_data)[0]
+        for changed in (
+            {"currentCoverageSha256": "0" * 64},
+            {"activeImageIndexSha256": "0" * 64},
+            {"publishedModelsSnapshotSha256": "0" * 64},
+            {"legacyCsvSha256": "0" * 64},
+        ):
+            stale = {**report_data, **changed}
+            with self.subTest(changed=changed), self.assertRaisesRegex(
+                DriveReconciliationError, "current snapshot"
+            ):
+                render_operator_approved_evidence(stale, [current])
+        for key in ("currentCoverageSha256", "activeImageIndexSha256", "publishedModelsSnapshotSha256"):
+            incomplete = dict(report_data)
+            incomplete.pop(key)
+            with self.subTest(missing=key), self.assertRaisesRegex(
+                DriveReconciliationError, "complete versioned"
+            ):
+                build_operator_review_template(incomplete)
 
     def test_bulk_review_excludes_unresolved_ambiguous_or_conflicting(self):
         sample = self.fixture_bulk_report()
