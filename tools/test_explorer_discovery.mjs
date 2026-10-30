@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 import { explorerScopeKey, resolveExplorerSnapshot } from '../src/lib/explorerDiscovery.ts'
@@ -57,4 +58,18 @@ test('errors and truncation belong only to the lookup that produced them', () =>
 
 test('scope key cannot alias a category containing separators with a search term', () => {
   assert.notEqual(explorerScopeKey('games,pc', 'a'), explorerScopeKey('games', 'pc,a'))
+})
+
+
+test('failed live discovery has a scoped manual retry and never auto-retries', () => {
+  const failed = { ...snapshot, franchises: [], models: [], error: 'Serviço indisponível' }
+  assert.equal(resolveExplorerSnapshot(key, failed).ready, true)
+  assert.equal(resolveExplorerSnapshot(key, failed).models.length, 0)
+  assert.equal(resolveExplorerSnapshot(key, null).ready, false)
+
+  const source = readFileSync(new URL('../src/components/FranchiseBrowser.tsx', import.meta.url), 'utf8')
+  assert.match(source, /if \(searchPending \|\| discovery\.ready\) return/)
+  assert.match(source, /error \? \(\s*<div className="explorer-empty explorer-empty--error" role="alert">/)
+  assert.match(source, /onClick=\{\(\) => setLiveSnapshot\(null\)\}>Tentar novamente<\/button>/)
+  assert.doesNotMatch(source, /setInterval\(/)
 })
