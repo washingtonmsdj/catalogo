@@ -207,6 +207,47 @@ Checkpoint local histórico (2026-10-11), **não revalidado nesta reconciliaçã
 
 Não reiniciar SHA V4 por conveniência. Reaproveitar hashes válidos e migrar/revalidar estado existente.
 
+## Auditoria física mais recente — 2026-10-30 (somente leitura)
+
+Acesso autorizado via Desktop Commander ao `DESKTOP-PNUHUA0`, com o
+Google Drive sincronizado em `G:\Meu Drive\Catalogo`, confirmou:
+
+- **`Catalogo/Novos`: 10 imagens físicas** em subpastas:
+  2 Digimon, 5 personagens de filmes de terror e 3 personagens DC.
+- **Raiz de `Catalogo`: 31 imagens soltas**, fora das categorias,
+  sendo 3 com nome reconhecível, 5 WebP técnicos e 23 arquivos com
+  nomes numéricos/opacos. É necessário determinar se são referências,
+  outras vistas ou modelos ainda sem destino canônico.
+- SHA-256 calculado de todos os **41 arquivos** no computador autorizado
+  e comparado com as **2.645 entradas SHA** do índice ativo de
+  `model_image_sources` (snapshot da auditoria do HEAD `004bc8e5`,
+  com 2.575 modelos publicados): **0 SHA exatos coincidentes** com D1.
+  Os 31 arquivos soltos têm SHA mutuamente distintos.
+- Os 10 arquivos de `Novos` tampouco possuem correspondência exata
+  de nome de modelo no snapshot D1. **Isso não comprova 10 esculturas
+  novas**, pois podem existir outros nomes, vistas e variantes.
+- Não foi feito move, delete, upload, promoção de mídia nem escrita
+  no D1/R2/Drive.
+
+**Obsolescência de números históricos:** o arquivo de 2026-10-07
+`indice-publico-catalogo-resumo.json` listava 72 entradas técnicas em
+`Novos` e 4.123 no Catálogo, mas era *plano, não aplicação* e já
+discordava do sufixo público da pasta de estatísticas (`Novos [0]`).
+O checkpoint anterior com 56 entradas também é histórico. Para a
+**fila física atual de `Novos`**, usar a observação de 10 arquivos,
+não os contadores antigos. Não somar entradas técnicas do Drive com
+modelos D1 como se fossem a mesma unidade de contagem.
+
+**Próxima execução concreta:** verificar os 10 representantes selecionados
+contra o acervo organizado por identidade/variante e confirmar procedência,
+direitos e marca-d'água antes de propor promoção controlada. Classificar
+as 31 imagens soltas (inclusive referências/ângulos) contra o acervo
+privado existente; não criar 31 modelos por contagem nem mover originais
+sem os portões SHA e a decisão canônica. O manifesto de 30 candidatos
+de 2026-09-08 também permanece histórico e integralmente `PENDENTE`;
+não reexecutar o lote de 309 já consolidado (307 incorporados, 2 em
+quarentena).
+
 ## Próxima sequência de conteúdo e fechamento estrutural
 
 1. Validar CI/coverage do HEAD atual nas PRs #174 e #175; não declarar gates anteriores como aprovados para um commit novo.
