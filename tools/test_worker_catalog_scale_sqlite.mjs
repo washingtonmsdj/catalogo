@@ -56,16 +56,20 @@ function createCatalogDatabase() {
 
 function createD1Adapter(db) {
   const catalogStatements = []
+  const categoryStatements = []
   const database = {
     prepare(sql) {
       const statement = db.prepare(sql)
+      const all = (values) => {
+        if (sql.includes('SELECT m.id,m.slug,m.code,m.name')) catalogStatements.push({ sql, values })
+        if (sql.includes('SELECT c.slug AS id,c.name AS label')) categoryStatements.push({ sql, values })
+        return { results: statement.all(...values) }
+      }
       return {
+        async all() { return all([]) },
         bind(...values) {
           return {
-            async all() {
-              if (sql.includes('SELECT m.id,m.slug,m.code,m.name')) catalogStatements.push({ sql, values })
-              return { results: statement.all(...values) }
-            },
+            async all() { return all(values) },
             async first() { return statement.get(...values) ?? null },
             async run() { return statement.run(...values) },
           }
@@ -76,7 +80,7 @@ function createD1Adapter(db) {
       return statements.map((statement) => statement.run())
     },
   }
-  return { database, catalogStatements }
+  return { database, catalogStatements, categoryStatements }
 }
 
 async function requestCatalog(database, params) {
@@ -95,7 +99,22 @@ async function requestCatalog(database, params) {
 test('D1 Worker SQL keyset pages and filters a 20k live catalog over a full migrated SQLite schema', async (context) => {
   const db = createCatalogDatabase()
   context.after(() => db.close())
-  const { database, catalogStatements } = createD1Adapter(db)
+  const { database, catalogStatements, categoryStatements } = createD1Adapter(db)
+
+  const categoriesResponse = await worker.default.fetch(
+    new Request('https://catalog.example.test/api/categories'),
+    { DB: database, MEDIA: { get: async () => null }, CORS_ORIGINS: '' },
+  )
+  assert.equal(categoriesResponse.status, 200)
+  const categories = await categoriesResponse.json()
+  assert.equal(categories.items.find((item) => item.id === 'games')?.label, 'Games')
+  assert.equal(categoryStatements.length, 1)
+  const categoryPlan = db.prepare(`EXPLAIN QUERY PLAN ${categoryStatements[0].sql}`).all()
+  const categoryPlanDescription = categoryPlan.map((row) => row.detail).join(' | ')
+  assert.match(categoryPlanDescription, /idx_franchises_category_discovery/)
+  assert.match(categoryPlanDescription, /idx_models_franchise_published_image_name/)
+  assert.doesNotMatch(categoryPlanDescription, /MATERIALIZE ranked_franchises|SCAN f USING COVERING INDEX/)
+  assert.doesNotMatch(categoryStatements[0].sql, /ROW_NUMBER\(\) OVER/)
 
   const first = await requestCatalog(database, {
     category: 'games', franchise: 'saga-alfa', limit: PAGE_SIZE,
