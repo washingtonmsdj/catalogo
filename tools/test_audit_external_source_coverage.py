@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from audit_external_source_coverage import CoverageError, batch_model_ids, classify, fetch_json, fetch_shared_published_sha_groups, fetch_source_products, review_alias_hints, review_evidence, subject_hint
+from audit_external_source_coverage import CoverageError, batch_model_ids, classify, fetch_json, fetch_shared_published_sha_groups, fetch_source_products, build_gallery_review_manifest, review_alias_hints, review_evidence, subject_hint
 
 
 class ExternalSourceCoverageTests(unittest.TestCase):
@@ -160,6 +160,39 @@ class ExternalSourceCoverageTests(unittest.TestCase):
                 fetch_json("https://source.test/missing")
         self.assertEqual(open_url.call_count, 1)
         sleep.assert_not_called()
+
+    def test_gallery_review_manifest_reuses_same_current_snapshot_without_transfers(self):
+        product = {"id": 10, "name": "Test", "slug": "test",
+                   "categories": [{"name": "Anime"}],
+                   "images": [{"src": "https://example.test/uploads/1.webp"},
+                              {"src": "https://example.test/uploads/2.webp"}]}
+        target = {"id": "mdl_" + "a" * 20, "name": "Test", "franchise_name": "Anime",
+                  "image_count": 1}
+        cohort = {"version": 1, "kind": "historical_drive_small_gallery_review_cohort",
+                  "identityApproved": False, "mediaPromotionAuthorized": False,
+                  "items": [{"sourceProductId": 10, "sourceSlug": "test",
+                             "targetModelId": target["id"], "expectedSourceImageCount": 2}]}
+        report = build_gallery_review_manifest("https://example.test", [product], [target], cohort)
+        self.assertEqual(report["summary"]["sourceImages"], 2)
+        self.assertEqual(report["summary"]["publishedImages"], 1)
+        self.assertEqual(report["summary"]["imageBytesDownloaded"], 0)
+        self.assertFalse(report["items"][0]["creatorRightsVerified"])
+        self.assertFalse(report["items"][0]["identityApproved"])
+        self.assertEqual(len(report["items"][0]["images"]), 2)
+        for bad in (
+            {"sourceSlug": "changed"},
+            {"expectedSourceImageCount": 3},
+            {"targetModelId": "mdl_" + "b" * 20},
+        ):
+            with self.subTest(bad=bad), self.assertRaises(CoverageError):
+                edited = dict(cohort)
+                edited["items"] = [{**cohort["items"][0], **bad}]
+                build_gallery_review_manifest("https://example.test", [product], [target], edited)
+        evil = dict(product)
+        evil["images"] = [{"src": "https://not-the-source.test/x.webp"},
+                          {"src": "https://example.test/uploads/2.webp"}]
+        with self.assertRaisesRegex(CoverageError, "unsafe gallery image"):
+            build_gallery_review_manifest("https://example.test", [evil], [target], cohort)
 
     def test_source_pagination_is_stable_and_requests_categories(self):
         requested: list[str] = []

@@ -7,6 +7,9 @@ on:
     paths:
       - '.github/workflows/external-source-coverage.yml'
       - 'tools/audit_external_source_coverage.py'
+      - 'tools/render_gallery_review.py'
+      - 'tools/test_render_gallery_review.py'
+      - 'config/review-cohorts/drive-small-galleries-20261030.json'
       - 'tools/audit_published_sha_inventory.py'
       - 'tools/test_audit_published_sha_inventory.py'
       - 'tools/audit_published_model_collisions.py'
@@ -48,7 +51,7 @@ jobs:
           node-version: 22
       - name: Test conservative coverage semantics
         working-directory: tools
-        run: python -m unittest -v test_audit_external_source_coverage.py test_audit_published_sha_inventory.py test_plan_external_identity_triage.py test_audit_published_model_collisions.py test_plan_catalog_collision_review.py
+        run: python -m unittest -v test_audit_external_source_coverage.py test_render_gallery_review.py test_audit_published_sha_inventory.py test_plan_external_identity_triage.py test_audit_published_model_collisions.py test_plan_catalog_collision_review.py
       - name: Verify read-only bindings
         shell: bash
         env:
@@ -69,6 +72,13 @@ jobs:
           --output "$RUNNER_TEMP/external-source-coverage.json"
           --published-models-output "$RUNNER_TEMP/published-models.json"
           --shared-image-sha-output "$RUNNER_TEMP/published-shared-image-sha.json"
+          --gallery-review-cohort "config/review-cohorts/drive-small-galleries-20261030.json"
+          --gallery-review-output "$RUNNER_TEMP/focused-gallery-review.json"
+      - name: Render bounded full-gallery visual review references without copying image files
+        run: >-
+          python tools/render_gallery_review.py
+          "$RUNNER_TEMP/focused-gallery-review.json"
+          --output "$RUNNER_TEMP/focused-gallery-review.html"
       - name: Index published gallery SHA metadata without image downloads
         run: >-
           python tools/audit_published_sha_inventory.py
@@ -221,6 +231,8 @@ jobs:
           name: external-source-coverage-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/external-source-coverage.json
+            ${{ runner.temp }}/focused-gallery-review.json
+            ${{ runner.temp }}/focused-gallery-review.html
             ${{ runner.temp }}/published-model-collisions.json
             ${{ runner.temp }}/published-shared-image-sha.json
             ${{ runner.temp }}/published-active-image-sha-index.json

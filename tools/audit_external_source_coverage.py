@@ -521,6 +521,102 @@ def classify(
     }
 
 
+def build_gallery_review_manifest(
+    origin: str, products: list[dict[str, Any]],
+    models: list[dict[str, Any]], cohort: dict[str, Any],
+) -> dict[str, Any]:
+    """Render source-gallery references from the *same* coverage read, with no media transfers.
+
+    This bounded cohort is a reviewed prioritization checkpoint, never a model or
+    publication authority. Source identity, gallery size, and target presence are
+    verified against the current API/D1 snapshots.
+    """
+    from discover_external_staging_candidates import safe_source_path, canonical_source_url
+
+    if (not isinstance(cohort, dict) or cohort.get("version") != 1
+            or cohort.get("kind") != "historical_drive_small_gallery_review_cohort"
+            or cohort.get("identityApproved") is not False
+            or cohort.get("mediaPromotionAuthorized") is not False):
+        raise CoverageError("invalid read-only gallery review cohort")
+    items = cohort.get("items")
+    if not isinstance(items, list) or not 1 <= len(items) <= 20:
+        raise CoverageError("invalid cohort size")
+    source = {p.get("id"): p for p in products if isinstance(p, dict)}
+    if len(source) != len(products):
+        raise CoverageError("nonunique current source products")
+    published = {m.get("id"): m for m in models if isinstance(m, dict)}
+    if len(published) != len(models):
+        raise CoverageError("nonunique published model IDs")
+    seen_products: set[int] = set()
+    seen_targets: set[str] = set()
+    result: list[dict[str, Any]] = []
+    for item in items:
+        if not isinstance(item, dict):
+            raise CoverageError("invalid gallery review cohort item")
+        product_id, model_id = item.get("sourceProductId"), item.get("targetModelId")
+        expected_count = item.get("expectedSourceImageCount")
+        if (isinstance(product_id, bool) or not isinstance(product_id, int) or product_id <= 0
+                or not isinstance(model_id, str) or not re.fullmatch(r"mdl_[0-9a-f]{20}", model_id)
+                or isinstance(expected_count, bool) or not isinstance(expected_count, int)
+                or not 1 <= expected_count <= 16
+                or product_id in seen_products or model_id in seen_targets):
+            raise CoverageError("invalid or repeated gallery review identity")
+        seen_products.add(product_id)
+        seen_targets.add(model_id)
+        source_product, published_model = source.get(product_id), published.get(model_id)
+        if source_product is None or published_model is None:
+            raise CoverageError(f"gallery review source/target no longer exists: {product_id}")
+        if item.get("sourceSlug") != source_product.get("slug"):
+            raise CoverageError(f"gallery review slug drift: {product_id}")
+        images = source_product.get("images")
+        if not isinstance(images, list) or len(images) != expected_count:
+            raise CoverageError(f"gallery review image count drift: {product_id}")
+        urls: list[dict[str, Any]] = []
+        seen_paths: set[str] = set()
+        for position, image in enumerate(images, 1):
+            if not isinstance(image, dict):
+                raise CoverageError(f"invalid source gallery entry: {product_id}")
+            raw_url = image.get("src")
+            if not isinstance(raw_url, str):
+                raise CoverageError(f"missing gallery image URL: {product_id}")
+            try:
+                path = safe_source_path(origin, raw_url)
+                safe_url = canonical_source_url(origin, path)
+            except RuntimeError as exc:
+                raise CoverageError(f"unsafe gallery image URL: {product_id}") from exc
+            if path in seen_paths:
+                raise CoverageError(f"duplicate source gallery image: {product_id}")
+            seen_paths.add(path)
+            urls.append({"position": position, "sourcePath": path,
+                         "sourceUrl": safe_url})
+        result.append({
+            "sourceProductId": product_id,
+            "sourceName": str(source_product.get("name") or ""),
+            "sourceSlug": source_product["slug"],
+            "sourceCategories": category_names(source_product),
+            "targetModelId": model_id,
+            "publishedModelName": str(published_model.get("name") or ""),
+            "publishedFranchiseName": str(published_model.get("franchise_name") or ""),
+            "sourceImageCount": len(urls),
+            "publishedImageCount": int(published_model.get("image_count") or 0),
+            "images": urls,
+            "identityApproved": False, "fullGalleryReviewed": False,
+            "creatorRightsVerified": False, "mediaPromotionAuthorized": False,
+            "sourceImageShaMatchesPublishedCover": "historical_evidence_not_reverified",
+        })
+    return {
+        "version": 1,
+        "sourceId": "external-source-001",
+        "scope": "small_gallery_review_only_current_coverage_snapshot",
+        "items": sorted(result, key=lambda row: (row["sourceImageCount"], row["sourceProductId"])),
+        "summary": {"products": len(result),
+                    "sourceImages": sum(row["sourceImageCount"] for row in result),
+                    "publishedImages": sum(row["publishedImageCount"] for row in result),
+                    "imageBytesDownloaded": 0, "productionWrites": 0, "stagingWrites": 0},
+        "identityApproved": False, "mediaPromotionAuthorized": False,
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", default="config/external-sources/external-source-001.json")
@@ -529,6 +625,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", required=True)
     parser.add_argument("--published-models-output", default=None)
     parser.add_argument("--shared-image-sha-output", default=None)
+    parser.add_argument("--gallery-review-cohort", default=None)
+    parser.add_argument("--gallery-review-output", default=None)
     return parser.parse_args()
 
 
@@ -552,6 +650,16 @@ def main() -> None:
         Path(args.shared_image_sha_output).write_text(
             json.dumps(sha_index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
+    if bool(args.gallery_review_cohort) != bool(args.gallery_review_output):
+        raise CoverageError("gallery review cohort and output must be specified together")
+    if args.gallery_review_cohort:
+        review = build_gallery_review_manifest(
+            origin, products, models, load_json(Path(args.gallery_review_cohort))
+        )
+        Path(args.gallery_review_output).write_text(
+            json.dumps(review, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
+        print(json.dumps({"galleryReview": review["summary"]}, ensure_ascii=False))
     reviews, existing_targets = review_evidence(Path(args.evidence_root))
     report = classify(
         products,
