@@ -12,6 +12,8 @@ import unicodedata
 from pathlib import Path
 from typing import Any
 
+from plan_external_identity_triage import TriageError, build_triage
+
 
 class PriorityBatchError(ValueError):
     pass
@@ -25,27 +27,21 @@ def normalized(value: Any) -> str:
 def choose_batch(coverage: dict[str, Any], triage: dict[str, Any], limit: int = 3) -> dict[str, Any]:
     if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 3:
         raise PriorityBatchError("review cohort must contain 1–3 products")
-    cs = coverage.get("summary")
-    ts = triage.get("summary")
-    products = coverage.get("products")
-    items = triage.get("workItems")
-    if not isinstance(cs, dict) or not isinstance(ts, dict) or not isinstance(products, list) or not isinstance(items, list):
-        raise PriorityBatchError("canonical coverage/triage missing")
-    if (cs.get("sourceProducts") != len(products) or ts.get("sourceProducts") != len(products)
-            or cs.get("confirmedPresent") != ts.get("confirmedPublishedIdentities")
-            or ts.get("workItems") != len(items)
-            or ts.get("workItems") + cs.get("confirmedPresent") != len(products)
-            or cs.get("coverage100Proven") is not False
-            or cs.get("productionWrites") != 0 or cs.get("stagingWrites") != 0
-            or ts.get("productionWrites") != 0 or ts.get("stagingWrites") != 0
-            or cs.get("candidateMetadataSemantics") != "review_only"):
-        raise PriorityBatchError("inconsistent or unsafe canonical snapshot")
-    by_id = {}
-    for row in products:
-        pid = row.get("sourceProductId") if isinstance(row, dict) else None
-        if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0 or pid in by_id:
-            raise PriorityBatchError("duplicate or invalid source product")
-        by_id[pid] = row
+    # The triage is a deterministic projection of this exact coverage snapshot.
+    # Checking only counts and state names permits accidental mixing of two
+    # individually valid but different reports, including changed candidates.
+    # Reuse the canonical planner rather than duplicating its policy here.
+    try:
+        expected = build_triage(coverage)
+    except (TriageError, KeyError, TypeError, ValueError) as exc:
+        raise PriorityBatchError("invalid canonical coverage snapshot") from exc
+    if triage != expected:
+        raise PriorityBatchError("triage differs from canonical coverage snapshot")
+
+    products = coverage["products"]
+    items = expected["workItems"]
+    cs = coverage["summary"]
+    by_id = {row["sourceProductId"]: row for row in products}
     selected = []
     used_candidates: set[str] = set()
     for row in items:
