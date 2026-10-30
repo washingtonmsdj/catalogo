@@ -2,7 +2,7 @@
 
 > **SSOT de continuidade.** Leia este arquivo antes de continuar o projeto em outra conversa, máquina ou sessão.
 >
-> Atualizado em **2026-10-11**. Este arquivo registra somente o estado operacional necessário para a próxima execução. Histórico detalhado pertence aos runbooks e documentos de migração; não acumular aqui gates encerrados, PRs antigas ou bloqueios expirados.
+> Atualizado em **2026-10-29**. Este arquivo registra somente o estado operacional necessário para a próxima execução. Histórico detalhado pertence aos runbooks e documentos de migração; não acumular aqui gates encerrados, PRs antigas ou bloqueios expirados.
 
 ## Autoridade
 
@@ -15,27 +15,16 @@
 - O resolvedor de runtime do frontend deve continuar explícito/fail-closed; não recriar fallback implícito nem segunda origem paralela.
 - Mudança de runtime só é concluída quando os gates do escopo realmente afetado ficam verdes.
 
-## Estado reconciliado
+## Estado reconciliado — integração de 2026-10-29
 
-No momento desta reconciliação:
+- **`main` observada:** `581341faa23174adb0c4eedf5628adf366a84c0f`. O contrato de schema da `main` exige a migration `0021_quote_admin_audit_events.sql` (versão 5). Esse é o estado do Git, não prova de migrations aplicadas no D1 de produção.
+- **PR #174** (draft, `ingest/stlforge-physical-archive-20261013`): `138f3e045dae531eb71dd20fcbb894ecdca500b5`, base atualizada com os 94 commits que faltavam da `main`. A auditoria de dependências encontrou Wrangler anterior vulnerável; versão 4.155.0 e lockfile idêntico ao já homologado na frente #175 foram incorporados. Gates dessa nova revisão precisam ser consultados.
+- **PR #175** (draft, `catalog-content-20261015`, base #174): a integração de `main` e #174 em `e972d6086843bcdb0bf71b411066283df256ae21` passou **13/13 workflows**. O presente checkpoint atualiza a continuidade e incorpora a correção de dependências da #174; validar o novo HEAD em vez de reutilizar o resultado anterior.
+- Na reconciliação via árvores Git completas, a #174 não possuía arquivos conflitantes com a `main`; a #175 tinha apenas `package.json` e `.github/workflows/ci.yml` sobrepostos. Foram preservados tanto os testes de ingestão quanto os testes de administração, navegação e auditoria do CI principal, sem force-push.
+- **Não houve merge das PRs em `main`, deploy nem alteração de registros D1/R2.** Ambas devem permanecer draft até os gates finais e autorização de publicação correspondentes.
+- **Conteúdo:** a auditoria de cobertura da STL Forge e a fila de colisões trabalham em modo somente leitura, com identidade aprovada separada da elegibilidade de mídia. A cobertura integral de esculturas únicas não está comprovada.
 
-- `main`: **`2c3d3b76fcc0d70b30ba1d7fb5ecb9939c97e946`** — PR **#166**, runtime do Catálogo fail-closed e SSOT;
-- CI **#1016**: verde;
-- Pages **#739**: verde;
-- a #166 não alterou Worker/schema e, corretamente, não abriu deploy Cloudflare desnecessário.
-
-A última linhagem que alterou e promoveu o Worker é o commit **`5134897ff4a387a5302e16d78124bf39e46ab56e`**, PR **#161**:
-
-- Deploy Cloudflare API **#117** verde;
-- staged smoke verde;
-- promoção 100% verde;
-- gateway de mídia real verde;
-- Workers Cache verde;
-- rollback não executado;
-- D1 migrations/auditoria estrutural corretamente puladas por ausência de mudança de schema;
-- Worker promovido: **`ac611817-e85c-4cba-a4a0-87551cbf702f`**, 100% no momento da validação.
-
-Esses IDs são evidência conhecida boa, não substituto de medição atual.
+O registro do Worker promovido na PR #161 e os respectivos smokes históricos continuam como **evidência conhecida boa, não substituto de medição atual**. Para decidir um deploy, medir novamente Worker, D1, R2 e estado dos workflows; não tomar IDs ou números deste checkpoint como estado vivo.
 
 ## Superfície pública
 
@@ -118,7 +107,7 @@ Runbook detalhado: `docs/CLOUDFLARE_DEPLOY.md`.
 
 ## Schema e migrations
 
-Produção está aplicada até `0019_model_variant_name.sql`.
+O contrato versionado atual da `main` exige migrações até `0021_quote_admin_audit_events.sql` (versão 5); o estado de aplicação no D1 de produção deve ser aferido na conta Tonecos, não inferido por Git, CI ou por este documento.
 
 Regras:
 
@@ -177,7 +166,7 @@ Ferramentas centrais:
 
 O catálogo mestre operacional permanece fora do repositório público. Antes de qualquer mutação local, localizar o caminho real no dispositivo e conferir o estado atual; não assumir equivalência entre unidade sincronizada e cópia local.
 
-Último checkpoint local conhecido:
+Checkpoint local histórico (2026-10-11), **não revalidado nesta reconciliação**:
 
 - SHA V4: 3.649 / 3.649;
 - `catalog_complete=true`;
@@ -191,23 +180,16 @@ O catálogo mestre operacional permanece fora do repositório público. Antes de
 
 Não reiniciar SHA V4 por conveniência. Reaproveitar hashes válidos e migrar/revalidar estado existente.
 
-## Próxima sequência de conteúdo
+## Próxima sequência de conteúdo e fechamento estrutural
 
-Quando houver acesso ao catálogo mestre/local:
+1. Validar CI/coverage do HEAD atual nas PRs #174 e #175; não declarar gates anteriores como aprovados para um commit novo.
+2. Executar auditorias somente leitura contra o D1 e a API da fonte na conta correta; conferir também schema `0021`, manifests e imagens publicadas no Worker/R2. Se o acesso à conta Tonecos estiver ausente, registrar o bloqueio e não simular sucesso.
+3. Consumir a fila canônica `external-source-identity-triage.json` e a fila `published-collision-review-queue.json` dos artefatos da mesma execução, sem interpretar igualdade de nome, alias, dHash ou SHA isolados como escultura idêntica.
+4. Reconciliar visualmente e com procedência os candidatos reais; registrar `map_existing` ou `new_model` somente com provas versionadas e sem conflitos. Uma identidade distinta não autoriza publicação de imagem.
+5. Para publicação, exigir direitos, atribuição e cobertura integral de staging privado, SHA/tamanho, preflight de R2/D1 e verificação pública; promover apenas deltas explicitamente aprovados.
+6. Só integrar as PRs empilhadas na `main` após análise do diff final e dos gates, sem force-push, duplicação de modelos, rebuild de mídia sem necessidade ou descarte de evidências.
 
-1. confirmar que helpers locais ainda consomem `config/public-catalog-roots.json`;
-2. revalidar o checkpoint SHA sem reset total;
-3. revalidar 40 itens de promoção e 16 de quarentena;
-4. auditar nova fonte por produto, com mapeamento explícito `incoming_model,target_model`;
-5. usar `tools/plan_gallery_merge.py --mapping` e resolver revisões conscientemente;
-6. gerar e validar manifesto de promoção;
-7. preservar arquivos mestres e nunca apagar fonte antiga por substituição de vista;
-8. gerar bundle/mídia;
-9. executar `publish_d1.py --check-production` antes de writes;
-10. publicar somente delta R2 necessário;
-11. aplicar D1 de forma idempotente;
-12. validar produção com `verify_public_catalog.py --exhaustive --all-galleries`;
-13. atualizar este checkpoint apenas com fatos realmente medidos.
+O cache local e as filas do checkpoint de 11/10 são históricos, não autoridade para promover novos itens. Preservar invariantes de SSOT e nunca repetir ingestões completas para apenas atualizar status.
 
 ## O que não fazer
 
