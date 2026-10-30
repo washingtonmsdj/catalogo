@@ -238,15 +238,72 @@ O checkpoint anterior com 56 entradas também é histórico. Para a
 não os contadores antigos. Não somar entradas técnicas do Drive com
 modelos D1 como se fossem a mesma unidade de contagem.
 
-**Próxima execução concreta:** verificar os 10 representantes selecionados
-contra o acervo organizado por identidade/variante e confirmar procedência,
-direitos e marca-d'água antes de propor promoção controlada. Classificar
-as 31 imagens soltas (inclusive referências/ângulos) contra o acervo
-privado existente; não criar 31 modelos por contagem nem mover originais
-sem os portões SHA e a decisão canônica. O manifesto de 30 candidatos
-de 2026-09-08 também permanece histórico e integralmente `PENDENTE`;
-não reexecutar o lote de 309 já consolidado (307 incorporados, 2 em
-quarentena).
+### Conferência física e visual específica — 2026-10-30, segunda passagem
+
+**As dez entradas atuais de \`Catalogo/Novos\` têm destinos nominais
+já criados em \`Catalogo\`, mas vazios.** Isso foi conferido em duas
+fontes independentes: listagem física do Desktop Commander em
+\`DESKTOP-PNUHUA0\` (somente \`desktop.ini\` em cada destino) e
+listagem de filhos dos dez IDs de pastas pelo conector do Google Drive
+(0 arquivos e 0 subpastas em cada destino). Portanto, os sufixos
+\`[1]\` nesses dez destinos são **rótulos históricos desatualizados**,
+não prova de uma imagem incorporada. Uma amostra separada de cinco
+pastas antigas de Digimon, Terror e DC continha imagens normalmente.
+
+| Grupo | Novos, com uma imagem representativa cada | Pastas equivalentes vazias |
+| --- | --- | ---: |
+| Digimon | Matt e Gabumon; Tai e Agumon | 2 |
+| Terror | A Freira; Chucky; Hannibal Lecter; Jason Voorhees; Leatherface | 5 |
+| DC | Huntress; Lucifer Morningstar; Rorschach | 3 |
+| **Total** | **10 candidatos físicos** | **10** |
+
+- As dez imagens foram abertas e inspecionadas; são esculturas/renderizações
+  de personagens identificáveis. Sete mostram marca/atribuição comercial
+  visível (incluindo LA Figures, Julles ou B3DSERK). A ausência de
+  logotipo nas outras três **não** demonstra direitos de publicação.
+- Nenhum dos dez SHA consta das 2.645 imagens publicadas no snapshot D1
+  auditado anteriormente, nem da cópia do \`Controle/galeria-posts.csv\`
+  com 12.123 linhas. Isso demonstra ausência de **SHA exato e de
+  aprovação correspondente nesse manifesto**, não ausência global
+  de escultura com outra imagem ou outro nome.
+- **Não copiar/mover para as pastas vazias apenas para corrigir \`[1]\`.**
+  Antes da promoção: confirmar variantes contra a coleção atual,
+  autorização/procedência do criador, imagem escolhida e preflight
+  SHA V4 do executor canônico. Não registrar mídia de terceiros no
+  D1/R2 sem a autorização exigida pelo projeto.
+
+**As 31 imagens soltas na raiz representam aproximadamente nove conjuntos
+visuais, não 31 unidades de catálogo.** Revisão visual de todos os JPEG
+em uma prancha temporária, mais as cinco imagens WebP:
+
+| Conjunto visual provisório | Arquivos | Evidência |
+| --- | ---: | --- |
+| Feiticeiro com capa e energia mágica | 5 JPEG | cinco renderizações da mesma figura |
+| Mulher de vestido claro | 5 JPEG | corpo inteiro, perfil e detalhes |
+| Criatura estilo Predador, render fotorrealista | 4 JPEG | quatro vistas da mesma escultura provável |
+| Mulher sentada, roupa avermelhada | 4 JPEG | frente, perfil e detalhes |
+| Mulher sobre base mecânica/industrial | 5 JPEG | frente, verso e recortes |
+| Personagem identificado no arquivo como Chun-Li | 1 JPEG | render de escultura |
+| Figura indicada como Monstro da Lagoa Negra | 1 JPEG | fotografia de escultura com interface de telefone |
+| Figura colorida denominada \`Predator.jpg\` | 1 JPEG | identidade exata da escultura ainda não confirmada |
+| Diorama Alien com duas criaturas | 5 WebP | vistas e recortes do mesmo conjunto de base |
+| **Total** | **31** | **nove grupos apenas provisórios** |
+
+A comparação visual com \`OK - Predador [4]\` e amostras de
+\`OK - Alien [14]\` não mostrou a mesma escultura evidente para as
+duas séries soltas, mas não há prova de unicidade no acervo inteiro.
+Nenhum dos 31 SHA consta do índice D1 de referência; diferenças de
+arquivo, ângulo ou compressão não provam esculturas distintas.
+Conservar todos os originais no lugar até resolver identidade e direitos.
+
+**Ordem operacional revisada:** (1) sanar a discrepância de dez
+pastas vazias sem mascarar a contagem; (2) revisar autorizações e
+preflight do executor para os dez itens de \`Novos\`; (3) avaliar os
+**nove conjuntos**, não os 31 arquivos individualmente, contra
+representantes da coleção organizada; (4) promover somente identidades
+comprovadas e autorizadas, sem escrita direta pela auditoria.
+O manifesto de 30 candidatos de 2026-09-08 permanece histórico; não
+reabrir o lote encerrado de 309 imagens (307 incorporadas, 2 em quarentena).
 
 ## Próxima sequência de conteúdo e fechamento estrutural
 
