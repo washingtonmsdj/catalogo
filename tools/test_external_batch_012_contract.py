@@ -78,7 +78,7 @@ class ExternalBatch012ContractTests(unittest.TestCase):
         self.assertEqual(creator_authorizations, {22180: creator_rows})
         self.assertEqual(set(proof["sourceSha256"]), creator_rows)
         self.assertFalse(proof["excludedSourceMedia"]["promotableMedia"])
-        self.assertEqual(descriptor["creatorAttributionEvidence"], str(CREATOR_PROOF_PATH.relative_to(ROOT)))
+        self.assertEqual(descriptor["creatorAttributionEvidence"], CREATOR_PROOF_PATH.relative_to(ROOT).as_posix())
 
 
 if __name__ == "__main__":

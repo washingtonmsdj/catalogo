@@ -9,7 +9,7 @@
     "brand:source": "python -m unittest -q tools.test_brand_identity",
     "test:known-cache": "node --experimental-strip-types --test tools/test_known_model_cache.mjs",
     "test:main-provenance": "node --test tools/test_main_push_provenance.mjs",
-    "test:catalog-runtime": "node --experimental-strip-types --test tools/test_catalog_runtime_contract.mjs tools/test_catalog_runtime_ssot.mjs tools/test_demo_catalog_source_contract.mjs",
+    "test:catalog-runtime": "node --experimental-strip-types --test tools/test_catalog_runtime_contract.mjs tools/test_catalog_runtime_ssot.mjs tools/test_demo_catalog_source_contract.mjs tools/test_demo_catalog_folders.mjs tools/test_catalog_api_cursor_fill.mjs tools/test_saved_catalog_filters.mjs",
     "brand:dist": "node tools/check_generated_brand.mjs",
     "budget:frontend": "node tools/check_frontend_budget.mjs",
     "typecheck:worker": "tsc -p tsconfig.worker.json --noEmit",
@@ -34,18 +34,22 @@
     "test:model-aliases": "node --experimental-strip-types --test tools/test_model_aliases.mjs",
     "test:public-gallery-revision": "node --test tools/test_public_gallery_revision.mjs",
     "test:legacy-gallery-repairs-contract": "node --test tools/test_legacy_gallery_repairs_contract.mjs",
-    "test:worker-search-contract": "node --test tools/test_worker_search_contract.mjs",
+    "test:worker-search-contract": "node --test tools/test_worker_search_contract.mjs tools/test_worker_catalog_facets.mjs tools/test_worker_catalog_scale_sqlite.mjs",
     "test:quote-receipt": "node --experimental-strip-types --test tools/test_quote_receipt.mjs",
     "test:quote-admin": "node --experimental-strip-types --test tools/test_quote_admin_foundation.mjs tools/test_quote_admin_api.mjs"
   },
   "dependencies": {
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@types/node": "^26.6.6",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.2",
+    "esbuild": "0.28.2",
+    "lightningcss": "^1.33.0",
+    "purgecss": "^8.0.0",
     "typescript": "^5.9.2",
     "vite": "^7.3.7",
     "wrangler": "4.155.0"

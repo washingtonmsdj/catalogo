@@ -1,8 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { PurgeCSS } from 'purgecss'
 import brand from './config/brand.json'
 import publicRuntime from './config/public-runtime.json'
 
+const projectRoot = path.dirname(fileURLToPath(import.meta.url))
 const catalogName = `${brand.catalogLabel} ${brand.name}`
 const catalogPageTitle = `${brand.catalogLabel} — ${brand.name}`
 const publicSiteUrl = publicRuntime.publicSiteUrl.replace(/\/?$/, '/')
@@ -42,6 +47,14 @@ function applyBrandTokens(html: string) {
     .replaceAll('__CATALOG_PAGE_TITLE__', catalogPageTitle)
 }
 
+function sourceFilesUnder(directory: string): string[] {
+  return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const target = path.join(directory, entry.name)
+    if (entry.isDirectory()) return sourceFilesUnder(target)
+    return /\.(?:ts|tsx|js|jsx|html)$/.test(entry.name) ? [target] : []
+  })
+}
+
 export default defineConfig({
   base: './',
   plugins: [
@@ -76,9 +89,54 @@ export default defineConfig({
         })
       },
     },
+    {
+      name: 'catalog-demo-artifact-isolation',
+      apply: 'build',
+      writeBundle(outputOptions) {
+        if (process.env.VITE_CATALOG_MODE === 'demo') return
+
+        const outputDirectory = outputOptions.dir ?? 'dist'
+        for (const demoAsset of ['collectible-covers.png', 'hero-campaign.png']) {
+          fs.rmSync(path.resolve(outputDirectory, 'demo', demoAsset), { force: true })
+        }
+      },
+    },
+    {
+      name: 'catalog-prune-unused-css',
+      apply: 'build',
+      async generateBundle(_options, bundle) {
+        const content = [
+          path.join(projectRoot, 'index.html'),
+          ...sourceFilesUnder(path.join(projectRoot, 'src')),
+        ].map((filePath) => ({
+          raw: fs.readFileSync(filePath, 'utf8'),
+          extension: path.extname(filePath).slice(1),
+        }))
+        const purger = new PurgeCSS()
+        for (const asset of Object.values(bundle)) {
+          if (asset.type !== 'asset' || !asset.fileName.endsWith('.css')) continue
+          const results = await purger.purge({
+            content,
+            css: [{ raw: asset.source.toString() }],
+            safelist: {
+              standard: [/^is-/, /^storefront-/],
+              deep: [/data-media-failed/],
+            },
+          })
+          if (!results[0]) throw new Error(`CSS purge produced no output for ${asset.fileName}`)
+          asset.source = results[0].css
+        }
+      },
+    },
   ],
+  server: {
+    watch: {
+      ignored: ['**/work/**'],
+    },
+  },
   build: {
     target: 'es2022',
+    cssMinify: 'lightningcss',
     sourcemap: false,
   },
 })

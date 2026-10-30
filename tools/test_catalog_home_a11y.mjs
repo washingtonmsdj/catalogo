@@ -31,8 +31,25 @@ test('icon-only pagination and franchise search have accessible names', () => {
   assert.match(css, /\.storefront-franchise-search:focus-within/)
 })
 
+test('franchise discovery matches labels regardless of Portuguese accents', () => {
+  assert.match(home, /function normalizeCatalogLabel\(value: string\)\s*\{\s*return value\.toLocaleLowerCase\('pt-BR'\)\.normalize\('NFD'\)\.replace\(\/\[\\u0300-\\u036f\]\/g, ''\)/)
+  assert.match(home, /normalizeCatalogLabel\(item\.label\)\.includes\(franchiseNeedle\)/)
+  assert.match(home, /normalizeCatalogLabel\(model\.franchise\)/)
+})
+
 test('R29 mobile header exposes the existing franchise and folder explorer at 44px', () => {
   assert.match(home, /className="storefront-topbar__collections storefront-topbar__explore"/)
   assert.match(home, /aria-label="Explorar franquias e pastas"/)
   assert.match(css, /@media \(max-width: 1080px\)\s*\{\s*\.storefront-topbar__explore \{ display: inline-flex; \}/)
+})
+
+test('attribute filters have a keyboard accessible disclosure and named numeric ranges', () => {
+  assert.match(home, /aria-expanded=\{filterPanelOpen\} aria-controls="storefront-attribute-filters"/)
+  assert.match(home, /<form id="storefront-attribute-filters" className="storefront-attribute-filters" aria-label="Filtros de atributos" hidden=\{!filterPanelOpen\}/)
+  assert.match(home, /<legend>Altura \(cm\)<\/legend>/)
+  assert.match(home, /<label>Mínima<input type="number" min="1" max="300"/)
+  assert.match(home, /<label>Máxima<input type="number" min="1" max="300"/)
+  assert.match(home, /role="alert">\{filterError\}/)
+  assert.match(css, /\.storefront-attribute-filters input:focus-visible/)
+  assert.match(css, /@media \(max-width: 760px\)[\s\S]*?\.storefront-attribute-filters input,[\s\S]*?\.storefront-attribute-filters__actions button \{ min-height: 44px; \}/)
 })

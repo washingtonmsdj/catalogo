@@ -14,6 +14,7 @@ import {
   sharedCollectionPublicUrl,
   type SharedCollection,
 } from '../services/sharedCollections'
+import { readSharedCollectionCode } from '../services/catalogNavigation'
 
 type KnownModel = { name: string; slug: string }
 
@@ -78,7 +79,7 @@ export function SharedCollectionsDock() {
   }, [])
 
   useEffect(() => {
-    const code = new URL(window.location.href).searchParams.get('colecao')?.trim()
+    const code = readSharedCollectionCode(new URL(window.location.href))
     if (!code) return
     setOpen(true)
     setLoadingIncoming(true)

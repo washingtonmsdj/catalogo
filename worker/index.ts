@@ -43,6 +43,8 @@ type CatalogRow = {
   category_slug: string
   collection: string | null
   folder_path: string | null
+  material: string | null
+  height_cm: number | null
   image_count: number
   gallery_version: number
   cover_storage_key: string | null
@@ -341,6 +343,20 @@ async function listCatalog(request: Request, env: Env) {
   const franchise = url.searchParams.get('franchise')?.trim() || null
   const folder = url.searchParams.get('folder')?.trim() || null
   const query = url.searchParams.get('q')?.trim().toLocaleLowerCase('pt-BR') || null
+  const material = url.searchParams.get('material')?.trim().slice(0, 120) || null
+  const collection = url.searchParams.get('collection')?.trim().slice(0, 120) || null
+  const minHeightRaw = url.searchParams.get('minHeight')
+  const maxHeightRaw = url.searchParams.get('maxHeight')
+  const parseHeight = (value: string | null) => {
+    if (value === null) return null
+    if (!/^\d{1,3}$/.test(value) || Number(value) < 1 || Number(value) > 300) return Number.NaN
+    return Number(value)
+  }
+  const minHeight = parseHeight(minHeightRaw)
+  const maxHeight = parseHeight(maxHeightRaw)
+  if (Number.isNaN(minHeight) || Number.isNaN(maxHeight) || (minHeight !== null && maxHeight !== null && minHeight > maxHeight)) {
+    return json(request, env, { error: 'invalid_height_range' }, { status: 400 })
+  }
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '24', 10) || 24, 1, 60)
   const rawCursor = url.searchParams.get('cursor')
   const cursor = decodeCatalogCursor(rawCursor)
@@ -379,13 +395,17 @@ async function listCatalog(request: Request, env: Env) {
   if (category) { where.push('c.slug = ?'); values.push(category) }
   if (franchise) { where.push('f.slug = ?'); values.push(franchise) }
   if (query) { where.push('models_fts MATCH ?'); values.push(toFtsPhrase(query)) }
+  if (material) { where.push('LOWER(COALESCE(m.material, \'\')) LIKE LOWER(?) ESCAPE \'\\\''); values.push(`%${material.replace(/[\\%_]/g, '\\$&')}%`) }
+  if (collection) { where.push('LOWER(COALESCE(m.collection, \'\')) LIKE LOWER(?) ESCAPE \'\\\''); values.push(`%${collection.replace(/[\\%_]/g, '\\$&')}%`) }
+  if (minHeight !== null && minHeight >= 1 && minHeight <= 300) { where.push('m.height_cm >= ?'); values.push(minHeight) }
+  if (maxHeight !== null && maxHeight >= 1 && maxHeight <= 300) { where.push('m.height_cm <= ?'); values.push(maxHeight) }
   if (cursor) {
     where.push('(m.name COLLATE NOCASE > ? COLLATE NOCASE OR (m.name COLLATE NOCASE = ? COLLATE NOCASE AND m.id > ?))')
     values.push(cursor.name, cursor.name, cursor.id)
   }
 
   const searchJoin = query ? 'JOIN models_fts ON models_fts.model_id = m.id' : ''
-  const sql = `${folderCte} SELECT m.id,m.slug,m.code,m.name,m.variant_name,m.collection,cf.path AS folder_path,
+  const sql = `${folderCte} SELECT m.id,m.slug,m.code,m.name,m.variant_name,m.collection,m.material,m.height_cm,cf.path AS folder_path,
     ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
     ${PUBLIC_GALLERY_VERSION_SQL} AS gallery_version,
     m.cover_storage_key,
@@ -413,7 +433,7 @@ async function listCatalog(request: Request, env: Env) {
 async function listRecentCatalog(request: Request, env: Env) {
   const url = new URL(request.url)
   const limit = clamp(Number.parseInt(url.searchParams.get('limit') ?? '12', 10) || 12, 1, 24)
-  const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,m.variant_name,m.collection,cf.path AS folder_path,
+  const result = await env.DB.prepare(`SELECT m.id,m.slug,m.code,m.name,m.variant_name,m.collection,m.material,m.height_cm,cf.path AS folder_path,
     ${LOGICAL_IMAGE_COUNT_SQL} AS image_count,
     ${PUBLIC_GALLERY_VERSION_SQL} AS gallery_version,
     m.cover_storage_key,

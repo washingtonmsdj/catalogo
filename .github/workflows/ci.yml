@@ -31,10 +31,10 @@ jobs:
         run: node tools/check_main_push_provenance.mjs
       - name: Test main push provenance contract
         run: npm run test:main-provenance
-      - name: Test catalog runtime SSOT
-        run: npm run test:catalog-runtime
       - name: Install frontend and tooling
         run: npm ci
+      - name: Test catalog runtime SSOT
+        run: npm run test:catalog-runtime
       - name: Audit dependencies
         run: npm audit --audit-level=high
       - name: Test fail-closed Cloudflare Access quote admin foundation
@@ -125,7 +125,7 @@ jobs:
           if-no-files-found: error
           retention-days: 1
       - name: Setup Python
-        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
           python-version: '3.13'
       - name: Install ingestion dependencies
