@@ -11,7 +11,6 @@ DISPATCH_ONLY = (
     "external-batch-release.yml",
     "external-candidate-discovery.yml",
     "external-gallery-review.yml",
-    "external-source-coverage.yml",
     "external-source-review.yml",
     "identity-visual-review.yml",
     "staged-perceptual-review.yml",
@@ -26,6 +25,11 @@ class ProductionReadSeparationTests(unittest.TestCase):
                 triggers = workflow.split("permissions:", 1)[0]
                 self.assertIn("  workflow_dispatch:", triggers)
                 self.assertNotIn("  pull_request:", triggers)
+
+    def test_unbounded_source_coverage_workflow_is_not_dispatchable(self):
+        self.assertFalse((WORKFLOWS / "external-source-coverage.yml").exists())
+        self.assertTrue((ROOT / "tools/audit_external_source_coverage.py").exists())
+        self.assertTrue((ROOT / "tools/audit_published_sha_inventory.py").exists())
 
     def test_canonical_pr_ci_runs_full_python_contract_suite(self):
         workflow = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
