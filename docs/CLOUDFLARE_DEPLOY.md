@@ -96,7 +96,11 @@ O CI de PR continua executando dry-run estrito do Wrangler com segredo sintétic
 17. validar a navegação pública real `categoria → franquia → pasta → modelo → detalhe` com o verificador canônico de até 12 GETs, sem escrita D1;
 18. provar `Workers Cache` com HIT real dentro da janela bounded;
 19. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
-20. executar auditoria D1 read-only em todo deploy, sem depender de mudança de schema.
+20. executar a auditoria integral de integridade D1 **somente quando houver alteração de schema**; deploys apenas de código preservam a verificação prévia de estruturas, o health, o smoke staged, a hierarquia, a mídia e o cache, sem repetir a varredura completa do banco.
+
+A auditoria integral também está disponível no workflow manual `Maintain Catalog Data`, com verificação obrigatória do orçamento de leituras D1. Após o deploy de runtime de 30/10/2026, as métricas registraram mais de 3,5 milhões de linhas lidas na conta em apenas 158 consultas, em grande parte durante a janela da auditoria de integridade; a atribuição exata por consulta individual não é atestada. O custo de uma auditoria integral não deve ser considerado parte normal do deploy sem alterações de schema.
+
+`workflow_dispatch` de deploy é tratado conservadoramente como operação com schema (executa validações correspondentes); preferir o fluxo por push canônico quando o objetivo for apenas atualizar o Worker. Nunca reexecutar a auditoria integral para contornar bloqueio de cota.
 
 Upload, migrations, deployment, promoção e rollback não são repetidos automaticamente. Retry bounded existe apenas para verificações read-only.
 

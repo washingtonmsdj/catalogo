@@ -228,5 +228,10 @@ jobs:
           npx wrangler rollback "$PREVIOUS_WORKER_VERSION_ID"
           --message "automatic restore after failed deploy validation ${GITHUB_SHA}"
           --config .wrangler.deploy.jsonc
-      - name: Audit D1 structural integrity
+      # A runtime-only release already passed schema readability, staged and
+      # promoted health, live hierarchy, media and cache gates. A full D1
+      # integrity scan consumes millions of rows and belongs only to schema
+      # changes or the explicitly budget-gated maintenance workflow.
+      - name: Audit D1 structural integrity after schema changes
+        if: ${{ steps.d1_scope.outputs.run_d1_schema == 'true' }}
         run: python tools/audit_d1_integrity.py
