@@ -1,52 +1,24 @@
-import { useEffect, useState } from 'react'
-import { checkCatalogApi, getCatalogRuntimeMode, listCatalogCategories } from '../services/catalogApi'
+type CategoryCount = { id: string; count: number }
 
-type PublicationState = 'checking' | 'ready' | 'publishing' | 'unavailable'
+type CatalogPublicationBannerProps = {
+  mode: 'live' | 'demo'
+  apiHealthy: boolean
+  loading: boolean
+  categories: CategoryCount[]
+}
 
-function catalogTotal(items: Array<{ id: string; count: number }>) {
+function catalogTotal(items: CategoryCount[]) {
   const all = items.find((item) => item.id === 'all')
   if (all) return Number(all.count) || 0
   return items.reduce((total, item) => total + (Number(item.count) || 0), 0)
 }
 
-export function CatalogPublicationBanner() {
-  const [state, setState] = useState<PublicationState>('checking')
-
-  useEffect(() => {
-    if (getCatalogRuntimeMode() !== 'live') {
-      setState('ready')
-      return
-    }
-
-    let cancelled = false
-    async function refresh() {
-      try {
-        const [health, categories] = await Promise.all([checkCatalogApi(), listCatalogCategories()])
-        if (cancelled) return
-        if (!health.ok) {
-          setState('unavailable')
-          return
-        }
-        setState(catalogTotal(categories) > 0 ? 'ready' : 'publishing')
-      } catch {
-        if (!cancelled) setState('unavailable')
-      }
-    }
-
-    void refresh()
-    const timer = window.setInterval(() => void refresh(), 60_000)
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible') void refresh()
-    }
-    document.addEventListener('visibilitychange', handleVisibility)
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
-      document.removeEventListener('visibilitychange', handleVisibility)
-    }
-  }, [])
-
-  if (state !== 'publishing') return null
+/**
+ * The canonical runtime fetches categories. Never poll health or categories here:
+ * the old banner duplicated D1 queries for each visitor every minute.
+ */
+export function CatalogPublicationBanner({ mode, apiHealthy, loading, categories }: CatalogPublicationBannerProps) {
+  if (mode !== 'live' || loading || !apiHealthy || catalogTotal(categories) > 0) return null
 
   return (
     <div className="catalog-publication-banner" role="status" aria-live="polite">

@@ -2,7 +2,6 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'
 import { AppErrorBoundary } from './components/AppErrorBoundary'
-import { CatalogPublicationBanner } from './components/CatalogPublicationBanner'
 import { CollectionsDock } from './components/CollectionsDock'
 import { CollectionActionsProvider } from './components/CollectionActionsContext'
 import { ConnectivityBanner } from './components/ConnectivityBanner'
@@ -65,7 +64,6 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppErrorBoundary>
       <ConnectivityBanner />
-      <CatalogPublicationBanner />
       <CollectionActionsProvider>
         <App />
         <div className="collections-action-dock" role="group" aria-label="Ações de coleções">

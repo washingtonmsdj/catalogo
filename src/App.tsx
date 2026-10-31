@@ -1,5 +1,6 @@
 import { FormEvent, Fragment, useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { CatalogHome } from './components/CatalogHome'
+import { CatalogPublicationBanner } from './components/CatalogPublicationBanner'
 import { CatalogUpdatesDialog } from './components/CatalogUpdatesDialog'
 import { FranchiseBrowser } from './components/FranchiseBrowser'
 import { FavoritesDialog } from './components/FavoritesDialog'
@@ -357,7 +358,14 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <>
+      <CatalogPublicationBanner
+        mode={catalog.mode}
+        apiHealthy={catalog.apiHealthy}
+        loading={catalog.loading}
+        categories={catalog.categories}
+      />
+      <div className="app-shell">
       <CatalogHome
         catalog={catalog}
         searchInputRef={searchInputRef}
@@ -452,6 +460,7 @@ export default function App() {
         onSubmit={submitQuote}
         onDismissSuccess={() => { setSent(false); setQuoteOpen(false) }}
       />
-    </div>
+      </div>
+    </>
   )
 }
