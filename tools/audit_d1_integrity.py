@@ -146,12 +146,14 @@ WHERE slug<>lower(slug)
    OR slug LIKE '%--%'
    OR slug GLOB '*[^a-z0-9-]*'""",
         },
+        # FTS model_id/franchise_id are UNINDEXED columns. Correlated NOT EXISTS
+        # rescans the FTS table for every model; EXCEPT compares sets once.
         {
             "name": "models_fts_missing",
-            "sql": """SELECT COUNT(*) AS n
-FROM models m
-WHERE NOT EXISTS (
-  SELECT 1 FROM models_fts f WHERE f.model_id=m.id
+            "sql": """SELECT COUNT(*) AS n FROM (
+  SELECT id FROM models
+  EXCEPT
+  SELECT model_id FROM models_fts
 )""",
         },
         {
@@ -164,10 +166,10 @@ WHERE NOT EXISTS (
         },
         {
             "name": "franchises_fts_missing",
-            "sql": """SELECT COUNT(*) AS n
-FROM franchises f
-WHERE NOT EXISTS (
-  SELECT 1 FROM franchises_fts x WHERE x.franchise_id=f.id
+            "sql": """SELECT COUNT(*) AS n FROM (
+  SELECT id FROM franchises
+  EXCEPT
+  SELECT franchise_id FROM franchises_fts
 )""",
         },
         {
