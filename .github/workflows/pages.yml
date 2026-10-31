@@ -3,6 +3,11 @@ name: Deploy live preview
 on:
   push:
     branches: [main]
+    # Skip only test-source edits; any frontend/runtime file still triggers deploy.
+    paths-ignore:
+      - 'tools/test_*.py'
+      - 'tools/test_*.mjs'
+      - 'tools/test_*.js'
   workflow_dispatch:
 
 permissions:

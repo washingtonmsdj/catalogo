@@ -18,6 +18,17 @@ DISPATCH_ONLY = (
 
 
 class ProductionReadSeparationTests(unittest.TestCase):
+    def test_test_only_changes_do_not_rebuild_static_public_preview(self):
+        workflow = (WORKFLOWS / "pages.yml").read_text(encoding="utf-8")
+        triggers = workflow.split("permissions:", 1)[0]
+        self.assertIn("  push:\n    branches: [main]\n", triggers)
+        self.assertIn("    paths-ignore:", triggers)
+        for pattern in ("tools/test_*.py", "tools/test_*.mjs", "tools/test_*.js"):
+            self.assertIn("      - '" + pattern + "'", triggers)
+        self.assertIn("  workflow_dispatch:", triggers)
+        self.assertIn("npm run build", workflow)
+        self.assertNotIn("  pull_request:", triggers)
+
     def test_production_media_workflows_never_query_live_d1_on_pull_request(self):
         for name in DISPATCH_ONLY:
             with self.subTest(workflow=name):
