@@ -85,22 +85,27 @@ O CI de PR continua executando dry-run estrito do Wrangler com segredo sintétic
 6. validar o bucket R2 read-only;
 7. para deploy sem mudança de schema, verificar `/api/health` do Worker ativo usando o mesmo cliente de health do smoke staged;
 8. validar a leitura das estruturas canônicas do D1 pelo auditor antes de criar versão staged;
-9. criar uma versão staged sem tráfego, com código + secret juntos;
-10. validar política migration-first;
-11. aplicar migrations D1 somente quando o diff realmente altera schema;
-12. registrar `previous@100% + staged@0%`;
-13. executar smoke completo da versão staged por Version Override;
-14. promover `staged@100%`;
-15. confirmar bounded que o plano de controle aponta exatamente para a versão staged e que o contrato público convergiu;
-16. **provar um objeto de mídia real em `/media/<storage-key>` pela mesma origem do Worker**;
-17. validar a navegação pública real `categoria → franquia → pasta → modelo → detalhe` com o verificador canônico de até 12 GETs, sem escrita D1;
-18. provar `Workers Cache` com HIT real dentro da janela bounded;
-19. se qualquer gate pós-stage falhar, executar rollback explícito para `PREVIOUS_WORKER_VERSION_ID`;
-20. executar a auditoria integral de integridade D1 **somente quando houver alteração de schema**; deploys apenas de código preservam a verificação prévia de estruturas, o health, o smoke staged, a hierarquia, a mídia e o cache, sem repetir a varredura completa do banco.
+9. quando houver alteração de esquema (ou `workflow_dispatch`), consultar o orçamento D1 da conta via GraphQL Analytics, sem fazer SQL, e **bloquear antes do upload** se a reserva não estiver disponível;
+10. criar uma versão staged sem tráfego, com código e segredo juntos;
+11. validar a política migration-first;
+12. aplicar migrações D1 apenas quando o diff exigir;
+13. para alterações de esquema, consultar novamente o orçamento D1 e executar a auditoria integral **antes de registrar staged ou promover tráfego**;
+14. registrar `previous@100% + staged@0%`;
+15. executar smoke completo da versão staged por Version Override;
+16. promover `staged@100%`;
+17. confirmar que o plano de controle aponta para a versão promovida e o contrato público convergiu;
+18. provar objeto real em `/media/<storage-key>` pela mesma origem do Worker;
+19. validar navegação real `categoria → franquia → pasta → modelo → detalhe`, com até 12 GETs;
+20. provar `Workers Cache` com HIT real;
+21. em caso de falha pós-stage, executar rollback para `PREVIOUS_WORKER_VERSION_ID`.
 
 A auditoria integral também está disponível no workflow manual `Maintain Catalog Data`, com verificação obrigatória do orçamento de leituras D1. Após o deploy de runtime de 30/10/2026, as métricas registraram mais de 3,5 milhões de linhas lidas na conta em apenas 158 consultas, em grande parte durante a janela da auditoria de integridade; a atribuição exata por consulta individual não é atestada. O custo de uma auditoria integral não deve ser considerado parte normal do deploy sem alterações de schema.
 
 `workflow_dispatch` de deploy é tratado conservadoramente como operação com schema (executa validações correspondentes); preferir o fluxo por push canônico quando o objetivo for apenas atualizar o Worker. Nunca reexecutar a auditoria integral para contornar bloqueio de cota.
+
+A verificação de orçamento é **falha fechada**: sem métricas confiáveis ou quando a conta já consumiu mais de 250 mil linhas no dia UTC, o processo não pode iniciar uma operação D1 intensiva. O controle é repetido antes da auditoria integral, porque migrações também consomem leituras. Isso é uma barreira preventiva, **não** um limite transacional por consulta. Se uma migração foi aplicada e a segunda checagem de orçamento bloquear a auditoria, o processo permanece reprovado e **não promove a nova versão**; a migração deve ser reconciliada sem repetição automática, respeitando migration-first.
+
+No workflow manual `Maintain Catalog Data`, o padrão é a navegação pública limitada. Auditorias, backfill e reparos exigem marcar `confirm_expensive_d1_reads` e passar na verificação de orçamento antes de acessar o D1. Não marcar a confirmação rotineiramente. A autorização de uma auditoria não elimina a necessidade de planejar seu custo de leitura antes da execução.
 
 Upload, migrations, deployment, promoção e rollback não são repetidos automaticamente. Retry bounded existe apenas para verificações read-only.
 
