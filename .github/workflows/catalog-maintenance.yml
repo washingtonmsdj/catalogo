@@ -6,14 +6,19 @@ on:
       operation:
         description: Operação de manutenção canônica a executar
         required: true
-        default: audit
+        default: verify-public-hierarchy
         type: choice
         options:
-          - audit
           - verify-public-hierarchy
+          - audit
           - verify-legacy-gallery-repairs
           - backfill-image-sha
           - apply-legacy-gallery-repairs
+      confirm_expensive_d1_reads:
+        description: Confirmo explicitamente auditoria/reparo D1 com leituras potencialmente elevadas
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -62,6 +67,17 @@ jobs:
           set -euo pipefail
           database_id="$(node tools/read_wrangler_d1_id.mjs)"
           echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
+      - name: Require explicit consent for expensive D1 maintenance
+        if: ${{ inputs.operation != 'verify-public-hierarchy' }}
+        env:
+          EXPLICIT_CONSENT: ${{ inputs.confirm_expensive_d1_reads }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$EXPLICIT_CONSENT" != 'true' ]; then
+            echo '::error::Manutenção D1 de alto custo bloqueada: confirmação explícita ausente.'
+            exit 1
+          fi
       - name: Validate active Worker health and schema
         run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
 

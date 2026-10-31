@@ -36,14 +36,30 @@ class CloudflareD1ScopeContractTests(unittest.TestCase):
         self.assertIn("steps.d1_scope.outputs.run_d1_schema == 'true'", block)
         self.assertIn("wrangler d1 migrations apply DB --remote", block)
 
-    def test_full_audit_only_after_schema_change_not_runtime_only_release(self):
+    def test_schema_release_checks_d1_budget_before_upload_and_migrations(self):
+        budget = step_block(self.workflow, "Protect D1 quota before schema-changing release")
+        self.assertIn("steps.d1_scope.outputs.run_d1_schema == 'true'", budget)
+        self.assertIn("python tools/check_d1_editorial_audit_budget.py", budget)
+        self.assertLess(self.workflow.index("Verify canonical D1 schema queries before uploading any Worker version"),
+                        self.workflow.index("Protect D1 quota before schema-changing release"))
+        self.assertLess(self.workflow.index("Protect D1 quota before schema-changing release"),
+                        self.workflow.index("Upload Worker version with required secret and no traffic"))
+        self.assertLess(self.workflow.index("Protect D1 quota before schema-changing release"),
+                        self.workflow.index("Apply D1 migrations"))
+
+    def test_full_audit_requires_fresh_budget_and_precedes_any_traffic_change(self):
+        recheck = step_block(self.workflow, "Recheck D1 quota before full schema integrity audit")
+        self.assertIn("steps.d1_scope.outputs.run_d1_schema == 'true'", recheck)
+        self.assertIn("python tools/check_d1_editorial_audit_budget.py", recheck)
         block = step_block(self.workflow, "Audit D1 structural integrity after schema changes")
         self.assertIn("steps.d1_scope.outputs.run_d1_schema == 'true'", block)
         self.assertIn("python tools/audit_d1_integrity.py", block)
-        self.assertLess(
-            self.workflow.index("Verify Workers Cache hit after promotion"),
-            self.workflow.index("Audit D1 structural integrity after schema changes"),
-        )
+        self.assertLess(self.workflow.index("Apply D1 migrations"),
+                        self.workflow.index("Recheck D1 quota before full schema integrity audit"))
+        self.assertLess(self.workflow.index("Recheck D1 quota before full schema integrity audit"),
+                        self.workflow.index("Audit D1 structural integrity after schema changes"))
+        self.assertLess(self.workflow.index("Audit D1 structural integrity after schema changes"),
+                        self.workflow.index("Register staged Worker at zero traffic"))
         self.assertIn("'tools/audit_d1_integrity.py'", self.workflow)
         self.assertIn("'tools/catalog_schema_contract.py'", self.workflow)
         self.assertIn("audit_d1_integrity.py --preflight-schema-readability", self.workflow)

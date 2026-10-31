@@ -167,7 +167,11 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertLess(self.workflow.index("Smoke staged Worker version before promotion"), restore)
         self.assertLess(self.workflow.index(gate), restore)
         self.assertLess(self.workflow.index("Verify public media gateway after promotion"), restore)
-        self.assertLess(restore, self.workflow.index("Audit D1 structural integrity"))
+        # Schema integrity must pass before any staged traffic is registered;
+        # rollback remains the fail-closed guard for the subsequent smokes.
+        self.assertLess(self.workflow.index("Audit D1 structural integrity after schema changes"),
+                        self.workflow.index("Register staged Worker at zero traffic"))
+        self.assertLess(self.workflow.index("Register staged Worker at zero traffic"), restore)
 
     def test_migration_policy_gate_runs_before_remote_migrations(self):
         self.assertIn("Validate migration-first compatibility", self.workflow)
