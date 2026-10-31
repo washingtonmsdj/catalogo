@@ -40,29 +40,30 @@ class CloudflareD1ScopeContractTests(unittest.TestCase):
         budget = step_block(self.workflow, "Protect D1 quota before schema-changing release")
         self.assertIn("steps.d1_scope.outputs.run_d1_schema == 'true'", budget)
         self.assertIn("python tools/check_d1_editorial_audit_budget.py", budget)
-        self.assertLess(self.workflow.index("Verify canonical D1 schema queries before uploading any Worker version"),
-                        self.workflow.index("Protect D1 quota before schema-changing release"))
+        self.assertLess(self.workflow.index("Protect D1 quota before schema-changing release"),
+                        self.workflow.index("Verify canonical D1 schema queries before uploading any Worker version"))
+        self.assertIn("steps.d1_scope.outputs.run_d1_schema == 'true'",
+                      step_block(self.workflow, "Verify canonical D1 schema queries before uploading any Worker version"))
         self.assertLess(self.workflow.index("Protect D1 quota before schema-changing release"),
                         self.workflow.index("Upload Worker version with required secret and no traffic"))
         self.assertLess(self.workflow.index("Protect D1 quota before schema-changing release"),
                         self.workflow.index("Apply D1 migrations"))
 
-    def test_full_audit_requires_fresh_budget_and_precedes_any_traffic_change(self):
-        recheck = step_block(self.workflow, "Recheck D1 quota before full schema integrity audit")
+    def test_schema_only_after_migrations_uses_budget_and_no_data_scan(self):
+        recheck = step_block(self.workflow, "Recheck D1 quota before bounded schema validation")
         self.assertIn("steps.d1_scope.outputs.run_d1_schema == 'true'", recheck)
         self.assertIn("python tools/check_d1_editorial_audit_budget.py", recheck)
-        block = step_block(self.workflow, "Audit D1 structural integrity after schema changes")
-        self.assertIn("steps.d1_scope.outputs.run_d1_schema == 'true'", block)
-        self.assertIn("python tools/audit_d1_integrity.py", block)
+        gate = step_block(self.workflow, "Verify D1 schema contract after migrations")
+        self.assertIn("python tools/audit_d1_integrity.py --schema-only", gate)
         self.assertLess(self.workflow.index("Apply D1 migrations"),
-                        self.workflow.index("Recheck D1 quota before full schema integrity audit"))
-        self.assertLess(self.workflow.index("Recheck D1 quota before full schema integrity audit"),
-                        self.workflow.index("Audit D1 structural integrity after schema changes"))
-        self.assertLess(self.workflow.index("Audit D1 structural integrity after schema changes"),
+                        self.workflow.index("Recheck D1 quota before bounded schema validation"))
+        self.assertLess(self.workflow.index("Recheck D1 quota before bounded schema validation"),
+                        self.workflow.index("Verify D1 schema contract after migrations"))
+        self.assertLess(self.workflow.index("Verify D1 schema contract after migrations"),
                         self.workflow.index("Register staged Worker at zero traffic"))
-        self.assertIn("'tools/audit_d1_integrity.py'", self.workflow)
+        self.assertNotIn("run: python tools/audit_d1_integrity.py\n", self.workflow)
+        self.assertNotIn("- 'tools/audit_d1_integrity.py'", self.workflow)
         self.assertIn("'tools/catalog_schema_contract.py'", self.workflow)
-        self.assertIn("audit_d1_integrity.py --preflight-schema-readability", self.workflow)
 
     def test_release_smoke_remains_unconditional_after_optional_schema_work(self):
         block = step_block(self.workflow, "Verify promoted Worker deployment and full public release")

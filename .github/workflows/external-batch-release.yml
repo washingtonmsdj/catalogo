@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: external-batch-release-${{ github.ref }}
+  group: cloudflare-api
   cancel-in-progress: false
 
 env:
@@ -128,6 +128,8 @@ jobs:
         run: >-
           python tools/publish_r2_wrangler.py "$RUNNER_TEMP/external-batch/bundle/r2"
           --bucket "$BATCH_PRODUCTION_BUCKET"
+      - name: Protect D1 quota before batch preflight
+        run: python tools/check_d1_editorial_audit_budget.py
       - name: D1 new-only production preflight
         run: python tools/publish_d1_new_models.py "$RUNNER_TEMP/external-batch/bundle/models.jsonl"
       - name: Upload preflight evidence
@@ -222,6 +224,8 @@ jobs:
               assert row['displayName']==contract['displayName']
               assert int(row['imageCount'])==int(contract['expectedImages'])
           PY
+      - name: Recheck D1 quota before batch release
+        run: python tools/check_d1_editorial_audit_budget.py
       - name: Re-check D1 new-only immediately before R2 write
         run: python tools/publish_d1_new_models.py "$RUNNER_TEMP/external-batch/bundle/models.jsonl"
       - name: Publish and verify R2 delta
@@ -231,6 +235,8 @@ jobs:
           --apply
           --api-base "$CATALOG_API_URL"
           --proof "$RUNNER_TEMP/external-batch/r2-proof.json"
+      - name: Recheck D1 quota before atomic model write
+        run: python tools/check_d1_editorial_audit_budget.py
       - name: Apply strictly new-only D1 delta atomically
         run: >-
           python tools/publish_d1_new_models.py "$RUNNER_TEMP/external-batch/bundle/models.jsonl"

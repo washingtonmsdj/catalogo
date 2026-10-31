@@ -4,21 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       operation:
-        description: Operação de manutenção canônica a executar
+        description: Operação de verificação segura (sem auditoria integral do acervo)
         required: true
         default: verify-public-hierarchy
         type: choice
         options:
           - verify-public-hierarchy
-          - audit
-          - verify-legacy-gallery-repairs
-          - backfill-image-sha
-          - apply-legacy-gallery-repairs
-      confirm_expensive_d1_reads:
-        description: Confirmo explicitamente auditoria/reparo D1 com leituras potencialmente elevadas
-        required: true
-        type: boolean
-        default: false
+          - verify-d1-schema
 
 permissions:
   contents: read
@@ -48,76 +40,41 @@ jobs:
           python-version: '3.13'
       - name: Install
         run: npm ci
-      - name: Validate maintenance credentials and derive media origin
+      - name: Validate safe maintenance operation and credentials
         shell: bash
+        env:
+          OPERATION: ${{ inputs.operation }}
         run: |
           set -euo pipefail
-          missing=()
-          [ -n "$CLOUDFLARE_ACCOUNT_ID" ] || missing+=(CLOUDFLARE_ACCOUNT_ID)
-          [ -n "$CLOUDFLARE_API_TOKEN" ] || missing+=(CLOUDFLARE_API_TOKEN)
-          [ -n "$CATALOG_API_URL" ] || missing+=(VITE_API_BASE_URL)
-          if [ "${#missing[@]}" -gt 0 ]; then
-            echo "::error::Manutenção do Catálogo bloqueada: faltam credenciais/configurações: ${missing[*]}"
-            exit 1
-          fi
-          echo "CATALOG_MEDIA_URL=${CATALOG_API_URL%/}" >> "$GITHUB_ENV"
-      - name: Export canonical D1 binding
+          test -n "$CATALOG_API_URL" || { echo '::error::VITE_API_BASE_URL ausente'; exit 1; }
+          case "$OPERATION" in
+            verify-public-hierarchy) ;;
+            verify-d1-schema)
+              test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::CLOUDFLARE_ACCOUNT_ID ausente'; exit 1; }
+              test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::CLOUDFLARE_API_TOKEN ausente'; exit 1; }
+              ;;
+            *)
+              echo '::error::Operação de manutenção fora da lista segura; não executar D1.'
+              exit 1
+              ;;
+          esac
+      - name: Export canonical D1 binding for schema verification
+        if: ${{ inputs.operation == 'verify-d1-schema' }}
         shell: bash
         run: |
           set -euo pipefail
           database_id="$(node tools/read_wrangler_d1_id.mjs)"
           echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
-      - name: Require explicit consent for expensive D1 maintenance
-        if: ${{ inputs.operation != 'verify-public-hierarchy' }}
-        env:
-          EXPLICIT_CONSENT: ${{ inputs.confirm_expensive_d1_reads }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ "$EXPLICIT_CONSENT" != 'true' ]; then
-            echo '::error::Manutenção D1 de alto custo bloqueada: confirmação explícita ausente.'
-            exit 1
-          fi
+      # Analytics API only, no D1 SQL. Reserve before any Worker/D1 health
+      # probes when checking the schema, even if the account was idle before.
+      - name: Reserve D1 quota before schema verification
+        if: ${{ inputs.operation == 'verify-d1-schema' }}
+        run: python tools/check_d1_editorial_audit_budget.py
       - name: Validate active Worker health and schema
         run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
-
-      # A green health does not mean there is room for full D1 integrity and
-      # gallery-index scans. Reserve the free-tier quota for public visitors.
-      # Public hierarchy checks remain bounded by their own API contract.
-      - name: Reserve D1 quota before database maintenance
-        if: ${{ inputs.operation != 'verify-public-hierarchy' }}
-        run: python tools/check_d1_editorial_audit_budget.py
-
       - name: Verify public hierarchy (read-only)
         if: ${{ inputs.operation == 'verify-public-hierarchy' }}
         run: node tools/check_public_catalog_hierarchy.mjs "$CATALOG_API_URL"
-
-      - name: Audit D1 structural integrity
-        if: ${{ inputs.operation == 'audit' }}
-        run: python tools/audit_d1_integrity.py
-      - name: Plan reviewed legacy gallery repairs
-        if: ${{ inputs.operation == 'audit' || inputs.operation == 'apply-legacy-gallery-repairs' }}
-        run: python tools/apply_legacy_gallery_repairs.py
-      - name: Measure image SHA index coverage
-        if: ${{ inputs.operation == 'audit' || inputs.operation == 'backfill-image-sha' }}
-        run: python tools/backfill_image_source_index.py
-
-      - name: Backfill image SHA index
-        if: ${{ inputs.operation == 'backfill-image-sha' }}
-        run: python tools/backfill_image_source_index.py --apply
-      - name: Verify image SHA index coverage after backfill
-        if: ${{ inputs.operation == 'backfill-image-sha' }}
-        run: python tools/backfill_image_source_index.py
-
-      - name: Apply reviewed legacy gallery repairs
-        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' }}
-        run: python tools/apply_legacy_gallery_repairs.py --apply
-      - name: Verify persisted legacy gallery D1 state
-        if: ${{ inputs.operation == 'verify-legacy-gallery-repairs' }}
-        run: python tools/apply_legacy_gallery_repairs.py
-      - name: Verify repaired legacy aliases through public API
-        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' || inputs.operation == 'verify-legacy-gallery-repairs' }}
-        run: node tools/check_legacy_gallery_repairs.mjs "$CATALOG_API_URL"
-      - name: Re-audit D1 after legacy gallery verification (targeted repair scope)
-        if: ${{ inputs.operation == 'apply-legacy-gallery-repairs' || inputs.operation == 'verify-legacy-gallery-repairs' }}
-        run: python tools/apply_legacy_gallery_repairs.py
+      - name: Verify canonical D1 schema only
+        if: ${{ inputs.operation == 'verify-d1-schema' }}
+        run: python tools/audit_d1_integrity.py --schema-only

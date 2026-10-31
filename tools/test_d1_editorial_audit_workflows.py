@@ -23,53 +23,34 @@ class AuditWorkflowBudgetTests(unittest.TestCase):
                 self.assertLess(verify, budget)
                 self.assertLess(budget, d1_read)
 
-    def test_maintenance_requires_budget_before_expensive_database_operations(self):
+    def test_manual_maintenance_exposes_no_full_data_scans_or_repairs(self):
         workflow = (WORKFLOWS / "catalog-maintenance.yml").read_text(encoding="utf-8")
         self.assertIn("group: cloudflare-api", workflow)
         self.assertIn("cancel-in-progress: false", workflow)
         budget = workflow.index("run: python tools/check_d1_editorial_audit_budget.py")
         health = workflow.index("run: node tools/check_worker_health.mjs")
-        expensive = [
-            "run: python tools/audit_d1_integrity.py",
+        schema = workflow.index("run: python tools/audit_d1_integrity.py --schema-only")
+        self.assertLess(budget, health)
+        self.assertLess(health, schema)
+        for forbidden in (
+            "run: python tools/audit_d1_integrity.py\n",
             "run: python tools/apply_legacy_gallery_repairs.py",
             "run: python tools/backfill_image_source_index.py",
-        ]
-        self.assertLess(health, budget)
-        for step in expensive:
-            with self.subTest(step=step):
-                self.assertLess(budget, workflow.index(step))
-        self.assertIn("inputs.operation != 'verify-public-hierarchy'", workflow)
+            "confirm_expensive_d1_reads",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, workflow)
 
-    def test_manual_maintenance_needs_explicit_approval_and_safe_default(self):
-        workflow = (WORKFLOWS / "catalog-maintenance.yml").read_text(encoding="utf-8")
-        self.assertIn("default: verify-public-hierarchy", workflow)
-        self.assertIn("confirm_expensive_d1_reads:", workflow)
-        self.assertIn("type: boolean", workflow)
-        self.assertIn("default: false", workflow)
-        consent = workflow.index("Require explicit consent for expensive D1 maintenance")
-        health = workflow.index("Validate active Worker health and schema")
-        budget = workflow.index("Reserve D1 quota before database maintenance")
-        audit = workflow.index("Audit D1 structural integrity")
-        self.assertLess(consent, health)
-        self.assertLess(health, budget)
-        self.assertLess(budget, audit)
-        self.assertIn("if [ \"$EXPLICIT_CONSENT\" != 'true' ]; then", workflow)
-        self.assertIn("EXPLICIT_CONSENT: ${{ inputs.confirm_expensive_d1_reads }}", workflow)
-
-    def test_runtime_only_deploy_skips_expensive_full_d1_audit(self):
+    def test_no_automatic_full_integrity_audit(self):
         workflow = (WORKFLOWS / "cloudflare.yml").read_text(encoding="utf-8")
         self.assertIn("id: d1_scope", workflow)
         self.assertIn("run_d1_schema=false", workflow)
         self.assertIn("run: python tools/audit_d1_integrity.py --preflight-schema-readability", workflow)
-        self.assertEqual(workflow.count("run: python tools/audit_d1_integrity.py\n"), 1)
-        full_audit = (
-            "- name: Audit D1 structural integrity after schema changes\n"
-            "        if: ${{ steps.d1_scope.outputs.run_d1_schema == 'true' }}\n"
-            "        run: python tools/audit_d1_integrity.py"
-        )
-        self.assertIn(full_audit, workflow)
-        self.assertLess(workflow.index("Apply D1 migrations"), workflow.index(full_audit))
-        self.assertLess(workflow.index(full_audit),
+        self.assertIn("run: python tools/audit_d1_integrity.py --schema-only", workflow)
+        self.assertNotIn("run: python tools/audit_d1_integrity.py\n", workflow)
+        self.assertLess(workflow.index("Apply D1 migrations"),
+                        workflow.index("Verify D1 schema contract after migrations"))
+        self.assertLess(workflow.index("Verify D1 schema contract after migrations"),
                         workflow.index("Register staged Worker at zero traffic"))
         self.assertIn("if: ${{ steps.d1_scope.outputs.run_d1_schema != 'true' }}", workflow)
 
