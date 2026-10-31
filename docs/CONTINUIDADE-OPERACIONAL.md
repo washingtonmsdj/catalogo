@@ -2,7 +2,7 @@
 
 > **SSOT de continuidade.** Leia este arquivo antes de continuar o projeto em outra conversa, máquina ou sessão.
 >
-> Atualizado em **2026-10-29**. Este arquivo registra somente o estado operacional necessário para a próxima execução. Histórico detalhado pertence aos runbooks e documentos de migração; não acumular aqui gates encerrados, PRs antigas ou bloqueios expirados.
+> Atualizado em **2026-10-31**. Este arquivo registra somente o estado operacional necessário para a próxima execução. Histórico detalhado pertence aos runbooks e documentos de migração; não acumular aqui gates encerrados, PRs antigas ou bloqueios expirados.
 
 ## Autoridade
 
@@ -14,6 +14,15 @@
 - `config/public-runtime.json` é o SSOT versionado da superfície pública.
 - O resolvedor de runtime do frontend deve continuar explícito/fail-closed; não recriar fallback implícito nem segunda origem paralela.
 - Mudança de runtime só é concluída quando os gates do escopo realmente afetado ficam verdes.
+
+## Verificação incremental — 31/10/2026 (STLForge Drive-first, SEM publicação)
+
+- Lote de 30 na [issue #235](https://github.com/washingtonmsdj/catalogo/issues/235), separado do lote já publicado da issue #234: **30 IDs, slugs e URLs de origem exatos** no [CSV canônico do Drive](https://drive.google.com/file/d/1DgAi01ztLRcQxXIEqs_0Moc1mFRvQ4Sa/view), 0 `selected_media_id` e **30 revisões PENDENTE**. Metadados completos não equivalem a licença, mídia homologada nem modelo publicável.
+- Evidência de arquivos historicamente localizada: **5 posts** em `Dados/01-Originais` no Drive; outros **7 posts** só com preflight de staging privado no GitHub, sem atestação atual de bytes, identidade editorial ou direitos. Outros **18 posts** possuem identidade pública verificada, mas sem mídia reconciliada nos índices canônicos.
+- Os 18 foram cruzados por **post ID e slug exatos**, sem correspondências, com `Controle/registro.jsonl` (23.015 registros), `Controle/galeria-posts.csv` (12.121 mídias) e o snapshot antigo `Controle/produtos-metadata.json`; pastas com nomes/variantes parecidos foram excluídas como prova. A ausência nesses índices **não demonstra ausência de arquivos não indexados**. [SSOT do Drive, seções 20 e 21](https://docs.google.com/document/d/1w6DbeukB5mKyy5llLAKvul0Pn_Bgy_GSm9eWas3qlSA/edit).
+- O **Google Drive for desktop** em `DESKTOP-PNUHUA0` monta a pasta fonte de backup em `G:\Outros computadores\Meu computador (3)\STLForgeCatalogo` (não confundir com `G:\Meu Drive\Catalogo`, árvore editorial do catálogo público). O CSV foi verificado fisicamente em `Controle\lote-novos-atual.csv`: **11.919 bytes**, SHA-256 `b1cd4a92bed4780c99802e9d46967fbb7480d1fcb8b19f2f751921ef64b24418`, idêntico à revisão no Drive. Não copiar para outra pasta nem regravar o arquivo sincronizado.
+- Em 31/10, HEAD estático da página [Achegue-se](https://acheguese.com.br/tonecosstudios/) e da [origem Pages](https://washingtonmsdj.github.io/catalogo/) respondeu HTTP 200. Isso prova **entrega da página**, não modelos da API. A Vercel serve o mount do repositório `washingtonmsdj/acheguese` e **não é a autoridade dos dados**; mudar docs ou forçar rebuild não inclui automaticamente modelos pendentes.
+- Prioridade de manutenção: Drive + direitos/procedência + variantes → metadados e testes offline no GitHub → publicação incremental **somente após gate editorial**; só então Cloudflare. Não executar auditoria D1 integral, consulta SQL opcional, scan R2 nem rebuild para tentar popular modelos não autorizados. Não alterar a Vercel de outros projetos. Revalidar o estado da API com uma verificação limitada, sem loops; falha de quota permanece bloqueante.
 
 ## Estado reconciliado — integração de 2026-10-29
 
