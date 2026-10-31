@@ -49,3 +49,11 @@ O owner desse roteamento no Achegue-se é `src/shared/config/publicExternalApps.
 O workflow do GitHub Pages lê `config/public-runtime.json`, rejeita qualquer endpoint `r2.dev` no build e faz smoke test do HTML publicado. O deploy Cloudflare valida separadamente que um objeto R2 real é servido por `/media/*` depois da promoção; falha nessa prova aciona rollback do Worker.
 
 Assim, preview técnico, origem de hospedagem e URL pública canônica podem ser diferentes sem duplicar configuração nem acoplar os dois projetos.
+
+## Atualização visível sem consumir D1
+
+- O frontend do Catálogo é compilado e publicado pelo workflow **Deploy live preview** no GitHub Pages. O Achegue-se/Vercel **somente encaminha** `/tonecosstudios/*` para essa origem: não inserir fichas, imagens ou dados do catálogo em `washingtonmsdj/acheguese` e não duplicar o frontend.
+- A proteção `tools/check_main_push_provenance.mjs` exige que pushes automáticos à `main` sejam resultado de **PR integrada**. Para mudanças reais de fonte/contratos, abrir uma PR curta, executar os gates e integrar. `workflow_dispatch` é a via manual já prevista para republicação intencional; não remover o gate nem forçar deploy em consequência de uma atualização somente de documentação.
+- O conteúdo dos modelos vem do backend em runtime. Recompilar a página ou o proxy **não importa imagens e não promove registros D1/R2**. A visibilidade de novos modelos exige primeiro aprovação editorial, identificação exata da escultura, validação de direitos e promoção incremental segura.
+- Para checar entrega sem desperdiçar quota, primeiro validar os HTMLs públicos e o último workflow Pages; uma única sonda de `/catalogo-api/api/health` pode comprovar prontidão do schema, mas não deve virar loop. Se for necessário provar listagem, consultar uma **única página pública pequena**, nunca fazer auditoria ou SQL integral em produção. Sem quota confiável, falhar fechado.
+- O projeto Vercel correto pertence à superfície do Achegue-se. Não publicar esse frontend em projeto Vercel de outra marca/conta nem criar projeto paralelo; se a conexão da Vercel correta não estiver disponível, a limitação deve ser informada e o GitHub Pages pode ser validado independentemente.
