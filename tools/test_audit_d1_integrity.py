@@ -69,6 +69,60 @@ class AuditD1IntegrityTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "model_folder_franchise=2"):
             validate_integrity_results(checks, metrics, results)
 
+    def test_fts_missing_checks_use_set_difference_and_preserve_results(self) -> None:
+        checks = {item["name"]: item["sql"] for item in integrity_queries()}
+        cases = (
+            ("models", "models_fts", "model_id", 420),
+            ("franchises", "franchises_fts", "franchise_id", 130),
+        )
+        for base, fts, fts_id, count in cases:
+            with self.subTest(table=base):
+                db = sqlite3.connect(":memory:")
+                try:
+                    db.execute(f"CREATE TABLE {base}(id TEXT PRIMARY KEY)")
+                    db.execute(
+                        f"CREATE VIRTUAL TABLE {fts} USING fts5("
+                        f"{fts_id} UNINDEXED,search_text)"
+                    )
+                    ids = [f"id_{i:05d}" for i in range(count)]
+                    db.executemany(
+                        f"INSERT INTO {base}(id) VALUES(?)",
+                        [(identifier,) for identifier in ids],
+                    )
+                    db.executemany(
+                        f"INSERT INTO {fts}({fts_id},search_text) VALUES(?,?)",
+                        [(identifier, "sculpture") for identifier in ids],
+                    )
+                    sql = checks[f"{base}_fts_missing"]
+                    prior = (
+                        f"SELECT COUNT(*) FROM {base} m WHERE NOT EXISTS "
+                        f"(SELECT 1 FROM {fts} f WHERE f.{fts_id}=m.id)"
+                    )
+                    plan = [row[3] for row in db.execute("EXPLAIN QUERY PLAN " + sql)]
+                    self.assertTrue(any("EXCEPT" in step for step in plan), plan)
+                    self.assertFalse(
+                        any("CORRELATED" in step for step in plan), plan
+                    )
+                    self.assertEqual(db.execute(sql).fetchone(), (0,))
+                    db.execute(
+                        f"DELETE FROM {fts} WHERE {fts_id}=?", (ids[11],)
+                    )
+                    db.execute(
+                        f"INSERT INTO {fts}({fts_id},search_text) VALUES(?,?)",
+                        ("orphan-id", "sculpture"),
+                    )
+                    db.execute(
+                        f"INSERT INTO {fts}({fts_id},search_text) VALUES(?,?)",
+                        (None, "sculpture"),
+                    )
+                    self.assertEqual(db.execute(sql).fetchone(), (1,))
+                    self.assertEqual(
+                        db.execute(sql).fetchone(),
+                        db.execute(prior).fetchone(),
+                    )
+                finally:
+                    db.close()
+
     def test_gallery_approval_must_match_exact_relation_and_not_mask_bad_state(self) -> None:
         db = sqlite3.connect(":memory:")
         try:
