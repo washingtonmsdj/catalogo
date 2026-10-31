@@ -169,7 +169,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertLess(self.workflow.index("Verify public media gateway after promotion"), restore)
         # Schema integrity must pass before any staged traffic is registered;
         # rollback remains the fail-closed guard for the subsequent smokes.
-        self.assertLess(self.workflow.index("Audit D1 structural integrity after schema changes"),
+        self.assertLess(self.workflow.index("Verify D1 schema contract after migrations"),
                         self.workflow.index("Register staged Worker at zero traffic"))
         self.assertLess(self.workflow.index("Register staged Worker at zero traffic"), restore)
 
@@ -207,9 +207,11 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
             "tools/verify_public_catalog.py",
             "tools/check_migration_deploy_policy.py",
             "tools/check_worker_health.mjs",
-            "tools/audit_d1_integrity.py",
         ):
             self.assertIn(path, self.workflow)
+
+    def test_audit_only_edits_do_not_trigger_worker_deployment(self):
+        self.assertNotIn("- 'tools/audit_d1_integrity.py'", self.workflow.split("permissions:", 1)[0])
 
     def test_worker_preview_urls_are_explicitly_disabled(self):
         self.assertIs(self.wrangler.get("preview_urls"), False)
@@ -220,86 +222,67 @@ class CatalogMaintenanceWorkflowConfigTests(unittest.TestCase):
     def setUpClass(cls):
         cls.workflow = (ROOT / ".github" / "workflows" / "catalog-maintenance.yml").read_text(encoding="utf-8")
 
-    def test_maintenance_is_manual_and_one_operation_per_run(self):
-        self.assertIn("workflow_dispatch:", self.workflow)
-        self.assertIn("operation:", self.workflow)
-        self.assertIn("type: choice", self.workflow)
-        self.assertIn("- audit", self.workflow)
-        self.assertIn("- verify-legacy-gallery-repairs", self.workflow)
-        self.assertIn("- backfill-image-sha", self.workflow)
-        self.assertIn("- apply-legacy-gallery-repairs", self.workflow)
-        self.assertIn("- verify-public-hierarchy", self.workflow)
-        self.assertNotIn("push:", self.workflow)
+    def test_only_two_safe_manual_operations_are_available(self):
+        workflow = self.workflow
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("default: verify-public-hierarchy", workflow)
+        self.assertIn("- verify-public-hierarchy", workflow)
+        self.assertIn("- verify-d1-schema", workflow)
+        for forbidden in (
+            "- audit", "- apply-legacy-gallery-repairs",
+            "- backfill-image-sha", "- verify-legacy-gallery-repairs",
+            "confirm_expensive_d1_reads",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, workflow)
+        self.assertNotIn("push:", workflow)
 
-    def test_public_hierarchy_verification_is_manual_and_never_writes_data(self):
-        gate = "Validate active Worker health and schema"
-        hierarchy = "Verify public hierarchy (read-only)"
-        self.assertIn("if: ${{ inputs.operation == 'verify-public-hierarchy' }}", self.workflow)
-        self.assertIn('node tools/check_public_catalog_hierarchy.mjs "$CATALOG_API_URL"', self.workflow)
-        self.assertLess(self.workflow.index(gate), self.workflow.index(hierarchy))
-        self.assertLess(self.workflow.index(hierarchy), self.workflow.index("Audit D1 structural integrity"))
-        self.assertNotIn("tools/verify_public_catalog.py --exhaustive", self.workflow)
-        self.assertNotIn("check_public_catalog_hierarchy.mjs --apply", self.workflow)
+    def test_unknown_operation_fails_before_any_remote_read(self):
+        workflow = self.workflow
+        gate = workflow.index("Validate safe maintenance operation and credentials")
+        first_remote = workflow.index("Reserve D1 quota before schema verification")
+        self.assertLess(gate, first_remote)
+        self.assertIn('case "$OPERATION" in', workflow)
+        self.assertIn("Operação de manutenção fora da lista segura", workflow)
 
-    def test_maintenance_serializes_with_production_deploy(self):
-        self.assertIn("group: cloudflare-api", self.workflow)
-        self.assertIn("cancel-in-progress: false", self.workflow)
-        self.assertIn("environment: production", self.workflow)
+    def test_schema_only_has_account_budget_before_worker_health_or_d1_query(self):
+        workflow = self.workflow
+        gate = workflow.index("Reserve D1 quota before schema verification")
+        health = workflow.index("Validate active Worker health and schema")
+        schema = workflow.index("Verify canonical D1 schema only")
+        self.assertLess(gate, health)
+        self.assertLess(health, schema)
+        self.assertIn("python tools/check_d1_editorial_audit_budget.py", workflow)
+        self.assertIn("run: python tools/audit_d1_integrity.py --schema-only", workflow)
+        self.assertNotIn("run: python tools/audit_d1_integrity.py\n", workflow)
+        self.assertIn("inputs.operation == 'verify-d1-schema'", workflow)
 
-    def test_maintenance_never_uploads_or_promotes_worker_or_runs_migrations(self):
-        self.assertNotIn("wrangler versions upload", self.workflow)
-        self.assertNotIn("wrangler versions deploy", self.workflow)
-        self.assertNotIn("wrangler rollback", self.workflow)
-        self.assertNotIn("d1 migrations apply", self.workflow)
-        self.assertNotIn("TURNSTILE_SECRET_KEY", self.workflow)
+    def test_public_hierarchy_is_bounded_and_has_no_database_admin_probes(self):
+        workflow = self.workflow
+        self.assertIn('node tools/check_public_catalog_hierarchy.mjs "$CATALOG_API_URL"', workflow)
+        self.assertIn("inputs.operation == 'verify-public-hierarchy'", workflow)
+        self.assertLess(
+            workflow.index("Validate active Worker health and schema"),
+            workflow.index("Verify public hierarchy (read-only)"),
+        )
+        self.assertNotIn("wrangler d1", workflow)
+        self.assertNotIn("tools/backfill_image_source_index.py", workflow)
+        self.assertNotIn("tools/apply_legacy_gallery_repairs.py", workflow)
 
-    def test_maintenance_uses_canonical_d1_binding_and_worker_health_before_write(self):
-        health = "Validate active Worker health and schema"
-        self.assertIn("node tools/read_wrangler_d1_id.mjs", self.workflow)
-        self.assertIn('CLOUDFLARE_D1_DATABASE_ID=$database_id', self.workflow)
-        self.assertIn(health, self.workflow)
-        self.assertIn("node tools/check_worker_health.mjs", self.workflow)
-        self.assertLess(self.workflow.index(health), self.workflow.index("Backfill image SHA index"))
-        self.assertLess(self.workflow.index(health), self.workflow.index("Apply reviewed legacy gallery repairs"))
-
-    def test_backfill_is_bounded_by_coverage_checks(self):
-        before = "Measure image SHA index coverage"
-        apply_step = "Backfill image SHA index"
-        after = "Verify image SHA index coverage after backfill"
-        self.assertIn("inputs.operation == 'backfill-image-sha'", self.workflow)
-        self.assertIn("python tools/backfill_image_source_index.py --apply", self.workflow)
-        self.assertLess(self.workflow.index(before), self.workflow.index(apply_step))
-        self.assertLess(self.workflow.index(apply_step), self.workflow.index(after))
-
-    def test_gallery_repair_verifies_public_api_before_expensive_reaudit(self):
-        plan = "Plan reviewed legacy gallery repairs"
-        apply_step = "Apply reviewed legacy gallery repairs"
-        public_smoke = "Verify repaired legacy aliases through public API"
-        reaudit = "Re-audit D1 after legacy gallery verification"
-        self.assertIn("inputs.operation == 'apply-legacy-gallery-repairs'", self.workflow)
-        self.assertIn("python tools/apply_legacy_gallery_repairs.py --apply", self.workflow)
-        self.assertIn("node tools/check_legacy_gallery_repairs.mjs", self.workflow)
-        self.assertLess(self.workflow.index(plan), self.workflow.index(apply_step))
-        self.assertLess(self.workflow.index(apply_step), self.workflow.index(public_smoke))
-        self.assertLess(self.workflow.index(public_smoke), self.workflow.index(reaudit))
-
-    def test_legacy_gallery_verification_is_read_only_and_reaudits_after_public_smoke(self):
-        public_smoke = "Verify repaired legacy aliases through public API"
-        reaudit = "Re-audit D1 after legacy gallery verification"
-        self.assertIn("inputs.operation == 'verify-legacy-gallery-repairs'", self.workflow)
-        self.assertIn("inputs.operation == 'apply-legacy-gallery-repairs' || inputs.operation == 'verify-legacy-gallery-repairs'", self.workflow)
-        self.assertLess(self.workflow.index(public_smoke), self.workflow.index(reaudit))
-        verify_clause = "inputs.operation == 'verify-legacy-gallery-repairs'"
-        apply_clause = "inputs.operation == 'apply-legacy-gallery-repairs'"
-        self.assertIn(verify_clause, self.workflow)
-        self.assertIn(apply_clause, self.workflow)
-        self.assertNotIn("verify-legacy-gallery-repairs' }}\n        run: python tools/apply_legacy_gallery_repairs.py --apply", self.workflow)
-        self.assertNotIn("verify-legacy-gallery-repairs' }}\n        run: python tools/backfill_image_source_index.py --apply", self.workflow)
-
-    def test_media_origin_is_derived_from_canonical_api_without_separate_repository_variable(self):
-        self.assertNotIn("vars.VITE_MEDIA_BASE_URL", self.workflow)
-        self.assertIn('echo "CATALOG_MEDIA_URL=${CATALOG_API_URL%/}" >> "$GITHUB_ENV"', self.workflow)
-        self.assertIn("Validate maintenance credentials and derive media origin", self.workflow)
+    def test_serializes_maintenance_with_deploy_and_has_no_d1_writes(self):
+        workflow = self.workflow
+        self.assertIn("group: cloudflare-api", workflow)
+        self.assertIn("cancel-in-progress: false", workflow)
+        self.assertIn("environment: production", workflow)
+        self.assertIn("CLOUDFLARE_D1_DATABASE_ID=$database_id", workflow)
+        self.assertIn("node tools/read_wrangler_d1_id.mjs", workflow)
+        for forbidden in (
+            "d1 migrations apply", "wrangler versions upload",
+            "wrangler versions deploy", "wrangler rollback", "--apply",
+            "CATALOG_MEDIA_URL", "TURNSTILE_SECRET_KEY",
+        ):
+            with self.subTest(forbidden=forbidden):
+                self.assertNotIn(forbidden, workflow)
 
 
 if __name__ == "__main__":

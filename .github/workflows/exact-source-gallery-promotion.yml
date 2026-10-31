@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: exact-source-gallery-promotion-${{ github.ref }}
+  group: cloudflare-api
   cancel-in-progress: false
 
 env:
@@ -60,6 +60,8 @@ jobs:
           database_id="$(node tools/read_wrangler_d1_id.mjs)"
           test -n "$database_id" || { echo '::error::D1 database id ausente'; exit 1; }
           echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
+      - name: Protect D1 quota before exact-source promotion
+        run: python tools/check_d1_editorial_audit_budget.py
       - name: Require public verification endpoint before apply
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply == true }}
         shell: bash

@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: exact-source-gallery-preflight-${{ github.ref }}
-  cancel-in-progress: true
+  group: cloudflare-api
+  cancel-in-progress: false
 
 env:
   CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
@@ -47,6 +47,8 @@ jobs:
           database_id="$(node tools/read_wrangler_d1_id.mjs)"
           test -n "$database_id" || { echo '::error::D1 database id ausente'; exit 1; }
           echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
+      - name: Protect D1 quota before exact-source preflight
+        run: python tools/check_d1_editorial_audit_budget.py
       - name: Test exact-source preflight guards
         working-directory: tools
         run: >-

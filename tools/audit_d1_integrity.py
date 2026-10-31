@@ -338,7 +338,7 @@ def probe_schema_readability(account_id: str, database_id: str, token: str) -> d
     }
 
 
-def run_audit(account_id: str, database_id: str, token: str) -> dict[str, Any]:
+def validate_schema_only(account_id: str, database_id: str, token: str) -> dict[str, Any]:
     contract = load_schema_contract()
     schema_result = _query(
         account_id,
@@ -364,6 +364,11 @@ def run_audit(account_id: str, database_id: str, token: str) -> dict[str, Any]:
         ),
     }
 
+    return schema
+
+
+def run_audit(account_id: str, database_id: str, token: str) -> dict[str, Any]:
+    schema = validate_schema_only(account_id, database_id, token)
     checks = integrity_queries()
     metrics = metric_queries()
     statements = [
@@ -382,14 +387,25 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="D1 canonical read-only integrity audit")
     parser.add_argument("--preflight-schema-readability", action="store_true",
                         help="prove complete schema-query readability without asserting pending migrations")
+    parser.add_argument("--schema-only", action="store_true",
+                        help="validate migrations and SQLite structure without catalog scans")
     args = parser.parse_args(argv)
+    if args.schema_only and args.preflight_schema_readability:
+        parser.error("schema-only and preflight-schema-readability are exclusive")
+    if not (args.schema_only or args.preflight_schema_readability):
+        parser.error("full D1 data audit disabled: use --schema-only or preflight")
+
     try:
         account_id = require_env("CLOUDFLARE_ACCOUNT_ID")
         database_id = require_env("CLOUDFLARE_D1_DATABASE_ID")
         token = require_env("CLOUDFLARE_API_TOKEN")
-        result = (probe_schema_readability(account_id, database_id, token)
-                  if args.preflight_schema_readability
-                  else run_audit(account_id, database_id, token))
+        if args.preflight_schema_readability:
+            result = probe_schema_readability(account_id, database_id, token)
+        elif args.schema_only:
+            result = {"schema": validate_schema_only(account_id, database_id, token),
+                      "schemaOnly": True, "fullIntegrityAudit": False}
+        else:
+            raise RuntimeError("auditoria integral D1 bloqueada no CLI")
         print(json.dumps(result, ensure_ascii=False))
         return 0
     except (OSError, RuntimeError, ValueError) as exc:

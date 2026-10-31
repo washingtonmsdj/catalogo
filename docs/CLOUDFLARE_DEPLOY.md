@@ -84,12 +84,12 @@ O CI de PR continua executando dry-run estrito do Wrangler com segredo sintétic
 5. capturar o Version ID que serve 100% do tráfego;
 6. validar o bucket R2 read-only;
 7. para deploy sem mudança de schema, verificar `/api/health` do Worker ativo usando o mesmo cliente de health do smoke staged;
-8. validar a leitura das estruturas canônicas do D1 pelo auditor antes de criar versão staged;
-9. quando houver alteração de esquema (ou `workflow_dispatch`), consultar o orçamento D1 da conta via GraphQL Analytics, sem fazer SQL, e **bloquear antes do upload** se a reserva não estiver disponível;
+8. em mudanças de esquema, consultar primeiro o orçamento D1 da conta por GraphQL Analytics, sem consulta SQL, bloqueando se faltar métrica confiável ou reserva suficiente;
+9. somente após esse controle, validar as estruturas canônicas do D1 antes de criar versão staged; deploys só de código usam a verificação do Worker ativo;
 10. criar uma versão staged sem tráfego, com código e segredo juntos;
 11. validar a política migration-first;
 12. aplicar migrações D1 apenas quando o diff exigir;
-13. para alterações de esquema, consultar novamente o orçamento D1 e executar a auditoria integral **antes de registrar staged ou promover tráfego**;
+13. em mudanças de esquema, revalidar o orçamento e comprovar migrações + estruturas por metadados SQL, em modo schema-only, sem fazer a auditoria integral dos dados;
 14. registrar `previous@100% + staged@0%`;
 15. executar smoke completo da versão staged por Version Override;
 16. promover `staged@100%`;
@@ -99,13 +99,13 @@ O CI de PR continua executando dry-run estrito do Wrangler com segredo sintétic
 20. provar `Workers Cache` com HIT real;
 21. em caso de falha pós-stage, executar rollback para `PREVIOUS_WORKER_VERSION_ID`.
 
-A auditoria integral também está disponível no workflow manual `Maintain Catalog Data`, com verificação obrigatória do orçamento de leituras D1. Após o deploy de runtime de 30/10/2026, as métricas registraram mais de 3,5 milhões de linhas lidas na conta em apenas 158 consultas, em grande parte durante a janela da auditoria de integridade; a atribuição exata por consulta individual não é atestada. O custo de uma auditoria integral não deve ser considerado parte normal do deploy sem alterações de schema.
+A auditoria integral foi retirada de **todos os workflows de produção**, inclusive deploy e manutenção manual. Uma única consulta SQL sem limite comprovado pode esgotar a franquia D1 mesmo quando a conta começa o dia com zero leituras. O CLI de auditoria também bloqueia o modo implícito: apenas `--schema-only` e `--preflight-schema-readability` são usados em fluxos de produção. O deploy continua validando migrações e estruturas canônicas, sem varrer modelos e galerias integralmente. As métricas do pico anterior apontaram mais de 3,5 milhões de linhas lidas em 158 consultas, sem atribuição exata por SQL.
 
 `workflow_dispatch` de deploy é tratado conservadoramente como operação com schema (executa validações correspondentes); preferir o fluxo por push canônico quando o objetivo for apenas atualizar o Worker. Nunca reexecutar a auditoria integral para contornar bloqueio de cota.
 
-A verificação de orçamento é **falha fechada**: sem métricas confiáveis ou quando a conta já consumiu mais de 250 mil linhas no dia UTC, o processo não pode iniciar uma operação D1 intensiva. O controle é repetido antes da auditoria integral, porque migrações também consomem leituras. Isso é uma barreira preventiva, **não** um limite transacional por consulta. Se uma migração foi aplicada e a segunda checagem de orçamento bloquear a auditoria, o processo permanece reprovado e **não promove a nova versão**; a migração deve ser reconciliada sem repetição automática, respeitando migration-first.
+A verificação de orçamento é **falha fechada**: sem métricas confiáveis ou quando a conta já consumiu mais de 250 mil linhas no dia UTC, releases com alteração de esquema não fazem sequer a sonda estrutural do D1. O controle é repetido após as migrações, antes da validação de metadados, mas não garante limite transacional de leituras SQL. Se a segunda checagem bloquear após migração já aplicada, a versão não é promovida; reconciliar manualmente sem repetir a migração. O custo individual das auditorias manuais continua não comprovado, mesmo com a reserva inicial disponível.
 
-No workflow manual `Maintain Catalog Data`, o padrão é a navegação pública limitada. Auditorias, backfill e reparos exigem marcar `confirm_expensive_d1_reads` e passar na verificação de orçamento antes de acessar o D1. Não marcar a confirmação rotineiramente. A autorização de uma auditoria não elimina a necessidade de planejar seu custo de leitura antes da execução.
+O workflow manual `Maintain Catalog Data` agora expõe apenas `verify-public-hierarchy` (navegação pública limitada) e `verify-d1-schema` (orçamento GraphQL, health ativo e duas consultas de metadados do esquema). Auditoria integral, backfill e reparos foram **retirados do workflow de produção** até existir paginação com limite de custo comprovado por operação. O código original das operações permanece preservado para revisão offline, sem criar cópias ou paliativos. Uma confirmação simples não autoriza varreduras integrais.
 
 Upload, migrations, deployment, promoção e rollback não são repetidos automaticamente. Retry bounded existe apenas para verificações read-only.
 
@@ -176,7 +176,7 @@ O frontend recebe somente valores públicos. O Turnstile secret nunca vai para o
 
 Em 18/10/2026, a API D1 devolveu erro Cloudflare `7500`: limite diário de leituras de linhas do plano gratuito excedido. O antigo `schema_not_ready` mascarava a exceção como se nenhuma migração existisse, mesmo com 21 migrações e 55 estruturas previamente verificadas. A indisponibilidade de consulta **não equivale à ausência de schema**.
 
-O preflight passou a executar `python tools/audit_d1_integrity.py --preflight-schema-readability`, que reutiliza **as mesmas consultas SSOT** de migrações e estruturas da auditoria D1. A antiga sondagem de uma linha era insuficiente: passou enquanto a validação completa no Worker recebeu quota 7500. O preflight de metadados evita upload quando a API D1 recusa essas consultas; porém **o endpoint administrativo do D1 pode aceitar a auditoria quando o binding D1 do Worker ainda retorna 7500**. Para deploy sem mudança de schema, agora também é obrigatório health real do Worker ativo antes do upload; retorna só um código seguro, sem headers ou dados pessoais. Em mudanças de schema, aceita migrações ainda pendentes porque serão aplicadas pelo gate migration-first. O smoke staged completo continua obrigatório; leituras podem se esgotar depois do preflight. Não há bypass de quota, rollback ou auditoria.
+Para mudanças de esquema, o preflight passou a executar `python tools/audit_d1_integrity.py --preflight-schema-readability`, que reutiliza **as mesmas consultas SSOT** de migrações e estruturas da auditoria D1. A antiga sondagem de uma linha era insuficiente: passou enquanto a validação completa no Worker recebeu quota 7500. O preflight de metadados vem após a verificação GraphQL de orçamento e impede upload quando a API D1 recusa essas consultas; porém **o endpoint administrativo do D1 pode aceitar a auditoria quando o binding D1 do Worker ainda retorna 7500**. Para deploy sem mudança de schema, agora também é obrigatório health real do Worker ativo antes do upload; retorna só um código seguro, sem headers ou dados pessoais. Em mudanças de schema, aceita migrações ainda pendentes porque serão aplicadas pelo gate migration-first. O smoke staged completo continua obrigatório; leituras podem se esgotar depois do preflight. Não há bypass de quota, rollback ou auditoria.
 
 O health do Worker diferencia `d1_daily_read_quota_exceeded` de `schema_query_unavailable` e de ausências realmente verificadas; não divulga mensagens de erro SQL nem dados privados.
 
