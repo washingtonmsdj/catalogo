@@ -107,6 +107,8 @@ A verificação de orçamento é **falha fechada**: sem métricas confiáveis ou
 
 O workflow manual `Maintain Catalog Data` agora expõe apenas `verify-public-hierarchy` (navegação pública limitada) e `verify-d1-schema` (orçamento GraphQL, health ativo e duas consultas de metadados do esquema). Auditoria integral, backfill e reparos foram **retirados do workflow de produção** até existir paginação com limite de custo comprovado por operação. O código original das operações permanece preservado para revisão offline, sem criar cópias ou paliativos. Uma confirmação simples não autoriza varreduras integrais.
 
+A antiga rotina manual `external-source-coverage.yml` também foi retirada do catálogo de GitHub Actions: sua coleta de modelos publicados sem limite SQL e o inventário de SHA paginado podiam varrer toda a produção, mesmo depois de um gate de orçamento. Os utilitários de análise permanecem versionados para uma futura implementação offline ou com limites de leituras demonstrados por testes. Não reintroduzir o workflow nem acioná-los manualmente contra D1 sem prova de custo por consulta.
+
 Upload, migrations, deployment, promoção e rollback não são repetidos automaticamente. Retry bounded existe apenas para verificações read-only.
 
 ## Contrato de release

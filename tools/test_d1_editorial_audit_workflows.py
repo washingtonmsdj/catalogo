@@ -8,7 +8,6 @@ WORKFLOWS = ROOT / ".github" / "workflows"
 class AuditWorkflowBudgetTests(unittest.TestCase):
     def test_editorial_d1_queries_have_preflight_and_no_parallel_cancellations(self):
         for name, first_d1_step in (
-            ("external-source-coverage.yml", "Audit source coverage without media downloads or writes"),
             ("external-candidate-discovery.yml", "Discover candidates without writes"),
         ):
             with self.subTest(workflow=name):
@@ -22,6 +21,11 @@ class AuditWorkflowBudgetTests(unittest.TestCase):
                 d1_read = workflow.index(first_d1_step)
                 self.assertLess(verify, budget)
                 self.assertLess(budget, d1_read)
+
+    def test_full_snapshot_coverage_is_disabled_until_read_cost_is_bounded(self):
+        self.assertFalse((WORKFLOWS / "external-source-coverage.yml").exists())
+        self.assertTrue((ROOT / "tools/audit_external_source_coverage.py").is_file())
+        self.assertTrue((ROOT / "tools/audit_published_sha_inventory.py").is_file())
 
     def test_manual_maintenance_exposes_no_full_data_scans_or_repairs(self):
         workflow = (WORKFLOWS / "catalog-maintenance.yml").read_text(encoding="utf-8")
