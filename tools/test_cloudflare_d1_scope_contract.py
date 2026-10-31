@@ -36,16 +36,17 @@ class CloudflareD1ScopeContractTests(unittest.TestCase):
         self.assertIn("steps.d1_scope.outputs.run_d1_schema == 'true'", block)
         self.assertIn("wrangler d1 migrations apply DB --remote", block)
 
-    def test_global_audit_runs_after_every_promoted_worker(self):
-        block = step_block(self.workflow, "Audit D1 structural integrity")
-        self.assertNotIn("if:", block)
+    def test_full_audit_only_after_schema_change_not_runtime_only_release(self):
+        block = step_block(self.workflow, "Audit D1 structural integrity after schema changes")
+        self.assertIn("steps.d1_scope.outputs.run_d1_schema == 'true'", block)
         self.assertIn("python tools/audit_d1_integrity.py", block)
         self.assertLess(
             self.workflow.index("Verify Workers Cache hit after promotion"),
-            self.workflow.index("Audit D1 structural integrity"),
+            self.workflow.index("Audit D1 structural integrity after schema changes"),
         )
         self.assertIn("'tools/audit_d1_integrity.py'", self.workflow)
         self.assertIn("'tools/catalog_schema_contract.py'", self.workflow)
+        self.assertIn("audit_d1_integrity.py --preflight-schema-readability", self.workflow)
 
     def test_release_smoke_remains_unconditional_after_optional_schema_work(self):
         block = step_block(self.workflow, "Verify promoted Worker deployment and full public release")

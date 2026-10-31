@@ -40,6 +40,22 @@ class AuditWorkflowBudgetTests(unittest.TestCase):
                 self.assertLess(budget, workflow.index(step))
         self.assertIn("inputs.operation != 'verify-public-hierarchy'", workflow)
 
+    def test_runtime_only_deploy_skips_expensive_full_d1_audit(self):
+        workflow = (WORKFLOWS / "cloudflare.yml").read_text(encoding="utf-8")
+        self.assertIn("id: d1_scope", workflow)
+        self.assertIn("run_d1_schema=false", workflow)
+        self.assertIn("run: python tools/audit_d1_integrity.py --preflight-schema-readability", workflow)
+        self.assertEqual(workflow.count("run: python tools/audit_d1_integrity.py\n"), 1)
+        full_audit = (
+            "- name: Audit D1 structural integrity after schema changes\n"
+            "        if: ${{ steps.d1_scope.outputs.run_d1_schema == 'true' }}\n"
+            "        run: python tools/audit_d1_integrity.py"
+        )
+        self.assertIn(full_audit, workflow)
+        self.assertLess(workflow.index("Verify live public catalog hierarchy after promotion"),
+                        workflow.index(full_audit))
+        self.assertIn("if: ${{ steps.d1_scope.outputs.run_d1_schema != 'true' }}", workflow)
+
     def test_deploy_uses_same_concurrency_group(self):
         workflow = (WORKFLOWS / "cloudflare.yml").read_text(encoding="utf-8")
         self.assertIn("group: cloudflare-api", workflow)
