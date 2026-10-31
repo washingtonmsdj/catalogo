@@ -1,5 +1,8 @@
 import copy
+import json
+import re
 import unittest
+from pathlib import Path
 
 from reconcile_drive_coverage import (DriveReconciliationError, reconcile, build_operator_review_template,
                                      render_operator_approved_evidence)
@@ -40,6 +43,54 @@ def report(data=None, rows=None):
 
 
 class DriveEvidenceTests(unittest.TestCase):
+    def test_committed_small_gallery_cohort_preserves_existing_production_identities(self):
+        """A dated gallery review cannot silently become 14 newly published models.
+
+        This reads only version-controlled, pinned local artifacts: no D1, R2,
+        public API requests, image downloads, or editorial approvals.
+        """
+        root = Path(__file__).resolve().parents[1]
+        cohort = json.loads(
+            (root / "config/review-cohorts/drive-small-galleries-20261030.json")
+            .read_text(encoding="utf-8")
+        )
+        contract = json.loads(
+            (root / "config/catalog-production-model-contract.json")
+            .read_text(encoding="utf-8")
+        )
+        self.assertEqual(cohort["version"], 1)
+        self.assertEqual(cohort["kind"], "historical_drive_small_gallery_review_cohort")
+        self.assertEqual(cohort["asOf"], "2026-10-30")
+        self.assertIs(cohort["identityApproved"], False)
+        self.assertIs(cohort["mediaPromotionAuthorized"], False)
+        self.assertEqual(contract["version"], 1)
+        self.assertEqual(contract["source"]["productionModels"], len(contract["models"]))
+        self.assertEqual(
+            contract["source"]["publishedModels"],
+            sum(model["published"] == 1 for model in contract["models"]),
+        )
+        self.assertGreater(cohort["asOf"], contract["capturedAt"])
+        by_id = {model["id"]: model for model in contract["models"]}
+        self.assertEqual(len(by_id), len(contract["models"]))
+        source_ids = set()
+        target_ids = set()
+        self.assertGreater(len(cohort["items"]), 0)
+        for entry in cohort["items"]:
+            self.assertEqual(
+                set(entry),
+                {"sourceProductId", "targetModelId", "expectedSourceImageCount", "sourceSlugSha256"},
+            )
+            self.assertIs(type(entry["sourceProductId"]), int)
+            self.assertGreater(entry["sourceProductId"], 0)
+            self.assertNotIn(entry["sourceProductId"], source_ids)
+            source_ids.add(entry["sourceProductId"])
+            self.assertNotIn(entry["targetModelId"], target_ids)
+            target_ids.add(entry["targetModelId"])
+            self.assertIn(entry["targetModelId"], by_id)
+            self.assertEqual(by_id[entry["targetModelId"]]["published"], 1)
+            self.assertIn(entry["expectedSourceImageCount"], (2, 3, 4))
+            self.assertRegex(entry["sourceSlugSha256"], r"^[0-9a-f]{64}$")
+
     def test_all_historical_rows_processed_without_auto_approvals(self):
         z = report()
         self.assertEqual(z["summary"]["historicalDriveProducts"], 3)
