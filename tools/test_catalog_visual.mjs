@@ -717,6 +717,53 @@ async function exercise(browser, spec) {
       assert.ok(detailLayout.closeSize >= 44 && detailLayout.actionHeights.every((height) => height >= 44),
         'Detail close and action buttons must have 44px targets')
       assert.equal(detailLayout.primary, 'rgb(240, 107, 36)', 'Detail primary action must use the canonical copper accent')
+      await detailDialog.locator('.model-detail-primary').click()
+      const galleryDialog = page.locator('.gallery-modal[role="dialog"]')
+      await galleryDialog.waitFor({ state: 'visible', timeout: 5000 })
+      const galleryLayout = await galleryDialog.evaluate((dialog) => {
+        const pager = dialog.querySelector('.gallery-pager')
+        const pageRail = dialog.querySelector('.gallery-page-rail')
+        const close = dialog.querySelector('.modal-head > button')
+        const buttons = [...dialog.querySelectorAll('.gallery-pager button')]
+        const bounds = dialog.getBoundingClientRect()
+        return {
+          border: getComputedStyle(dialog).borderTopColor,
+          font: getComputedStyle(dialog).fontFamily,
+          width: bounds.width,
+          closeHeight: close?.getBoundingClientRect().height ?? 0,
+          buttonHeights: buttons.map((button) => button.getBoundingClientRect().height),
+          buttonWidths: buttons.map((button) => button.getBoundingClientRect().width),
+          pagerWidth: pager?.getBoundingClientRect().width ?? 0,
+          railWidth: pageRail?.getBoundingClientRect().width ?? 0,
+          railOverflowX: pageRail ? getComputedStyle(pageRail).overflowX : 'none',
+        }
+      })
+      assert.equal(galleryLayout.border, 'rgb(81, 72, 63)', 'Gallery uses canonical strong border')
+      assert.match(galleryLayout.font, /system-ui/i, 'Gallery typography follows the storefront')
+      assert.ok(galleryLayout.width <= spec.width + 1 && galleryLayout.closeHeight >= 44,
+        'Gallery must fit viewport and provide an accessible close control')
+      assert.ok(galleryLayout.buttonHeights.length >= 3
+        && galleryLayout.buttonHeights.every((height) => height >= 44)
+        && galleryLayout.buttonWidths.every((width) => width >= 44),
+        'Gallery pagination requires 44px targets')
+      if (spec.width === 390) {
+        assert.ok(galleryLayout.pagerWidth <= galleryLayout.width + 1,
+          'Gallery pagination must not widen the modal')
+        assert.equal(galleryLayout.railOverflowX, 'auto',
+          'Mobile gallery pages must scroll inside the page rail')
+      }
+      const numberedPages = galleryDialog.locator('.gallery-page-rail button')
+      assert.ok(await numberedPages.count() >= 2,
+        'Isolated demo model must exercise gallery paging without a live API')
+      await numberedPages.nth(1).click()
+      assert.equal((await galleryDialog.locator('.gallery-page-rail button.is-current').innerText()).trim(), '2',
+        'Clicking the second gallery page must update its selected state')
+      await page.keyboard.press('PageUp')
+      assert.equal((await galleryDialog.locator('.gallery-page-rail button.is-current').innerText()).trim(), '1',
+        'Keyboard PageUp must return to the previous gallery page')
+      await galleryDialog.getByRole('button', { name: 'Fechar galeria' }).click()
+      await galleryDialog.waitFor({ state: 'hidden' })
+      entry.checks.push('gallery uses canonical theme, 44px paging and real demo page/keyboard navigation')
       assert.equal(await detailDialog.getByRole('button', { name: /Ver comparação/ }).count(), 0,
         'Comparison entry should not show before any selection')
       await detailDialog.getByRole('button', { name: 'Comparar', exact: true }).click()
