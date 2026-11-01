@@ -112,3 +112,16 @@ test('responsive editorial display never silently hides a model', () => {
   assert.match(css, /\.storefront-section--results \.storefront-section__head p \{ display: block; line-height: 1\.45;/)
   assert.match(css, /\.storefront-results-view-toggle button \{ width: 44px; height: 44px; \}/)
 })
+
+
+test('advertised search shortcut focuses the canonical input instead of opening explorer', () => {
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  assert.match(app, /quickSearchShortcut && !anyModalOpen && !event\.isComposing/)
+  assert.match(app, /searchInputRef\.current\?\.focus\(\)/)
+  assert.match(app, /searchInputRef\.current\?\.select\(\)/)
+  assert.doesNotMatch(app, /event\.key\.toLowerCase\(\) === 'k' && !anyModalOpen\) \{ event\.preventDefault\(\); openExplorer/)
+  assert.match(home, /aria-label="Limpar busca"/)
+  assert.match(home, /setGlobalSearchActiveIndex\(-1\); searchInputRef\.current\?\.focus\(\)/)
+  assert.match(css, /\.storefront-search-suggestions \{\s*position: absolute;\s*top: calc\(100% \+ 8px\);/)
+  assert.match(css, /\.storefront-search__clear \{ width: 44px; height: 44px; flex-basis: 44px; \}/)
+})

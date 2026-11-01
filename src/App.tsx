@@ -230,8 +230,14 @@ export default function App() {
       if (galleryOpen && !previewImage && event.key === 'End') { event.preventDefault(); gallery.goToPage(gallery.totalPages - 1); return }
       const target = event.target
       const isTyping = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement || (target instanceof HTMLElement && target.isContentEditable)
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k' && !anyModalOpen) { event.preventDefault(); openExplorer(catalog.search); return }
-      if (event.key === '/' && !isTyping && !anyModalOpen) { event.preventDefault(); openExplorer(catalog.search); return }
+      const quickSearchShortcut = ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k')
+        || (event.key === '/' && !isTyping && !event.ctrlKey && !event.metaKey && !event.altKey)
+      if (quickSearchShortcut && !anyModalOpen && !event.isComposing) {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+        return
+      }
       if (isTyping || anyModalOpen) return
       if (event.key.toLowerCase() === 'e') openExplorer()
     }

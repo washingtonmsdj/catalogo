@@ -799,7 +799,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
                 aria-autocomplete="list"
               />
               {catalog.search.trim() ? (
-                <button type="button" className="storefront-search__clear" onClick={() => { catalog.setSearch(''); setGlobalSearchResponse({ query: '', items: [] }); setGlobalSearchActiveIndex(-1) }} aria-label="Limpar busca">×</button>
+                <button type="button" className="storefront-search__clear" onClick={() => { catalog.setSearch(''); setGlobalSearchResponse({ query: '', items: [] }); setGlobalSearchActiveIndex(-1); searchInputRef.current?.focus() }} aria-label="Limpar busca">×</button>
               ) : (
                 <span className="storefront-search__shortcut" aria-hidden="true"><kbd>Ctrl</kbd><kbd>K</kbd></span>
               )}

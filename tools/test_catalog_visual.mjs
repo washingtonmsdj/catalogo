@@ -173,7 +173,16 @@ async function exercise(browser, spec) {
         'Favorite and quote counts must not overlap the five navigation labels')
     }
     entry.checks.push('one computed font/palette source and readable mobile navigation with 44px targets')
-    assert.ok(await page.getByRole('combobox', { name: 'Buscar no catálogo' }).isVisible())
+    const shortcutSearch = page.getByRole('combobox', { name: 'Buscar no catálogo' })
+    assert.ok(await shortcutSearch.isVisible())
+    await page.keyboard.press('Control+k')
+    assert.ok(await shortcutSearch.evaluate((input) => document.activeElement === input),
+      'Ctrl+K must focus the advertised global search, not open franchise explorer')
+    await shortcutSearch.evaluate((input) => input.blur())
+    await page.keyboard.press('/')
+    assert.ok(await shortcutSearch.evaluate((input) => document.activeElement === input),
+      'Slash must jump to the global search when the user is not typing')
+    await shortcutSearch.evaluate((input) => input.blur())
     assert.equal(await page.locator('.storefront-model-grid.is-results > .storefront-model-card').count(), 48,
       'The scalable catalog is the initial view and shows one complete cursor page')
     if (spec.width <= 620) {
@@ -511,8 +520,12 @@ async function exercise(browser, spec) {
       const suggestions = page.locator('#storefront-search-suggestions')
       await suggestions.waitFor({ state: 'visible', timeout: 7000 })
       const suggestionsBox = await suggestions.boundingBox()
+      const searchBox = await page.locator('.storefront-search').boundingBox()
       assert.ok(suggestionsBox && suggestionsBox.x >= 0 && suggestionsBox.x + suggestionsBox.width <= spec.width,
         'Mobile search suggestions must stay inside the viewport')
+      assert.ok(suggestionsBox && searchBox && suggestionsBox.y >= searchBox.y + searchBox.height
+        && suggestionsBox.y <= searchBox.y + searchBox.height + 14,
+        'Search suggestions must attach to the real input position instead of a fixed screen offset')
       const allResultsBox = await suggestions.getByRole('option', { name: /Ver todos os resultados para/ }).boundingBox()
       assert.ok(suggestionsBox && allResultsBox && allResultsBox.y >= suggestionsBox.y
         && allResultsBox.y + allResultsBox.height <= suggestionsBox.y + suggestionsBox.height
@@ -521,7 +534,14 @@ async function exercise(browser, spec) {
       const searchScreenshot = spec.name + '-search-open.png'
       await page.screenshot({ path: resolve(evidence, searchScreenshot), animations: 'disabled' })
       entry.screenshots.push(searchScreenshot)
-      await search.fill('')
+      const clearButton = page.getByRole('button', { name: 'Limpar busca' })
+      const clearBox = await clearButton.boundingBox()
+      assert.ok(clearBox && clearBox.width >= 44 && clearBox.height >= 44,
+        'Mobile search clear action must have a 44px touch target')
+      await clearButton.click()
+      assert.equal(await search.inputValue(), '', 'Clear search must reset the query')
+      assert.ok(await search.evaluate((input) => document.activeElement === input),
+        'Clearing search must return keyboard focus to the search input')
       await page.waitForFunction(() => document.querySelector('.storefront-model-grid.is-results .storefront-model-card__meta b')?.textContent === 'TS-000001',
         null, { timeout: 7000 })
     }

@@ -36,6 +36,13 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 - Ações rápidas dos cards, controles de grade/lista e categorias no celular utilizam alvos de 44 px, sem sobreposição das legendas. O teste real em Chromium verifica a vitrine e os resultados em seis larguras.
 - As alterações são exclusivamente de frontend; o teste visual usa build de demonstração isolado, sem consultar D1 de produção.
 
+## Busca rápida e sugestões (2026-11-01)
+
+- O atalho anunciado **Ctrl+K** (ou Cmd+K em macOS) foca a busca global existente, seleciona a consulta atual para substituição e nunca abre o explorador de franquias. A tecla **/** faz o mesmo fora de campos editáveis; **E** continua abrindo o explorador. Nenhum atalho global invade um diálogo modal.
+- O botão **Limpar busca** devolve o foco ao mesmo campo, sem montar uma segunda busca. Seu alvo móvel mede ao menos 44 px.
+- Em telas até 760 px, a lista de sugestões se ancora à posição real do campo por CSS relativo. Não usar coordenadas fixas de viewport; respeitar altura disponível, rolagem interna, visibilidade do resultado completo e tipografia --store-type-*.
+- Os testes verificam atalhos, foco, limites geométricos e interação em Chromium isolado, sem consultas ao D1 de produção.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.
