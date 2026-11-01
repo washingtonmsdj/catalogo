@@ -4,9 +4,9 @@
   align-items: center;
   gap: 14px;
   padding: 12px 18px;
-  border-top: 1px solid #242b2f;
-  border-bottom: 1px solid #242b2f;
-  background: rgba(8, 11, 13, .72);
+  border-top: 1px solid var(--store-border);
+  border-bottom: 1px solid var(--store-border);
+  background: color-mix(in srgb, var(--store-bg) 72%, transparent);
 }
 
 .gallery-collection-progress > div:first-child {
@@ -17,14 +17,14 @@
 }
 
 .gallery-collection-progress strong {
-  color: #e1b36b;
-  font: 900 12px "Courier New", monospace;
+  color: var(--store-accent-hover);
+  font: 800 var(--store-type-body)/1.2 var(--store-font-mono);
 }
 
 .gallery-collection-progress span,
 .gallery-collection-progress small {
-  color: #7f888c;
-  font: 700 9px "Courier New", monospace;
+  color: var(--store-muted);
+  font: 700 var(--store-type-caption)/1.25 var(--store-font-body);
   text-transform: uppercase;
   letter-spacing: .45px;
 }
@@ -33,7 +33,7 @@
   position: relative;
   height: 3px;
   overflow: hidden;
-  background: #20262a;
+  background: var(--store-panel-2);
 }
 
 .gallery-collection-progress__track i {
@@ -41,8 +41,8 @@
   inset: 0 auto 0 0;
   display: block;
   min-width: 2px;
-  background: linear-gradient(90deg, #8d6632, #d9a75f);
-  box-shadow: 0 0 14px rgba(215, 162, 83, .16);
+  background: linear-gradient(90deg, var(--store-accent-soft), var(--store-accent));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--store-accent) 16%, transparent);
   transition: width .2s ease;
 }
 
@@ -59,45 +59,46 @@
 }
 
 .gallery-pager > button {
-  min-width: 34px;
-  height: 34px;
-  padding: 0 9px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 11px;
 }
 
 .gallery-page-rail {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 4px;
 }
 
 .gallery-page-rail button {
-  width: 34px;
-  min-width: 34px;
-  height: 34px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
   padding: 0;
-  border: 1px solid #343c40;
-  background: #0d1113;
-  color: #9ca3a5;
-  font: 800 10px "Courier New", monospace;
+  border: 1px solid var(--store-border);
+  background: var(--store-panel);
+  color: var(--store-muted);
+  font: 800 var(--store-type-label)/1.2 var(--store-font-body);
   cursor: pointer;
 }
 
 .gallery-page-rail button:hover:not(:disabled) {
-  border-color: #705832;
-  color: #dfb16d;
+  border-color: var(--store-accent-soft);
+  color: var(--store-accent-hover);
 }
 
 .gallery-page-rail button.is-current {
-  border-color: #b37f3f;
-  background: linear-gradient(180deg, #2c2114, #18130d);
-  color: #f0c581;
-  box-shadow: inset 0 -2px 0 #d7a253;
+  border-color: var(--store-accent);
+  background: linear-gradient(180deg, var(--store-panel-2), var(--store-panel-2));
+  color: var(--store-accent-hover);
+  box-shadow: inset 0 -2px 0 var(--store-accent);
 }
 
 .gallery-page-rail span {
   width: 18px;
   text-align: center;
-  color: #666f73;
+  color: var(--store-muted);
 }
 
 .gallery-pager button:disabled,
@@ -122,6 +123,9 @@
   }
 
   .gallery-pager {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: nowrap;
     justify-content: space-between;
   }
 }
@@ -142,17 +146,24 @@
   }
 
   .gallery-page-rail {
-    flex: 1;
-    justify-content: center;
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: thin;
+    overscroll-behavior-x: contain;
   }
 
   .gallery-page-rail button {
-    width: 32px;
-    min-width: 32px;
-    height: 32px;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .gallery-collection-progress__track i { transition: none; }
 }
+
+.gallery-pager button:focus-visible { outline: 2px solid var(--store-accent); outline-offset: 2px; }

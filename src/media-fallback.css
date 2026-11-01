@@ -9,7 +9,7 @@ img[data-media-failed="true"] { display: none !important; }
   position: relative;
   background:
     radial-gradient(circle at 50% 42%, rgba(89,94,96,.2), transparent 30%),
-    linear-gradient(180deg, #121619, #0b0e10);
+    linear-gradient(180deg, var(--store-panel), var(--store-bg));
 }
 
 .model-art.media-failed::before,
@@ -27,10 +27,10 @@ img[data-media-failed="true"] { display: none !important; }
   height: 54px;
   display: grid;
   place-items: center;
-  border: 1px solid #3a4246;
+  border: 1px solid var(--store-border);
   background: rgba(10,13,15,.86);
-  color: #b68a4f;
-  font: 900 17px/1 "Courier New", monospace;
+  color: var(--store-accent-soft);
+  font: 800 17px/1 var(--store-font-body);
   letter-spacing: 1px;
   box-shadow: 0 18px 36px rgba(0,0,0,.25), inset 0 1px rgba(255,255,255,.025);
 }
@@ -47,9 +47,9 @@ img[data-media-failed="true"] { display: none !important; }
   top: calc(45% + 44px);
   transform: translateX(-50%);
   width: min(240px, 82%);
-  color: #747c80;
+  color: var(--store-muted);
   text-align: center;
-  font: 800 8px/1.45 "Courier New", monospace;
+  font: 700 var(--store-type-caption)/1.45 var(--store-font-body);
   letter-spacing: .75px;
 }
 
@@ -63,7 +63,7 @@ img[data-media-failed="true"] { display: none !important; }
   content: "MÍDIA INDISPONÍVEL";
   top: calc(38% + 28px);
   width: 80%;
-  font-size: 6px;
+  font-size: 9px;
 }
 .model-detail-media.media-failed::before,
 .model-detail-media.media-failed::after { z-index: 1; }
@@ -78,7 +78,7 @@ img[data-media-failed="true"] { display: none !important; }
   content: "MÍDIA INDISPONÍVEL";
   top: calc(44% + 28px);
   width: 80%;
-  font-size: 6px;
+  font-size: 9px;
 }
 
 .model-art--compact.media-failed::before {
@@ -89,7 +89,7 @@ img[data-media-failed="true"] { display: none !important; }
 .model-art--compact.media-failed::after {
   content: "MÍDIA INDISPONÍVEL";
   top: calc(45% + 31px);
-  font-size: 7px;
+  font-size: 10px;
 }
 
 .gallery-real-image.media-failed,
@@ -104,6 +104,6 @@ img[data-media-failed="true"] { display: none !important; }
   .storefront-model-card__media.media-failed::after,
   .model-detail-media.media-failed::after,
   .comparison-cover.media-failed::after {
-    font-size: 7px;
+    font-size: 10px;
   }
 }

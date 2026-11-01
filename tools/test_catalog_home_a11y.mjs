@@ -239,3 +239,29 @@ test('local collections, organizer and sharing use one canonical palette and mob
   assert.match(sharing, /\.collections-share-result input \{[\s\S]*?min-height: 44px;/)
   assert.match(sharing, /\.collections-share-result button \{[\s\S]*?min-height: 44px;/)
 })
+
+
+test('gallery, lightbox and image fallback inherit storefront SSOT and mobile touch geometry', () => {
+  const gallery = readFileSync(new URL('../src/collection-gallery.css', import.meta.url), 'utf8')
+  const paging = readFileSync(new URL('../src/gallery-navigation.css', import.meta.url), 'utf8')
+  const lightbox = readFileSync(new URL('../src/lightbox.css', import.meta.url), 'utf8')
+  const swipe = readFileSync(new URL('../src/swipe-navigation.css', import.meta.url), 'utf8')
+  const fallback = readFileSync(new URL('../src/media-fallback.css', import.meta.url), 'utf8')
+  for (const css of [gallery, paging, lightbox, swipe, fallback]) {
+    assert.doesNotMatch(css, /#[0-9a-f]{3,8}\b/i)
+    assert.doesNotMatch(css, /"Courier New"|ui-sans-serif, system-ui/)
+  }
+  assert.match(gallery, /\.gallery-modal \{[\s\S]*?border: 1px solid var\(--store-border-strong\)/)
+  assert.match(gallery, /\.gallery-modal \.modal-head > button \{[\s\S]*?width: 44px;\s*height: 44px;/)
+  assert.match(gallery, /\.gallery-footer--paged button \{[\s\S]*?min-height: 44px;/)
+  assert.match(paging, /\.gallery-page-rail button \{[\s\S]*?width: 44px;\s*min-width: 44px;\s*height: 44px;/)
+  assert.match(paging, /\.gallery-page-rail \{[\s\S]*?overflow-x: auto;\s*overflow-y: hidden;/)
+  assert.match(paging, /\.gallery-pager button:focus-visible \{ outline: 2px solid var\(--store-accent\)/)
+  assert.match(lightbox, /\.image-lightbox \{[\s\S]*?font-family: var\(--store-font-body\)/)
+  assert.match(lightbox, /\.image-lightbox__head button \{\s*width: 44px;\s*height: 44px;/)
+  assert.match(lightbox, /\.image-lightbox__nav \{[\s\S]*?width: 44px;\s*height: 72px;/)
+  assert.match(lightbox, /@media \(max-width: 640px\) \{[\s\S]*?\.image-lightbox__nav \{ width: 44px; height: 58px;/)
+  assert.match(lightbox, /\.image-lightbox button:focus-visible, \.image-lightbox__footer a:focus-visible/)
+  assert.match(swipe, /var\(--store-type-caption\)/)
+  assert.match(fallback, /var\(--store-muted\)/)
+})

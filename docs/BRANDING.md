@@ -91,6 +91,13 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 - Em até 820 px, o diálogo de coleções tem altura delimitada por `dvh`, barra lateral com rolagem própria e conteúdo principal rolável, sem mínimo rígido de 560 px que esconde a organização. Criar, renomear, importar/exportar, pesquisar, ordenar, remover modelos e copiar links usam controles com área mínima de 44 px; foco via teclado aparece no acento oficial.
 - CI estático bloqueia regressão de cores e medidas. Chromium isolado abre as coleções, cria uma coleção **local e fictícia**, valida geometria/touch/foco, fecha e abre o compartilhamento no modo demo, sem consultar API ou D1 de produção.
 
+## Galeria, paginação e visualizador de imagens (2026-11-01)
+
+- `src/collection-gallery.css`, `src/gallery-navigation.css`, `src/lightbox.css`, `src/swipe-navigation.css` e `src/media-fallback.css` devem utilizar exclusivamente os tokens visuais `--store-*`. Não criar nova paleta de dourado, grafite ou fonte Courier por componente.
+- O diálogo da galeria e o lightbox herdam tipografia do sistema, cabeçalhos e borda `--store-border-strong`; fechar, setas e números da paginação usam alvos mínimos de 44 px com foco visível. Em celulares a faixa de páginas rola **internamente** quando os números excedem a largura, sem empurrar a página lateralmente.
+- O lightbox já possuía navegação por setas e gestos; preservar essa implementação e o carregamento sob demanda de alta resolução. O quadro da imagem utiliza altura `dvh` e `object-fit: contain`, evitando corte e mantendo os botões acessíveis.
+- O modo de demonstração não inventa fotos ausentes: a automação Chromium testa navegação de páginas e teclado em 390 e 1024 px com dados locais, enquanto as regras estáticas cobrem geometria e identidade do lightbox. Não consultar D1 nem fotos privadas de produção.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.

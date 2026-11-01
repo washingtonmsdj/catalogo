@@ -19,8 +19,8 @@
     padding: 5px 8px;
     border: 1px solid rgba(255,255,255,.06);
     background: rgba(8,10,12,.62);
-    color: #777f83;
-    font: 800 7px/1 "Courier New", monospace;
+    color: var(--store-muted);
+    font: 700 var(--store-type-caption)/1.2 var(--store-font-body);
     letter-spacing: .8px;
     white-space: nowrap;
     pointer-events: none;
