@@ -547,6 +547,28 @@ async function exercise(browser, spec) {
         await quoteDialog.waitFor({ state: 'visible' })
         await quoteDialog.locator('input[name="name"]').fill('Cliente Demo')
         await quoteDialog.locator('input[name="email"]').fill('teste@example.com')
+        // Isolated demo failure must preserve the selection and release the lock for retry.
+        await page.evaluate(() => {
+          const form = document.querySelector('form.quote-request-form')
+          if (!(form instanceof HTMLFormElement)) throw Error('Quote form missing')
+          const previous = Object.getOwnPropertyDescriptor(window.crypto, 'randomUUID')
+          Object.defineProperty(window.crypto, 'randomUUID', {
+            configurable: true,
+            value: () => { throw Error('synthetic demo network failure') },
+          })
+          try {
+            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+          } finally {
+            if (previous) Object.defineProperty(window.crypto, 'randomUUID', previous)
+            else delete window.crypto.randomUUID
+          }
+        })
+        await quoteDialog.getByRole('alert').waitFor({ state: 'visible' })
+        assert.match(await quoteDialog.getByRole('alert').innerText(), /seleção foi preservada/i)
+        assert.ok(await quoteDialog.locator('.quote-request-item__remove').count() > 0,
+          'Failed request must retain the selected models')
+        assert.equal(await quoteDialog.getByRole('button', { name: /Enviar solicitação/ }).isEnabled(), true,
+          'Failed request must release the form for an intentional retry')
         // Two submit events in the same browser task must generate one demo reference.
         // The same synchronous in-flight guard protects real requests in production.
         const submissions = await page.evaluate(() => {
