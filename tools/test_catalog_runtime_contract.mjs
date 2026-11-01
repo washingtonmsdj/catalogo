@@ -26,13 +26,25 @@ test('configured API base is normalized without changing runtime mode', () => {
 })
 
 test('Achegue-se uses its first-party catalog proxy as the canonical API origin', () => {
-  for (const hostname of ['acheguese.com.br', 'www.acheguese.com.br', 'acheguese.vercel.app']) {
+  for (const hostname of ['acheguese.com.br', 'www.acheguese.com.br', 'acheguese.vercel.app', 'acheguese-abc123-jogo-brasils-projects.vercel.app']) {
     assert.deepEqual(
       resolveCatalogRuntime(
         { VITE_API_BASE_URL: 'https://external.example.test' },
         { hostname, origin: `https://${hostname}` },
       ),
       { mode: 'live', apiBase: `https://${hostname}/catalogo-api` },
+    )
+  }
+})
+
+test('unrelated Vercel projects never receive the Achegue-se proxy', () => {
+  for (const hostname of ['example.vercel.app', 'acheguese-other-team.vercel.app', 'acheguese-malicious-jogo-brasils-projects.vercel.app.evil.test']) {
+    assert.deepEqual(
+      resolveCatalogRuntime(
+        { VITE_API_BASE_URL: 'https://api.example.test' },
+        { hostname, origin: `https://${hostname}` },
+      ),
+      { mode: 'live', apiBase: 'https://api.example.test' },
     )
   }
 })
