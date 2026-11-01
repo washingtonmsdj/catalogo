@@ -21,6 +21,14 @@ O CSS `src/catalog-shell.css` mantém somente **aliases de compatibilidade**, co
 
 A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado. Os destinos precisam manter área clicável de ao menos 44 px, ativo diferenciado, foco de teclado visível e nenhum transbordamento em 320, 390 e 620 px. O CI verifica os tokens *calculados pelo navegador*, tipografia, largura dos alvos, estados e seis larguras responsivas no teste já existente `tools/test_catalog_visual.mjs`.
 
+## Navegação e tipografia responsiva (continuação de 2026-11-01)
+
+- Não duplicar o menu. A barra superior existente possui os cinco destinos; em telefones (até 620 px) ela é uma grade de cinco alvos, e em tablets/compactos (621–1080 px) aparece em uma segunda linha com rolagem horizontal somente se faltar espaço. A lateral não aparece nessa faixa.
+- O destino **Explorar** aponta para `#destaques` no modo de resultados e para `#catalogo` na página editorial. Âncoras locais usam `aria-current="location"`.
+- Escala de texto compartilhada no mesmo bloco `:root` de `src/catalog-home.css`: `--store-type-caption`, `--store-type-label` e `--store-type-body`; usar a escala, evitando legendas de 7–8 px.
+- Superfícies, hover, monograma e indicadores neutros herdam `--store-*`. Verde continua possível somente para status de saúde (não como cor de marca).
+- `tools/test_catalog_home_a11y.mjs` e `tools/test_catalog_visual.mjs` guardam a navegação e a geometria nas seis resoluções de teste. O teste visual usa o build demo isolado, não consulta produção/D1.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.

@@ -87,3 +87,19 @@ test('live catalog startup avoids a redundant D1 health preflight', () => {
   assert.match(runtime, /setApiHealthy\(true\)/)
   assert.match(worker, /const schema = await catalogSchemaStatus\(env\.DB\)[\s\S]*?if \(!schema\.ready\) \{[\s\S]*?url\.pathname === '\/api\/categories'/)
 })
+
+
+test('tablet has the canonical five-stop topbar when the sidebar is hidden', () => {
+  assert.match(css, /@media \(min-width: 621px\) and \(max-width: 1080px\)\s*\{[\s\S]*?\.storefront-topbar nav\s*\{\s*grid-area: nav;\s*display: flex;/)
+  assert.match(css, /\.storefront-topbar nav button\s*\{\s*flex: 1 0 auto;\s*min-height: 44px;/)
+  assert.match(home, /href=\{resultsMode \? '#destaques' : '#catalogo'\}/)
+  assert.doesNotMatch(home, /aria-current=\{activeNavSection !== 'colecoes' \? 'page'/)
+})
+
+test('front-end palette and readable type stay on storefront SSOT', () => {
+  assert.match(css, /--store-type-caption: \.6875rem;/)
+  assert.match(css, /--store-type-label: \.75rem;/)
+  assert.match(css, /\.storefront-topbar nav button:hover \{ background: var\(--store-accent-soft\); \}/)
+  assert.match(css, /\.storefront-model-card__copy small \{ font-size: var\(--store-type-caption\); \}/)
+  assert.doesNotMatch(css, /\.storefront-sidebar__nav a\[href="#colecoes"\] \.storefront-icon \{ color: #8bd8c1;/)
+})

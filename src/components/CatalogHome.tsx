@@ -667,8 +667,8 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
         </div>
 
         <nav className="storefront-sidebar__nav" aria-label="Navegação do catálogo">
-          <a href="#catalogo" className={activeNavSection === 'catalogo' ? 'is-active' : ''} aria-current={activeNavSection === 'catalogo' ? 'page' : undefined}><Icon name="home" /><span>Catálogo</span></a>
-          <a href="#destaques" className={activeNavSection === 'destaques' ? 'is-active' : ''} aria-current={activeNavSection === 'destaques' ? 'page' : undefined}><Icon name="star" /><span>Em destaque</span></a>
+          <a href="#catalogo" className={activeNavSection === 'catalogo' ? 'is-active' : ''} aria-current={activeNavSection === 'catalogo' ? 'location' : undefined}><Icon name="home" /><span>Catálogo</span></a>
+          <a href="#destaques" className={activeNavSection === 'destaques' ? 'is-active' : ''} aria-current={activeNavSection === 'destaques' ? 'location' : undefined}><Icon name="star" /><span>Em destaque</span></a>
           <button type="button" onClick={onOpenUpdates}><Icon name="clock" /><span>Recém adicionados</span></button>
           {resultsMode ? (
             <button type="button" onClick={() => onOpenExplorer()}><Icon name="layers" /><span>Coleções</span><b>{catalog.franchises.length}</b></button>
@@ -744,7 +744,13 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
 
       <div className="storefront-main">
         <header className="storefront-topbar">
-          <nav aria-label="Navegação principal"><a href="#catalogo" className={activeNavSection !== 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection !== 'colecoes' ? 'page' : undefined}>Explorar</a>{resultsMode ? <button type="button" onClick={() => onOpenExplorer()}>Coleções</button> : <a href="#colecoes" className={activeNavSection === 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection === 'colecoes' ? 'location' : undefined}>Coleções</a>}<button type="button" onClick={onOpenUpdates}>Novos</button><button type="button" className="storefront-topbar__favorites" onClick={onOpenFavorites}>Favoritos <b>{favorites.length}</b></button><button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button></nav>
+          <nav aria-label="Navegação principal">
+            <a href={resultsMode ? '#destaques' : '#catalogo'} className={activeNavSection !== 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection !== 'colecoes' ? 'location' : undefined}>Explorar</a>
+            {resultsMode ? <button type="button" onClick={() => onOpenExplorer()}>Coleções</button> : <a href="#colecoes" className={activeNavSection === 'colecoes' ? 'is-active' : ''} aria-current={activeNavSection === 'colecoes' ? 'location' : undefined}>Coleções</a>}
+            <button type="button" onClick={onOpenUpdates}>Novos</button>
+            <button type="button" className="storefront-topbar__favorites" onClick={onOpenFavorites}>Favoritos <b>{favorites.length}</b></button>
+            <button type="button" onClick={onOpenQuote}>Minha lista <b>{quoteList.length}</b></button>
+          </nav>
             <div className="storefront-search-wrap" onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) { setGlobalSearchOpen(false); setGlobalSearchActiveIndex(-1) } }}>
             <div className={`storefront-search ${catalog.searchPending ? 'is-pending' : ''}`} role="search">
               <Icon name="search" />

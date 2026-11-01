@@ -151,6 +151,14 @@ async function exercise(browser, spec) {
     assert.match(visualSystem.fontFamily, /system-ui/i)
     assert.equal(visualSystem.navFontFamily, visualSystem.fontFamily,
       'The global navigation must share the storefront body font')
+    if (spec.width <= 1080) {
+      assert.equal(visualSystem.navBounds.length, 5,
+        'Tablet and mobile must expose the same five topbar destinations')
+      assert.ok(visualSystem.navBounds.every((item) => item.height >= 44),
+        'Tablet and mobile navigation controls need 44px touch targets')
+      assert.ok(visualSystem.navTop >= visualSystem.searchBottom - 1,
+        'Navigation must follow search rather than overlapping it')
+    }
     if (spec.width <= 620) {
       assert.equal(visualSystem.navBounds.length, 5, 'Mobile navigation must keep all five destinations')
       assert.ok(visualSystem.navBounds.every((item) => item.height >= 44),
