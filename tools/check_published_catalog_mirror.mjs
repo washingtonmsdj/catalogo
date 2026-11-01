@@ -3,12 +3,15 @@
  * Reads two public HTML entries and one hashed JS asset HEAD only.
  * Never queries catalog API, D1, R2 or media.
  */
+import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
 const MAX_ATTEMPTS = 3
 const RETRY_DELAY_MS = 3_000
 const REQUEST_TIMEOUT_MS = 12_000
 const ENTRY_SCRIPT = /^index-[A-Za-z0-9_-]+\.js$/
+const canonicalPublicUrl = new URL(JSON.parse(readFileSync(new URL('../config/public-runtime.json', import.meta.url), 'utf8')).publicSiteUrl).href
+const technicalPublicUrl = 'https://acheguese.vercel.app/tonecosstudios/'
 
 function entryUrl(value) {
   const url = new URL(value)
@@ -68,8 +71,8 @@ export async function verifyPublishedCatalogMirror({
 }) {
   const pages = entryUrl(pagesUrl)
   const vercel = entryUrl(vercelUrl)
-  if (vercel.hostname !== 'acheguese.vercel.app') {
-    throw new Error('catalog_mirror_unexpected_vercel_host')
+  if (vercel.href !== technicalPublicUrl && vercel.href !== canonicalPublicUrl) {
+    throw new Error('catalog_mirror_unexpected_public_url')
   }
   if (!Number.isInteger(attempts) || attempts < 1 || attempts > MAX_ATTEMPTS) {
     throw new Error('catalog_mirror_invalid_attempt_count')
