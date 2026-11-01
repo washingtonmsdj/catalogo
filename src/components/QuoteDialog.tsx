@@ -55,7 +55,7 @@ export function QuoteDialog({
   if (!open) return null
 
   return (
-    <div className="modal-backdrop quote-request-backdrop" onMouseDown={onClose}>
+    <div className="modal-backdrop quote-request-backdrop" onMouseDown={() => { if (!submitting) onClose() }}>
       <section
         className="quote-request-modal"
         role="dialog"
@@ -69,7 +69,7 @@ export function QuoteDialog({
             <h2 id="quote-title">{sent ? (reopenedReceipt ? 'Último protocolo salvo' : 'Solicitação registrada') : 'Solicitar orçamento'}</h2>
             <p>{sent ? 'O protocolo comprova o recebimento pelo catálogo, não o atendimento pelo lojista.' : 'Revise os modelos selecionados antes de enviar.'}</p>
           </div>
-          <button type="button" aria-label="Fechar formulário" onClick={onClose}>×</button>
+          <button type="button" aria-label="Fechar formulário" disabled={submitting} onClick={onClose}>×</button>
         </div>
 
         {sent ? (
@@ -91,7 +91,7 @@ export function QuoteDialog({
             <button type="button" className="primary-action" onClick={onDismissSuccess}>Voltar ao catálogo <span>›</span></button>
           </div>
         ) : (
-          <form className="quote-request-form" onSubmit={onSubmit}>
+          <form className="quote-request-form" onSubmit={onSubmit} aria-busy={submitting}>
             <section className="quote-request-selection" aria-labelledby="quote-selection-title">
               <div className="quote-request-selection__head">
                 <div>
@@ -109,7 +109,7 @@ export function QuoteDialog({
                       <button
                         type="button"
                         className="quote-request-item__open"
-                        disabled={!knownModels[id]?.slug}
+                        disabled={submitting || !knownModels[id]?.slug}
                         onClick={() => onOpenModel(id)}
                       >
                         <strong>{knownModels[id]?.name ?? 'Modelo selecionado'}</strong>
@@ -119,6 +119,7 @@ export function QuoteDialog({
                         type="button"
                         className="quote-request-item__remove"
                         aria-label={`Remover ${knownModels[id]?.name ?? id} da solicitação`}
+                        disabled={submitting}
                         onClick={() => onRemove(id)}
                       >
                         ×
@@ -151,17 +152,17 @@ export function QuoteDialog({
               <div className="quote-request-fields__grid">
                 <label>
                   Nome completo
-                  <input required autoComplete="name" maxLength={120} name="name" placeholder="Seu nome" />
+                  <input required disabled={submitting} autoComplete="name" maxLength={120} name="name" placeholder="Seu nome" />
                 </label>
                 <label>
                   E-mail
-                  <input required autoComplete="email" maxLength={254} type="email" name="email" placeholder="voce@email.com" />
+                  <input required disabled={submitting} autoComplete="email" maxLength={254} type="email" name="email" placeholder="voce@email.com" />
                 </label>
               </div>
 
               <label>
                 Observações
-                <textarea maxLength={4000} name="notes" rows={4} placeholder="Quantidade, tamanho desejado, acabamento ou outras informações..." />
+                <textarea disabled={submitting} maxLength={4000} name="notes" rows={4} placeholder="Quantidade, tamanho desejado, acabamento ou outras informações..." />
               </label>
 
               {mode === 'live' && <TurnstileWidget resetKey={turnstileResetKey} />}
