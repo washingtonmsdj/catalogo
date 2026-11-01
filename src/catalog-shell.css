@@ -5,6 +5,8 @@
   --accent: var(--store-accent);
   --accent-strong: var(--store-accent-strong);
   --accent-soft: var(--store-accent-soft);
+  --accent-line: var(--store-border-strong);
+  --danger: var(--store-danger);
   --bg: var(--store-bg);
   --panel: var(--store-panel);
   --panel-2: var(--store-panel-2);
