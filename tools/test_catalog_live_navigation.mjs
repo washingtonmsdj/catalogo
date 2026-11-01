@@ -233,6 +233,10 @@ async function exercise(browser, spec) {
       if (path === '/api/catalog' && new URLSearchParams(requestUrl.search).get('q') === 'baruk') {
         await pause(800)
       }
+      if (path === '/api/franchises' && new URLSearchParams(requestUrl.search).get('q') === 'vazia') {
+        // Deliberately slow optional franchise lookup; the full-results action must not wait for it.
+        await pause(800)
+      }
       const data = responseFor(path, requestUrl.search, state)
       const status = data.status || 200
       const body = data.body || data
@@ -262,6 +266,33 @@ async function exercise(browser, spec) {
       expectedInitialCount,
       { timeout: 10000 })
     const catalogSearch = page.getByRole('combobox', { name: 'Buscar no catálogo' })
+    if (spec.width === 390) {
+      assert.equal(await catalogSearch.getAttribute('aria-controls'), null,
+        'Collapsed search cannot reference an unmounted listbox')
+      await catalogSearch.fill('alfa')
+      const suggestionList = page.getByRole('listbox', { name: 'Sugestões de modelos e franquias' })
+      await suggestionList.getByRole('option', { name: /Saga Alfa/ }).waitFor({ state: 'visible', timeout: 7000 })
+      const pendingFranchise = page.waitForRequest((request) => {
+        const url = new URL(request.url())
+        return url.pathname.endsWith('/api/franchises') && url.searchParams.get('q') === 'vazia'
+      }, { timeout: 7000 })
+      await catalogSearch.fill('vazia')
+      await pendingFranchise
+      assert.equal(await suggestionList.getByRole('option', { name: /Saga Alfa/ }).count(), 0,
+        'Suggestions for the previous query must not appear under a new search')
+      const allResults = suggestionList.getByRole('option', { name: /Ver todos os resultados para “vazia”/ })
+      await allResults.waitFor({ state: 'visible', timeout: 3000 })
+      assert.equal(await catalogSearch.getAttribute('aria-controls'), 'storefront-search-suggestions',
+        'Expanded combobox must reference its mounted listbox')
+      await catalogSearch.press('ArrowDown')
+      await page.waitForFunction(() => document.querySelector('[role="combobox"]')?.getAttribute('aria-activedescendant') === 'storefront-search-option-all',
+        null, { timeout: 3000 })
+      await catalogSearch.press('Enter')
+      await suggestionList.waitFor({ state: 'hidden', timeout: 3000 })
+      assert.equal(await catalogSearch.getAttribute('aria-controls'), null,
+        'Closing search must remove the stale listbox reference')
+      entry.checks.push('slow remote franchise suggestions do not block keyboard full-results or leak old terms')
+    }
     await catalogSearch.fill('ayla')
     await page.locator('.storefront-model-grid.is-results .storefront-model-card__meta b').filter({ hasText: 'R29-AYLA' }).waitFor({ state: 'visible', timeout: 10000 })
     await catalogSearch.fill('baruk')
