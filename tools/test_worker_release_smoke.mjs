@@ -130,17 +130,17 @@ test('release smoke rejects an invalid public API base before any request', asyn
 
 test('first-party quote ingress rejects empty non-personal JSON before any write', async () => {
   let calls = 0
-  const result = await verifyPublicQuoteIngress('https://acheguese.com.br/catalogo-api', async (url, init) => {
+  const result = await verifyPublicQuoteIngress('https://acheguese.vercel.app/catalogo-api', async (url, init) => {
     calls++
-    assert.equal(url, 'https://acheguese.com.br/catalogo-api/api/quotes')
+    assert.equal(url, 'https://acheguese.vercel.app/catalogo-api/api/quotes')
     assert.equal(init.method, 'POST')
     assert.equal(init.redirect, 'error')
-    assert.equal(init.headers.origin, 'https://acheguese.com.br')
+    assert.equal(init.headers.origin, 'https://acheguese.vercel.app')
     assert.deepEqual(JSON.parse(init.body), {})
     assert.equal(init.headers['content-type'], 'application/json')
     return Response.json({ error: 'invalid_request' }, {
       status: 400,
-      headers: { 'access-control-allow-origin': 'https://acheguese.com.br' },
+      headers: { 'access-control-allow-origin': 'https://acheguese.vercel.app' },
     })
   })
   assert.deepEqual(result, { ok: true, invalidQuoteRejected: true, productionWrites: 0 })
@@ -151,11 +151,7 @@ test('quote ingress fails closed on wrong origin, missing route or unexpected re
   let calls = 0
   await assert.rejects(
     verifyPublicQuoteIngress('https://tonecos-catalogo-api.tonecosstudio.workers.dev', async () => { calls++; }),
-    /canonical first-party public proxy/,
-  )
-  await assert.rejects(
-    verifyPublicQuoteIngress('https://acheguese.vercel.app/catalogo-api', async () => { calls++; }),
-    /canonical first-party public proxy/,
+    /canonical first-party Vercel proxy/,
   )
   assert.equal(calls, 0)
 
@@ -169,7 +165,7 @@ test('quote ingress fails closed on wrong origin, missing route or unexpected re
     } }),
   ]) {
     await assert.rejects(
-      verifyPublicQuoteIngress('https://acheguese.com.br/catalogo-api', async () => response),
+      verifyPublicQuoteIngress('https://acheguese.vercel.app/catalogo-api', async () => response),
       /quote ingress/,
     )
   }
