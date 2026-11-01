@@ -1740,10 +1740,26 @@ body {
   .storefront-topbar nav button {
     position: relative;
     min-height: 44px;
+    padding: 10px 2px 0;
     font: 680 clamp(9.5px, 2.6vw, 11px)/1.12 var(--store-font-body);
     letter-spacing: 0;
     border-radius: 8px;
     color: var(--store-muted);
+  }
+  .storefront-topbar nav b {
+    position: absolute;
+    top: 2px;
+    right: 3px;
+    min-width: 15px;
+    height: 15px;
+    display: grid;
+    place-items: center;
+    padding: 0 3px;
+    border: 1px solid var(--store-border-strong);
+    border-radius: 999px;
+    background: var(--store-accent-soft);
+    color: var(--store-accent-hover);
+    font: 750 9px/1 var(--store-font-body);
   }
   .storefront-topbar nav a:hover,
   .storefront-topbar nav button:hover,
@@ -1761,15 +1777,7 @@ body {
 @media (max-width: 359px) {
   .storefront-topbar nav a,
   .storefront-topbar nav button { padding-inline: 1px; gap: 1px; }
-  .storefront-topbar nav b {
-    position: absolute;
-    top: 1px;
-    right: 1px;
-    min-width: 13px;
-    min-height: 13px;
-    padding: 2px;
-    line-height: 1;
-  }
+
 }
 
 /* Scalable catalog concept: graphite surfaces, orange actions and compact discovery. */
