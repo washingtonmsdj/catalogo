@@ -228,11 +228,12 @@ class CatalogMaintenanceWorkflowConfigTests(unittest.TestCase):
     def setUpClass(cls):
         cls.workflow = (ROOT / ".github" / "workflows" / "catalog-maintenance.yml").read_text(encoding="utf-8")
 
-    def test_only_two_safe_manual_operations_are_available(self):
+    def test_only_three_safe_manual_operations_are_available(self):
         workflow = self.workflow
         self.assertIn("workflow_dispatch:", workflow)
         self.assertIn("default: verify-public-hierarchy", workflow)
         self.assertIn("- verify-public-hierarchy", workflow)
+        self.assertIn("- verify-public-proxy", workflow)
         self.assertIn("- verify-d1-schema", workflow)
         for forbidden in (
             "- audit", "- apply-legacy-gallery-repairs",
@@ -274,6 +275,26 @@ class CatalogMaintenanceWorkflowConfigTests(unittest.TestCase):
         self.assertNotIn("wrangler d1", workflow)
         self.assertNotIn("tools/backfill_image_source_index.py", workflow)
         self.assertNotIn("tools/apply_legacy_gallery_repairs.py", workflow)
+
+    def test_first_party_proxy_probe_reuses_existing_bounded_smoke(self):
+        workflow = self.workflow
+        self.assertIn("if: ${{ inputs.operation == 'verify-public-proxy' }}", workflow)
+        self.assertIn("if: ${{ inputs.operation != 'verify-public-proxy' }}", workflow)
+        self.assertIn(
+            "python tools/verify_public_catalog.py --api-base https://acheguese.vercel.app/catalogo-api",
+            workflow,
+        )
+        self.assertNotIn("--exhaustive", workflow)
+        self.assertLess(
+            workflow.index("Validate safe maintenance operation and credentials"),
+            workflow.index("Verify Vercel first-party API and one real cover"),
+        )
+        smoke = (ROOT / "tools/verify_public_catalog.py").read_text(encoding="utf-8")
+        self.assertIn("/api/health", smoke)
+        self.assertIn("/api/catalog?limit=1", smoke)
+        self.assertIn('"Range": "bytes=0-0"', smoke)
+        self.assertIn("if health.get(\"ok\") is not True:", smoke)
+        self.assertLess(smoke.index("if health.get(\"ok\") is not True:"), smoke.index("/api/catalog?limit=1"))
 
     def test_serializes_maintenance_with_deploy_and_has_no_d1_writes(self):
         workflow = self.workflow
