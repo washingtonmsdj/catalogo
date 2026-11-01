@@ -126,6 +126,19 @@ async function exercise(browser, spec) {
           left: rect(element).left, right: rect(element).right,
           top: rect(element).top, bottom: rect(element).bottom,
         })),
+        badgesSeparatedFromLabels: controls.every((element) => {
+          const badge = element.querySelector('b')
+          if (!badge) return true
+          const labelText = [...element.childNodes].find((node) =>
+            node.nodeType === Node.TEXT_NODE && node.textContent?.trim())
+          if (!labelText) return false
+          const range = document.createRange()
+          range.selectNodeContents(labelText)
+          const label = range.getBoundingClientRect()
+          const count = badge.getBoundingClientRect()
+          return count.bottom + 1 <= label.top || count.right + 1 <= label.left ||
+            label.right + 1 <= count.left || label.bottom + 1 <= count.top
+        }),
         searchBottom: search ? rect(search).bottom : 0,
         navTop: nav ? rect(nav).top : 0,
       }
@@ -148,6 +161,8 @@ async function exercise(browser, spec) {
         'Mobile navigation must not overlap the global search')
       assert.notEqual(visualSystem.navActiveBackground, visualSystem.navBackground,
         'The active mobile destination must be visibly distinct')
+      assert.equal(visualSystem.badgesSeparatedFromLabels, true,
+        'Favorite and quote counts must not overlap the five navigation labels')
     }
     entry.checks.push('one computed font/palette source and readable mobile navigation with 44px targets')
     assert.ok(await page.getByRole('combobox', { name: 'Buscar no catálogo' }).isVisible())
