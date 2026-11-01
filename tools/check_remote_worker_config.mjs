@@ -4,6 +4,21 @@ function sorted(values) {
   return [...values].sort()
 }
 
+function canonicalCorsOrigins(value) {
+  const raw = String(value ?? '').trim()
+  if (!raw) throw new Error('CORS_ORIGINS must not be empty')
+  const origins = raw.split(',').map(origin => origin.trim())
+  if (new Set(origins).size !== origins.length) throw new Error('CORS_ORIGINS contains duplicates')
+  for (const origin of origins) {
+    let parsed
+    try { parsed = new URL(origin) } catch { throw new Error('CORS_ORIGINS contains invalid origin') }
+    if (parsed.protocol !== 'https:' || parsed.origin !== origin || origin.includes('*')) {
+      throw new Error('CORS_ORIGINS requires exact HTTPS origins')
+    }
+  }
+  return origins
+}
+
 function bindingByName(bindings, name) {
   const matches = bindings.filter((binding) => binding?.name === name)
   if (matches.length !== 1) {
@@ -21,6 +36,7 @@ export function expectedRemoteWorkerConfig(config) {
   const d1Id = canonicalD1DatabaseId(config)
   const cors = String(config?.vars?.CORS_ORIGINS ?? '').trim()
   if (!cors) throw new Error('wrangler.jsonc must declare vars.CORS_ORIGINS')
+  canonicalCorsOrigins(cors)
 
   const r2 = Array.isArray(config?.r2_buckets)
     ? config.r2_buckets.filter((entry) => entry?.binding === 'MEDIA')
@@ -46,7 +62,7 @@ export function expectedRemoteWorkerConfig(config) {
   }
 }
 
-export function assertRemoteWorkerConfig(expected, remote) {
+export function assertRemoteWorkerConfig(expected, remote, { allowCorsExpansion = false } = {}) {
   if (!remote || typeof remote !== 'object') throw new Error('Cloudflare Worker settings response is invalid')
   if (remote.compatibility_date !== expected.compatibilityDate) {
     throw new Error(`Remote compatibility_date drift: expected ${expected.compatibilityDate}, found ${remote.compatibility_date ?? '<missing>'}`)
@@ -66,8 +82,14 @@ export function assertRemoteWorkerConfig(expected, remote) {
   }
 
   const cors = bindingByName(bindings, 'CORS_ORIGINS')
-  if (cors.type !== 'plain_text' || cors.text !== expected.cors) {
-    throw new Error('Remote CORS_ORIGINS drift')
+  if (cors.type !== 'plain_text') throw new Error('Remote CORS_ORIGINS drift')
+  if (cors.text !== expected.cors) {
+    // Before staging, permit ONLY reviewed additive origins declared in wrangler.jsonc.
+    // After promotion, the same validator runs in strict mode and requires byte equality.
+    const deployed = canonicalCorsOrigins(cors.text)
+    const planned = canonicalCorsOrigins(expected.cors)
+    const additive = deployed.length < planned.length && deployed.every(origin => planned.includes(origin))
+    if (!allowCorsExpansion || !additive) throw new Error('Remote CORS_ORIGINS drift')
   }
 
   const db = bindingByName(bindings, 'DB')
@@ -137,7 +159,11 @@ async function main() {
     fetchRemoteR2ManagedDomain({ accountId, apiToken, bucketName: expected.r2Bucket }),
   ])
 
-  assertRemoteWorkerConfig(expected, remoteWorker)
+  const options = process.argv.slice(2)
+  if (options.length > 1 || (options.length === 1 && options[0] !== '--allow-cors-expansion')) {
+    throw new Error('Unsupported Worker config validation mode')
+  }
+  assertRemoteWorkerConfig(expected, remoteWorker, { allowCorsExpansion: options[0] === '--allow-cors-expansion' })
   assertManagedR2PrivateAccess(remoteR2)
   console.log(`Remote Worker config and private R2 access match canonical SSOT for ${expected.workerName}`)
 }
