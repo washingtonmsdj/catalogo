@@ -173,16 +173,6 @@ async function exercise(browser, spec) {
         'Favorite and quote counts must not overlap the five navigation labels')
     }
     entry.checks.push('one computed font/palette source and readable mobile navigation with 44px targets')
-    const shortcutSearch = page.getByRole('combobox', { name: 'Buscar no catálogo' })
-    assert.ok(await shortcutSearch.isVisible())
-    await page.keyboard.press('Control+k')
-    assert.ok(await shortcutSearch.evaluate((input) => document.activeElement === input),
-      'Ctrl+K must focus the advertised global search, not open franchise explorer')
-    await shortcutSearch.evaluate((input) => input.blur())
-    await page.keyboard.press('/')
-    assert.ok(await shortcutSearch.evaluate((input) => document.activeElement === input),
-      'Slash must jump to the global search when the user is not typing')
-    await shortcutSearch.evaluate((input) => input.blur())
     assert.equal(await page.locator('.storefront-model-grid.is-results > .storefront-model-card').count(), 48,
       'The scalable catalog is the initial view and shows one complete cursor page')
     if (spec.width <= 620) {
@@ -242,6 +232,18 @@ async function exercise(browser, spec) {
     await page.keyboard.press('Enter')
     await page.waitForURL((target) => target.hash === '#catalogo', { timeout: 5000 })
     entry.checks.push('initial results page and keyboard skip link')
+
+    const shortcutSearch = page.getByRole('combobox', { name: 'Buscar no catálogo' })
+    assert.ok(await shortcutSearch.isVisible())
+    await page.keyboard.press('Control+k')
+    assert.ok(await shortcutSearch.evaluate((input) => document.activeElement === input),
+      'Ctrl+K must focus the advertised global search, not open franchise explorer')
+    await shortcutSearch.evaluate((input) => input.blur())
+    await page.keyboard.press('/')
+    assert.ok(await shortcutSearch.evaluate((input) => document.activeElement === input),
+      'Slash must jump to the global search when the user is not typing')
+    await shortcutSearch.evaluate((input) => input.blur())
+    entry.checks.push('Ctrl+K and slash focus the global search without changing the navigation baseline')
 
     await page.getByRole('button', { name: 'Ver destaques' }).click()
     await page.locator('.storefront-category-grid .storefront-category-tile').first().waitFor({ state: 'visible' })
