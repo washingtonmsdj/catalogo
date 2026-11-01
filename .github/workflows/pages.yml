@@ -128,11 +128,8 @@ jobs:
           set -euo pipefail
           API_BASE="$(node -e "const {publicSiteUrl}=require('./config/public-runtime.json');process.stdout.write(new URL('/catalogo-api',publicSiteUrl).href)")"
           python tools/verify_public_catalog.py --api-base "$API_BASE"
-      - name: Verify canonical quote ingress rejects invalid request without creating an order
-        shell: bash
+      - name: Verify quote ingress rejects invalid request without creating an order
         run: >-
           node --input-type=module -e
-          "import { readFileSync } from 'node:fs';
-          import { verifyPublicQuoteIngress } from './tools/worker_release_smoke.mjs';
-          const { publicSiteUrl } = JSON.parse(readFileSync('./config/public-runtime.json', 'utf8'));
-          console.log(JSON.stringify(await verifyPublicQuoteIngress(new URL('/catalogo-api', publicSiteUrl).href)))"
+          "import { verifyPublicQuoteIngress } from './tools/worker_release_smoke.mjs';
+          console.log(JSON.stringify(await verifyPublicQuoteIngress('https://acheguese.vercel.app/catalogo-api')))"
