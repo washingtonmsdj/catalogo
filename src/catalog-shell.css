@@ -20,8 +20,8 @@ html, body { background: var(--store-bg); }
 body::before {
   opacity: .1;
   background-image:
-    linear-gradient(rgba(88, 193, 164, .025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(88, 193, 164, .018) 1px, transparent 1px);
+    linear-gradient(color-mix(in srgb, var(--store-accent) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--store-accent) 2%, transparent) 1px, transparent 1px);
   background-size: 100% 5px, 72px 72px;
 }
 
@@ -37,8 +37,8 @@ body::before {
   grid-template-columns: 220px minmax(420px, 1fr) minmax(330px, 560px);
   gap: 18px;
   padding: 0 26px;
-  border-bottom: 1px solid rgba(95, 196, 166, .17);
-  background: rgba(4, 13, 13, .86);
+  border-bottom: 1px solid var(--store-border);
+  background: color-mix(in srgb, var(--store-panel) 86%, transparent);
   backdrop-filter: blur(22px) saturate(135%);
   box-shadow: 0 18px 50px rgba(0, 0, 0, .28);
 }
@@ -54,11 +54,11 @@ body::before {
   height: 38px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(72, 255, 190, .55);
+  border: 1px solid color-mix(in srgb, var(--store-accent) 55%, transparent);
   border-radius: 11px;
   background:
     linear-gradient(145deg, color-mix(in srgb, var(--store-accent) 28%, transparent), color-mix(in srgb, var(--store-accent) 6%, transparent)),
-    #071b17;
+    var(--store-panel);
   color: var(--store-accent-hover);
   font: 900 12px/1 var(--store-font-body);
   letter-spacing: -.3px;
