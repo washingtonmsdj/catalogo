@@ -35,7 +35,7 @@
 
 .collections-model-controls input:focus,
 .collections-model-controls select:focus {
-  border-color: var(--store-accent-hover);
+  border-color: var(--store-accent);
 }
 
 .collections-model-controls > button {
