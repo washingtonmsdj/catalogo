@@ -51,7 +51,7 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
     def test_production_cors_contains_only_public_origins(self):
         origins = self.wrangler.get("vars", {}).get("CORS_ORIGINS", "")
         self.assertEqual(
-            "https://washingtonmsdj.github.io,https://acheguese.com.br,https://www.acheguese.com.br",
+            "https://washingtonmsdj.github.io,https://acheguese.com.br,https://www.acheguese.com.br,https://acheguese.vercel.app",
             origins,
         )
         self.assertNotIn("localhost", origins)
@@ -65,10 +65,16 @@ class CloudflareWorkflowConfigTests(unittest.TestCase):
         self.assertLess(self.workflow.index("Export canonical D1 binding"), self.workflow.index("Apply D1 migrations"))
 
     def test_remote_worker_semantic_drift_is_checked_before_worker_write(self):
-        self.assertIn("Validate remote Worker config against canonical SSOT", self.workflow)
-        self.assertIn("node tools/check_remote_worker_config.mjs", self.workflow)
-        self.assertLess(self.workflow.index("Validate remote Worker config against canonical SSOT"), self.workflow.index("Capture current production Worker version"))
-        self.assertLess(self.workflow.index("Validate remote Worker config against canonical SSOT"), self.workflow.index("Upload Worker version with required secret and no traffic"))
+        preflight = "Validate remote Worker config before planned CORS expansion"
+        postflight = "Verify exact canonical Worker config after promotion"
+        self.assertIn(preflight, self.workflow)
+        self.assertIn("node tools/check_remote_worker_config.mjs --allow-cors-expansion", self.workflow)
+        self.assertLess(self.workflow.index(preflight), self.workflow.index("Capture current production Worker version"))
+        self.assertLess(self.workflow.index(preflight), self.workflow.index("Upload Worker version with required secret and no traffic"))
+        self.assertIn(postflight, self.workflow)
+        self.assertLess(self.workflow.index("Promote staged Worker version"), self.workflow.index(postflight))
+        self.assertLess(self.workflow.index(postflight), self.workflow.index("Verify promoted Worker deployment and full public release"))
+        self.assertIn("        run: node tools/check_remote_worker_config.mjs\n", self.workflow)
         self.assertNotIn("--strict", self.workflow)
 
     def test_turnstile_secret_is_staged_atomically_without_implicit_deploy(self):

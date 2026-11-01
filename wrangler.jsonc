@@ -9,7 +9,7 @@
     "enabled": true
   },
   "vars": {
-    "CORS_ORIGINS": "https://washingtonmsdj.github.io,https://acheguese.com.br,https://www.acheguese.com.br"
+    "CORS_ORIGINS": "https://washingtonmsdj.github.io,https://acheguese.com.br,https://www.acheguese.com.br,https://acheguese.vercel.app"
   },
   "secrets": {
     "required": ["TURNSTILE_SECRET_KEY"]

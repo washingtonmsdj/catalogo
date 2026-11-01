@@ -154,8 +154,8 @@ jobs:
           echo "CLOUDFLARE_D1_DATABASE_ID=$database_id" >> "$GITHUB_ENV"
       - name: Render production config
         run: npm run cloudflare:config
-      - name: Validate remote Worker config against canonical SSOT
-        run: node tools/check_remote_worker_config.mjs
+      - name: Validate remote Worker config before planned CORS expansion
+        run: node tools/check_remote_worker_config.mjs --allow-cors-expansion
       - name: Capture current production Worker version
         shell: bash
         run: |
@@ -225,6 +225,8 @@ jobs:
           --message "catalogo ${GITHUB_SHA}"
           --yes
           --config .wrangler.deploy.jsonc
+      - name: Verify exact canonical Worker config after promotion
+        run: node tools/check_remote_worker_config.mjs
       - name: Verify promoted Worker deployment and full public release
         run: node tools/check_promoted_worker_version.mjs "$CATALOG_API_URL" "$STAGED_WORKER_VERSION_ID"
       - name: Verify public media gateway after promotion
