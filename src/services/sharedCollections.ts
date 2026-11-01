@@ -1,4 +1,5 @@
 import { buildSharedCollectionUrl } from './catalogNavigation'
+import { catalogRuntime, catalogApiUrl } from '../config/catalogRuntime'
 
 export type SharedCollectionItem = {
   id: string
@@ -21,15 +22,13 @@ export type SharedCollection = {
   items: SharedCollectionItem[]
 }
 
-const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '')
-
 export function isSharedCollectionsLive() {
-  return Boolean(apiBase)
+  return catalogRuntime.mode === 'live' && Boolean(catalogRuntime.apiBase)
 }
 
 export async function createSharedCollection(name: string, modelIds: string[], turnstileToken: string) {
-  if (!apiBase) throw new Error('sharing_unavailable')
-  const response = await fetch(`${apiBase}/api/shared-collections`, {
+  if (!isSharedCollectionsLive()) throw new Error('sharing_unavailable')
+  const response = await fetch(catalogApiUrl('/api/shared-collections'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name, modelIds, turnstileToken }),
@@ -42,7 +41,7 @@ export async function createSharedCollection(name: string, modelIds: string[], t
 
 export async function fetchSharedCollection(code: string) {
   if (!apiBase) throw new Error('sharing_unavailable')
-  const response = await fetch(`${apiBase}/api/shared-collections/${encodeURIComponent(code)}`)
+  const response = await fetch(catalogApiUrl(`/api/shared-collections/${encodeURIComponent(code)}`))
   const body = await response.json().catch(() => null) as (SharedCollection & { error?: string }) | null
   if (!response.ok) throw new Error(body?.error || `shared_collection_fetch_failed_${response.status}`)
   if (!body?.code || !Array.isArray(body.items)) throw new Error('shared_collection_invalid_response')
