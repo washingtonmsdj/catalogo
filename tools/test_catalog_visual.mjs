@@ -103,6 +103,53 @@ async function exercise(browser, spec) {
     const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 })
     assert.equal(response?.status(), 200)
     await page.locator('.storefront-model-grid .storefront-model-card').first().waitFor({ state: 'visible', timeout: 18000 })
+    // Check actual computed style and navigation geometry, not just palette literals.
+    const visualSystem = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement)
+      const shell = document.querySelector('.storefront-shell')
+      const nav = document.querySelector('.storefront-topbar nav')
+      const search = document.querySelector('.storefront-search')
+      const controls = [...(nav?.children ?? [])].filter((item) => item.matches('a, button'))
+      const rect = (node) => node.getBoundingClientRect()
+      return {
+        accent: root.getPropertyValue('--store-accent').trim(),
+        text: root.getPropertyValue('--store-text').trim(),
+        background: root.getPropertyValue('--store-bg').trim(),
+        accentAlias: root.getPropertyValue('--accent').trim(),
+        fontFamily: shell ? getComputedStyle(shell).fontFamily : '',
+        navFontFamily: controls[0] ? getComputedStyle(controls[0]).fontFamily : '',
+        navActiveBackground: nav?.querySelector('.is-active')
+          ? getComputedStyle(nav.querySelector('.is-active')).backgroundColor : '',
+        navBackground: nav ? getComputedStyle(nav).backgroundColor : '',
+        navBounds: controls.map((element) => ({
+          width: rect(element).width, height: rect(element).height,
+          left: rect(element).left, right: rect(element).right,
+          top: rect(element).top, bottom: rect(element).bottom,
+        })),
+        searchBottom: search ? rect(search).bottom : 0,
+        navTop: nav ? rect(nav).top : 0,
+      }
+    })
+    assert.equal(visualSystem.accent, '#f06b24', 'Tonecos accent must be the one canonical copper-orange')
+    assert.equal(visualSystem.text, '#f3eee8', 'Tonecos ink must be the same ivory in all pages')
+    assert.equal(visualSystem.background, '#111110', 'Tonecos background must use canonical graphite')
+    assert.equal(visualSystem.accentAlias, visualSystem.accent,
+      'Legacy application chrome must resolve to the same accent, not a second green theme')
+    assert.match(visualSystem.fontFamily, /system-ui/i)
+    assert.equal(visualSystem.navFontFamily, visualSystem.fontFamily,
+      'The global navigation must share the storefront body font')
+    if (spec.width <= 620) {
+      assert.equal(visualSystem.navBounds.length, 5, 'Mobile navigation must keep all five destinations')
+      assert.ok(visualSystem.navBounds.every((item) => item.height >= 44),
+        'Each mobile navigation action must have a 44px touch target')
+      assert.ok(visualSystem.navBounds.every((item) => item.left >= -1 && item.right <= spec.width + 1),
+        'Every mobile destination must remain inside the viewport')
+      assert.ok(visualSystem.navTop >= visualSystem.searchBottom - 1,
+        'Mobile navigation must not overlap the global search')
+      assert.notEqual(visualSystem.navActiveBackground, visualSystem.navBackground,
+        'The active mobile destination must be visibly distinct')
+    }
+    entry.checks.push('one computed font/palette source and readable mobile navigation with 44px targets')
     assert.ok(await page.getByRole('combobox', { name: 'Buscar no catálogo' }).isVisible())
     assert.equal(await page.locator('.storefront-model-grid.is-results > .storefront-model-card').count(), 48,
       'The scalable catalog is the initial view and shows one complete cursor page')
