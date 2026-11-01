@@ -1925,20 +1925,36 @@ body { background: var(--store-bg); color: var(--store-text); }
 .collections-action-dock .collections-dock-trigger:focus-visible, .collections-action-dock .collections-share-trigger:focus-visible { outline-color: var(--store-accent) !important; }
 .storefront-model-grid.is-results { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .storefront-model-grid.is-results .storefront-model-card { height: 260px; }
-.storefront-skip-link:focus { background: #e85d16; color: #fff; outline-color: var(--store-accent-hover); }
-.storefront-hero { border-color: #403a34; background: radial-gradient(ellipse at 82% 45%,rgba(168,73,31,.3),transparent 36%), linear-gradient(115deg,#1b1917 12%,#211b17 61%,#302017); }
-.storefront-hero::before { background: linear-gradient(90deg,#171614 0%,rgba(23,22,20,.91) 38%,rgba(23,22,20,.32) 72%,rgba(23,22,20,.14) 100%); }
-.storefront-hero__backdrop { background: radial-gradient(ellipse at 82% 45%,rgba(168,73,31,.2),transparent 40%), linear-gradient(115deg,#1b1917 12%,#211b17 61%,#302017); }
-.storefront-hero__backdrop::before { background-image: linear-gradient(rgba(240,107,36,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(240,107,36,.04) 1px,transparent 1px); }
+/* Hero: use the same design tokens as the storefront, not a second color palette. */
+.storefront-skip-link:focus { background: var(--store-accent-strong); color: var(--store-text); outline-color: var(--store-accent-hover); }
+.storefront-hero {
+  border-color: var(--store-border-strong);
+  background: radial-gradient(ellipse at 82% 45%, color-mix(in srgb, var(--store-accent) 28%, transparent), transparent 36%),
+    linear-gradient(115deg, var(--store-panel) 12%, var(--store-panel-2) 61%, var(--store-panel-raised));
+}
+.storefront-hero::before {
+  background: linear-gradient(90deg, var(--store-bg) 0%,
+    color-mix(in srgb, var(--store-bg) 91%, transparent) 38%,
+    color-mix(in srgb, var(--store-bg) 32%, transparent) 72%,
+    color-mix(in srgb, var(--store-bg) 14%, transparent) 100%);
+}
+.storefront-hero__backdrop {
+  background: radial-gradient(ellipse at 82% 45%, color-mix(in srgb, var(--store-accent) 18%, transparent), transparent 40%),
+    linear-gradient(115deg, var(--store-panel) 12%, var(--store-panel-2) 61%, var(--store-panel-raised));
+}
+.storefront-hero__backdrop::before {
+  background-image: linear-gradient(color-mix(in srgb, var(--store-accent) 4%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--store-accent) 4%, transparent) 1px, transparent 1px);
+}
 .storefront-hero h1 { color: var(--store-text); }
-.storefront-hero__copy > p { color: #c4bbb1; }
-.storefront-hero__metrics { border-color: #51473e; background: rgba(28,27,25,.82); box-shadow: 0 8px 24px rgba(0,0,0,.2); }
-.storefront-hero__metrics > span { border-color: #51473e; }
+.storefront-hero__copy > p { color: var(--store-muted); }
+.storefront-hero__metrics { border-color: var(--store-border-strong); background: color-mix(in srgb, var(--store-panel) 82%, transparent); box-shadow: var(--store-shadow-card); }
+.storefront-hero__metrics > span { border-color: var(--store-border-strong); }
 .storefront-hero__metrics strong { color: var(--store-text); }
 .storefront-hero__metrics small { color: var(--store-muted); }
-.storefront-button--ghost { border-color: #51473e; background: rgba(37,36,33,.86); color: #eee6dc; }
-.storefront-hero__nav { border-color: #51473e; background: rgba(28,27,25,.86); color: #eee6dc; }
-.storefront-hero__dots button::before { background: #696056; }
+.storefront-button--ghost { border-color: var(--store-border-strong); background: color-mix(in srgb, var(--store-panel-2) 86%, transparent); color: var(--store-text); }
+.storefront-hero__nav { border-color: var(--store-border-strong); background: color-mix(in srgb, var(--store-panel) 86%, transparent); color: var(--store-text); }
+.storefront-hero__dots button::before { background: var(--store-muted); }
 .storefront-hero__dots button[aria-current="true"]::before { background: var(--store-accent); }
 @media (max-width: 760px) {
   .storefront-search-wrap { grid-column: 1; width: 100%; }
