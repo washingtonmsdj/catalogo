@@ -933,7 +933,8 @@ body {
 
 .storefront-topbar__favorites { display: none !important; }
 
-@media (max-width: 900px) {
+/* Below desktop, there is no sidebar; Favorites must stay in the ONE topbar. */
+@media (max-width: 1080px) {
   .storefront-topbar__favorites { display: inline-flex !important; }
 }
 

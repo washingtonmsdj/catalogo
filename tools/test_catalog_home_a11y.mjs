@@ -93,6 +93,7 @@ test('tablet has the canonical five-stop topbar when the sidebar is hidden', () 
   assert.match(css, /@media \(min-width: 621px\) and \(max-width: 1080px\)\s*\{[\s\S]*?\.storefront-topbar nav\s*\{\s*grid-area: nav;\s*display: flex;/)
   assert.match(css, /\.storefront-topbar nav button\s*\{\s*flex: 1 0 auto;\s*min-height: 44px;/)
   assert.match(home, /href=\{resultsMode \? '#destaques' : '#catalogo'\}/)
+  assert.match(css, /@media \(max-width: 1080px\)\s*\{\s*\.storefront-topbar__favorites \{ display: inline-flex !important; \}/)
   assert.doesNotMatch(home, /aria-current=\{activeNavSection !== 'colecoes' \? 'page'/)
 })
 
