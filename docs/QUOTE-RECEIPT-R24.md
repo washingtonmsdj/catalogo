@@ -16,6 +16,12 @@ O serviço público de orçamento só apresenta **Solicitação registrada** ap�
 
 No modo demonstração, o código de exemplo deve ser identificado explicitamente como ilustrativo, jamais como confirmação de produção. O CI verifica ambos os contratos sem enviar orçamentos nem acessar D1.
 
+## Envio atômico e preservação da seleção
+
+A interface possui um bloqueio síncrono de envio em andamento, além do estado visual do botão: dois eventos `submit` no mesmo ciclo do React não produzem duas solicitações. Enquanto há requisição pendente, o formulário informa `aria-busy`, desabilita edição e remoção de modelos e impede fechamento do modal por clique ou Escape. O payload sempre utiliza uma cópia imutável da seleção na hora do envio.
+
+Em falha ou resposta inconclusiva, a seleção permanece intacta, o bloqueio é liberado para uma nova decisão consciente do visitante e a interface orienta a não reenviar repetidamente. Após confirmação **live** válida, somente os IDs realmente enviados são retirados da lista, preservando qualquer outro item que tenha entrado por atualização concorrente. Essa proteção da interface complementa, mas não substitui, a deduplicação real do Worker. O teste de navegador utiliza exclusivamente o build demo isolado: simula uma falha e dois eventos de envio no mesmo ciclo, sem contato com a API nem gravação de orçamento de produção.
+
 ## Limites explícitos
 
 Essa etapa **não cria** caixa de entrada do lojista nem status de atendimento, autenticação administrativa, notificações, consulta pública por protocolo ou confirmação automática por e-mail. Essas capacidades precisam de autorização, privacidade e operação definidas antes de serem publicadas. O CI protege o contrato de privacidade e o isolamento entre demo e produção.
