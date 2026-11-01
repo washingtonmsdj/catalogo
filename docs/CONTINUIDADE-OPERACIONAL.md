@@ -2,7 +2,7 @@
 
 > **SSOT de continuidade.** Leia este arquivo antes de continuar o projeto em outra conversa, máquina ou sessão.
 >
-> Atualizado em **2026-10-31**. Este arquivo registra somente o estado operacional necessário para a próxima execução. Histórico detalhado pertence aos runbooks e documentos de migração; não acumular aqui gates encerrados, PRs antigas ou bloqueios expirados.
+> Atualizado em **2026-11-01**. Este arquivo registra somente o estado operacional necessário para a próxima execução. Histórico detalhado pertence aos runbooks e documentos de migração; não acumular aqui gates encerrados, PRs antigas ou bloqueios expirados.
 
 ## Autoridade
 
@@ -29,6 +29,18 @@
 - O [log existente no Drive](https://drive.google.com/file/d/1L-1vUuLq9kc8K9gGBapIrnXR6JF5Nqwb/view) (modificado em 31/10 às 16:39 UTC) registra **25 linhas de conclusão** da coleta Batch após uma primeira tentativa com falhas para Fury. É evidência posterior ao checkpoint que descrevia o Batch como ainda não executado. As 25 conclusões devem ser reconciliadas com o [CSV canônico](https://drive.google.com/file/d/1DgAi01ztLRcQxXIEqs_0Moc1mFRvQ4Sa/view), que contém 30 candidatos, dos quais cinco tinham 27 mídias comprovadas anteriormente.
 - **Não confundir êxito reportado pelo coletor com homologação de arquivos ou aprovação editorial.** O log não comprova hashes atuais, presença de todas as imagens, direitos comerciais, identidade de esculturas ou escolha de capa; não alterar `review_status=PENDENTE` nem `selected_media_id` sem evidência adicional. Confrontar IDs/slugs/arquivos/SHA no Drive existente, em modo incremental e somente leitura; reaproveitar as mídias já presentes em vez de repetir downloads.
 - O [SSOT operacional no Drive](https://docs.google.com/document/d/1w6DbeukB5mKyy5llLAKvul0Pn_Bgy_GSm9eWas3qlSA/edit) foi acrescido da seção 26 com esta reconciliação. Não criar manifesto paralelo, não iniciar varredura geral de D1, R2 ou catálogo, nem publicar conteúdo antes de direitos e gate editorial. Nenhuma alteração em Cloudflare é exigida para registrar este checkpoint.
+
+## Confronto determinístico Drive × log — 01/11/2026 (sem novos downloads)
+
+**Fontes operacionais existentes, sem cópias:** [CSV da fila no Drive](https://drive.google.com/file/d/1DgAi01ztLRcQxXIEqs_0Moc1mFRvQ4Sa/view), [log do coletor](https://drive.google.com/file/d/1L-1vUuLq9kc8K9gGBapIrnXR6JF5Nqwb/view), [SSOT do Drive, seção 27](https://docs.google.com/document/d/1w6DbeukB5mKyy5llLAKvul0Pn_Bgy_GSm9eWas3qlSA/edit).
+
+- O CSV tem **30 registros / 11 campos**: 15 `AGUARDANDO_COLETA`, 15 `AGUARDANDO_CLASSIFICACAO`, todos `review_status=PENDENTE` e todos `selected_media_id` vazios. Esses estados permanecem inalterados; ainda não medem integridade de bytes do Batch posterior.
+- O log tem **25 conclusões por slug único**, totalizando **205 imagens consideradas**; os 25 slugs coincidem exatamente com o CSV. **0** slugs externos, **0** duplicados, **0** divergências entre contagens `n/n` declaradas no log. Não confundir «considerada» com SHA verificado, licença, capa aprovada ou escultura única.
+- Os **5 slugs ausentes do Batch de 25** são exatamente os 5 já homologados fisicamente como arquivos de origem no checkpoint anterior: `hulk-stl-2-marvel` (7), `aokiji-stl-2-one-piece` (6), `goku-ultra-instinct-stl-2-dragon-ball` (5), `yamcha-stl-2-dragon-ball` (4), `saggitarius-aiolos-stl-2-saint-seiya` (5). A prova anterior cobriu **27/27 SHA** desses cinco; não recalcular sem indício de modificação.
+- **Próximo gate único:** verificar incrementalmente existência/identidade de post, mídia e SHA atuais dos 25 restantes nas pastas `Dados/01-Originais/<slug>` e índices `Controle/registro.jsonl`, sem varredura global, sem repetir download e sem reescrever índice histórico. Se o registro já contiver prova suficiente para o arquivo atual, reutilizá-la. Só após comprovação atualizar o **mesmo CSV**, sem mudar `review_status` ou `selected_media_id` por presunção.
+- **Frente editorial independente:** verificar escultura/variante, proveniência, licença comercial e escolher uma capa autorizada antes de qualquer promoção. Manter Normal/NSFW separados. **Zero D1/R2, zero deploy e zero arquivos publicados nesta reconciliação.**
+
+**Ordem de retomada de outra IA:** ler este checkpoint → conferir se o CSV/log/SSOT do Drive mudaram → executar apenas os gates ainda abertos com escopo incremental → registrar prova no registro existente → atualizar o checkpoint somente se o estado operacional realmente mudar. Não usar contadores históricos como estado atual, não criar controle paralelo nem reiniciar auditorias já homologadas.
 
 ## Estado reconciliado — integração de 2026-10-29
 
