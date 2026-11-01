@@ -68,7 +68,7 @@ test('matching remote Worker configuration passes', () => {
 test('CORS drift fails closed', () => {
   const value = remote()
   value.bindings[0] = { ...value.bindings[0], text: `${canonical.vars.CORS_ORIGINS},http://localhost:5173` }
-  assert.throws(() => assertRemoteWorkerConfig(expected, value), /CORS_ORIGINS drift/)
+  assert.throws(() => assertRemoteWorkerConfig(expected, value), /CORS_ORIGINS requires exact HTTPS origins/)
 })
 
 test('planned CORS expansion is additive only and remains strict after release', () => {
