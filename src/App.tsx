@@ -422,6 +422,8 @@ export default function App() {
         onOpenGallery={() => setGalleryOpen(true)}
         onToggleFavorite={() => toggleFavorite(selected.id)}
         onToggleCompare={() => toggleCompare(selected.id)}
+        compareCount={compareIds.length}
+        onOpenComparison={() => { closeModelDetail(); setCompareOpen(true) }}
         onToggleQuote={() => safeToggleQuote(selected.id)}
       />
       <FranchiseBrowser open={explorerOpen} mode={catalog.mode} categories={catalog.categories} activeCategory={catalog.category} activeFranchise={catalog.franchise} activeFolder={catalog.folder} folderTrail={catalog.folderTrail} loadFolders={catalog.loadFolders} initialQuery={explorerInitialQuery} onClose={() => setExplorerOpen(false)} onSelectCategory={chooseExplorerCategory} onSelectFranchise={chooseExplorerFranchise} onSelectFolder={chooseExplorerFolder} />
