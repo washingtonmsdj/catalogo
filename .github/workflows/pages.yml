@@ -57,7 +57,7 @@ jobs:
             exit 1
           fi
       - name: Validate first-party Vercel runtime routing
-        run: node --experimental-strip-types --test tools/test_catalog_runtime_contract.mjs tools/test_catalog_runtime_ssot.mjs
+        run: node --experimental-strip-types --test tools/test_catalog_runtime_contract.mjs tools/test_catalog_runtime_ssot.mjs tools/test_published_catalog_mirror.mjs
       - name: Build
         run: npm run build
         env:
@@ -108,3 +108,9 @@ jobs:
           FAVICON="$(curl --fail --silent --show-error --retry 5 --retry-delay 3 --retry-all-errors "$FAVICON_URL")"
           printf '%s' "$FAVICON" | grep -Fq ">$BRAND_INITIAL</text>"
           echo "Preview brand assets ready: $BRAND_NAME ($SHORT_NAME)"
+      - name: Verify published Vercel catalog mirrors Pages asset
+        shell: bash
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          VERCEL_CATALOG_URL: https://acheguese.vercel.app/tonecosstudios/
+        run: node tools/check_published_catalog_mirror.mjs
