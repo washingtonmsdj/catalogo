@@ -106,6 +106,41 @@ async function exercise(browser, spec) {
     assert.ok(await page.getByRole('combobox', { name: 'Buscar no catálogo' }).isVisible())
     assert.equal(await page.locator('.storefront-model-grid.is-results > .storefront-model-card').count(), 48,
       'The scalable catalog is the initial view and shows one complete cursor page')
+    if (spec.width <= 760) {
+      const mobileCards = await page.locator('.storefront-model-grid.is-results > .storefront-model-card').first().evaluate((card) => {
+        const title = card.querySelector('.storefront-model-card__copy strong')
+        const caption = card.querySelector('.storefront-model-card__copy')
+        const heart = card.querySelector('.storefront-model-card__heart')
+        const quote = card.querySelector('.storefront-model-card__quote')
+        const media = card.querySelector('.storefront-model-card__media')
+        const badge = card.querySelector('.storefront-model-card__gallery-badge')
+        if (!title || !caption || !heart || !quote || !media || !badge) return null
+        const copyBox = caption.getBoundingClientRect()
+        const mediaBox = media.getBoundingClientRect()
+        const badgeBox = badge.getBoundingClientRect()
+        const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+        return {
+          titleFont: Number.parseFloat(getComputedStyle(title).fontSize),
+          galleryBadgeVisible: badgeBox.top >= mediaBox.top && badgeBox.bottom <= mediaBox.bottom &&
+            badgeBox.left >= mediaBox.left && badgeBox.right <= mediaBox.right &&
+            ![heart, quote].some((button) => intersects(button.getBoundingClientRect(), badgeBox)),
+          titleLines: getComputedStyle(title).webkitLineClamp,
+          heartWidth: heart.getBoundingClientRect().width,
+          heartHeight: heart.getBoundingClientRect().height,
+          quoteWidth: quote.getBoundingClientRect().width,
+          quoteHeight: quote.getBoundingClientRect().height,
+          actionOverlapsCaption: [heart, quote].some((button) => intersects(button.getBoundingClientRect(), copyBox)),
+        }
+      })
+      assert.ok(mobileCards, 'Mobile model controls and caption must render')
+      assert.ok(mobileCards.titleFont >= 12, 'Model names need readable mobile typography')
+      if (spec.width >= 360) assert.equal(mobileCards.titleLines, '2', 'Narrow grid cards must support two title lines')
+      assert.ok(mobileCards.heartWidth >= 40 && mobileCards.heartHeight >= 40, 'Favorite requires a reliable touch target')
+      assert.ok(mobileCards.quoteWidth >= 40 && mobileCards.quoteHeight >= 40, 'My list action requires a reliable touch target')
+      assert.equal(mobileCards.actionOverlapsCaption, false, 'Quick actions must never obscure the model description')
+      assert.equal(mobileCards.galleryBadgeVisible, true, 'Gallery count must remain visible inside the photo, away from action buttons')
+      entry.checks.push('readable model cards with separate mobile actions and protected captions')
+    }
     assert.ok(await page.locator('.storefront-results-hero--global').isVisible(),
       'The global catalog should use the concept results banner above the model grid on desktop and mobile')
     assert.equal(await page.getByRole('region', { name: 'Destaque editorial do catálogo' }).isVisible(), false,
@@ -145,6 +180,7 @@ async function exercise(browser, spec) {
         frameTop: frame.top, titleTop: title.top, titleBottom: title.bottom, frameBottom: frame.bottom,
         subjectTop: subject?.top, subjectBottom: subject?.bottom,
         navOverlapsTitle: navs.some((nav) => intersects(nav, title)),
+        navOverlapsDescription: Boolean(paragraph && navs.some((nav) => intersects(nav, paragraph))),
         dotsOverlapParagraph: Boolean(dots && paragraph && intersects(dots, paragraph)),
       }
     })
@@ -155,8 +191,9 @@ async function exercise(browser, spec) {
       assert.ok(hero.subjectTop >= hero.frameTop - 1 && hero.subjectBottom <= hero.frameBottom + 1,
         'Desktop hero subject must remain inside its frame')
     }
+    assert.equal(hero.navOverlapsTitle, false, 'Hero navigation must never obscure the headline')
+    assert.equal(hero.navOverlapsDescription, false, 'Hero navigation must never obscure the description')
     if (spec.width <= 620) {
-      assert.equal(hero.navOverlapsTitle, false, 'Mobile hero arrows must not obscure the title')
       assert.equal(hero.dotsOverlapParagraph, false, 'Mobile hero dots must not obscure description')
     }
     assert.equal(await page.locator('.storefront-sidebar__nav a[href="#colecoes"]').count(), 1)
