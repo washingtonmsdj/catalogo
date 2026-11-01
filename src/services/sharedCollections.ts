@@ -40,7 +40,7 @@ export async function createSharedCollection(name: string, modelIds: string[], t
 }
 
 export async function fetchSharedCollection(code: string) {
-  if (!apiBase) throw new Error('sharing_unavailable')
+  if (!isSharedCollectionsLive()) throw new Error('sharing_unavailable')
   const response = await fetch(catalogApiUrl(`/api/shared-collections/${encodeURIComponent(code)}`))
   const body = await response.json().catch(() => null) as (SharedCollection & { error?: string }) | null
   if (!response.ok) throw new Error(body?.error || `shared_collection_fetch_failed_${response.status}`)
