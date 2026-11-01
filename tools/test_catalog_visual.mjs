@@ -698,6 +698,33 @@ async function exercise(browser, spec) {
     entry.screenshots.push(spec.name + '-results.png')
 
     if ([390, 1024].includes(spec.width)) {
+      const explorerTrigger = page.getByRole('button', { name: 'Explorar franquias e pastas' })
+      await explorerTrigger.click()
+      const explorerDialog = page.getByRole('dialog', { name: 'Encontrar modelos e franquias' })
+      await explorerDialog.waitFor({ state: 'visible', timeout: 5000 })
+      const explorerLayout = await explorerDialog.evaluate((dialog) => {
+        const category = dialog.querySelector('.explorer-categories button')
+        const card = dialog.querySelector('.explorer-grid__franchise > button:first-child')
+        return {
+          font: getComputedStyle(dialog).fontFamily,
+          border: getComputedStyle(dialog).borderTopColor,
+          width: dialog.getBoundingClientRect().width,
+          categoryHeight: category?.getBoundingClientRect().height ?? 0,
+          cardHeight: card?.getBoundingClientRect().height ?? 0,
+        }
+      })
+      assert.match(explorerLayout.font, /system-ui/i, 'Explorer must share storefront font')
+      assert.equal(explorerLayout.border, 'rgb(81, 72, 63)', 'Explorer border must use the canonical strong border token')
+      assert.ok(explorerLayout.width <= spec.width + 1, 'Explorer must fit the viewport')
+      assert.ok(explorerLayout.categoryHeight >= 44, 'Explorer categories need 44px targets')
+      assert.ok(explorerLayout.cardHeight >= 44, 'Explorer cards need 44px targets')
+      const explorerSearch = explorerDialog.getByRole('textbox', { name: 'Buscar modelos e franquias' })
+      await explorerSearch.fill('sentinela')
+      await explorerDialog.getByRole('button', { name: 'Limpar busca' }).click()
+      assert.equal(await explorerSearch.inputValue(), '', 'Explorer search must remain clearable')
+      await explorerDialog.getByRole('button', { name: 'Fechar navegador' }).click()
+      await explorerDialog.waitFor({ state: 'hidden' })
+      entry.checks.push('explorer uses canonical palette, font, touch targets and responsive geometry')
       const collectionTrigger = page.getByRole('button', { name: 'Abrir minhas coleções', exact: true })
       await collectionTrigger.click()
       const collectionsDialog = page.getByRole('dialog', { name: 'Minhas coleções' })

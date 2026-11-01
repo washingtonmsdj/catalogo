@@ -50,6 +50,12 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 - Filtros salvos mantêm a navegação horizontal local quando necessário, textos longos truncados e remoção com 44 px. Os estados de foco usam o acento da marca.
 - O browser CI exercita aplicação, salvamento, remoção e limpeza nos 320 e 390 px, sem consultar API ou D1 de produção.
 
+## Navegador de franquias e pastas (2026-11-01)
+
+- O `FranchiseBrowser` e a árvore `CatalogSidebarTree` continuam únicos. O CSS `src/explorer.css` passa a reutilizar somente os tokens `--store-*` para superfícies, bordas, fontes, foco e ações.
+- O navegador perde a paleta verde/dourada e a fonte Courier concorrentes, adotando grafite, marfim e laranja; apenas números e códigos usam `--store-font-mono`.
+- Os alvos de pastas já têm 44 px e o controle de limpar busca também recebe 44 px no celular. Testes no Chromium isolado verificam a navegação em 390 e 1024 px, sem acessar D1 de produção.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.

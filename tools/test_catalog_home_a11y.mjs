@@ -136,3 +136,14 @@ test('active and saved filters inherit theme tokens and mobile touch dimensions'
   assert.match(css, /\.storefront-saved-filter button \{ min-height: 44px; font-size: var\(--store-type-label\); \}/)
   assert.doesNotMatch(css, /\.storefront-active-filters button \{ background: #302820 !important; \}/)
 })
+
+
+test('franchise explorer inherits canonical design tokens without a competing theme', () => {
+  const explorer = readFileSync(new URL('../src/explorer.css', import.meta.url), 'utf8')
+  assert.doesNotMatch(explorer, /#[0-9a-f]{3,8}\b/i)
+  assert.doesNotMatch(explorer, /"Courier New"|ui-sans-serif, system-ui/)
+  assert.match(explorer, /\.explorer-modal\s*\{[^}]*border: 1px solid var\(--store-border-strong\)/)
+  assert.match(explorer, /\.explorer-folder-structure \.storefront-tree-row\.is-group \{[^}]*background: var\(--store-panel-raised\)/)
+  assert.match(explorer, /\.explorer-folder-structure button:focus-visible \{ outline: 2px solid var\(--store-accent\)/)
+  assert.match(explorer, /\.explorer-category-action \{[\s\S]*?font: 750 var\(--store-type-label\)/)
+})
