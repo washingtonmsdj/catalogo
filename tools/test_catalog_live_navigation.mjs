@@ -317,10 +317,16 @@ async function exercise(browser, spec) {
       assert.equal(firstPageCodes[0], 'R29-BULK-00001')
       const cardCovers = page.locator('.storefront-model-grid.is-results .storefront-model-card__media img')
       assert.equal(await cardCovers.count(), 48)
+      const heroCover = page.locator('.storefront-results-hero > img')
+      assert.equal(await heroCover.getAttribute('loading'), 'eager')
+      assert.equal(await heroCover.getAttribute('fetchpriority'), 'high')
       assert.equal(await cardCovers.nth(0).getAttribute('loading'), 'eager')
       assert.equal(await cardCovers.nth(0).getAttribute('fetchpriority'), 'high')
-      assert.equal(await cardCovers.nth(5).getAttribute('loading'), 'eager')
-      assert.equal(await cardCovers.nth(6).getAttribute('loading'), 'lazy')
+      assert.equal(await cardCovers.nth(1).getAttribute('loading'), 'lazy')
+      assert.equal(await cardCovers.nth(5).getAttribute('loading'), 'lazy')
+      assert.equal(await cardCovers.nth(47).getAttribute('loading'), 'lazy')
+      assert.equal(await cardCovers.evaluateAll(images => images.filter(image => image.getAttribute('loading') === 'eager').length), 1,
+        'Only the first result card can compete with the headline image for high-priority loading')
       await page.waitForFunction(() => {
         const cover = document.querySelector('.storefront-model-grid.is-results .storefront-model-card__media img')
         return cover instanceof HTMLImageElement && cover.complete && cover.naturalWidth > 0
