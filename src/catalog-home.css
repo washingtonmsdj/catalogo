@@ -1879,7 +1879,12 @@ body { background: #111110; color: #f3eee8; }
   .storefront-model-grid.is-results:not(.is-list) .storefront-model-card__heart,
   .storefront-model-grid.is-results:not(.is-list) .storefront-model-card__quote { width: 40px; height: 40px; }
   .storefront-model-grid.is-results:not(.is-list) .storefront-model-card__quote { position: static; }
-  .storefront-model-grid.is-results:not(.is-list) .storefront-model-card__gallery-badge { top: 105px; right: 8px; }
+  .storefront-model-grid.is-results:not(.is-list) .storefront-model-card__gallery-badge {
+    top: auto;
+    right: auto;
+    bottom: 8px;
+    left: 8px;
+  }
   .storefront-results-hero { min-height: 184px; }
   .storefront-results-hero__copy { max-width: 82%; padding: 19px; }
   .storefront-results-hero > img { width: 72%; opacity: .82; }
