@@ -40,7 +40,7 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 
 - O atalho anunciado **Ctrl+K** (ou Cmd+K em macOS) foca a busca global existente, seleciona a consulta atual para substituição e nunca abre o explorador de franquias. A tecla **/** faz o mesmo fora de campos editáveis; **E** continua abrindo o explorador. Nenhum atalho global invade um diálogo modal.
 - O botão **Limpar busca** devolve o foco ao mesmo campo, sem montar uma segunda busca. Seu alvo móvel mede ao menos 44 px.
-- Em telas até 760 px, a lista de sugestões se ancora à posição real do campo por CSS relativo. Não usar coordenadas fixas de viewport; respeitar altura disponível, rolagem interna, visibilidade do resultado completo e tipografia --store-type-*.
+- Em telas até 760 px, a lista de sugestões se ancora à posição real do campo por CSS relativo. Não usar coordenadas fixas de viewport; respeitar altura disponível, rolagem interna, visibilidade do resultado completo fixado no rodapé do painel e tipografia --store-type-*.
 - Os testes verificam atalhos, foco, limites geométricos e interação em Chromium isolado, sem consultas ao D1 de produção.
 
 ## Troca futura de marca

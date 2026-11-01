@@ -528,7 +528,10 @@ async function exercise(browser, spec) {
       assert.ok(suggestionsBox && searchBox && suggestionsBox.y >= searchBox.y + searchBox.height
         && suggestionsBox.y <= searchBox.y + searchBox.height + 14,
         'Search suggestions must attach to the real input position instead of a fixed screen offset')
-      const allResultsBox = await suggestions.getByRole('option', { name: /Ver todos os resultados para/ }).boundingBox()
+      const fullResultsButton = suggestions.getByRole('option', { name: /Ver todos os resultados para/ })
+      const footerPosition = await fullResultsButton.evaluate((button) => getComputedStyle(button).position)
+      assert.equal(footerPosition, 'sticky', 'Full-results action must remain pinned inside the suggestions scroll panel')
+      const allResultsBox = await fullResultsButton.boundingBox()
       assert.ok(suggestionsBox && allResultsBox && allResultsBox.y >= suggestionsBox.y
         && allResultsBox.y + allResultsBox.height <= suggestionsBox.y + suggestionsBox.height
         && suggestionsBox.y + suggestionsBox.height <= spec.height,

@@ -1945,8 +1945,8 @@ body { background: var(--store-bg); color: var(--store-text); }
     top: calc(100% + 8px);
     left: 0;
     right: 0;
-    max-height: min(64vh, 620px);
-    max-height: min(64dvh, 620px);
+    max-height: min(78vh, 680px);
+    max-height: min(78dvh, 680px);
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -1959,6 +1959,16 @@ body { background: var(--store-bg); color: var(--store-text); }
   .storefront-search-suggestions small,
   .storefront-search-suggestions b,
   .storefront-search-suggestions__status { font-size: var(--store-type-caption); }
+  /* Keep the full-results decision visible when long suggestion groups scroll. */
+  .storefront-search-suggestions > .storefront-search-suggestions__all {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    min-height: 44px;
+    border-top: 1px solid var(--store-border);
+    background: var(--store-panel);
+    box-shadow: 0 -6px 14px rgba(0, 0, 0, .18);
+  }
   .storefront-saved-filters { margin-inline: 1px; }
   .storefront-model-grid.is-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; gap: 11px; }
   .storefront-model-grid.is-results .storefront-model-card { height: 248px; }
