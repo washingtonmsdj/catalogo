@@ -116,3 +116,8 @@ jobs:
         run: node tools/check_published_catalog_mirror.mjs
       - name: Verify first-party Vercel API and one public cover
         run: python tools/verify_public_catalog.py --api-base https://acheguese.vercel.app/catalogo-api
+      - name: Verify quote ingress rejects invalid request without creating an order
+        run: >-
+          node --input-type=module -e
+          "import { verifyPublicQuoteIngress } from './tools/worker_release_smoke.mjs';
+          console.log(JSON.stringify(await verifyPublicQuoteIngress('https://acheguese.vercel.app/catalogo-api')))"

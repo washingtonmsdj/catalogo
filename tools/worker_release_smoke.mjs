@@ -51,3 +51,39 @@ export async function verifyWorkerReleaseContract(apiBase, fetchImpl = fetch) {
     sharedCollections: true,
   }
 }
+
+/**
+ * Negative-only quote ingress probe. Sends invalid empty JSON, never a customer
+ * identity, model ID, Turnstile token or valid quote. The server must reject
+ * before the D1 mutation path. Call only after the public health probe passes.
+ */
+export async function verifyPublicQuoteIngress(
+  apiBase,
+  fetchImpl = fetch,
+) {
+  const base = 'https://acheguese.vercel.app/catalogo-api'
+  if (apiBase !== base) throw new Error('quote ingress must use canonical first-party Vercel proxy')
+  const response = await fetchImpl(base + '/api/quotes', {
+    method: 'POST',
+    redirect: 'error',
+    headers: {
+      origin: 'https://acheguese.vercel.app',
+      accept: 'application/json',
+      'content-type': 'application/json',
+    },
+    body: '{}',
+    signal: AbortSignal.timeout(12000),
+  })
+  if (response.status !== 400) {
+    throw new Error('quote ingress unexpected status ' + response.status)
+  }
+  const payload = await response.json().catch(() => null)
+  if (payload?.error !== 'invalid_request') {
+    throw new Error('quote ingress did not reject invalid input before Turnstile or D1 writes')
+  }
+  const cors = response.headers.get('access-control-allow-origin')
+  if (cors && cors !== 'https://acheguese.vercel.app') {
+    throw new Error('quote ingress returned unexpected CORS origin')
+  }
+  return { ok: true, invalidQuoteRejected: true, productionWrites: 0 }
+}

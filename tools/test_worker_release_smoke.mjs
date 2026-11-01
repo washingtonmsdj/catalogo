@@ -4,7 +4,7 @@ import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-import { verifyWorkerReleaseContract } from './worker_release_smoke.mjs'
+import { verifyWorkerReleaseContract, verifyPublicQuoteIngress } from './worker_release_smoke.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const schema = JSON.parse(fs.readFileSync(path.join(root, 'config/catalog-schema-contract.json'), 'utf8'))
@@ -125,4 +125,48 @@ test('release smoke rejects an invalid public API base before any request', asyn
     /API base must be http\(s\)/,
   )
   assert.equal(calls, 0)
+})
+
+
+test('first-party quote ingress rejects empty non-personal JSON before any write', async () => {
+  let calls = 0
+  const result = await verifyPublicQuoteIngress('https://acheguese.vercel.app/catalogo-api', async (url, init) => {
+    calls++
+    assert.equal(url, 'https://acheguese.vercel.app/catalogo-api/api/quotes')
+    assert.equal(init.method, 'POST')
+    assert.equal(init.redirect, 'error')
+    assert.equal(init.headers.origin, 'https://acheguese.vercel.app')
+    assert.deepEqual(JSON.parse(init.body), {})
+    assert.equal(init.headers['content-type'], 'application/json')
+    return Response.json({ error: 'invalid_request' }, {
+      status: 400,
+      headers: { 'access-control-allow-origin': 'https://acheguese.vercel.app' },
+    })
+  })
+  assert.deepEqual(result, { ok: true, invalidQuoteRejected: true, productionWrites: 0 })
+  assert.equal(calls, 1)
+})
+
+test('quote ingress fails closed on wrong origin, missing route or unexpected response', async () => {
+  let calls = 0
+  await assert.rejects(
+    verifyPublicQuoteIngress('https://tonecos-catalogo-api.tonecosstudio.workers.dev', async () => { calls++; }),
+    /canonical first-party Vercel proxy/,
+  )
+  assert.equal(calls, 0)
+
+  for (const response of [
+    Response.json({ reference: 'should-not-exist' }, { status: 201 }),
+    Response.json({ error: 'origin_not_allowed' }, { status: 403 }),
+    new Response('<html>not found</html>', { status: 404 }),
+    Response.json({ error: 'unrelated' }, { status: 400 }),
+    Response.json({ error: 'invalid_request' }, { status: 400, headers: {
+      'access-control-allow-origin': 'https://untrusted.example',
+    } }),
+  ]) {
+    await assert.rejects(
+      verifyPublicQuoteIngress('https://acheguese.vercel.app/catalogo-api', async () => response),
+      /quote ingress/,
+    )
+  }
 })
