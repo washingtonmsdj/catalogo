@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - verify-public-hierarchy
+          - verify-public-proxy
           - verify-d1-schema
 
 permissions:
@@ -46,10 +47,13 @@ jobs:
           OPERATION: ${{ inputs.operation }}
         run: |
           set -euo pipefail
-          test -n "$CATALOG_API_URL" || { echo '::error::VITE_API_BASE_URL ausente'; exit 1; }
           case "$OPERATION" in
-            verify-public-hierarchy) ;;
+            verify-public-proxy) ;;
+            verify-public-hierarchy)
+              test -n "$CATALOG_API_URL" || { echo '::error::VITE_API_BASE_URL ausente'; exit 1; }
+              ;;
             verify-d1-schema)
+              test -n "$CATALOG_API_URL" || { echo '::error::VITE_API_BASE_URL ausente'; exit 1; }
               test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo '::error::CLOUDFLARE_ACCOUNT_ID ausente'; exit 1; }
               test -n "$CLOUDFLARE_API_TOKEN" || { echo '::error::CLOUDFLARE_API_TOKEN ausente'; exit 1; }
               ;;
@@ -71,7 +75,11 @@ jobs:
         if: ${{ inputs.operation == 'verify-d1-schema' }}
         run: python tools/check_d1_editorial_audit_budget.py
       - name: Validate active Worker health and schema
+        if: ${{ inputs.operation != 'verify-public-proxy' }}
         run: node tools/check_worker_health.mjs "$CATALOG_API_URL"
+      - name: Verify Vercel first-party API and one real cover (read-only)
+        if: ${{ inputs.operation == 'verify-public-proxy' }}
+        run: python tools/verify_public_catalog.py --api-base https://acheguese.vercel.app/catalogo-api
       - name: Verify public hierarchy (read-only)
         if: ${{ inputs.operation == 'verify-public-hierarchy' }}
         run: node tools/check_public_catalog_hierarchy.mjs "$CATALOG_API_URL"
