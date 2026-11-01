@@ -63,6 +63,13 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 - Fechar detalhes, favoritar, comparar, abrir galeria, pesquisar/remover favoritos e concluir ações têm botões de 44 px nos caminhos responsivos. Os controles de remoção ficam na coluna de 44 px sem sobreposição.
 - Chromium isolado testa abertura de detalhes, favoritar, abrir favoritos, remover e fechar em 390 e 1024 px, sem acessar D1 de produção.
 
+## Formulário de orçamento (2026-11-01)
+
+- O formulário `QuoteDialog` usa os tokens de superfície, contraste, tipografia e acento definidos em `src/catalog-home.css`. Seu CSS proprietário não deve definir paleta verde ou fontes concorrentes.
+- Em celulares, campos usam `--store-type-body` (14 px) e altura mínima de 44 px; etiquetas são legíveis (12 px), e os botões de remover itens, enviar, voltar e reabrir comprovante usam no mínimo 44 px.
+- O layout reserva 44 px para remover itens sem encobrir o nome; cores de alerta são semânticas (`--store-danger`), ação e foco usam `--store-accent`, e protocolos usam `--store-font-mono`.
+- Testes estáticos bloqueiam cores hexadecimais/fonte paralelas. O Chromium isolado valida geometria e jornada de orçamento em 390 px, sem operação no D1 ou API de produção.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.

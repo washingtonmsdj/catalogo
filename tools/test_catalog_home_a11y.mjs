@@ -164,3 +164,17 @@ test('model detail and favorites dialogs use storefront tokens and mobile touch 
   assert.match(favorites, /\.favorites-list__remove \{\s*width: 44px;\s*height: 44px;/)
   assert.match(favorites, /grid-template-columns: 34px minmax\(0,1fr\) 44px;/)
 })
+
+
+test('quote dialog shares the canonical palette and readable mobile form controls', () => {
+  const quote = readFileSync(new URL('../src/quote-dialog.css', import.meta.url), 'utf8')
+  assert.doesNotMatch(quote, /#[0-9a-f]{3,8}\b/i)
+  assert.doesNotMatch(quote, /ui-sans-serif|ui-monospace,/)
+  assert.match(quote, /\.quote-request-modal \{[\s\S]*?border: 1px solid var\(--store-border-strong\)/)
+  assert.match(quote, /grid-template-columns: 29px minmax\(0,1fr\) 44px;/)
+  assert.match(quote, /\.quote-request-item__remove \{\s*width: 44px;\s*height: 44px;/)
+  assert.match(quote, /\.quote-request-fields input \{\s*min-height: 44px;/)
+  assert.match(quote, /font: 600 var\(--store-type-body\)\/1\.35 var\(--store-font-body\)/)
+  assert.match(quote, /\.quote-request-submit \.primary-action \{[\s\S]*?min-height: 44px;/)
+  assert.match(quote, /\.quote-request-last-receipt button \{\s*min-height: 44px;/)
+})
