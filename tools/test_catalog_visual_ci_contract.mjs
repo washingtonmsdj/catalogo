@@ -130,7 +130,7 @@ test('R29 live-contract browser gate runs independently of production D1 and wit
 })
 
 test('storefront tokens have one authoritative value and legacy shell only aliases it', () => {
-  assert.equal((storefrontCss.match(/^:root\\s*\\{/gm) ?? []).length, 1,
+  assert.equal((storefrontCss.match(/^:root\s*\{/gm) ?? []).length, 1,
     'The storefront must have exactly one authoritative root token block')
   for (const declaration of [
     '--store-accent: #f06b24',
@@ -140,16 +140,16 @@ test('storefront tokens have one authoritative value and legacy shell only alias
     '--store-panel:',
     '--store-border:',
   ]) assert.ok(storefrontCss.includes(declaration), 'Missing canonical token ' + declaration)
-  assert.match(shellCss, /--accent: var\\(--store-accent\\)/)
-  assert.match(shellCss, /--bg: var\\(--store-bg\\)/)
-  assert.match(shellCss, /--text: var\\(--store-text\\)/)
-  assert.doesNotMatch(storefrontCss, /--concept-green(?:-2|-soft)?\\s*:/)
+  assert.match(shellCss, /--accent: var\(--store-accent\)/)
+  assert.match(shellCss, /--bg: var\(--store-bg\)/)
+  assert.match(shellCss, /--text: var\(--store-text\)/)
+  assert.doesNotMatch(storefrontCss, /--concept-green(?:-2|-soft)?\s*:/)
 })
 
 test('responsive browser checks the effective palette, shared font and mobile wayfinding', () => {
-  assert.match(browser, /one computed font\\/palette source and readable mobile navigation with 44px targets/)
+  assert.match(browser, /one computed font\/palette source and readable mobile navigation with 44px targets/)
   assert.match(browser, /Every mobile destination must remain inside the viewport/)
   assert.match(browser, /The active mobile destination must be visibly distinct/)
   assert.match(browser, /The global navigation must share the storefront body font/)
-  assert.match(storefrontCss, /\.storefront-topbar nav \.is-active::after \\{ display: none; \\}/)
+  assert.match(storefrontCss, /\.storefront-topbar nav \.is-active::after \{ display: none; \}/)
 })
