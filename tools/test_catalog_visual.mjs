@@ -112,11 +112,18 @@ async function exercise(browser, spec) {
         const caption = card.querySelector('.storefront-model-card__copy')
         const heart = card.querySelector('.storefront-model-card__heart')
         const quote = card.querySelector('.storefront-model-card__quote')
-        if (!title || !caption || !heart || !quote) return null
+        const media = card.querySelector('.storefront-model-card__media')
+        const badge = card.querySelector('.storefront-model-card__gallery-badge')
+        if (!title || !caption || !heart || !quote || !media || !badge) return null
         const copyBox = caption.getBoundingClientRect()
+        const mediaBox = media.getBoundingClientRect()
+        const badgeBox = badge.getBoundingClientRect()
         const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
         return {
           titleFont: Number.parseFloat(getComputedStyle(title).fontSize),
+          galleryBadgeVisible: badgeBox.top >= mediaBox.top && badgeBox.bottom <= mediaBox.bottom &&
+            badgeBox.left >= mediaBox.left && badgeBox.right <= mediaBox.right &&
+            ![heart, quote].some((button) => intersects(button.getBoundingClientRect(), badgeBox)),
           titleLines: getComputedStyle(title).webkitLineClamp,
           heartWidth: heart.getBoundingClientRect().width,
           heartHeight: heart.getBoundingClientRect().height,
@@ -131,6 +138,7 @@ async function exercise(browser, spec) {
       assert.ok(mobileCards.heartWidth >= 40 && mobileCards.heartHeight >= 40, 'Favorite requires a reliable touch target')
       assert.ok(mobileCards.quoteWidth >= 40 && mobileCards.quoteHeight >= 40, 'My list action requires a reliable touch target')
       assert.equal(mobileCards.actionOverlapsCaption, false, 'Quick actions must never obscure the model description')
+      assert.equal(mobileCards.galleryBadgeVisible, true, 'Gallery count must remain visible inside the photo, away from action buttons')
       entry.checks.push('readable model cards with separate mobile actions and protected captions')
     }
     assert.ok(await page.locator('.storefront-results-hero--global').isVisible(),
