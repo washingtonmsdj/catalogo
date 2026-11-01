@@ -845,7 +845,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
           {resultsMode && !catalogUnavailable && <section className={`storefront-results-hero ${!hasResolvedDiscovery ? 'storefront-results-hero--global' : ''}`} aria-label="Resumo dos resultados">
             {models[0]?.coverUrl ? <img src={models[0].coverUrl} alt="" loading="eager" fetchPriority="high" decoding="async" /> : models[0]?.demoArtworkIndex !== undefined && <span className="storefront-results-hero__sprite" aria-hidden="true" style={{ backgroundPosition: `${(models[0].demoArtworkIndex % 4) * 33.333}% ${Math.floor(models[0].demoArtworkIndex / 4) * 50}%` }} />}
             <div className="storefront-results-hero__copy">
-              <span>{resultScope || 'ACERVO TONECOS'} · CATÁLOGO</span>
+              <span>{resultScope || `ACERVO ${BRAND_SHORT_NAME.toUpperCase()}`} · CATÁLOGO</span>
               <h1>{hasAppliedSearch ? catalog.search.trim() : resultTitle}</h1>
               <p>{hasAppliedSearch ? 'Modelos, personagens e franquias encontrados para sua busca.' : 'Explore os modelos deste recorte e encontre a próxima peça da sua coleção.'}</p>
                   <strong>{formatter.format(resultModelCount)} <small>{resultModelCountLabel}{resultModelCountIsApproximate ? ' aprox.' : ''}</small></strong>
@@ -892,7 +892,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
                 <span><strong>{catalogUnavailable ? '—' : heroCampaignCategory ? formatter.format(heroCampaignCategory.count) : '—'}</strong><small>na coleção</small></span>
               </div>
               <div className="storefront-hero__actions">
-                <button type="button" className="storefront-button storefront-button--primary" onClick={exploreHeroCampaign}>Explorar coleção <Icon name="chevron" /></button>
+                <button type="button" className="storefront-button storefront-button--primary" onClick={exploreHeroCampaign}>{heroCampaignCategory ? 'Explorar coleção' : 'Ver catálogo completo'} <Icon name="chevron" /></button>
                 <button type="button" className="storefront-button storefront-button--ghost" onClick={() => onOpenExplorer()}><Icon name="grid" /> Ver franquias</button>
               </div>
             </div>
@@ -995,7 +995,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
             </div>
             {featuredModels.length ? (
               <div className={`storefront-model-grid ${resultsMode ? 'is-results' : ''} ${resultsMode && resultsView === 'list' ? 'is-list' : ''} ${catalog.loading ? 'is-updating' : ''}`} aria-busy={catalog.loading}>
-                {featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} quoted={quoteList.includes(model.id)} active={selected.id === model.id} priority={index < 6} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} onQuote={() => onToggleQuote(model.id)} />)}
+                {featuredModels.map((model, index) => <ModelCard key={model.id} model={model} favorite={favorites.includes(model.id)} quoted={quoteList.includes(model.id)} active={selected.id === model.id} priority={resultsMode && index === 0} categoryLabel={categoryLabels.get(model.category)} onSelect={() => selectModel(model)} onFavorite={() => onToggleFavorite(model.id)} onQuote={() => onToggleQuote(model.id)} />)}
               </div>
             ) : catalog.loading ? (
               <div className={`storefront-model-grid storefront-model-grid--skeleton ${resultsMode ? 'is-results' : ''}`} role="status" aria-label="Carregando modelos">
