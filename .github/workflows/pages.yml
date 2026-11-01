@@ -114,10 +114,25 @@ jobs:
           PAGE_URL: ${{ steps.deployment.outputs.page_url }}
           VERCEL_CATALOG_URL: https://acheguese.vercel.app/tonecosstudios/
         run: node tools/check_published_catalog_mirror.mjs
-      - name: Verify first-party Vercel API and one public cover
-        run: python tools/verify_public_catalog.py --api-base https://acheguese.vercel.app/catalogo-api
-      - name: Verify quote ingress rejects invalid request without creating an order
+      - name: Verify canonical Achegue-se domain mirrors Pages asset
+        shell: bash
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          VERCEL_CATALOG_URL="$(node -e "const {publicSiteUrl}=require('./config/public-runtime.json');process.stdout.write(publicSiteUrl)")" \
+            node tools/check_published_catalog_mirror.mjs
+      - name: Verify canonical public API and one cover via first-party proxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_BASE="$(node -e "const {publicSiteUrl}=require('./config/public-runtime.json');process.stdout.write(new URL('/catalogo-api',publicSiteUrl).href)")"
+          python tools/verify_public_catalog.py --api-base "$API_BASE"
+      - name: Verify canonical quote ingress rejects invalid request without creating an order
+        shell: bash
         run: >-
           node --input-type=module -e
-          "import { verifyPublicQuoteIngress } from './tools/worker_release_smoke.mjs';
-          console.log(JSON.stringify(await verifyPublicQuoteIngress('https://acheguese.vercel.app/catalogo-api')))"
+          "import { readFileSync } from 'node:fs';
+          import { verifyPublicQuoteIngress } from './tools/worker_release_smoke.mjs';
+          const { publicSiteUrl } = JSON.parse(readFileSync('./config/public-runtime.json', 'utf8'));
+          console.log(JSON.stringify(await verifyPublicQuoteIngress(new URL('/catalogo-api', publicSiteUrl).href)))"
