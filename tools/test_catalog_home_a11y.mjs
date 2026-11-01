@@ -213,3 +213,29 @@ test('updates and recently viewed dialog uses storefront theme and touch control
   assert.match(updates, /\.catalog-updates-footer button \{\s*min-height: 44px;/)
   assert.match(updates, /\.catalog-updates-tabs button:focus-visible,[\s\S]*?outline: 2px solid var\(--store-accent\)/)
 })
+
+
+test('local collections, organizer and sharing use one canonical palette and mobile sizing', () => {
+  const files = [
+    '../src/collections.css',
+    '../src/collections-organizer.css',
+    '../src/collections-sharing.css',
+  ]
+  const [collections, organizer, sharing] = files.map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'))
+  for (const stylesheet of [collections, organizer, sharing]) {
+    assert.doesNotMatch(stylesheet, /#[0-9a-f]{3,8}\b/i)
+    assert.doesNotMatch(stylesheet, /"Courier New"|ui-sans-serif, system-ui/)
+    assert.match(stylesheet, /var\(--store-accent\)/)
+  }
+  assert.match(collections, /\.collections-modal \{[\s\S]*?border: 1px solid var\(--store-border-strong\)/)
+  assert.match(collections, /\.collections-layout \{[\s\S]*?min-height: 0;\s*overflow: hidden;/)
+  assert.match(collections, /\.collections-list \{[\s\S]*?overflow: auto;/)
+  assert.match(collections, /\.collections-remove \{[\s\S]*?width: 44px;\s*height: 44px;/)
+  assert.match(collections, /\.collections-modal \.modal-head > button,[\s\S]*?width: 44px; height: 44px;/)
+  assert.match(collections, /\.collections-backup-actions button \{[\s\S]*?min-height: 44px;/)
+  assert.match(organizer, /\.collections-model-controls input,[\s\S]*?min-height: 44px;/)
+  assert.match(organizer, /\.collections-model-controls > button \{[\s\S]*?min-height: 44px;/)
+  assert.match(sharing, /\.collections-share-form select \{[\s\S]*?min-height: 44px;/)
+  assert.match(sharing, /\.collections-share-result input \{[\s\S]*?min-height: 44px;/)
+  assert.match(sharing, /\.collections-share-result button \{[\s\S]*?min-height: 44px;/)
+})

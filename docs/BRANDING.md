@@ -84,6 +84,13 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 - Botões de abas, fechar e limpar histórico têm alvos de pelo menos 44 px; cards e modelos recentes permanecem legíveis e sem rolagem horizontal da página em 390 e 1024 px.
 - Chromium em demo isolada valida abertura por **Novos**, geometria, alternância entre abas, histórico real do navegador, limpeza e fechamento. Não acessar D1 de produção.
 
+## Coleções locais, organização e compartilhamento (2026-11-01)
+
+- Manter `CollectionsDock` e `SharedCollectionsDock` como os únicos fluxos de listas locais e compartilhamento; não criar um dock móvel duplicado. O botão de ações compactas deve permanecer no fluxo da página até 1499 px.
+- `src/collections.css`, `src/collections-organizer.css` e `src/collections-sharing.css` utilizam a paleta e tipografia `--store-*` do catálogo, sem nova paleta verde, branco independente ou fonte Courier. Mensagens de erro mantêm semântica `--store-danger`, sem refletir detalhes privados no link público.
+- Em até 820 px, o diálogo de coleções tem altura delimitada por `dvh`, barra lateral com rolagem própria e conteúdo principal rolável, sem mínimo rígido de 560 px que esconde a organização. Criar, renomear, importar/exportar, pesquisar, ordenar, remover modelos e copiar links usam controles com área mínima de 44 px; foco via teclado aparece no acento oficial.
+- CI estático bloqueia regressão de cores e medidas. Chromium isolado abre as coleções, cria uma coleção **local e fictícia**, valida geometria/touch/foco, fecha e abre o compartilhamento no modo demo, sem consultar API ou D1 de produção.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.
