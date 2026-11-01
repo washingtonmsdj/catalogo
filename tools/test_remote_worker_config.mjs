@@ -71,6 +71,41 @@ test('CORS drift fails closed', () => {
   assert.throws(() => assertRemoteWorkerConfig(expected, value), /CORS_ORIGINS drift/)
 })
 
+test('planned CORS expansion is additive only and remains strict after release', () => {
+  const updated = structuredClone(canonical)
+  updated.vars.CORS_ORIGINS += ',https://acheguese.vercel.app'
+  const planned = expectedRemoteWorkerConfig(updated)
+  assert.throws(() => assertRemoteWorkerConfig(planned, remote()), /CORS_ORIGINS drift/)
+  assert.doesNotThrow(() => assertRemoteWorkerConfig(planned, remote(), { allowCorsExpansion: true }))
+  assert.doesNotThrow(() => assertRemoteWorkerConfig(planned, {
+    ...remote(),
+    bindings: remote().bindings.map(binding => binding.name === 'CORS_ORIGINS'
+      ? { ...binding, text: updated.vars.CORS_ORIGINS } : binding),
+  }))
+
+  const unexpected = remote()
+  unexpected.bindings[0].text += ',https://unreviewed.example'
+  assert.throws(() => assertRemoteWorkerConfig(planned, unexpected, { allowCorsExpansion: true }), /CORS_ORIGINS drift/)
+
+  const reduced = structuredClone(canonical)
+  reduced.vars.CORS_ORIGINS = reduced.vars.CORS_ORIGINS.split(',').filter(origin => origin !== 'https://acheguese.com.br').join(',')
+  assert.throws(
+    () => assertRemoteWorkerConfig(expectedRemoteWorkerConfig(reduced), remote(), { allowCorsExpansion: true }),
+    /CORS_ORIGINS drift/,
+  )
+})
+
+test('canonical CORS never admits wildcard, duplicate or HTTP origins', () => {
+  for (const origin of ['https://*.vercel.app', 'http://localhost:5173', 'https://acheguese.com.br/']) {
+    const bad = structuredClone(canonical)
+    bad.vars.CORS_ORIGINS += ',' + origin
+    assert.throws(() => expectedRemoteWorkerConfig(bad), /CORS_ORIGINS requires exact HTTPS origins/)
+  }
+  const duplicated = structuredClone(canonical)
+  duplicated.vars.CORS_ORIGINS += ',https://acheguese.com.br'
+  assert.throws(() => expectedRemoteWorkerConfig(duplicated), /CORS_ORIGINS contains duplicates/)
+})
+
 test('D1 resource drift fails closed', () => {
   const value = remote()
   value.bindings[1] = { ...value.bindings[1], id: '00000000-0000-0000-0000-000000000000', database_id: '00000000-0000-0000-0000-000000000000' }
