@@ -56,6 +56,8 @@ jobs:
             printf '::error::Missing required Repository Variables: %s\n' "${missing[*]}"
             exit 1
           fi
+      - name: Validate first-party Vercel runtime routing
+        run: node --experimental-strip-types --test tools/test_catalog_runtime_contract.mjs tools/test_catalog_runtime_ssot.mjs
       - name: Build
         run: npm run build
         env:

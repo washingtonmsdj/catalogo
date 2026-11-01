@@ -133,7 +133,7 @@ O registro do Worker promovido na PR #161 e os respectivos smokes históricos co
 - O frontend é mantido em `washingtonmsdj/catalogo/main` e publicado no GitHub Pages por `.github/workflows/pages.yml`, com build e smoke de marca. A URL `https://washingtonmsdj.github.io/catalogo/` é origem do catálogo, não base duplicada de imagens.
 - O `vercel.json` de `washingtonmsdj/acheguese` encaminha `/tonecosstudios/*` ao Pages e `/catalogo-api/*` ao Worker da Tonecos. A URL nativa documentada no próprio repositório é `https://acheguese.vercel.app/tonecosstudios/`; a URL comercial canônica é `https://acheguese.com.br/tonecosstudios/`. NÃO confundir configuração Git com deployment verificado.
 - O Worker `tonecos-catalogo-api` fornece API e `/media/*` sobre D1 e R2 privado. O upload de imagens não atualiza automaticamente o frontend Vercel, mas deve aparecer sem novo build se as fichas e mídias já estiverem corretamente publicadas na API.
-- Drive `STLForgeCatalogo` é fonte operacional dos arquivos e direitos; `Controle/lote-novos-atual.csv` e `Controle/registro.jsonl` seguem canônicos. O lote de 25 coletado (205 imagens consideradas) e os cinco previamente verificados (27 SHA) NÃO equivalem a 30 modelos aprovados.
+- Drive `acervo externo do Drive` é fonte operacional dos arquivos e direitos; `Controle/lote-novos-atual.csv` e `Controle/registro.jsonl` seguem canônicos. O lote de 25 coletado (205 imagens consideradas) e os cinco previamente verificados (27 SHA) NÃO equivalem a 30 modelos aprovados.
 
 ### Gate mínimo para declarar Vercel e imagens atualizadas
 
