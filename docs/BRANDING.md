@@ -130,3 +130,11 @@ Essa separação evita perda de favoritos locais, quebra de URLs, duplicação d
 - A página editorial prioriza o banner de destaque; os cards abaixo da dobra carregam capas sob demanda. Na página de resultados, somente a primeira capa recebe prioridade alta, evitando competir com a imagem de cabeçalho e com a navegação.
 - O texto de marca do resumo dos resultados utiliza `BRAND_SHORT_NAME` via `src/config/brand.ts`, nunca um literal comercial duplicado. Sem categorias publicadas, o botão principal do banner informa **Ver catálogo completo** em vez de prometer abrir uma coleção inexistente.
 - O contrato estático fica no teste existente `tools/test_catalog_home_a11y.mjs`; testes de produção/D1 não são necessários para validar essa mudança de frontend.
+
+## Hierarquia visual dos cards de modelo (2026-11-01)
+
+- A grade principal reutiliza `storefront-model-grid` e `ModelCard`; não criar cards paralelos, CSS alternativo nem novas fontes. O modo de lista e o mini-grid de descoberta preservam layouts próprios.
+- Os cards da grade separam mídia e texto: 98 px são reservados à legenda, com título em `--store-type-body` (14 px, até duas linhas), variante em `--store-type-label` (12 px) e metadados em `--store-type-caption` (11 px).
+- Botões de favoritar e adicionar à lista continuam empilhados sobre a imagem, com alvos de 44 px em telefones. Categoria, número de vistas e indicativo de abertura também ficam na área visual, sem invadir a legenda.
+- As dimensões preservam as seis resoluções validadas pelo Chromium isolado: 320, 390, 768, 1024, 1440 e 1920 px. O contrato estático reside em `tools/test_catalog_home_a11y.mjs` e o geométrico em `tools/test_catalog_visual.mjs`.
+- Nenhuma alteração de dados, ingestão, D1/R2 ou no contrato de publicação. Manter o gate editorial e os modelos do modo LIVE integralmente independentes dos fixtures DEMO.
