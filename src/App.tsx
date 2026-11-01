@@ -134,6 +134,7 @@ export default function App() {
   const [receiptStorageWarning, setReceiptStorageWarning] = useState('')
   const [submittedQuoteCount, setSubmittedQuoteCount] = useState(0)
   const [quoteSubmitting, setQuoteSubmitting] = useState(false)
+  const quoteSubmissionInFlight = useRef(false)
   const [quoteError, setQuoteError] = useState('')
   const [turnstileResetKey, setTurnstileResetKey] = useState(0)
 
@@ -218,7 +219,7 @@ export default function App() {
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        if (previewImage) closePreview(); else if (quoteOpen) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (compareOpen) setCompareOpen(false); else if (updatesOpen) setUpdatesOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false); else if (modelDetailOpen) closeModelDetail()
+        if (previewImage) closePreview(); else if (quoteOpen && !quoteSubmissionInFlight.current) setQuoteOpen(false); else if (favoritesOpen) setFavoritesOpen(false); else if (compareOpen) setCompareOpen(false); else if (updatesOpen) setUpdatesOpen(false); else if (galleryOpen) setGalleryOpen(false); else if (explorerOpen) setExplorerOpen(false); else if (modelDetailOpen) closeModelDetail()
         return
       }
       if (previewImage && event.key === 'ArrowRight') { event.preventDefault(); navigatePreview(1); return }
@@ -250,6 +251,7 @@ export default function App() {
     })
   }
   function safeToggleQuote(id: string) {
+    if (quoteSubmissionInFlight.current) return
     setQuoteList((current) => {
       if (current.includes(id)) return current.filter((item) => item !== id)
       if (current.length >= MAX_QUOTE_ITEMS) { setQuoteError(`Cada solicitação aceita até ${MAX_QUOTE_ITEMS} modelos.`); setQuoteOpen(true); return current }
@@ -277,8 +279,8 @@ export default function App() {
     setModelDetailOpen(true)
     window.location.hash = `modelo=${encodeURIComponent(slug)}`
   }
-  function addFavoritesToQuote() { setQuoteList((current) => { const next = [...current]; for (const id of favorites) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setFavoritesOpen(false); setQuoteOpen(true) }
-  function addComparisonToQuote(ids: string[]) { setQuoteList((current) => { const next = [...current]; for (const id of ids) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setCompareOpen(false); setQuoteOpen(true) }
+  function addFavoritesToQuote() { if (quoteSubmissionInFlight.current) return; setQuoteList((current) => { const next = [...current]; for (const id of favorites) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setFavoritesOpen(false); setQuoteOpen(true) }
+  function addComparisonToQuote(ids: string[]) { if (quoteSubmissionInFlight.current) return; setQuoteList((current) => { const next = [...current]; for (const id of ids) { if (next.length >= MAX_QUOTE_ITEMS) break; if (!next.includes(id)) next.push(id) } return next }); setCompareOpen(false); setQuoteOpen(true) }
   function chooseExplorerCategory(category: string) { catalog.setSearch(''); catalog.setCategory(category) }
   function chooseExplorerFranchise(category: string, franchise: string) { catalog.setSearch(''); catalog.setCategory(category); catalog.setFranchise(franchise) }
   function chooseExplorerFolder(category: string, franchise: string, folder: string) {
@@ -331,13 +333,26 @@ export default function App() {
     if (offset < 0 && gallery.hasPreviousPage) { setPreviewPageTarget('last'); gallery.previousPage() }
   }
   async function submitQuote(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault(); const data = new FormData(event.currentTarget); const turnstileToken = String(data.get('turnstileToken') ?? '').trim()
+    event.preventDefault()
+    // Synchronous guard: React state alone cannot block two submits in the same tick.
+    if (quoteSubmissionInFlight.current) return
+    const data = new FormData(event.currentTarget)
+    const turnstileToken = String(data.get('turnstileToken') ?? '').trim()
     if (catalog.mode === 'live' && !isTurnstileConfigured()) { setQuoteError('A proteção do formulário ainda não foi configurada no ambiente de produção.'); return }
     if (catalog.mode === 'live' && !turnstileToken) { setQuoteError('Conclua a verificação anti-bot antes de enviar.'); return }
-    const submittedCount = quoteList.length
+    const submittedIds = [...quoteList]
+    if (!submittedIds.length) { setQuoteError('Selecione pelo menos um modelo antes de enviar.'); return }
+    const submittedCount = submittedIds.length
+    quoteSubmissionInFlight.current = true
     setQuoteSubmitting(true); setQuoteError('')
     try {
-      const result = await submitQuoteRequest({ name: String(data.get('name') ?? '').trim(), email: String(data.get('email') ?? '').trim(), notes: String(data.get('notes') ?? '').trim(), modelIds: quoteList, turnstileToken })
+      const result = await submitQuoteRequest({
+        name: String(data.get('name') ?? '').trim(),
+        email: String(data.get('email') ?? '').trim(),
+        notes: String(data.get('notes') ?? '').trim(),
+        modelIds: submittedIds,
+        turnstileToken,
+      })
       setQuoteMode(result.mode); setQuoteReference(result.reference); setSubmittedQuoteCount(submittedCount)
       setReopenedReceipt(false)
       setReceiptStorageWarning('')
@@ -348,13 +363,21 @@ export default function App() {
       } else if (result.mode === 'live') {
         setReceiptStorageWarning('O servidor confirmou o envio, mas o comprovante não pôde ser salvo. Anote o protocolo.')
       }
-      if (result.mode === 'live') setQuoteList([])
+      if (result.mode === 'live') {
+        const submittedSet = new Set(submittedIds)
+        setQuoteList((current) => current.filter((id) => !submittedSet.has(id)))
+      }
       setSent(true)
     } catch (error) {
       const message = error instanceof Error ? error.message : ''
-      setQuoteError(message === 'turnstile_failed' ? 'A verificação anti-bot expirou ou não foi aceita. Tente novamente.' : 'Não foi possível enviar agora. Sua seleção continua salva neste navegador.')
+      setQuoteError(message === 'turnstile_failed'
+        ? 'A verificação anti-bot expirou ou não foi aceita. Tente novamente.'
+        : 'Não foi possível confirmar o recebimento. Sua seleção foi preservada; evite reenviar repetidamente.')
       setTurnstileResetKey((current) => current + 1)
-    } finally { setQuoteSubmitting(false) }
+    } finally {
+      quoteSubmissionInFlight.current = false
+      setQuoteSubmitting(false)
+    }
   }
 
   return (
@@ -454,9 +477,9 @@ export default function App() {
         submitting={quoteSubmitting}
         error={quoteError}
         turnstileResetKey={turnstileResetKey}
-        onClose={() => { setQuoteOpen(false); setSent(false); setReopenedReceipt(false) }}
+        onClose={() => { if (quoteSubmissionInFlight.current) return; setQuoteOpen(false); setSent(false); setReopenedReceipt(false) }}
         onRemove={safeToggleQuote}
-        onOpenModel={(id) => openKnownModel(id, () => setQuoteOpen(false))}
+        onOpenModel={(id) => { if (!quoteSubmissionInFlight.current) openKnownModel(id, () => setQuoteOpen(false)) }}
         onSubmit={submitQuote}
         onDismissSuccess={() => { setSent(false); setQuoteOpen(false) }}
       />

@@ -29,6 +29,8 @@ export async function submitQuoteRequest(payload: QuotePayload): Promise<QuoteSu
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload),
+    // Avoid holding the quote form locked indefinitely if the network stalls.
+    signal: AbortSignal.timeout(20_000),
   })
 
   if (!response.ok) {
