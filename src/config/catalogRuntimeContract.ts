@@ -31,7 +31,9 @@ function normalizedMode(value?: string): CatalogRuntimeMode {
 function achegueseApiBase(location?: CatalogRuntimeLocation) {
   if (!location) return undefined
   const hostname = location.hostname.trim().toLocaleLowerCase('en-US')
-  if (hostname !== 'acheguese.com.br' && hostname !== 'www.acheguese.com.br' && hostname !== 'acheguese.vercel.app') return undefined
+  const isCanonicalHost = hostname === 'acheguese.com.br' || hostname === 'www.acheguese.com.br' || hostname === 'acheguese.vercel.app'
+  const isProjectPreview = /^acheguese-[a-z0-9-]+-jogo-brasils-projects\.vercel\.app$/.test(hostname)
+  if (!isCanonicalHost && !isProjectPreview) return undefined
   return `${location.origin.replace(/\/+$/, '')}/catalogo-api`
 }
 
