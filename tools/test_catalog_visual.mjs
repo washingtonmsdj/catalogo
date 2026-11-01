@@ -855,6 +855,44 @@ async function exercise(browser, spec) {
       assert.ok(await collectionsDialog.isVisible())
       assert.ok(await page.getByRole('button', { name: 'Fechar coleções' }).evaluate((node) => node === document.activeElement),
         'Collections must put initial focus inside the modal')
+      const nameField = collectionsDialog.getByRole('textbox', { name: 'Nova coleção' })
+      await nameField.fill('Coleção visual')
+      await collectionsDialog.getByRole('button', { name: /Criar/ }).click()
+      await collectionsDialog.getByRole('status').filter({ hasText: 'Coleção criada.' }).waitFor({ state: 'visible' })
+      const collectionMetrics = await collectionsDialog.evaluate((dialog) => {
+        const panel = dialog.querySelector('.collections-content')
+        const side = dialog.querySelector('.collections-sidebar')
+        const controls = [...dialog.querySelectorAll(
+          '.collections-create input, .collections-create button, .collections-backup-actions button, ' +
+          '.collections-toolbar input, .collections-toolbar button, .collections-model-controls input, ' +
+          '.collections-model-controls select, .collections-model-controls > button'
+        )]
+        const bounds = dialog.getBoundingClientRect()
+        return {
+          border: getComputedStyle(dialog).borderTopColor,
+          font: getComputedStyle(dialog).fontFamily,
+          width: bounds.width,
+          height: bounds.height,
+          contentBottom: panel?.getBoundingClientRect().bottom ?? Infinity,
+          sideHeight: side?.getBoundingClientRect().height ?? 0,
+          controls: controls.map((node) => ({ height: node.getBoundingClientRect().height, font: parseFloat(getComputedStyle(node).fontSize) })),
+          mobileScroll: panel ? getComputedStyle(panel).overflowY : 'none',
+        }
+      })
+      assert.equal(collectionMetrics.border, 'rgb(81, 72, 63)', 'Collections modal must use canonical border')
+      assert.match(collectionMetrics.font, /system-ui/i, 'Collections must share storefront font')
+      assert.ok(collectionMetrics.width <= spec.width + 1 && collectionMetrics.height <= spec.height + 1,
+        'Collections must fit inside mobile viewport')
+      assert.ok(collectionMetrics.contentBottom <= spec.height + 1 && collectionMetrics.sideHeight > 0,
+        'Collections content must not be clipped by a fixed minimum-height layout')
+      assert.ok(collectionMetrics.controls.length >= 8
+        && collectionMetrics.controls.every((control) => control.height >= 44),
+        'Create, backup, search, rename and organizer controls need 44px targets')
+      assert.ok(collectionMetrics.controls.filter((control) => control.font > 0).every((control) => control.font >= 11),
+        'Collection form controls must remain readable')
+      assert.ok(await collectionsDialog.getByRole('button', { name: /Coleção visual/ }).isVisible(),
+        'New local collection must appear in the existing selector')
+      entry.checks.push('collections create a local list with canonical palette, accessible controls and mobile scrolling')
       await page.getByRole('button', { name: 'Fechar coleções' }).click()
       await collectionsDialog.waitFor({ state: 'hidden' })
       assert.ok(await collectionTrigger.evaluate((node) => node === document.activeElement),
@@ -864,6 +902,20 @@ async function exercise(browser, spec) {
       await shareTrigger.click()
       const shareDialog = page.getByRole('dialog', { name: 'Compartilhar coleção' })
       assert.ok(await shareDialog.isVisible())
+      const sharedStyle = await shareDialog.evaluate((dialog) => {
+        const close = dialog.querySelector('.modal-head > button')
+        const bounds = dialog.getBoundingClientRect()
+        return {
+          border: getComputedStyle(dialog).borderTopColor,
+          family: getComputedStyle(dialog).fontFamily,
+          width: bounds.width,
+          closeHeight: close?.getBoundingClientRect().height ?? 0,
+        }
+      })
+      assert.equal(sharedStyle.border, 'rgb(81, 72, 63)', 'Share modal must use canonical border')
+      assert.match(sharedStyle.family, /system-ui/i, 'Share modal must share storefront font')
+      assert.ok(sharedStyle.width <= spec.width + 1 && sharedStyle.closeHeight >= 44,
+        'Share modal and close control must fit touch viewports')
       assert.ok(await page.getByRole('button', { name: 'Fechar compartilhamento' }).evaluate((node) => node === document.activeElement),
         'Share dialog must focus the close control')
       await page.keyboard.press('Shift+Tab')
