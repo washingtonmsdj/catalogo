@@ -176,6 +176,11 @@ async function exercise(browser, spec) {
     assert.ok(await page.getByRole('combobox', { name: 'Buscar no catálogo' }).isVisible())
     assert.equal(await page.locator('.storefront-model-grid.is-results > .storefront-model-card').count(), 48,
       'The scalable catalog is the initial view and shows one complete cursor page')
+    if (spec.width <= 620) {
+      const summary = page.locator('#destaques .storefront-section__head p')
+      assert.equal(await summary.isVisible(), true, 'Mobile result counts and page context must remain visible')
+      assert.match((await summary.textContent()) ?? '', /modelos.*página/i)
+    }
     if (spec.width <= 760) {
       const mobileCards = await page.locator('.storefront-model-grid.is-results > .storefront-model-card').first().evaluate((card) => {
         const title = card.querySelector('.storefront-model-card__copy strong')
@@ -205,8 +210,8 @@ async function exercise(browser, spec) {
       assert.ok(mobileCards, 'Mobile model controls and caption must render')
       assert.ok(mobileCards.titleFont >= 12, 'Model names need readable mobile typography')
       if (spec.width >= 360) assert.equal(mobileCards.titleLines, '2', 'Narrow grid cards must support two title lines')
-      assert.ok(mobileCards.heartWidth >= 40 && mobileCards.heartHeight >= 40, 'Favorite requires a reliable touch target')
-      assert.ok(mobileCards.quoteWidth >= 40 && mobileCards.quoteHeight >= 40, 'My list action requires a reliable touch target')
+      assert.ok(mobileCards.heartWidth >= 44 && mobileCards.heartHeight >= 44, 'Favorite requires a 44px touch target')
+      assert.ok(mobileCards.quoteWidth >= 44 && mobileCards.quoteHeight >= 44, 'My list action requires a 44px touch target')
       assert.equal(mobileCards.actionOverlapsCaption, false, 'Quick actions must never obscure the model description')
       assert.equal(mobileCards.galleryBadgeVisible, true, 'Gallery count must remain visible inside the photo, away from action buttons')
       entry.checks.push('readable model cards with separate mobile actions and protected captions')
@@ -237,6 +242,28 @@ async function exercise(browser, spec) {
     }))
     assert.equal(discoveryArtwork.categories, 6, 'All visible demo category tiles must have artwork')
     assert.equal(discoveryArtwork.franchises, 4, 'All popular demo franchise tiles must have artwork')
+    const editorialCards = page.locator('#destaques .storefront-model-grid:not(.is-results) > .storefront-model-card')
+    assert.equal(await editorialCards.count(), 6, 'Editorial discovery must render all six selected models')
+    const editorialGeometry = await editorialCards.evaluateAll((cards) => cards.map((card) => {
+      const style = getComputedStyle(card)
+      const box = card.getBoundingClientRect()
+      const copy = card.querySelector('.storefront-model-card__copy')?.getBoundingClientRect()
+      const actions = [...card.querySelectorAll('.storefront-model-card__heart, .storefront-model-card__quote')]
+      const overlap = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
+      return {
+        visible: style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0,
+        touchTargets: actions.map((button) => { const r = button.getBoundingClientRect(); return [r.width, r.height] }),
+        captionUnobstructed: Boolean(copy && actions.every((button) => !overlap(button.getBoundingClientRect(), copy))),
+      }
+    }))
+    assert.ok(editorialGeometry.every((item) => item.visible), 'CSS must not silently hide featured models at intermediate widths')
+    if (spec.width <= 760) {
+      assert.ok(editorialGeometry.every((item) => item.touchTargets.every(([w, h]) => w >= 44 && h >= 44)),
+        'Editorial model actions need accessible touch targets')
+      assert.ok(editorialGeometry.every((item) => item.captionUnobstructed),
+        'Editorial quick actions must not overlap model captions')
+    }
+    entry.checks.push('all six editorial models remain visible and accessible across responsive layouts')
     const hero = await page.evaluate(() => {
       const frame = document.querySelector('.storefront-hero')?.getBoundingClientRect()
       const title = document.querySelector('.storefront-hero h1')?.getBoundingClientRect()
