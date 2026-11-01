@@ -166,7 +166,7 @@ export function ModelDetailDialog({
             </button>
             {compareCount > 0 && <button type="button" className="model-detail-open-comparison" onClick={onOpenComparison}>
               Ver comparação · {compareCount} {compareCount === 1 ? 'modelo' : 'modelos'} <span aria-hidden="true">›</span>
-            </button>
+            </button>}
           </div>
         </div>
       </section>
