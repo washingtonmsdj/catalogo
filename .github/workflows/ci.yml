@@ -57,6 +57,8 @@ jobs:
         run: npm run test:remote-worker-config
       - name: Test private R2 public-media gateway
         run: npm run test:worker-media-contract
+      - name: Test Turnstile hostname and action security
+        run: npm run test:worker-turnstile
       - name: Test gallery runtime validation
         run: npm run test:gallery-runtime
       - name: Test Worker gallery smoke contract
