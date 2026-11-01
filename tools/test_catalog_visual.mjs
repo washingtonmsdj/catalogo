@@ -547,14 +547,36 @@ async function exercise(browser, spec) {
         await quoteDialog.waitFor({ state: 'visible' })
         await quoteDialog.locator('input[name="name"]').fill('Cliente Demo')
         await quoteDialog.locator('input[name="email"]').fill('teste@example.com')
-        await quoteDialog.getByRole('button', { name: /Enviar solicitação/ }).click()
+        // Two submit events in the same browser task must generate one demo reference.
+        // The same synchronous in-flight guard protects real requests in production.
+        const submissions = await page.evaluate(() => {
+          const form = document.querySelector('form.quote-request-form')
+          if (!(form instanceof HTMLFormElement)) throw Error('Quote form missing')
+          const previous = Object.getOwnPropertyDescriptor(window.crypto, 'randomUUID')
+          const randomUUID = window.crypto.randomUUID.bind(window.crypto)
+          let issued = 0
+          Object.defineProperty(window.crypto, 'randomUUID', {
+            configurable: true,
+            value: () => { issued++; return randomUUID() },
+          })
+          try {
+            for (let attempt = 0; attempt < 2; attempt++) {
+              form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }))
+            }
+            return issued
+          } finally {
+            if (previous) Object.defineProperty(window.crypto, 'randomUUID', previous)
+            else delete window.crypto.randomUUID
+          }
+        })
+        assert.equal(submissions, 1, 'A double submit must create exactly one quote operation')
         await page.getByRole('dialog', { name: 'Solicitação registrada' }).waitFor({ state: 'visible' })
         assert.ok((await page.locator('.quote-receipt code').innerText()).startsWith('DEMO-'),
           'Only a demo receipt should be shown by the test catalog')
         assert.equal(await page.evaluate(() => localStorage.getItem('tonecos:last-live-quote-receipt')), null,
           'Demo submissions must never be stored as a live quote')
         await page.getByRole('button', { name: 'Voltar ao catálogo' }).click()
-        entry.checks.push('demo quote request creates no persistent live receipt')
+        entry.checks.push('atomic double-submit guard and demo quote create no persistent live receipt')
       }
       entry.checks.push('selection and keyboard search')
     }
