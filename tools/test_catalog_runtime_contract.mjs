@@ -26,7 +26,7 @@ test('configured API base is normalized without changing runtime mode', () => {
 })
 
 test('Achegue-se uses its first-party catalog proxy as the canonical API origin', () => {
-  for (const hostname of ['acheguese.com.br', 'www.acheguese.com.br']) {
+  for (const hostname of ['acheguese.com.br', 'www.acheguese.com.br', 'acheguese.vercel.app']) {
     assert.deepEqual(
       resolveCatalogRuntime(
         { VITE_API_BASE_URL: 'https://external.example.test' },
