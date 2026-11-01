@@ -184,6 +184,8 @@ async function exercise(browser, spec) {
       const mobileCards = await page.locator('.storefront-model-grid.is-results > .storefront-model-card').first().evaluate((card) => {
         const title = card.querySelector('.storefront-model-card__copy strong')
         const caption = card.querySelector('.storefront-model-card__copy')
+        const variant = card.querySelector('.storefront-model-card__copy small')
+        const metadata = card.querySelector('.storefront-model-card__meta')
         const heart = card.querySelector('.storefront-model-card__heart')
         const quote = card.querySelector('.storefront-model-card__quote')
         const media = card.querySelector('.storefront-model-card__media')
@@ -195,6 +197,9 @@ async function exercise(browser, spec) {
         const intersects = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
         return {
           titleFont: Number.parseFloat(getComputedStyle(title).fontSize),
+          variantFont: variant ? Number.parseFloat(getComputedStyle(variant).fontSize) : 0,
+          metadataFont: metadata ? Number.parseFloat(getComputedStyle(metadata).fontSize) : 0,
+          captionBelowArt: mediaBox.bottom <= copyBox.top - 1,
           galleryBadgeVisible: badgeBox.top >= mediaBox.top && badgeBox.bottom <= mediaBox.bottom &&
             badgeBox.left >= mediaBox.left && badgeBox.right <= mediaBox.right &&
             ![heart, quote].some((button) => intersects(button.getBoundingClientRect(), badgeBox)),
@@ -207,7 +212,10 @@ async function exercise(browser, spec) {
         }
       })
       assert.ok(mobileCards, 'Mobile model controls and caption must render')
-      assert.ok(mobileCards.titleFont >= 12, 'Model names need readable mobile typography')
+      assert.ok(mobileCards.titleFont >= 14, 'Model names need 14px mobile typography')
+      assert.ok(mobileCards.variantFont >= 12 && mobileCards.metadataFont >= 11,
+        'Model variant and metadata must follow storefront text scale')
+      assert.equal(mobileCards.captionBelowArt, true, 'Result caption must not overlay the artwork')
       if (spec.width >= 360) assert.equal(mobileCards.titleLines, '2', 'Narrow grid cards must support two title lines')
       assert.ok(mobileCards.heartWidth >= 44 && mobileCards.heartHeight >= 44, 'Favorite requires a 44px touch target')
       assert.ok(mobileCards.quoteWidth >= 44 && mobileCards.quoteHeight >= 44, 'My list action requires a 44px touch target')
@@ -259,15 +267,34 @@ async function exercise(browser, spec) {
       const style = getComputedStyle(card)
       const box = card.getBoundingClientRect()
       const copy = card.querySelector('.storefront-model-card__copy')?.getBoundingClientRect()
+      const media = card.querySelector('.storefront-model-card__media')?.getBoundingClientRect()
+      const title = card.querySelector('.storefront-model-card__copy strong')
+      const variant = card.querySelector('.storefront-model-card__copy small')
+      const metadata = card.querySelector('.storefront-model-card__meta')
+      const badge = card.querySelector('.storefront-model-card__gallery-badge')?.getBoundingClientRect()
       const actions = [...card.querySelectorAll('.storefront-model-card__heart, .storefront-model-card__quote')]
       const overlap = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top
       return {
         visible: style.display !== 'none' && style.visibility !== 'hidden' && box.width > 0 && box.height > 0,
         touchTargets: actions.map((button) => { const r = button.getBoundingClientRect(); return [r.width, r.height] }),
         captionUnobstructed: Boolean(copy && actions.every((button) => !overlap(button.getBoundingClientRect(), copy))),
+        captionBelowArt: Boolean(copy && media && media.bottom <= copy.top - 1),
+        galleryOnArt: Boolean(!badge || (media && badge.left >= media.left && badge.right <= media.right &&
+          badge.top >= media.top && badge.bottom <= media.bottom)),
+        twoLineTitle: title ? getComputedStyle(title).webkitLineClamp === '2' : false,
+        typeSizes: [title, variant, metadata].map((node) => node ? Number.parseFloat(getComputedStyle(node).fontSize) : 0),
       }
     }))
     assert.ok(editorialGeometry.every((item) => item.visible), 'CSS must not silently hide featured models at intermediate widths')
+    assert.ok(editorialGeometry.every((item) => item.captionBelowArt && item.galleryOnArt),
+      'Editorial captions must stay below imagery and gallery counts within imagery')
+    assert.ok(editorialGeometry.every((item) => item.twoLineTitle),
+      'Editorial titles must allow two lines for character and variant names')
+    assert.ok(editorialGeometry.every((item) => item.typeSizes[0] >= 14 &&
+      item.typeSizes[1] >= 12 && item.typeSizes[2] >= 11),
+      'Editorial title, variant and metadata must use readable shared text sizes')
+    assert.ok(editorialGeometry.every((item) => item.captionUnobstructed),
+      'Editorial card actions must not cover captions at any breakpoint')
     if (spec.width <= 760) {
       assert.ok(editorialGeometry.every((item) => item.touchTargets.every(([w, h]) => w >= 44 && h >= 44)),
         'Editorial model actions need accessible touch targets')
