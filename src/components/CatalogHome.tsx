@@ -639,7 +639,9 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
   function cancelAttributeFilterDraft() {
     setFilterPanelOpen(false)
     setFilterError('')
-    window.requestAnimationFrame(() => filterToggleRef.current?.focus({ preventScroll: true }))
+    // The toggle stays mounted: restore focus in the same event, before the form hides.
+    // Deferring to requestAnimationFrame races with keyboard and browser tests.
+    filterToggleRef.current?.focus({ preventScroll: true })
   }
 
   function removeAttributeFilter(key: keyof typeof filterDraft) {
