@@ -56,6 +56,13 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 - O navegador perde a paleta verde/dourada e a fonte Courier concorrentes, adotando grafite, marfim e laranja; apenas números e códigos usam `--store-font-mono`.
 - Os alvos de pastas já têm 44 px e o controle de limpar busca também recebe 44 px no celular. Testes no Chromium isolado verificam a navegação em 390 e 1024 px, sem acessar D1 de produção.
 
+## Detalhes de modelo e favoritos (2026-11-01)
+
+- Os diálogos `ModelDetailDialog` e `FavoritesDialog` reutilizam os tokens `--store-*` existentes, sem verdes de ação ou fundos próprios divergentes. Os estilos ficam nos arquivos CSS proprietários; não criar temas ou componentes duplicados.
+- Ações primárias usam `--store-accent`, textos e números a escala `--store-type-*`, e o foco de teclado possui contorno visível.
+- Fechar detalhes, favoritar, comparar, abrir galeria, pesquisar/remover favoritos e concluir ações têm botões de 44 px nos caminhos responsivos. Os controles de remoção ficam na coluna de 44 px sem sobreposição.
+- Chromium isolado testa abertura de detalhes, favoritar, abrir favoritos, remover e fechar em 390 e 1024 px, sem acessar D1 de produção.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.
