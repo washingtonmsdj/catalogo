@@ -9,6 +9,8 @@ const pages = readFileSync(new URL('../.github/workflows/pages.yml', import.meta
 const vite = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8')
 const storefrontCss = readFileSync(new URL('../src/catalog-home.css', import.meta.url), 'utf8')
 const shellCss = readFileSync(new URL('../src/catalog-shell.css', import.meta.url), 'utf8')
+const baseCss = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8')
+const premiumCss = readFileSync(new URL('../src/premium.css', import.meta.url), 'utf8')
 
 test('visual job isolates the demo and stores failure evidence', () => {
   assert.match(ci, /\n  visual-audit:\n/)
@@ -144,6 +146,10 @@ test('storefront tokens have one authoritative value and legacy shell only alias
   assert.match(shellCss, /--bg: var\(--store-bg\)/)
   assert.match(shellCss, /--text: var\(--store-text\)/)
   assert.doesNotMatch(storefrontCss, /--concept-green(?:-2|-soft)?\s*:/)
+  assert.doesNotMatch(baseCss, /--accent:\s*#[a-f\d]+/i)
+  assert.doesNotMatch(premiumCss, /--accent:\s*#[a-f\d]+/i)
+  assert.doesNotMatch(premiumCss, /--bg:\s*#[a-f\d]+/i)
+  assert.match(shellCss, /--danger: var\(--store-danger\)/)
 })
 
 test('responsive browser checks the effective palette, shared font and mobile wayfinding', () => {
