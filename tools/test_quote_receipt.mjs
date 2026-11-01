@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
-  LAST_LIVE_QUOTE_RECEIPT_KEY,
+  LAST_LIVE_QUOTE_RECEIPT_KEY, isLiveQuoteReference, validateLiveQuoteConfirmation,
   receiptFromQuoteSubmission, parseLiveQuoteReceipt,
   readLastLiveQuoteReceipt, saveLastLiveQuoteReceipt, clearLastLiveQuoteReceipt,
 } from '../src/services/quoteReceipt.ts'
@@ -58,4 +58,50 @@ test('storage disabled does not create a false confirmation or crash', () => {
   assert.equal(readLastLiveQuoteReceipt(blocked), null)
   assert.equal(saveLastLiveQuoteReceipt(receipt, blocked), false)
   assert.equal(clearLastLiveQuoteReceipt(blocked), false)
+})
+
+
+test('only an explicit received status with a canonical protocol confirms a live quote', () => {
+  const data = { status: 'received', reference, deduplicated: false }
+  assert.equal(isLiveQuoteReference(reference), true)
+  assert.deepEqual(validateLiveQuoteConfirmation(data), {
+    mode: 'live', reference, deduplicated: false,
+  })
+  assert.deepEqual(validateLiveQuoteConfirmation({ ...data, deduplicated: true }), {
+    mode: 'live', reference, deduplicated: true,
+  })
+  const invalid = [
+    null, '', [], {}, { ...data, status: undefined },
+    { ...data, status: 'new' }, { ...data, status: 'error' },
+    { ...data, reference: 'DEMO-AAAA' },
+    { ...data, reference: 'TCS-INCOMPLETE' },
+    { ...data, reference: 'TCS-1234-ABCD-7890-EF12-3456\n' },
+    { ...data, reference: 'TCS-1234-ABCD-7890-EF12-3456 ' },
+    { ...data, deduplicated: 'true' },
+  ]
+  for (const value of invalid) {
+    assert.throws(() => validateLiveQuoteConfirmation(value), /quote_confirmation_invalid/)
+  }
+})
+
+test('quote receipt SSOT cannot persist unconfirmed API response', () => {
+  const memory = memoryStorage()
+  const valid = validateLiveQuoteConfirmation({ reference, status: 'received' })
+  const receipt = receiptFromQuoteSubmission(valid, 2, time)
+  assert.equal(saveLastLiveQuoteReceipt(receipt, memory), true)
+  const baseline = memory.getItem(LAST_LIVE_QUOTE_RECEIPT_KEY)
+  assert.throws(() => validateLiveQuoteConfirmation({
+    reference: 'DEMO-0000', status: 'received',
+  }), /quote_confirmation_invalid/)
+  assert.equal(memory.getItem(LAST_LIVE_QUOTE_RECEIPT_KEY), baseline)
+})
+
+
+test('quote client requires receipt validation and demo UI cannot claim production', async () => {
+  const { readFileSync } = await import('node:fs')
+  const quotesSource = readFileSync(new URL('../src/services/quotes.ts', import.meta.url), 'utf8')
+  const dialogSource = readFileSync(new URL('../src/components/QuoteDialog.tsx', import.meta.url), 'utf8')
+  assert.match(quotesSource, /return validateLiveQuoteConfirmation\(body\)/)
+  assert.doesNotMatch(dialogSource, /O protocolo abaixo demonstra a confirmação em produção/)
+  assert.match(dialogSource, /O código abaixo é apenas ilustrativo e não foi registrado em produção/)
 })

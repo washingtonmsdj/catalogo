@@ -78,7 +78,7 @@ export function QuoteDialog({
             <strong>{reopenedReceipt ? 'ÚLTIMO PROTOCOLO SALVO' : 'SOLICITAÇÃO REGISTRADA'}</strong>
             <p>{quoteMode === 'live'
               ? (reopenedReceipt ? 'Comprovante recuperado do navegador. O andamento não foi consultado.' : 'Sua solicitação foi recebida pelo catálogo. Isso não confirma atendimento nem envio de e-mail.')
-              : 'Esta prévia não envia pedidos reais. O protocolo abaixo demonstra a confirmação em produção.'}</p>
+              : 'Esta prévia não envia pedidos reais. O código abaixo é apenas ilustrativo e não foi registrado em produção.'}</p>
             {quoteReference && (
               <div className="quote-receipt">
                 <span>{quoteMode === 'live' ? 'PROTOCOLO' : 'PROTOCOLO DEMO'}</span>
