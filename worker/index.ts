@@ -2,6 +2,7 @@ import { createSharedCollection, getSharedCollection } from './sharedCollections
 import { aggregateGallerySources, type GallerySourceState } from './galleryAggregation'
 import { validGalleryManifest, type GalleryModelState } from './galleryValidation'
 import { catalogSchemaStatus } from './schemaContract'
+import { configuredPublicOrigins, validateTurnstile } from './turnstile'
 import { RESOLVED_MODEL_BY_SLUG_CTE, resolvePublicModelIds } from './modelAliases'
 
 type D1Statement = {
@@ -55,13 +56,6 @@ type CatalogCursor = {
   id: string
 }
 
-type TurnstileResult = {
-  success: boolean
-  action?: string
-  hostname?: string
-  'error-codes'?: string[]
-}
-
 type QuoteRecord = {
   id: string
   reference: string | null
@@ -84,7 +78,7 @@ const PUBLIC_GALLERY_VERSION_SQL = 'm.public_gallery_version'
 function allowedOrigin(request: Request, env: Env) {
   const origin = request.headers.get('origin')
   if (!origin) return null
-  const configured = env.CORS_ORIGINS.split(',').map((value) => value.trim()).filter(Boolean)
+  const configured = configuredPublicOrigins(env.CORS_ORIGINS)
   return configured.includes(origin) ? origin : null
 }
 
@@ -524,30 +518,6 @@ async function listImages(request: Request, slug: string, env: Env) {
     nextCursor: nextOffset < gallery.total ? encodeOffsetCursor(nextOffset) : null,
     version: model.public_gallery_version,
   }, {}, 'public, max-age=300, s-maxage=1800')
-}
-
-async function validateTurnstile(request: Request, env: Env, token: string, action = 'quote') {
-  if (!env.TURNSTILE_SECRET_KEY || !token || token.length > 2048) return false
-
-  const body = new FormData()
-  body.set('secret', env.TURNSTILE_SECRET_KEY)
-  body.set('response', token)
-  const remoteIp = request.headers.get('CF-Connecting-IP')
-  if (remoteIp) body.set('remoteip', remoteIp)
-  body.set('idempotency_key', crypto.randomUUID())
-
-  try {
-    const response = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      body,
-      signal: AbortSignal.timeout(5000),
-    })
-    if (!response.ok) return false
-    const result = await response.json() as TurnstileResult
-    return result.success === true && result.action === action
-  } catch {
-    return false
-  }
 }
 
 async function createQuote(request: Request, env: Env) {
