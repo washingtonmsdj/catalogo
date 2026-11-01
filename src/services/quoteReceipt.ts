@@ -4,7 +4,7 @@ export const LAST_LIVE_QUOTE_RECEIPT_KEY = 'tonecos:last-live-quote-receipt'
 const LIVE_REFERENCE = /^TCS-(?:[A-F0-9]{4}-){4}[A-F0-9]{4}$/
 
 export function isLiveQuoteReference(value: unknown): value is string {
-  return typeof value === 'string' && LIVE_REFERENCE.test(value)
+  return typeof value === 'string' && value.length === 28 && LIVE_REFERENCE.test(value)
 }
 
 /** A successful HTTP response alone is not evidence of an accepted order. */
