@@ -1,17 +1,4 @@
 /* Premium visual layer — intentionally loaded last. */
-:root {
-  --bg: #080a0c;
-  --panel: #0f1215;
-  --panel-2: #14181b;
-  --line: #292f33;
-  --line-soft: #1b2024;
-  --text: #eeeae1;
-  --muted: #899094;
-  --accent: #d7a253;
-  --accent-soft: #241c10;
-  --accent-line: #7a5b2f;
-}
-
 ::selection { background: #73572e; color: #fffaf0; }
 
 body {
