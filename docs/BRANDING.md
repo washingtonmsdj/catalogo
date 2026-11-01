@@ -123,3 +123,10 @@ Identificadores técnicos persistentes não fazem parte da identidade visual e *
 - IDs, slugs, storage keys e protocolos já persistidos.
 
 Essa separação evita perda de favoritos locais, quebra de URLs, duplicação de infraestrutura ou migrações desnecessárias quando a marca comercial mudar.
+
+## Destaque editorial e carregamento de imagens (2026-11-01)
+
+- O banner editorial herda exclusivamente as superfícies, bordas, cores e sombras definidas em `src/catalog-home.css`; transparências e gradientes derivam de `--store-*` via `color-mix`, sem hex próprios para essa seção.
+- A página editorial prioriza o banner de destaque; os cards abaixo da dobra carregam capas sob demanda. Na página de resultados, somente a primeira capa recebe prioridade alta, evitando competir com a imagem de cabeçalho e com a navegação.
+- O texto de marca do resumo dos resultados utiliza `BRAND_SHORT_NAME` via `src/config/brand.ts`, nunca um literal comercial duplicado. Sem categorias publicadas, o botão principal do banner informa **Ver catálogo completo** em vez de prometer abrir uma coleção inexistente.
+- O contrato estático fica no teste existente `tools/test_catalog_home_a11y.mjs`; testes de produção/D1 não são necessários para validar essa mudança de frontend.
