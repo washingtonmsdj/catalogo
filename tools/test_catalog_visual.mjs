@@ -725,6 +725,7 @@ async function exercise(browser, spec) {
         const pageRail = dialog.querySelector('.gallery-page-rail')
         const close = dialog.querySelector('.modal-head > button')
         const buttons = [...dialog.querySelectorAll('.gallery-pager button')]
+          .filter((button) => getComputedStyle(button).display !== 'none')
         const bounds = dialog.getBoundingClientRect()
         return {
           border: getComputedStyle(dialog).borderTopColor,
