@@ -1939,14 +1939,35 @@ body { background: var(--store-bg); color: var(--store-text); }
 .storefront-hero__dots button[aria-current="true"]::before { background: var(--store-accent); }
 @media (max-width: 760px) {
   .storefront-search-wrap { grid-column: 1; width: 100%; }
+  /* Anchor suggestions to the actual field: fixed pixel offsets drift on narrow phones and tablets. */
   .storefront-search-suggestions {
-    position: fixed;
-    top: calc(112px + env(safe-area-inset-top, 0px));
-    left: 10px;
-    right: 10px;
-    max-height: min(75vh, 680px);
-    max-height: min(calc(100dvh - 122px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)), 680px);
-    overflow: auto;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    max-height: min(78vh, 680px);
+    max-height: min(78dvh, 680px);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .storefront-search { height: 48px; min-height: 48px; }
+  .storefront-search__clear { width: 44px; height: 44px; flex-basis: 44px; }
+  .storefront-search-suggestions > button,
+  .storefront-search-suggestions__group > button { min-height: 44px; }
+  .storefront-search-suggestions strong { font-size: var(--store-type-label); }
+  .storefront-search-suggestions small,
+  .storefront-search-suggestions b,
+  .storefront-search-suggestions__status { font-size: var(--store-type-caption); }
+  /* Keep the full-results decision visible when long suggestion groups scroll. */
+  .storefront-search-suggestions > .storefront-search-suggestions__all {
+    position: sticky;
+    bottom: 0;
+    z-index: 1;
+    min-height: 44px;
+    border-top: 1px solid var(--store-border);
+    background: var(--store-panel);
+    box-shadow: 0 -6px 14px rgba(0, 0, 0, .18);
   }
   .storefront-saved-filters { margin-inline: 1px; }
   .storefront-model-grid.is-results { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: visible; gap: 11px; }
