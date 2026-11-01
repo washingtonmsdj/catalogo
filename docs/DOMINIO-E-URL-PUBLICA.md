@@ -50,6 +50,14 @@ O workflow do GitHub Pages lê `config/public-runtime.json`, rejeita qualquer en
 
 Assim, preview técnico, origem de hospedagem e URL pública canônica podem ser diferentes sem duplicar configuração nem acoplar os dois projetos.
 
+## Prova de publicação no domínio oficial
+
+A prova automática compara o bundle do GitHub Pages com o mount técnico `acheguese.vercel.app/tonecosstudios/` **e** com a URL pública canônica lida de `config/public-runtime.json`. Ambos os testes de HTML/asset fazem apenas GET do HTML e HEAD do JavaScript, sem consulta D1.
+
+O único smoke de backend por publicação usa **o domínio oficial**, não cria uma segunda leitura da API: valida `/catalogo-api/api/health`, uma ficha de catálogo (`limit=1`) e um byte da capa pelo próprio `/catalogo-api/media/*`. Após essas leituras, o gate **já existente** no domínio técnico `acheguese.vercel.app` executa o POST **negativo** de corpo `{}`, exigindo `400 invalid_request` antes de qualquer gravação. O teste administrativo/positivo permanece separado. Não modificar `tools/worker_release_smoke.mjs` numa tarefa de domínio: ele aciona deploy do Worker. Os testes fail-closed impedem aumentar a quantidade de leituras de API ou usar `--exhaustive` nesse gate.
+
+O domínio usado em cada publicação deriva de `config/public-runtime.json`, que continua sendo a única fonte do endereço oficial. Falhas do domínio oficial devem ser investigadas no owner real (Achegue-se/Vercel/DNS) sem fallback para uma segunda hospedagem, sem duplicar serviços, alterar CORS/CSP arbitrariamente ou forçar sucesso do pipeline.
+
 ## Atualização visível sem consumir D1
 
 - O frontend do Catálogo é compilado e publicado pelo workflow **Deploy live preview** no GitHub Pages. O Achegue-se/Vercel **somente encaminha** `/tonecosstudios/*` para essa origem: não inserir fichas, imagens ou dados do catálogo em `washingtonmsdj/acheguese` e não duplicar o frontend.

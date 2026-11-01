@@ -4,6 +4,7 @@ import { catalogEntryScript, compareCatalogEntryScripts, verifyPublishedCatalogM
 
 const pagesUrl = 'https://washingtonmsdj.github.io/catalogo/'
 const vercelUrl = 'https://acheguese.vercel.app/tonecosstudios/'
+const canonicalUrl = 'https://acheguese.com.br/tonecosstudios/'
 const html = (asset) => '<!doctype html><script type="module" crossorigin src="./assets/' + asset + '"></script>'
 
 test('Vite release fingerprint remains identical after Vercel rewrite', () => {
@@ -65,4 +66,43 @@ test('a missing/HTML asset is rejected instead of declaring a successful deploym
     verifyPublishedCatalogMirror({ pagesUrl, vercelUrl, fetchImpl, attempts: 1 }),
     /catalog_mirror_asset_type_invalid/,
   )
+})
+
+
+test('canonical public SSOT mirror checks the same compiled JS with only HTML and HEAD', async () => {
+  const calls = []
+  const fetchImpl = async (url, options) => {
+    calls.push(options.method + ':' + url)
+    if (url === pagesUrl || url === canonicalUrl) return new Response(html('index-public42.js'), { status: 200 })
+    if (url === canonicalUrl + 'assets/index-public42.js') {
+      return new Response(null, { status: 200, headers: { 'content-type': 'application/javascript' } })
+    }
+    throw new Error('unexpected public request')
+  }
+  const result = await verifyPublishedCatalogMirror({
+    pagesUrl, vercelUrl: canonicalUrl, fetchImpl, delay: async () => {},
+  })
+  assert.equal(result.filename, 'index-public42.js')
+  assert.deepEqual(calls, [
+    'GET:' + pagesUrl,
+    'GET:' + canonicalUrl,
+    'HEAD:' + canonicalUrl + 'assets/index-public42.js',
+  ])
+})
+
+test('mirror target must equal the canonical or the technical mount, not arbitrary host', async () => {
+  let invoked = false
+  const fetchImpl = async () => { invoked = true; throw Error('network access forbidden') }
+  for (const target of [
+    'https://www.acheguese.com.br/tonecosstudios/',
+    'https://acheguese.com.br/other-path/',
+    'https://acheguese.vercel.app/other-path/',
+    'https://attacker.example/tonecosstudios/',
+  ]) {
+    await assert.rejects(
+      verifyPublishedCatalogMirror({ pagesUrl, vercelUrl: target, fetchImpl }),
+      /catalog_mirror_unexpected_public_url/,
+    )
+  }
+  assert.equal(invoked, false)
 })
