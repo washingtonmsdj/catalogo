@@ -279,3 +279,18 @@ test('home hero uses the canonical palette and avoids competing image priority',
   assert.doesNotMatch(home, /ACERVO TONECOS/)
   assert.match(home, /heroCampaignCategory \? 'Explorar coleção' : 'Ver catálogo completo'/)
 })
+
+test('main model cards share readable typography and protect captions from actions', () => {
+  const card = css.split('/* Canonical main cards: artwork and accessible actions above a readable caption.')[1]?.split('/* Discovery blocks follow the same denser radius and shadow language. */')[0]
+  assert.ok(card, 'main card layout must live in the canonical storefront stylesheet')
+  assert.ok(card.includes('.storefront-model-grid:not(.is-list) .storefront-model-card__media { inset: 0 0 110px; }'))
+  assert.ok(card.includes('height: 98px;'))
+  assert.ok(card.includes('-webkit-line-clamp: 2;'))
+  assert.ok(card.includes('font-size: var(--store-type-body);'))
+  assert.ok(card.includes('font-size: var(--store-type-label);'))
+  assert.ok(card.includes('font-size: var(--store-type-caption);'))
+  assert.ok(card.includes('position: static;'), 'quote action should remain in the image-action stack')
+  assert.ok(card.includes('bottom: 119px;'), 'open affordance must stay above caption')
+  assert.doesNotMatch(card, /#[0-9a-f]{3,8}\b/i)
+  assert.doesNotMatch(css, /\.storefront-model-grid:not\(\.is-results\) \.storefront-model-card__copy \{ right: 56px; \}/)
+})
