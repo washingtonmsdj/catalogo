@@ -1,4 +1,3 @@
-import { readFileSync } from 'node:fs'
 import { verifyWorkerGalleryContract } from './check_worker_gallery_contract.mjs'
 import { verifyWorkerHealth } from './check_worker_health.mjs'
 
@@ -62,15 +61,13 @@ export async function verifyPublicQuoteIngress(
   apiBase,
   fetchImpl = fetch,
 ) {
-  const canonicalPublicUrl = JSON.parse(readFileSync(new URL('../config/public-runtime.json', import.meta.url), 'utf8')).publicSiteUrl
-  const origin = new URL(canonicalPublicUrl).origin
-  const base = origin + '/catalogo-api'
-  if (apiBase !== base) throw new Error('quote ingress must use canonical first-party public proxy')
+  const base = 'https://acheguese.vercel.app/catalogo-api'
+  if (apiBase !== base) throw new Error('quote ingress must use canonical first-party Vercel proxy')
   const response = await fetchImpl(base + '/api/quotes', {
     method: 'POST',
     redirect: 'error',
     headers: {
-      origin,
+      origin: 'https://acheguese.vercel.app',
       accept: 'application/json',
       'content-type': 'application/json',
     },
@@ -85,7 +82,7 @@ export async function verifyPublicQuoteIngress(
     throw new Error('quote ingress did not reject invalid input before Turnstile or D1 writes')
   }
   const cors = response.headers.get('access-control-allow-origin')
-  if (cors && cors !== origin) {
+  if (cors && cors !== 'https://acheguese.vercel.app') {
     throw new Error('quote ingress returned unexpected CORS origin')
   }
   return { ok: true, invalidQuoteRejected: true, productionWrites: 0 }
