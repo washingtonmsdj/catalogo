@@ -201,3 +201,15 @@ test('comparison can be opened after the first model is selected', () => {
   assert.match(app, /compareCount=\{compareIds.length\}/)
   assert.match(app, /onOpenComparison=\{\(\) => \{ closeModelDetail\(\); setCompareOpen\(true\) \}\}/)
 })
+
+
+test('updates and recently viewed dialog uses storefront theme and touch controls', () => {
+  const updates = readFileSync(new URL('../src/catalog-updates.css', import.meta.url), 'utf8')
+  assert.doesNotMatch(updates, /#[0-9a-f]{3,8}\b/i)
+  assert.doesNotMatch(updates, /ui-sans-serif, system-ui|ui-monospace, SFMono/)
+  assert.match(updates, /\.catalog-updates-modal \{[\s\S]*?border: 1px solid var\(--store-border-strong\)/)
+  assert.match(updates, /\.catalog-updates-modal \.modal-head > button \{\s*width: 44px;\s*height: 44px;/)
+  assert.match(updates, /\.catalog-updates-tabs button \{\s*min-height: 44px;/)
+  assert.match(updates, /\.catalog-updates-footer button \{\s*min-height: 44px;/)
+  assert.match(updates, /\.catalog-updates-tabs button:focus-visible,[\s\S]*?outline: 2px solid var\(--store-accent\)/)
+})

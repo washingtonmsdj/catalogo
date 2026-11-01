@@ -1,38 +1,72 @@
 .catalog-updates-modal {
   width: min(980px, 96vw);
+  border: 1px solid var(--store-border-strong);
+  border-radius: 12px;
+  background: var(--store-panel);
+  color: var(--store-text);
+  font-family: var(--store-font-body);
+}
+.catalog-updates-modal .modal-head {
+  background: var(--store-panel);
+  border-bottom: 1px solid var(--store-border);
+}
+.catalog-updates-modal .modal-head span {
+  color: var(--store-accent);
+  font: 800 var(--store-type-caption)/1.2 var(--store-font-body);
+}
+.catalog-updates-modal .modal-head h2 {
+  color: var(--store-text);
+  font-family: var(--store-font-body);
+}
+.catalog-updates-modal .modal-head p {
+  color: var(--store-muted);
+  font-size: var(--store-type-label);
+  line-height: 1.5;
+}
+.catalog-updates-modal .modal-head > button {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border: 1px solid var(--store-border);
+  border-radius: 9px;
+  color: var(--store-text);
+}
+.catalog-updates-modal .modal-head > button:focus-visible {
+  outline: 2px solid var(--store-accent);
+  outline-offset: 2px;
 }
 
 .catalog-updates-tabs {
   position: sticky;
-  top: 84px;
+  top: 0;
   z-index: 2;
   display: flex;
   gap: 7px;
   padding: 10px 14px;
-  border-bottom: 1px solid rgba(97, 171, 153, .14);
-  background: rgba(8, 18, 17, .96);
+  border-bottom: 1px solid color-mix(in srgb, var(--store-accent) 14%, transparent);
+  background: color-mix(in srgb, var(--store-panel) 96%, transparent);
   backdrop-filter: blur(16px);
 }
 
 .catalog-updates-tabs button {
-  min-height: 36px;
+  min-height: 44px;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 0 13px;
-  border: 1px solid rgba(102, 176, 158, .17);
+  border: 1px solid color-mix(in srgb, var(--store-accent) 17%, transparent);
   border-radius: 9px;
   background: rgba(255,255,255,.02);
-  color: #8fa8a1;
-  font: 720 10px/1 ui-sans-serif, system-ui, sans-serif;
+  color: var(--store-muted);
+  font: 720 var(--store-type-label)/1.2 var(--store-font-body);
   cursor: pointer;
 }
 
 .catalog-updates-tabs button:hover,
 .catalog-updates-tabs button.is-active {
-  border-color: rgba(49, 239, 173, .4);
-  background: rgba(49, 239, 173, .075);
-  color: #66f5bf;
+  border-color: color-mix(in srgb, var(--store-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--store-accent) 8%, transparent);
+  color: var(--store-accent-hover);
 }
 
 .catalog-updates-tabs b {
@@ -42,9 +76,9 @@
   place-items: center;
   padding: 0 5px;
   border-radius: 999px;
-  background: rgba(49, 239, 173, .1);
-  color: #7af4c8;
-  font-size: 8px;
+  background: color-mix(in srgb, var(--store-accent) 10%, transparent);
+  color: var(--store-accent-hover);
+  font-size: var(--store-type-caption);
 }
 
 .catalog-updates-panel {
@@ -65,18 +99,18 @@
   align-items: center;
   gap: 11px;
   padding: 8px;
-  border: 1px solid rgba(99, 168, 151, .14);
+  border: 1px solid color-mix(in srgb, var(--store-accent) 14%, transparent);
   border-radius: 11px;
-  background: linear-gradient(180deg, rgba(14, 31, 29, .82), rgba(7, 17, 16, .94));
-  color: #dce9e5;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--store-panel) 82%, transparent), color-mix(in srgb, var(--store-panel) 94%, transparent));
+  color: var(--store-text);
   text-align: left;
   cursor: pointer;
   transition: border-color .16s ease, transform .16s ease, background .16s ease;
 }
 
 .catalog-update-card:hover {
-  border-color: rgba(49, 239, 173, .38);
-  background: linear-gradient(180deg, rgba(15, 38, 34, .94), rgba(7, 20, 18, .98));
+  border-color: color-mix(in srgb, var(--store-accent) 38%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--store-panel) 94%, transparent), color-mix(in srgb, var(--store-panel) 98%, transparent));
   transform: translateY(-2px);
 }
 
@@ -86,19 +120,19 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(111, 181, 163, .12);
+  border: 1px solid color-mix(in srgb, var(--store-accent) 12%, transparent);
   border-radius: 8px;
   background:
-    radial-gradient(circle at 60% 30%, rgba(49,239,173,.12), transparent 45%),
-    #071311;
-  color: rgba(94, 235, 189, .44);
-  font: 900 26px/1 ui-sans-serif, system-ui, sans-serif;
+    radial-gradient(circle at 60% 30%, color-mix(in srgb, var(--store-accent) 12%, transparent), transparent 45%),
+    var(--store-panel-2);
+  color: color-mix(in srgb, var(--store-accent) 44%, transparent);
+  font: 900 26px/1 var(--store-font-body);
 }
 
 .catalog-update-card__media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
 }
 
@@ -117,31 +151,31 @@
 }
 
 .catalog-update-card__copy small {
-  color: #56ecb5;
-  font: 700 8px/1 ui-sans-serif, system-ui, sans-serif;
+  color: var(--store-accent-hover);
+  font: 700 var(--store-type-caption)/1.2 var(--store-font-body);
   white-space: nowrap;
 }
 
 .catalog-update-card__copy strong {
-  color: #eef8f4;
-  font: 790 13px/1.12 ui-sans-serif, system-ui, sans-serif;
+  color: var(--store-text);
+  font: 790 var(--store-type-body)/1.2 var(--store-font-body);
   white-space: nowrap;
 }
 
 .catalog-update-card__copy em {
-  color: #6f8d85;
-  font: 620 8px/1.2 ui-sans-serif, system-ui, sans-serif;
+  color: var(--store-muted);
+  font: 620 var(--store-type-caption)/1.25 var(--store-font-body);
   font-style: normal;
   white-space: nowrap;
 }
 
 .catalog-update-card__arrow {
-  color: #609b8c;
+  color: var(--store-muted);
   font-size: 22px;
 }
 
 .catalog-update-card:hover .catalog-update-card__arrow {
-  color: #62f4bd;
+  color: var(--store-accent-hover);
 }
 
 .catalog-viewed-list {
@@ -156,17 +190,17 @@
   align-items: center;
   gap: 9px;
   padding: 0 13px;
-  border: 1px solid rgba(100, 166, 150, .12);
+  border: 1px solid color-mix(in srgb, var(--store-accent) 12%, transparent);
   border-radius: 9px;
   background: rgba(255,255,255,.018);
-  color: #b9cbc5;
+  color: var(--store-muted);
   text-align: left;
   cursor: pointer;
 }
 
 .catalog-viewed-list button:hover:not(:disabled) {
-  border-color: rgba(49, 239, 173, .32);
-  background: rgba(49, 239, 173, .045);
+  border-color: color-mix(in srgb, var(--store-accent) 32%, transparent);
+  background: color-mix(in srgb, var(--store-accent) 5%, transparent);
 }
 
 .catalog-viewed-list button:disabled {
@@ -175,22 +209,22 @@
 }
 
 .catalog-viewed-list span {
-  color: #54756c;
-  font: 700 9px/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+  color: var(--store-muted);
+  font: 700 var(--store-type-caption)/1.2 var(--store-font-mono);
 }
 
 .catalog-viewed-list strong {
   min-width: 0;
   overflow: hidden;
-  color: #e5efeb;
-  font: 730 11px/1 ui-sans-serif, system-ui, sans-serif;
+  color: var(--store-text);
+  font: 730 var(--store-type-label)/1.2 var(--store-font-body);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .catalog-viewed-list small {
-  color: #68b7a0;
-  font: 650 8px/1 ui-sans-serif, system-ui, sans-serif;
+  color: var(--store-muted);
+  font: 650 var(--store-type-caption)/1.2 var(--store-font-body);
 }
 
 .catalog-updates-footer {
@@ -200,25 +234,25 @@
   gap: 14px;
   margin-top: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(101, 166, 150, .1);
-  color: #66827a;
-  font-size: 9px;
+  border-top: 1px solid color-mix(in srgb, var(--store-accent) 10%, transparent);
+  color: var(--store-muted);
+  font-size: var(--store-type-caption);
 }
 
 .catalog-updates-footer button {
-  min-height: 34px;
+  min-height: 44px;
   padding: 0 11px;
-  border: 1px solid rgba(104, 174, 157, .16);
+  border: 1px solid color-mix(in srgb, var(--store-accent) 16%, transparent);
   border-radius: 8px;
   background: rgba(255,255,255,.02);
-  color: #a2b9b2;
-  font: 680 9px/1 ui-sans-serif, system-ui, sans-serif;
+  color: var(--store-muted);
+  font: 680 var(--store-type-label)/1.2 var(--store-font-body);
   cursor: pointer;
 }
 
 .catalog-updates-footer button:hover {
-  color: #66f2bc;
-  border-color: rgba(49,239,173,.36);
+  color: var(--store-accent-hover);
+  border-color: color-mix(in srgb, var(--store-accent) 36%, transparent);
 }
 
 .catalog-updates-empty {
@@ -228,30 +262,30 @@
   justify-items: center;
   gap: 8px;
   padding: 30px;
-  color: #718d85;
+  color: var(--store-muted);
   text-align: center;
 }
 
 .catalog-updates-empty strong {
-  color: #cde0da;
-  font: 800 11px/1 ui-sans-serif, system-ui, sans-serif;
+  color: var(--store-text);
+  font: 800 var(--store-type-label)/1.2 var(--store-font-body);
   letter-spacing: .8px;
 }
 
 .catalog-updates-empty span {
   max-width: 48ch;
-  font-size: 10px;
+  font-size: var(--store-type-label);
   line-height: 1.5;
 }
 
 .catalog-updates-error {
   margin: 0 0 12px;
   padding: 10px 12px;
-  border: 1px solid rgba(255, 115, 115, .24);
+  border: 1px solid color-mix(in srgb, var(--store-danger) 24%, transparent);
   border-radius: 8px;
   background: rgba(92, 20, 20, .2);
-  color: #ffc3c3;
-  font-size: 10px;
+  color: var(--store-danger);
+  font-size: var(--store-type-label);
 }
 
 @media (max-width: 860px) {
@@ -296,4 +330,12 @@
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.catalog-updates-tabs button:focus-visible,
+.catalog-update-card:focus-visible,
+.catalog-viewed-list button:focus-visible,
+.catalog-updates-footer button:focus-visible {
+  outline: 2px solid var(--store-accent);
+  outline-offset: 2px;
 }

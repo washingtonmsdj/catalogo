@@ -787,6 +787,41 @@ async function exercise(browser, spec) {
       await favoritesDialog.getByRole('button', { name: 'Fechar favoritos' }).click()
       await favoritesDialog.waitFor({ state: 'hidden' })
       entry.checks.push('model details and favorites use canonical palette, 44px touch controls and working add/remove journey')
+      await page.getByRole('navigation', { name: 'Navegação principal' }).getByRole('button', { name: 'Novos' }).click()
+      const updatesDialog = page.getByRole('dialog', { name: 'Descobrir modelos' })
+      await updatesDialog.waitFor({ state: 'visible', timeout: 5000 })
+      const updatesLayout = await updatesDialog.evaluate((dialog) => {
+        const tabs = [...dialog.querySelectorAll('.catalog-updates-tabs button')]
+        const close = dialog.querySelector('.modal-head > button')
+        return {
+          width: dialog.getBoundingClientRect().width,
+          border: getComputedStyle(dialog).borderTopColor,
+          font: getComputedStyle(dialog).fontFamily,
+          tabs: tabs.map((button) => button.getBoundingClientRect().height),
+          tabFonts: tabs.map((button) => parseFloat(getComputedStyle(button).fontSize)),
+          closeHeight: close?.getBoundingClientRect().height ?? 0,
+        }
+      })
+      assert.ok(updatesLayout.width <= spec.width + 1, 'Updates modal must fit viewport')
+      assert.equal(updatesLayout.border, 'rgb(81, 72, 63)', 'Updates modal must use canonical border token')
+      assert.match(updatesLayout.font, /system-ui/i, 'Updates modal must use shared storefront font')
+      assert.ok(updatesLayout.tabs.length === 2 && updatesLayout.tabs.every((h) => h >= 44)
+        && updatesLayout.tabFonts.every((size) => size >= 12) && updatesLayout.closeHeight >= 44,
+        'Updates tabs and close button need accessible touch targets and type')
+      await updatesDialog.getByRole('tab', { name: /Vistos recentemente/ }).click()
+      const viewedPanel = updatesDialog.getByRole('tabpanel', { name: /Vistos recentemente/ })
+      assert.ok(await viewedPanel.locator('.catalog-viewed-list button').count() > 0,
+        'Previously opened model must appear in local viewed history')
+      const clearHistory = viewedPanel.getByRole('button', { name: 'Limpar histórico' })
+      assert.ok(await clearHistory.evaluate((node) => node.getBoundingClientRect().height) >= 44,
+        'History clear action must be 44px')
+      await clearHistory.click()
+      await viewedPanel.getByText('NENHUM MODELO VISTO').waitFor({ state: 'visible', timeout: 5000 })
+      await updatesDialog.getByRole('tab', { name: 'Recém adicionados' }).click()
+      await updatesDialog.getByText('PRÉVIA LOCAL').waitFor({ state: 'visible', timeout: 5000 })
+      await updatesDialog.getByRole('button', { name: 'Fechar atualizações' }).click()
+      await updatesDialog.waitFor({ state: 'hidden' })
+      entry.checks.push('updates and viewed history share the storefront theme, mobile targets and local clear journey')
       const explorerTrigger = page.getByRole('button', { name: 'Explorar franquias e pastas' })
       await explorerTrigger.click()
       const explorerDialog = page.getByRole('dialog', { name: 'Encontrar modelos e franquias' })
