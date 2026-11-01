@@ -1,4 +1,5 @@
 import { catalogApiUrl, catalogRuntime } from '../config/catalogRuntime'
+import { validateLiveQuoteConfirmation } from './quoteReceipt'
 
 export type QuotePayload = {
   name: string
@@ -35,7 +36,6 @@ export async function submitQuoteRequest(payload: QuotePayload): Promise<QuoteSu
     throw new Error(body?.error || `quote_submit_failed_${response.status}`)
   }
 
-  const body = await response.json() as { reference: string; deduplicated?: boolean }
-  if (!body.reference) throw new Error('quote_reference_missing')
-  return { reference: body.reference, mode: 'live', deduplicated: body.deduplicated === true }
+  const body: unknown = await response.json().catch(() => null)
+  return validateLiveQuoteConfirmation(body)
 }
