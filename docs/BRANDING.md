@@ -77,6 +77,13 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 - A grade horizontal rola dentro do diálogo, com coluna de atributos fixa; botões de remover, abrir ficha e ações têm no mínimo 44 px e foco visível.
 - Chromium em demo isolada testa selecionar, abrir o comparador com um modelo, alvos móveis e remoção até o estado vazio em 390 e 1024 px. Sem acessar D1 de produção.
 
+## Novidades e modelos vistos recentemente (2026-11-01)
+
+- O componente `CatalogUpdatesDialog` preserva suas duas abas acessíveis: recém-adicionados do acervo publicado e histórico de visualizações apenas no navegador. O modo demo nunca apresenta lançamentos inventados.
+- `src/catalog-updates.css` reutiliza os tokens `--store-*` existentes para fontes, cores, superfícies, bordas, seleção e foco. Não definir uma segunda paleta verde nem carregar fontes externas.
+- Botões de abas, fechar e limpar histórico têm alvos de pelo menos 44 px; cards e modelos recentes permanecem legíveis e sem rolagem horizontal da página em 390 e 1024 px.
+- Chromium em demo isolada valida abertura por **Novos**, geometria, alternância entre abas, histórico real do navegador, limpeza e fechamento. Não acessar D1 de produção.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.
