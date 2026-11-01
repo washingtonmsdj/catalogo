@@ -788,7 +788,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
                 placeholder="Buscar modelos, personagens, franquias..."
                 aria-label="Buscar no catálogo"
                 aria-expanded={globalSearchOpen && canSearchSuggestions}
-                aria-controls="storefront-search-suggestions"
+                aria-controls={globalSearchOpen && canSearchSuggestions ? 'storefront-search-suggestions' : undefined}
                 aria-activedescendant={activeSearchOptionId}
                 aria-autocomplete="list"
               />
@@ -818,7 +818,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
                     </button>
                   ))}
                 </div>}
-                {<button type="button" id="storefront-search-option-all" role="option" aria-selected={globalSearchActiveIndex === modelSuggestions.length + visibleFranchiseSuggestions.length} className="storefront-search-suggestions__all" onMouseDown={(event) => event.preventDefault()} onClick={() => { setGlobalSearchOpen(false); setGlobalSearchActiveIndex(-1); showCatalogPage() }}>Ver todos os resultados para “{globalSearchNeedle}”</button>}
+                <button type="button" id="storefront-search-option-all" role="option" aria-selected={globalSearchActiveIndex === modelSuggestions.length + visibleFranchiseSuggestions.length} className="storefront-search-suggestions__all" onMouseDown={(event) => event.preventDefault()} onClick={() => { setGlobalSearchOpen(false); setGlobalSearchActiveIndex(-1); showCatalogPage() }}>Ver todos os resultados para “{globalSearchNeedle}”</button>
               </div>
             )}
           </div>
