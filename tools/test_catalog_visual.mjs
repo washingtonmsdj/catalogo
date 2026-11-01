@@ -379,6 +379,20 @@ async function exercise(browser, spec) {
         filteredCodes[0], { timeout: 7000 })
       await page.getByRole('button', { name: /Filtros · ativos/ }).click()
       const materialFacet = facetForm.getByLabel('Material')
+      const appliedUrl = page.url()
+      await facetForm.getByRole('button', { name: 'Limpar campos' }).click()
+      for (const label of ['Material', 'Coleção', 'Mínima', 'Máxima']) {
+        assert.equal(await facetForm.getByLabel(label).inputValue(), '', 'Clear should affect the draft only')
+      }
+      assert.equal(page.url(), appliedUrl, 'Clearing draft must not apply filters or change the live query')
+      await facetForm.getByRole('button', { name: 'Cancelar' }).click()
+      await facetForm.waitFor({ state: 'hidden' })
+      assert.equal(page.url(), appliedUrl, 'Cancelling edited filters must preserve the applied query')
+      assert.ok(await filterToggle.evaluate((node) => node === document.activeElement),
+        'Cancelling filters must restore keyboard focus to their disclosure button')
+      await filterToggle.click()
+      assert.equal(await materialFacet.inputValue(), 'pvc',
+        'Reopening after cancel must load the applied filters, not discarded draft changes')
       await page.getByRole('button', { name: 'Remover filtro de material' }).click()
       assert.equal(await materialFacet.inputValue(), '',
         'Removing an active material chip must clear the open filter draft')
@@ -441,9 +455,19 @@ async function exercise(browser, spec) {
         'Mobile facet controls must stay inside the viewport')
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), spec.width,
         'Mobile facets must not introduce horizontal overflow')
-      await filterToggle.click()
+      await facetForm.getByLabel('Mínima').fill('80')
+      await facetForm.getByLabel('Máxima').fill('20')
+      await facetForm.getByRole('button', { name: 'Aplicar filtros' }).click()
+      assert.ok(await facetForm.isVisible(), 'Invalid height range must keep the panel open')
+      assert.match(await facetForm.getByRole('alert').innerText(), /mínima não pode ser maior que a máxima/i)
+      assert.equal(await facetForm.getByLabel('Mínima').getAttribute('aria-invalid'), 'true',
+        'Invalid height must be announced to assistive technology')
+      await facetForm.getByLabel('Máxima').focus()
+      await page.keyboard.press('Escape')
       await facetForm.waitFor({ state: 'hidden' })
-      entry.checks.push('mobile facet disclosure is keyboard operable and fits without horizontal overflow')
+      assert.ok(await filterToggle.evaluate((node) => node === document.activeElement),
+        'Escape must cancel the draft and restore focus without applying it')
+      entry.checks.push('mobile facets validate height, cancel via Escape and fit without horizontal overflow')
     }
     const pageCodes = () => page.locator('.storefront-model-grid.is-results .storefront-model-card__meta b').allTextContents()
     const firstPageCodes = await pageCodes()
