@@ -834,6 +834,36 @@ async function exercise(browser, spec) {
         await page.locator('.storefront-footer').getByRole('button', { name: /Minha lista/ }).click()
         const quoteDialog = page.getByRole('dialog', { name: 'Solicitar orçamento' })
         await quoteDialog.waitFor({ state: 'visible' })
+        const quoteLayout = await quoteDialog.evaluate((dialog) => {
+          const remove = dialog.querySelector('.quote-request-item__remove')
+          const fields = [...dialog.querySelectorAll('.quote-request-fields input')]
+          const labels = [...dialog.querySelectorAll('.quote-request-fields label')]
+          const submit = dialog.querySelector('.quote-request-submit .primary-action')
+          const bounds = dialog.getBoundingClientRect()
+          return {
+            width: bounds.width,
+            left: bounds.left,
+            right: bounds.right,
+            border: getComputedStyle(dialog).borderTopColor,
+            removeHeight: remove?.getBoundingClientRect().height || 0,
+            removeWidth: remove?.getBoundingClientRect().width || 0,
+            inputHeights: fields.map((node) => node.getBoundingClientRect().height),
+            inputFonts: fields.map((node) => parseFloat(getComputedStyle(node).fontSize)),
+            labelFonts: labels.map((node) => parseFloat(getComputedStyle(node).fontSize)),
+            submitHeight: submit?.getBoundingClientRect().height || 0,
+          }
+        })
+        assert.equal(quoteLayout.border, 'rgb(81, 72, 63)', 'Quote modal must use the canonical border token')
+        assert.ok(quoteLayout.width <= spec.width + 1 && quoteLayout.left >= -1 && quoteLayout.right <= spec.width + 1,
+          'Quote dialog must fit the mobile viewport')
+        assert.ok(quoteLayout.removeHeight >= 44 && quoteLayout.removeWidth >= 44,
+          'Removing an item from the quote must use a 44px target')
+        assert.ok(quoteLayout.inputHeights.length >= 2 && quoteLayout.inputHeights.every((height) => height >= 44)
+          && quoteLayout.inputFonts.every((size) => size >= 14),
+        'Quote fields must be comfortable for mobile typing without browser font zoom')
+        assert.ok(quoteLayout.labelFonts.every((size) => size >= 12) && quoteLayout.submitHeight >= 44,
+          'Quote labels and submit button must remain accessible on mobile')
+        entry.checks.push('quote modal uses canonical palette, 44px controls and readable mobile form typography')
         await quoteDialog.locator('input[name="name"]').fill('Cliente Demo')
         await quoteDialog.locator('input[name="email"]').fill('teste@example.com')
         // Isolated demo failure must preserve the selection and release the lock for retry.
