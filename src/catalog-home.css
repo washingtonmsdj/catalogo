@@ -1707,7 +1707,28 @@ body {
 /* The canonical mobile nav is a five-stop bar, not a second menu.
    Retain every destination while improving readability and touch affordance. */
 @media (max-width: 620px) {
+  .storefront-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "search utility" "nav nav";
+    align-items: center;
+    gap: 6px;
+    min-height: 0;
+  }
+  .storefront-search-wrap {
+    grid-area: search;
+    min-width: 0;
+    width: 100%;
+  }
+  .storefront-topbar__utility {
+    grid-area: utility;
+    justify-self: end;
+  }
   .storefront-topbar nav {
+    grid-area: nav;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    width: 100%;
     min-height: 48px;
     height: auto;
     padding: 2px;
