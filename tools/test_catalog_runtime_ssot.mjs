@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import test from 'node:test'
 
 const apiSource = fs.readFileSync(new URL('../src/services/catalogApi.ts', import.meta.url), 'utf8')
+const sharedCollectionSource = fs.readFileSync(new URL('../src/services/sharedCollections.ts', import.meta.url), 'utf8')
 const quoteSource = fs.readFileSync(new URL('../src/services/quotes.ts', import.meta.url), 'utf8')
 const runtimeSource = fs.readFileSync(new URL('../src/config/catalogRuntime.ts', import.meta.url), 'utf8')
 const contractSource = fs.readFileSync(new URL('../src/config/catalogRuntimeContract.ts', import.meta.url), 'utf8')
@@ -19,6 +20,8 @@ test('catalog API and quotes share the canonical runtime resolver', () => {
 test('service modules do not resolve VITE_API_BASE_URL independently', () => {
   assert.doesNotMatch(apiSource, /VITE_API_BASE_URL/)
   assert.doesNotMatch(quoteSource, /VITE_API_BASE_URL/)
+  assert.doesNotMatch(sharedCollectionSource, /VITE_API_BASE_URL/)
+  assert.match(sharedCollectionSource, /catalogApiUrl\(/)
   assert.match(runtimeSource, /resolveCatalogRuntime\(import\.meta\.env/)
   assert.match(contractSource, /VITE_API_BASE_URL/)
 })
@@ -34,6 +37,7 @@ test('missing API configuration is not interpreted as demo mode', () => {
 test('Achegue-se proxy ownership exists only in the runtime contract', () => {
   assert.match(contractSource, /acheguese\.com\.br/)
   assert.match(contractSource, /catalogo-api/)
+  assert.match(contractSource, /acheguese\.vercel\.app/)
   assert.doesNotMatch(apiSource, /acheguese\.com\.br/)
   assert.doesNotMatch(quoteSource, /acheguese\.com\.br/)
 })
