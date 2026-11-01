@@ -589,7 +589,37 @@ async function exercise(browser, spec) {
       await facetForm.waitFor({ state: 'hidden' })
       assert.ok(await filterToggle.evaluate((node) => node === document.activeElement),
         'Escape must cancel the draft and restore focus without applying it')
-      entry.checks.push('mobile facets validate height, cancel via Escape and fit without horizontal overflow')
+      await filterToggle.click()
+      await facetForm.getByLabel('Material').fill('pvc')
+      await facetForm.getByRole('button', { name: 'Aplicar filtros' }).click()
+      await page.waitForFunction(() => location.search.includes('material=pvc'), null, { timeout: 7000 })
+      const activeFilters = page.getByRole('group', { name: 'Filtros ativos' })
+      const mobileChipLayout = await activeFilters.evaluate((node) => ({
+        buttons: [...node.querySelectorAll('button')].map((button) => {
+          const rect = button.getBoundingClientRect()
+          return { height: rect.height, left: rect.left, right: rect.right, font: parseFloat(getComputedStyle(button).fontSize) }
+        }),
+        maxWidth: node.getBoundingClientRect().right,
+      }))
+      assert.ok(mobileChipLayout.buttons.length >= 4, 'Applied filters must offer clear chips and actions')
+      assert.ok(mobileChipLayout.buttons.every((button) => button.height >= 44 && button.font >= 12
+        && button.left >= 0 && button.right <= spec.width + 1),
+      'All active filter controls need readable 44px mobile targets inside the viewport')
+      await activeFilters.getByRole('button', { name: 'Salvar filtros' }).click()
+      const savedFilters = page.getByRole('group', { name: 'Filtros salvos' })
+      const savedChipLayout = await savedFilters.evaluate((node) => [...node.querySelectorAll('button')].map((button) => ({
+        height: button.getBoundingClientRect().height,
+        font: parseFloat(getComputedStyle(button).fontSize),
+      })))
+      assert.ok(savedChipLayout.length >= 2 && savedChipLayout.every((button) => button.height >= 44 && button.font >= 12),
+        'Saved filter controls must have 44px readable touch targets')
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), spec.width,
+        'Filter chips must not introduce horizontal page overflow')
+      await activeFilters.getByRole('button', { name: 'Limpar tudo' }).click()
+      await page.waitForFunction(() => !location.search.includes('material='), null, { timeout: 7000 })
+      await savedFilters.getByRole('button', { name: /^Remover filtro salvo/ }).click()
+      await savedFilters.waitFor({ state: 'hidden' })
+      entry.checks.push('mobile facets validate height and recover focus; active and saved filters have readable 44px controls')
     }
     const pageCodes = () => page.locator('.storefront-model-grid.is-results .storefront-model-card__meta b').allTextContents()
     const firstPageCodes = await pageCodes()
