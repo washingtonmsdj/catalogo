@@ -60,9 +60,11 @@ test('R20 browser gate rejects a hero title clipped by its frame', () => {
   assert.match(browser, /hero\.titleTop >= hero\.frameTop - 1/)
 })
 
-test('R20 mobile carousel controls cannot cover hero text', () => {
-  assert.match(browser, /Mobile hero arrows must not obscure the title/)
+test('hero carousel controls cannot cover copy at desktop, tablet or mobile', () => {
+  assert.match(browser, /Hero navigation must never obscure the headline/)
+  assert.match(browser, /Hero navigation must never obscure the description/)
   assert.match(browser, /Mobile hero dots must not obscure description/)
+  assert.match(browser, /readable model cards with separate mobile actions and protected captions/)
 })
 
 test('R21 browser audit requires in-flow collection actions on mobile and tablet', () => {
