@@ -146,9 +146,13 @@ test('storefront tokens have one authoritative value and legacy shell only alias
   assert.match(shellCss, /--bg: var\(--store-bg\)/)
   assert.match(shellCss, /--text: var\(--store-text\)/)
   assert.doesNotMatch(storefrontCss, /--concept-green(?:-2|-soft)?\s*:/)
-  assert.doesNotMatch(baseCss, /--accent:\s*#[a-f\d]+/i)
-  assert.doesNotMatch(premiumCss, /--accent:\s*#[a-f\d]+/i)
-  assert.doesNotMatch(premiumCss, /--bg:\s*#[a-f\d]+/i)
+  // A model illustration may use a local --accent for its artwork; only global
+  // root palette declarations are forbidden outside the canonical storefront.
+  const baseRoot = baseCss.match(/^:root\s*\{[^}]*\}/m)?.[0] ?? ''
+  const premiumRoot = premiumCss.match(/^:root\s*\{[^}]*\}/m)?.[0] ?? ''
+  assert.doesNotMatch(baseRoot, /--accent:\s*#[a-f\d]+/i)
+  assert.doesNotMatch(premiumRoot, /--accent:\s*#[a-f\d]+/i)
+  assert.doesNotMatch(premiumRoot, /--bg:\s*#[a-f\d]+/i)
   assert.match(shellCss, /--danger: var\(--store-danger\)/)
 })
 
