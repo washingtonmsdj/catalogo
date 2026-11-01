@@ -111,6 +111,7 @@ test('submission UI guards close, selection edits, and duplicate posts while pen
   const { readFileSync } = await import('node:fs')
   const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
   const dialog = readFileSync(new URL('../src/components/QuoteDialog.tsx', import.meta.url), 'utf8')
+  const quotes = readFileSync(new URL('../src/services/quotes.ts', import.meta.url), 'utf8')
   assert.match(app, /if \(quoteSubmissionInFlight\.current\) return/)
   assert.match(app, /quoteSubmissionInFlight\.current = true/)
   assert.match(app, /quoteSubmissionInFlight\.current = false/)
@@ -120,4 +121,5 @@ test('submission UI guards close, selection edits, and duplicate posts while pen
   assert.match(dialog, /aria-busy=\{submitting\}/)
   assert.match(dialog, /disabled=\{submitting\} onClick=\{onClose\}/)
   assert.match(dialog, /disabled=\{submitting\} maxLength=\{4000\}/)
+  assert.match(quotes, /signal: AbortSignal\.timeout\(20_000\)/)
 })
