@@ -147,3 +147,20 @@ test('franchise explorer inherits canonical design tokens without a competing th
   assert.match(explorer, /\.explorer-folder-structure button:focus-visible \{ outline: 2px solid var\(--store-accent\)/)
   assert.match(explorer, /\.explorer-category-action \{[\s\S]*?font: 750 var\(--store-type-label\)/)
 })
+
+
+test('model detail and favorites dialogs use storefront tokens and mobile touch targets', () => {
+  const detail = readFileSync(new URL('../src/model-detail.css', import.meta.url), 'utf8')
+  const favorites = readFileSync(new URL('../src/favorites.css', import.meta.url), 'utf8')
+  for (const stylesheet of [detail, favorites]) {
+    assert.doesNotMatch(stylesheet, /#[0-9a-f]{3,8}\b/i)
+    assert.doesNotMatch(stylesheet, /ui-sans-serif|ui-monospace,/)
+    assert.match(stylesheet, /var\(--store-accent\)/)
+    assert.match(stylesheet, /var\(--store-font-body\)/)
+  }
+  assert.match(detail, /\.model-detail-head > button \{[\s\S]*?width: 44px;\s*height: 44px;/)
+  assert.match(detail, /\.model-detail-actions button \{\s*min-height: 44px;/)
+  assert.match(favorites, /\.favorites-toolbar label button \{\s*width: 44px;\s*height: 44px;/)
+  assert.match(favorites, /\.favorites-list__remove \{\s*width: 44px;\s*height: 44px;/)
+  assert.match(favorites, /grid-template-columns: 34px minmax\(0,1fr\) 44px;/)
+})

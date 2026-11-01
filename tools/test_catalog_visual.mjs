@@ -698,6 +698,55 @@ async function exercise(browser, spec) {
     entry.screenshots.push(spec.name + '-results.png')
 
     if ([390, 1024].includes(spec.width)) {
+      await page.locator('.storefront-model-grid.is-results .storefront-model-card__main').first().click()
+      const detailDialog = page.locator('.model-detail-sheet[role="dialog"]')
+      await detailDialog.locator('.model-detail-actions').waitFor({ state: 'visible', timeout: 7000 })
+      const detailLayout = await detailDialog.evaluate((dialog) => {
+        const close = dialog.querySelector('.model-detail-head > button')
+        const actions = [...dialog.querySelectorAll('.model-detail-actions button')]
+        const root = getComputedStyle(document.documentElement)
+        return {
+          width: dialog.getBoundingClientRect().width,
+          closeSize: close?.getBoundingClientRect().height ?? 0,
+          actionHeights: actions.map((button) => button.getBoundingClientRect().height),
+          primary: getComputedStyle(dialog.querySelector('.model-detail-primary')).backgroundColor,
+          accent: root.getPropertyValue('--store-accent').trim(),
+        }
+      })
+      assert.ok(detailLayout.width <= spec.width + 1, 'Model details must fit the viewport')
+      assert.ok(detailLayout.closeSize >= 44 && detailLayout.actionHeights.every((height) => height >= 44),
+        'Detail close and action buttons must have 44px targets')
+      assert.equal(detailLayout.primary, 'rgb(240, 107, 36)', 'Detail primary action must use the canonical copper accent')
+      const favoriteAction = detailDialog.getByRole('button', { name: /Favoritar/ })
+      await favoriteAction.click()
+      assert.equal(await detailDialog.getByRole('button', { name: /Favoritado/ }).getAttribute('aria-pressed'), 'true')
+      await detailDialog.getByRole('button', { name: 'Fechar detalhe do modelo' }).click()
+      await detailDialog.waitFor({ state: 'hidden' })
+      await page.locator('.storefront-topbar__favorites').click()
+      const favoritesDialog = page.getByRole('dialog', { name: 'Favoritos' })
+      await favoritesDialog.waitFor({ state: 'visible', timeout: 5000 })
+      const favoriteLayout = await favoritesDialog.evaluate((dialog) => {
+        const remove = dialog.querySelector('.favorites-list__remove')
+        const search = dialog.querySelector('.favorites-toolbar label > div')
+        const footerButtons = [...dialog.querySelectorAll('.favorites-footer button')]
+        return {
+          border: getComputedStyle(dialog).borderTopColor,
+          width: dialog.getBoundingClientRect().width,
+          removeSize: remove?.getBoundingClientRect().height ?? 0,
+          searchSize: search?.getBoundingClientRect().height ?? 0,
+          footerSizes: footerButtons.map((button) => button.getBoundingClientRect().height),
+        }
+      })
+      assert.equal(favoriteLayout.border, 'rgb(81, 72, 63)', 'Favorites modal must use canonical borders')
+      assert.ok(favoriteLayout.width <= spec.width + 1, 'Favorites dialog must fit the viewport')
+      assert.ok(favoriteLayout.removeSize >= 44 && favoriteLayout.searchSize >= 44
+        && favoriteLayout.footerSizes.every((height) => height >= 44),
+      'Favorites search, remove and actions need 44px touch targets')
+      await favoritesDialog.locator('.favorites-list__remove').first().click()
+      await favoritesDialog.getByText('LISTA VAZIA').waitFor({ state: 'visible', timeout: 5000 })
+      await favoritesDialog.getByRole('button', { name: 'Fechar favoritos' }).click()
+      await favoritesDialog.waitFor({ state: 'hidden' })
+      entry.checks.push('model details and favorites use canonical palette, 44px touch controls and working add/remove journey')
       const explorerTrigger = page.getByRole('button', { name: 'Explorar franquias e pastas' })
       await explorerTrigger.click()
       const explorerDialog = page.getByRole('dialog', { name: 'Encontrar modelos e franquias' })
