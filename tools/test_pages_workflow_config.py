@@ -102,29 +102,32 @@ class PagesWorkflowConfigTests(unittest.TestCase):
         self.assertNotIn("VITE_MEDIA_BASE_URL", env_types)
         self.assertNotIn("loadEnv", vite)
 
-    def test_public_proxy_smoke_runs_after_mirror_without_exhaustive_reads(self):
-        mirror = "Verify published Vercel catalog mirrors Pages asset"
-        proxy = "Verify first-party Vercel API and one public cover"
-        self.assertIn(mirror, self.workflow)
-        self.assertIn(proxy, self.workflow)
-        self.assertLess(self.workflow.index(mirror), self.workflow.index(proxy))
-        self.assertIn(
-            "python tools/verify_public_catalog.py --api-base https://acheguese.vercel.app/catalogo-api",
-            self.workflow,
-        )
+    def test_canonical_public_domain_has_exact_mirror_and_one_api_media_probe(self):
+        technical_mirror = "Verify published Vercel catalog mirrors Pages asset"
+        canonical_mirror = "Verify canonical Achegue-se domain mirrors Pages asset"
+        canonical_proxy = "Verify canonical public API and one cover via first-party proxy"
+        self.assertIn(technical_mirror, self.workflow)
+        self.assertIn(canonical_mirror, self.workflow)
+        self.assertIn(canonical_proxy, self.workflow)
+        self.assertLess(self.workflow.index(technical_mirror), self.workflow.index(canonical_mirror))
+        self.assertLess(self.workflow.index(canonical_mirror), self.workflow.index(canonical_proxy))
+        self.assertIn("require('./config/public-runtime.json')", self.workflow)
+        self.assertIn("new URL('/catalogo-api',publicSiteUrl).href", self.workflow)
+        self.assertIn('python tools/verify_public_catalog.py --api-base "$API_BASE"', self.workflow)
+        self.assertEqual(self.workflow.count("python tools/verify_public_catalog.py"), 1)
         self.assertNotIn("--exhaustive", self.workflow)
         smoke = (self.root / "tools" / "verify_public_catalog.py").read_text(encoding="utf-8")
         self.assertIn("/api/health", smoke)
         self.assertIn("/api/catalog?limit=1", smoke)
         self.assertIn('"Range": "bytes=0-0"', smoke)
 
-    def test_quote_ingress_is_negative_only_and_runs_after_health_and_media(self):
-        proxy = "Verify first-party Vercel API and one public cover"
-        quote = "Verify quote ingress rejects invalid request without creating an order"
+    def test_canonical_quote_ingress_is_negative_only_and_runs_after_health_and_media(self):
+        proxy = "Verify canonical public API and one cover via first-party proxy"
+        quote = "Verify canonical quote ingress rejects invalid request without creating an order"
         self.assertIn(proxy, self.workflow)
         self.assertIn(quote, self.workflow)
         self.assertLess(self.workflow.index(proxy), self.workflow.index(quote))
-        self.assertIn("verifyPublicQuoteIngress('https://acheguese.vercel.app/catalogo-api')", self.workflow)
+        self.assertIn("verifyPublicQuoteIngress(new URL('/catalogo-api', publicSiteUrl).href)", self.workflow)
         source = (self.root / "tools" / "worker_release_smoke.mjs").read_text(encoding="utf-8")
         self.assertIn("export async function verifyPublicQuoteIngress", source)
         self.assertIn("body: '{}'", source)
