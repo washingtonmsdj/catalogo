@@ -12,7 +12,7 @@ export function verifiedTurnstileResponse(
   payload: unknown,
   corsOrigins: string,
   requestOrigin: string | null,
-  expectedAction: 'quote' | 'collection-share',
+  expectedAction: string,
 ): boolean {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return false
   const response = payload as { success?: unknown; action?: unknown; hostname?: unknown }
@@ -35,7 +35,7 @@ export async function validateTurnstile(
   request: Request,
   env: TurnstileEnv,
   token: string,
-  action: 'quote' | 'collection-share' = 'quote',
+  action: string = 'quote',
   fetchImpl: typeof fetch = fetch,
 ): Promise<boolean> {
   if (!env.TURNSTILE_SECRET_KEY || !token || token.length > 2048) return false
