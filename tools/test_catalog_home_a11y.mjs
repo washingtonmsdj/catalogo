@@ -269,13 +269,13 @@ test('gallery, lightbox and image fallback inherit storefront SSOT and mobile to
 test('home hero uses the canonical palette and avoids competing image priority', () => {
   const hero = css.split('/* Hero: use the same design tokens as the storefront, not a second color palette. */')[1]?.split('@media (max-width: 760px)')[0]
   assert.ok(hero, 'the hero token contract must be present')
-  assert.doesNotMatch(hero, /#[0-9a-f]{3,8}\\b/i)
+  assert.doesNotMatch(hero, /#[0-9a-f]{3,8}\b/i)
   for (const token of ['--store-bg', '--store-panel', '--store-border-strong', '--store-text', '--store-muted', '--store-accent']) {
     assert.ok(hero.includes(`var(${token})`), `hero must inherit ${token}`)
   }
-  assert.match(home, /priority=\\{resultsMode && index === 0\\}/)
-  assert.doesNotMatch(home, /priority=\\{index < 6\\}/)
-  assert.match(home, /resultScope \\|\\| `ACERVO \\$\\{BRAND_SHORT_NAME\\.toUpperCase\\(\\)\\}`/)
+  assert.match(home, /priority=\{resultsMode && index === 0\}/)
+  assert.doesNotMatch(home, /priority=\{index < 6\}/)
+  assert.match(home, /resultScope \|\| `ACERVO \$\{BRAND_SHORT_NAME\.toUpperCase\(\)\}`/)
   assert.doesNotMatch(home, /ACERVO TONECOS/)
-  assert.match(home, /heroCampaignCategory \\? 'Explorar coleção' : 'Ver catálogo completo'/)
+  assert.match(home, /heroCampaignCategory \? 'Explorar coleção' : 'Ver catálogo completo'/)
 })
