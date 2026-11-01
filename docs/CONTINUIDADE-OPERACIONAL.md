@@ -53,6 +53,16 @@
 
 O registro do Worker promovido na PR #161 e os respectivos smokes históricos continuam como **evidência conhecida boa, não substituto de medição atual**. Para decidir um deploy, medir novamente Worker, D1, R2 e estado dos workflows; não tomar IDs ou números deste checkpoint como estado vivo.
 
+## Correção CSP no frontend Vercel — 01/11/2026
+
+**Erro de produção fornecido pelo navegador:** o bundle carregado pela Vercel tentava `fetch` direto de `https://tonecos-catalogo-api.tonecosstudio.workers.dev/api/categories`, `/api/franchises` e `/api/catalog`, bloqueado pela CSP `connect-src 'self' ...`. A origem do erro foi identificada no contrato `src/config/catalogRuntimeContract.ts`: apenas o domínio próprio do Achegue-se era reconhecido para proxy first-party; `acheguese.vercel.app` caía na URL externa de `VITE_API_BASE_URL`.
+
+**Correção integrada na main:** `acheguese.vercel.app` passa a selecionar `<origin>/catalogo-api` pelo mesmo resolvedor canônico. O frontend em GitHub Pages preserva `VITE_API_BASE_URL` direto, pois ali não existe proxy Vercel. `src/services/sharedCollections.ts` deixou de montar URLs independentes; suas chamadas usam `catalogApiUrl` e o estado `catalogRuntime`, igual às categorias, franquias, modelos, orçamento e mídia. Os testes `tools/test_catalog_runtime_contract.mjs` e `tools/test_catalog_runtime_ssot.mjs` receberam cobertura de host nativo e impedem reintroduzir `VITE_API_BASE_URL` direto no serviço de compartilhamento.
+
+**Escopo:** frontend exclusivamente, sem alterar CSP global do Achegue-se, sem ampliar acesso a origens externas, sem tocar Worker/D1/R2 nem no código `washingtonmsdj/acheguese`. A regra de CSP se mantém restrita porque o frontend agora usa `'self'` na Vercel. Não criar uma segunda API.
+
+**Validação ainda necessária:** verificar CI real e entrega do Pages da última `main`, depois no `https://acheguese.vercel.app/tonecosstudios/` confirmar via Network requests `/catalogo-api/api/categories`, `/catalogo-api/api/franchises?limit=24`, `/catalogo-api/api/catalog?limit=48` e mídia `/catalogo-api/media/*`, sem erros CSP. A API pode falhar independentemente (por exemplo cota D1); uma correção de CSP não é prova de saúde do backend nem conteúdo publicado. Nesta sessão não foi possível obter HTTP real e o Vercel MCP autenticado não inclui Achegue-se. Não afirmar E2E concluído antes de observar as respostas reais. Os pushes de código na `main` devem disparar o workflow Pages, sem forçar deploy de Vercel que apenas monta a origem.
+
 ## Catálogo no ar em entregas incrementais — 01/11/2026
 
 **Política:** manter os modelos já homologados acessíveis enquanto outros lotes são preparados. Não exigir 100% da coleção para operar o site. Publicar novos deltas somente com identidade, mídia, direitos e gates aprovados; não transportar automaticamente os 30 candidatos PENDENTE do Drive para D1/R2.
