@@ -53,6 +53,27 @@
 
 O registro do Worker promovido na PR #161 e os respectivos smokes históricos continuam como **evidência conhecida boa, não substituto de medição atual**. Para decidir um deploy, medir novamente Worker, D1, R2 e estado dos workflows; não tomar IDs ou números deste checkpoint como estado vivo.
 
+## Catálogo no ar em entregas incrementais — 01/11/2026
+
+**Política:** manter os modelos já homologados acessíveis enquanto outros lotes são preparados. Não exigir 100% da coleção para operar o site. Publicar novos deltas somente com identidade, mídia, direitos e gates aprovados; não transportar automaticamente os 30 candidatos PENDENTE do Drive para D1/R2.
+
+### SSOT por camada e verificação da Vercel
+
+- O frontend é mantido em `washingtonmsdj/catalogo/main` e publicado no GitHub Pages por `.github/workflows/pages.yml`, com build e smoke de marca. A URL `https://washingtonmsdj.github.io/catalogo/` é origem do catálogo, não base duplicada de imagens.
+- O `vercel.json` de `washingtonmsdj/acheguese` encaminha `/tonecosstudios/*` ao Pages e `/catalogo-api/*` ao Worker da Tonecos. A URL nativa documentada no próprio repositório é `https://acheguese.vercel.app/tonecosstudios/`; a URL comercial canônica é `https://acheguese.com.br/tonecosstudios/`. NÃO confundir configuração Git com deployment verificado.
+- O Worker `tonecos-catalogo-api` fornece API e `/media/*` sobre D1 e R2 privado. O upload de imagens não atualiza automaticamente o frontend Vercel, mas deve aparecer sem novo build se as fichas e mídias já estiverem corretamente publicadas na API.
+- Drive `STLForgeCatalogo` é fonte operacional dos arquivos e direitos; `Controle/lote-novos-atual.csv` e `Controle/registro.jsonl` seguem canônicos. O lote de 25 coletado (205 imagens consideradas) e os cinco previamente verificados (27 SHA) NÃO equivalem a 30 modelos aprovados.
+
+### Gate mínimo para declarar Vercel e imagens atualizadas
+
+1. Confirmar no projeto Vercel correto o deployment READY, alias sem domínio, commit exato de `washingtonmsdj/acheguese` e `vercel.json` servido. Na sessão de 01/11 o conector Vercel acessível listou somente os projetos OrdaX; o projeto Achegue-se retornou not_found. **Logo, o deployment sem domínio ainda não está verificado.**
+2. Verificar HTTP/HTML de `https://acheguese.vercel.app/tonecosstudios/`, `https://acheguese.com.br/tonecosstudios/` e `https://washingtonmsdj.github.io/catalogo/`; comprovar LIVE, sem fallback DEMO, e correspondência do frontend.
+3. Fazer um smoke limitado da API `/api/health`, uma página pequena de modelos publicados e um `/media/*` real; não executar auditoria D1, scan R2 ou loops. Inspecionar a capa/galeria da amostra; não presumir que o total histórico de 2.575 modelos seja o atual.
+4. Corrigir somente o owner defeituoso: catálogo frontend no repo catálogo/Pages; mount na Vercel/repo Achegue-se; fichas/imagens no Worker + D1/R2 mediante direito/gate. Não disparar build Vercel para tentar consertar mídia que não está aprovada nos dados.
+5. Continuar lançamentos incrementais aprovados sem indisponibilizar imagens já públicas; registrar cada evidência no checkpoint existente. Sem novo SSOT, branches ou manifests paralelos.
+
+**Limitação factual:** tentativas HTTP de inspeção nesta sessão falharam por acesso de rede/DNS da ferramenta, portanto NÃO provam indisponibilidade do site. Não houve deploy, alterações de DNS, Cloudflare ou reenvio de mídia. Próxima sessão deve priorizar a certificação do URL nativo Vercel, sem esperar finalizar os 30 itens pendentes.
+
 ## Superfície pública
 
 - URL pública canônica: `https://acheguese.com.br/tonecosstudios/`.
