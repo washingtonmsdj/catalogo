@@ -172,7 +172,8 @@ function CategoryTile({ category, cover, demoArtworkIndex, active, onSelect }: {
 export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, knownModels, onOpenKnownModel, onOpenExplorer, onOpenUpdates, onOpenFavorites, onOpenQuote, onOpenModel, onToggleFavorite, onToggleQuote }: CatalogHomeProps) {
   const { setCollectionsOpen } = useCollectionActions()
   const [franchiseFilter, setFranchiseFilter] = useState('')
-  const [globalSearchSuggestions, setGlobalSearchSuggestions] = useState<CatalogFranchise[]>([])
+  // Keep each response bound to the exact search that produced it.
+  const [globalSearchResponse, setGlobalSearchResponse] = useState<{ query: string; items: CatalogFranchise[] }>({ query: '', items: [] })
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false)
   const [globalSearchActiveIndex, setGlobalSearchActiveIndex] = useState(-1)
   const [globalSearchLoading, setGlobalSearchLoading] = useState(false)
@@ -252,7 +253,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
     ? catalog.models.slice(0, 6)
     : []
   const directFranchiseSuggestions = catalog.mode === 'live'
-    ? globalSearchSuggestions
+    ? (globalSearchResponse.query === globalSearchNeedle ? globalSearchResponse.items : [])
     : catalog.franchises.filter((item) => normalizeCatalogLabel(item.label).includes(normalizeCatalogLabel(globalSearchNeedle)))
   const searchSuggestions = (() => {
     const suggestions = new Map(directFranchiseSuggestions.map((item) => [item.id, item]))
@@ -270,9 +271,11 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
     }
     return [...suggestions.values()].slice(0, 6)
   })()
-  const visibleFranchiseSuggestions = globalSearchLoading ? [] : searchSuggestions
+  const franchiseSuggestionsPending = catalog.mode === 'live' &&
+    (globalSearchLoading || globalSearchResponse.query !== globalSearchNeedle)
+  const visibleFranchiseSuggestions = franchiseSuggestionsPending ? [] : searchSuggestions
   const searchOptionCount = globalSearchOpen && canSearchSuggestions
-    ? modelSuggestions.length + visibleFranchiseSuggestions.length + (globalSearchLoading ? 0 : 1)
+    ? modelSuggestions.length + visibleFranchiseSuggestions.length + 1
     : 0
   const activeSearchOptionId = !globalSearchOpen || !canSearchSuggestions || globalSearchActiveIndex < 0 || globalSearchActiveIndex >= searchOptionCount
     ? undefined
@@ -322,7 +325,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
 
   useEffect(() => {
     if (!globalSearchOpen || !canSearchSuggestions || catalog.mode !== 'live') {
-      setGlobalSearchSuggestions([])
+      setGlobalSearchResponse({ query: '', items: [] })
       setGlobalSearchLoading(false)
       return
     }
@@ -332,10 +335,10 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
     const timer = window.setTimeout(() => {
       listCatalogFranchises(undefined, 6, globalSearchNeedle)
         .then((page) => {
-          if (!cancelled) setGlobalSearchSuggestions(page.items)
+          if (!cancelled) setGlobalSearchResponse({ query: globalSearchNeedle, items: page.items })
         })
         .catch(() => {
-          if (!cancelled) setGlobalSearchSuggestions([])
+          if (!cancelled) setGlobalSearchResponse({ query: globalSearchNeedle, items: [] })
         })
         .finally(() => {
           if (!cancelled) setGlobalSearchLoading(false)
@@ -785,20 +788,20 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
                 placeholder="Buscar modelos, personagens, franquias..."
                 aria-label="Buscar no catálogo"
                 aria-expanded={globalSearchOpen && canSearchSuggestions}
-                aria-controls="storefront-search-suggestions"
+                aria-controls={globalSearchOpen && canSearchSuggestions ? 'storefront-search-suggestions' : undefined}
                 aria-activedescendant={activeSearchOptionId}
                 aria-autocomplete="list"
               />
               {catalog.search.trim() ? (
-                <button type="button" className="storefront-search__clear" onClick={() => { catalog.setSearch(''); setGlobalSearchSuggestions([]); setGlobalSearchActiveIndex(-1) }} aria-label="Limpar busca">×</button>
+                <button type="button" className="storefront-search__clear" onClick={() => { catalog.setSearch(''); setGlobalSearchResponse({ query: '', items: [] }); setGlobalSearchActiveIndex(-1) }} aria-label="Limpar busca">×</button>
               ) : (
                 <span className="storefront-search__shortcut" aria-hidden="true"><kbd>Ctrl</kbd><kbd>K</kbd></span>
               )}
             </div>
             {globalSearchOpen && canSearchSuggestions && (
               <div id="storefront-search-suggestions" className="storefront-search-suggestions" role="listbox" aria-label="Sugestões de modelos e franquias">
-                {(globalSearchLoading || (catalog.mode === 'live' && catalog.loading)) && <span className="storefront-search-suggestions__status" role="status">Buscando modelos e franquias…</span>}
-                {!globalSearchLoading && !catalog.loading && !modelSuggestions.length && !visibleFranchiseSuggestions.length && <span className="storefront-search-suggestions__status" role="status">Nenhuma sugestão direta. Pressione Enter para ver todos os resultados.</span>}
+                {(franchiseSuggestionsPending || (catalog.mode === 'live' && catalog.loading)) && <span className="storefront-search-suggestions__status" role="status">Buscando modelos e franquias…</span>}
+                {!franchiseSuggestionsPending && !catalog.loading && !modelSuggestions.length && !visibleFranchiseSuggestions.length && <span className="storefront-search-suggestions__status" role="status">Nenhuma sugestão direta. Pressione Enter para ver todos os resultados.</span>}
                 {!catalog.loading && modelSuggestions.length > 0 && <div className="storefront-search-suggestions__group" role="group" aria-label="Modelos">
                   <span className="storefront-search-suggestions__heading">MODELOS</span>
                   {modelSuggestions.map((model, index) => <button type="button" id={`storefront-search-option-model-${model.id}`} role="option" aria-selected={globalSearchActiveIndex === index} key={`model:${model.id}`} onMouseDown={(event) => event.preventDefault()} onClick={() => { setGlobalSearchOpen(false); setGlobalSearchActiveIndex(-1); onOpenModel(model) }}>
@@ -806,7 +809,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
                     <b>{model.code}</b>
                   </button>)}
                 </div>}
-                {!globalSearchLoading && searchSuggestions.length > 0 && <div className="storefront-search-suggestions__group" role="group" aria-label="Franquias relacionadas">
+                {!franchiseSuggestionsPending && searchSuggestions.length > 0 && <div className="storefront-search-suggestions__group" role="group" aria-label="Franquias relacionadas">
                   <span className="storefront-search-suggestions__heading">FRANQUIAS RELACIONADAS</span>
                   {visibleFranchiseSuggestions.map((item, index) => (
                     <button type="button" id={`storefront-search-option-franchise-${item.category}-${item.id}`} role="option" aria-selected={globalSearchActiveIndex === modelSuggestions.length + index} key={`${item.category}:${item.id}`} onMouseDown={(event) => event.preventDefault()} onClick={() => { selectFranchise(item); setGlobalSearchActiveIndex(-1) }}>
@@ -815,7 +818,7 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
                     </button>
                   ))}
                 </div>}
-                {!globalSearchLoading && <button type="button" id="storefront-search-option-all" role="option" aria-selected={globalSearchActiveIndex === modelSuggestions.length + visibleFranchiseSuggestions.length} className="storefront-search-suggestions__all" onMouseDown={(event) => event.preventDefault()} onClick={() => { setGlobalSearchOpen(false); setGlobalSearchActiveIndex(-1); showCatalogPage() }}>Ver todos os resultados para “{globalSearchNeedle}”</button>}
+                <button type="button" id="storefront-search-option-all" role="option" aria-selected={globalSearchActiveIndex === modelSuggestions.length + visibleFranchiseSuggestions.length} className="storefront-search-suggestions__all" onMouseDown={(event) => event.preventDefault()} onClick={() => { setGlobalSearchOpen(false); setGlobalSearchActiveIndex(-1); showCatalogPage() }}>Ver todos os resultados para “{globalSearchNeedle}”</button>
               </div>
             )}
           </div>
