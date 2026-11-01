@@ -13,6 +13,8 @@ type ModelDetailDialogProps = {
   onOpenGallery: () => void
   onToggleFavorite: () => void
   onToggleCompare: () => void
+  compareCount: number
+  onOpenComparison: () => void
   onToggleQuote: () => void
 }
 
@@ -32,6 +34,8 @@ export function ModelDetailDialog({
   onOpenGallery,
   onToggleFavorite,
   onToggleCompare,
+  compareCount,
+  onOpenComparison,
   onToggleQuote,
 }: ModelDetailDialogProps) {
   if (!open) return null
@@ -159,6 +163,9 @@ export function ModelDetailDialog({
             </button>
             <button type="button" className={quoted ? 'is-active' : ''} aria-pressed={quoted} onClick={onToggleQuote}>
               {quoted ? '✓ Na minha lista' : '+ Minha lista'}
+            </button>
+            {compareCount > 0 && <button type="button" className="model-detail-open-comparison" onClick={onOpenComparison}>
+              Ver comparação · {compareCount} {compareCount === 1 ? 'modelo' : 'modelos'} <span aria-hidden="true">›</span>
             </button>
           </div>
         </div>

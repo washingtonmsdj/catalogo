@@ -178,3 +178,26 @@ test('quote dialog shares the canonical palette and readable mobile form control
   assert.match(quote, /\.quote-request-submit \.primary-action \{[\s\S]*?min-height: 44px;/)
   assert.match(quote, /\.quote-request-last-receipt button \{\s*min-height: 44px;/)
 })
+
+
+test('comparison uses storefront theme and preserves printable contrast', () => {
+  const css = readFileSync(new URL('../src/comparison.css', import.meta.url), 'utf8')
+  const [interactive, print] = css.split('@media print {')
+  assert.ok(print)
+  assert.doesNotMatch(interactive, /#[0-9a-f]{3,8}\b/i)
+  assert.doesNotMatch(interactive, /"Courier New"|ui-sans-serif, system-ui/)
+  assert.match(interactive, /\.comparison-modal \{[\s\S]*?border: 1px solid var\(--store-border-strong\)/)
+  assert.match(interactive, /font-family: var\(--store-font-body\)/)
+  assert.match(interactive, /\.comparison-remove \{[\s\S]*?width: 44px;\s*height: 44px;/)
+  assert.match(interactive, /\.comparison-open \{\s*width: fit-content;\s*min-height: 44px;/)
+  assert.match(interactive, /\.comparison-footer__actions \.share-action,[\s\S]*?min-height: 44px;/)
+  assert.match(interactive, /grid-template-columns: 104px repeat\(var\(--compare-cols\), minmax\(190px, 1fr\)\)/)
+  assert.match(print, /background: #fff !important/)
+})
+test('comparison can be opened after the first model is selected', () => {
+  const detail = readFileSync(new URL('../src/components/ModelDetailDialog.tsx', import.meta.url), 'utf8')
+  const app = readFileSync(new URL('../src/App.tsx', import.meta.url), 'utf8')
+  assert.match(detail, /compareCount > 0 && <button type="button" className="model-detail-open-comparison" onClick=\{onOpenComparison\}/)
+  assert.match(app, /compareCount=\{compareIds.length\}/)
+  assert.match(app, /onOpenComparison=\{\(\) => \{ closeModelDetail\(\); setCompareOpen\(true\) \}\}/)
+})

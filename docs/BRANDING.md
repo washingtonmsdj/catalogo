@@ -70,6 +70,13 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 - O layout reserva 44 px para remover itens sem encobrir o nome; cores de alerta são semânticas (`--store-danger`), ação e foco usam `--store-accent`, e protocolos usam `--store-font-mono`.
 - Testes estáticos bloqueiam cores hexadecimais/fonte paralelas. O Chromium isolado valida geometria e jornada de orçamento em 390 px, sem operação no D1 ou API de produção.
 
+## Comparação de modelos (2026-11-01)
+
+- O comparador `ModelComparison` abre pelo botão **Ver comparação** na ficha assim que há pelo menos um modelo selecionado. Não é necessário tentar adicionar o quinto item; a seleção mantém o limite existente de quatro.
+- O CSS interativo usa exclusivamente `--store-*` para fontes, cores, fundos, bordas e estados, e `--store-font-mono` para códigos. O tema de impressão em preto e branco é intencionalmente preservado.
+- A grade horizontal rola dentro do diálogo, com coluna de atributos fixa; botões de remover, abrir ficha e ações têm no mínimo 44 px e foco visível.
+- Chromium em demo isolada testa selecionar, abrir o comparador com um modelo, alvos móveis e remoção até o estado vazio em 390 e 1024 px. Sem acessar D1 de produção.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.

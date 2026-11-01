@@ -717,6 +717,46 @@ async function exercise(browser, spec) {
       assert.ok(detailLayout.closeSize >= 44 && detailLayout.actionHeights.every((height) => height >= 44),
         'Detail close and action buttons must have 44px targets')
       assert.equal(detailLayout.primary, 'rgb(240, 107, 36)', 'Detail primary action must use the canonical copper accent')
+      assert.equal(await detailDialog.getByRole('button', { name: /Ver comparação/ }).count(), 0,
+        'Comparison entry should not show before any selection')
+      await detailDialog.getByRole('button', { name: 'Comparar', exact: true }).click()
+      assert.equal(await detailDialog.getByRole('button', { name: '✓ Comparando' }).getAttribute('aria-pressed'), 'true')
+      await detailDialog.getByRole('button', { name: /Ver comparação · 1 modelo/ }).click()
+      const compareDialog = page.getByRole('dialog', { name: 'Comparação lado a lado' })
+      await compareDialog.waitFor({ state: 'visible', timeout: 5000 })
+      const compareLayout = await compareDialog.evaluate((dialog) => {
+        const scroll = dialog.querySelector('.comparison-scroll')
+        const grid = dialog.querySelector('.comparison-grid')
+        const remove = dialog.querySelector('.comparison-remove')
+        const open = dialog.querySelector('.comparison-open')
+        const footerButtons = [...dialog.querySelectorAll('.comparison-footer__actions button')]
+        return {
+          border: getComputedStyle(dialog).borderTopColor,
+          font: getComputedStyle(dialog).fontFamily,
+          width: dialog.getBoundingClientRect().width,
+          scrollWidth: scroll?.clientWidth ?? 0,
+          gridWidth: grid?.scrollWidth ?? 0,
+          removeWidth: remove?.getBoundingClientRect().width ?? 0,
+          removeHeight: remove?.getBoundingClientRect().height ?? 0,
+          openHeight: open?.getBoundingClientRect().height ?? 0,
+          footerHeights: footerButtons.map((node) => node.getBoundingClientRect().height),
+        }
+      })
+      assert.equal(compareLayout.border, 'rgb(81, 72, 63)', 'Comparison must use canonical border')
+      assert.match(compareLayout.font, /system-ui/i, 'Comparison must use storefront font')
+      assert.ok(compareLayout.width <= spec.width + 1, 'Comparison dialog must fit viewport')
+      assert.ok(compareLayout.removeWidth >= 44 && compareLayout.removeHeight >= 44
+        && compareLayout.openHeight >= 44 && compareLayout.footerHeights.every((h) => h >= 44),
+        'Comparison actions need 44px targets')
+      if (spec.width === 390) assert.ok(compareLayout.gridWidth > compareLayout.scrollWidth,
+        'Mobile comparison must scroll horizontally inside its dialog')
+      await compareDialog.getByRole('button', { name: /^Remover .* da comparação$/ }).click()
+      await compareDialog.getByText('NENHUM MODELO NA COMPARAÇÃO').waitFor({ state: 'visible', timeout: 5000 })
+      await compareDialog.getByRole('button', { name: 'Fechar comparador' }).click()
+      await compareDialog.waitFor({ state: 'hidden' })
+      await page.locator('.storefront-model-grid.is-results .storefront-model-card__main').first().click()
+      await detailDialog.locator('.model-detail-actions').waitFor({ state: 'visible', timeout: 7000 })
+      entry.checks.push('comparison accessible after one selected model with 44px targets and local mobile scroll')
       const favoriteAction = detailDialog.getByRole('button', { name: /Favoritar/ })
       await favoriteAction.click()
       assert.equal(await detailDialog.getByRole('button', { name: /Favoritado/ }).getAttribute('aria-pressed'), 'true')
