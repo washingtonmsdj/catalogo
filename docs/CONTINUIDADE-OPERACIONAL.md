@@ -53,6 +53,67 @@
 
 O registro do Worker promovido na PR #161 e os respectivos smokes históricos continuam como **evidência conhecida boa, não substituto de medição atual**. Para decidir um deploy, medir novamente Worker, D1, R2 e estado dos workflows; não tomar IDs ou números deste checkpoint como estado vivo.
 
+### Extensão controlada da correção — previews Vercel (01/11/2026)
+
+O contrato `src/config/catalogRuntimeContract.ts` também reconhece, exclusivamente, o hostname do preview de deployment do Achegue-se `^acheguese-[a-z0-9-]+-jogo-brasils-projects\\.vercel\\.app# Continuidade operacional do Catálogo
+
+> **SSOT de continuidade.** Leia este arquivo antes de continuar o projeto em outra conversa, máquina ou sessão.
+>
+> Atualizado em **2026-11-01**. Este arquivo registra somente o estado operacional necessário para a próxima execução. Histórico detalhado pertence aos runbooks e documentos de migração; não acumular aqui gates encerrados, PRs antigas ou bloqueios expirados.
+
+## Autoridade
+
+- Repositório: `washingtonmsdj/catalogo`.
+- Branch autoritativa: `main`.
+- Antes de qualquer mutação, conferir novamente `main`, PRs/issues abertas, CI, Pages e estado Cloudflare.
+- Nunca tratar SHA antigo gravado em documentação como autoridade de execução.
+- `wrangler.jsonc` é o SSOT do Worker, D1, R2, CORS e segredo obrigatório.
+- `config/public-runtime.json` é o SSOT versionado da superfície pública.
+- O resolvedor de runtime do frontend deve continuar explícito/fail-closed; não recriar fallback implícito nem segunda origem paralela.
+- Mudança de runtime só é concluída quando os gates do escopo realmente afetado ficam verdes.
+
+## Verificação incremental — 31/10/2026 (fonte externa, SEM publicação)
+
+- Lote de 30 na [issue #235](https://github.com/washingtonmsdj/catalogo/issues/235), separado do lote já publicado da issue #234: **30 IDs, slugs e URLs de origem exatos** no [CSV canônico do Drive](https://drive.google.com/file/d/1DgAi01ztLRcQxXIEqs_0Moc1mFRvQ4Sa/view), 0 `selected_media_id` e **30 revisões PENDENTE**. Metadados completos não equivalem a licença, mídia homologada nem modelo publicável.
+- Evidência de arquivos historicamente localizada: **5 posts** em `Dados/01-Originais` no Drive; outros **7 posts** só com preflight de staging privado no GitHub, sem atestação atual de bytes, identidade editorial ou direitos. Outros **18 posts** possuem identidade pública verificada, mas sem mídia reconciliada nos índices canônicos.
+- Os 18 foram cruzados por **post ID e slug exatos**, sem correspondências, com `Controle/registro.jsonl` (23.015 registros), `Controle/galeria-posts.csv` (12.121 mídias) e o snapshot antigo `Controle/produtos-metadata.json`; pastas com nomes/variantes parecidos foram excluídas como prova. A ausência nesses índices **não demonstra ausência de arquivos não indexados**. [SSOT do Drive, seções 20 e 21](https://docs.google.com/document/d/1w6DbeukB5mKyy5llLAKvul0Pn_Bgy_GSm9eWas3qlSA/edit).
+- O **Google Drive for desktop** em `DESKTOP-PNUHUA0` monta a pasta fonte de backup em `G:\Outros computadores\Meu computador (3)\(pasta original do catálogo externo)` (não confundir com `G:\Meu Drive\Catalogo`, árvore editorial do catálogo público). O CSV foi verificado fisicamente em `Controle\lote-novos-atual.csv`: **11.919 bytes**, SHA-256 `b1cd4a92bed4780c99802e9d46967fbb7480d1fcb8b19f2f751921ef64b24418`, idêntico à revisão no Drive. Não copiar para outra pasta nem regravar o arquivo sincronizado.
+- Em 31/10, HEAD estático da página [Achegue-se](https://acheguese.com.br/tonecosstudios/) e da [origem Pages](https://washingtonmsdj.github.io/catalogo/) respondeu HTTP 200. Isso prova **entrega da página**, não modelos da API. A Vercel serve o mount do repositório `washingtonmsdj/acheguese` e **não é a autoridade dos dados**; mudar docs ou forçar rebuild não inclui automaticamente modelos pendentes.
+- Prioridade de manutenção: Drive + direitos/procedência + variantes → metadados e testes offline no GitHub → publicação incremental **somente após gate editorial**; só então Cloudflare. Não executar auditoria D1 integral, consulta SQL opcional, scan R2 nem rebuild para tentar popular modelos não autorizados. Não alterar a Vercel de outros projetos. Revalidar o estado da API com uma verificação limitada, sem loops; falha de quota permanece bloqueante.
+
+## Atualização remota — evidência de Batch de 31/10, conferida em 01/11/2026
+
+- O [log existente no Drive](https://drive.google.com/file/d/1L-1vUuLq9kc8K9gGBapIrnXR6JF5Nqwb/view) (modificado em 31/10 às 16:39 UTC) registra **25 linhas de conclusão** da coleta Batch após uma primeira tentativa com falhas para Fury. É evidência posterior ao checkpoint que descrevia o Batch como ainda não executado. As 25 conclusões devem ser reconciliadas com o [CSV canônico](https://drive.google.com/file/d/1DgAi01ztLRcQxXIEqs_0Moc1mFRvQ4Sa/view), que contém 30 candidatos, dos quais cinco tinham 27 mídias comprovadas anteriormente.
+- **Não confundir êxito reportado pelo coletor com homologação de arquivos ou aprovação editorial.** O log não comprova hashes atuais, presença de todas as imagens, direitos comerciais, identidade de esculturas ou escolha de capa; não alterar `review_status=PENDENTE` nem `selected_media_id` sem evidência adicional. Confrontar IDs/slugs/arquivos/SHA no Drive existente, em modo incremental e somente leitura; reaproveitar as mídias já presentes em vez de repetir downloads.
+- O [SSOT operacional no Drive](https://docs.google.com/document/d/1w6DbeukB5mKyy5llLAKvul0Pn_Bgy_GSm9eWas3qlSA/edit) foi acrescido da seção 26 com esta reconciliação. Não criar manifesto paralelo, não iniciar varredura geral de D1, R2 ou catálogo, nem publicar conteúdo antes de direitos e gate editorial. Nenhuma alteração em Cloudflare é exigida para registrar este checkpoint.
+
+## Confronto determinístico Drive × log — 01/11/2026 (sem novos downloads)
+
+**Fontes operacionais existentes, sem cópias:** [CSV da fila no Drive](https://drive.google.com/file/d/1DgAi01ztLRcQxXIEqs_0Moc1mFRvQ4Sa/view), [log do coletor](https://drive.google.com/file/d/1L-1vUuLq9kc8K9gGBapIrnXR6JF5Nqwb/view), [SSOT do Drive, seção 27](https://docs.google.com/document/d/1w6DbeukB5mKyy5llLAKvul0Pn_Bgy_GSm9eWas3qlSA/edit).
+
+- O CSV tem **30 registros / 11 campos**: 15 `AGUARDANDO_COLETA`, 15 `AGUARDANDO_CLASSIFICACAO`, todos `review_status=PENDENTE` e todos `selected_media_id` vazios. Esses estados permanecem inalterados; ainda não medem integridade de bytes do Batch posterior.
+- O log tem **25 conclusões por slug único**, totalizando **205 imagens consideradas**; os 25 slugs coincidem exatamente com o CSV. **0** slugs externos, **0** duplicados, **0** divergências entre contagens `n/n` declaradas no log. Não confundir «considerada» com SHA verificado, licença, capa aprovada ou escultura única.
+- Os **5 slugs ausentes do Batch de 25** são exatamente os 5 já homologados fisicamente como arquivos de origem no checkpoint anterior: `hulk-stl-2-marvel` (7), `aokiji-stl-2-one-piece` (6), `goku-ultra-instinct-stl-2-dragon-ball` (5), `yamcha-stl-2-dragon-ball` (4), `saggitarius-aiolos-stl-2-saint-seiya` (5). A prova anterior cobriu **27/27 SHA** desses cinco; não recalcular sem indício de modificação.
+- **Próximo gate único:** verificar incrementalmente existência/identidade de post, mídia e SHA atuais dos 25 restantes nas pastas `Dados/01-Originais/<slug>` e índices `Controle/registro.jsonl`, sem varredura global, sem repetir download e sem reescrever índice histórico. Se o registro já contiver prova suficiente para o arquivo atual, reutilizá-la. Só após comprovação atualizar o **mesmo CSV**, sem mudar `review_status` ou `selected_media_id` por presunção.
+- **Frente editorial independente:** verificar escultura/variante, proveniência, licença comercial e escolher uma capa autorizada antes de qualquer promoção. Manter Normal/NSFW separados. **Zero D1/R2, zero deploy e zero arquivos publicados nesta reconciliação.**
+
+**Ordem de retomada de outra IA:** ler este checkpoint → conferir se o CSV/log/SSOT do Drive mudaram → executar apenas os gates ainda abertos com escopo incremental → registrar prova no registro existente → atualizar o checkpoint somente se o estado operacional realmente mudar. Não usar contadores históricos como estado atual, não criar controle paralelo nem reiniciar auditorias já homologadas.
+
+## Estado reconciliado — integração de 2026-10-29
+
+- **`main` observada:** `581341faa23174adb0c4eedf5628adf366a84c0f`. O contrato de schema da `main` exige a migration `0021_quote_admin_audit_events.sql` (versão 5). Esse é o estado do Git, não prova de migrations aplicadas no D1 de produção.
+- **PR #174** (draft, base de ingestão externa): `138f3e045dae531eb71dd20fcbb894ecdca500b5`, base atualizada com os 94 commits que faltavam da `main`. A auditoria de dependências encontrou Wrangler anterior vulnerável; versão 4.155.0 e lockfile idêntico ao já homologado na frente #175 foram incorporados. Gates dessa nova revisão precisam ser consultados.
+- **PR #175** (draft, `catalog-content-20261015`, base #174): a integração de `main` e #174 em `e972d6086843bcdb0bf71b411066283df256ae21` passou **13/13 workflows**. O presente checkpoint atualiza a continuidade e incorpora a correção de dependências da #174; validar o novo HEAD em vez de reutilizar o resultado anterior.
+- Na reconciliação via árvores Git completas, a #174 não possuía arquivos conflitantes com a `main`; a #175 tinha apenas `package.json` e `.github/workflows/ci.yml` sobrepostos. Foram preservados tanto os testes de ingestão quanto os testes de administração, navegação e auditoria do CI principal, sem force-push.
+- **Não houve merge das PRs em `main`, deploy nem alteração de registros D1/R2.** Ambas devem permanecer draft até os gates finais e autorização de publicação correspondentes.
+- **Conteúdo:** a auditoria de cobertura da fonte externa e a fila de colisões trabalham em modo somente leitura, com identidade aprovada separada da elegibilidade de mídia. A cobertura integral de esculturas únicas não está comprovada.
+
+O registro do Worker promovido na PR #161 e os respectivos smokes históricos continuam como **evidência conhecida boa, não substituto de medição atual**. Para decidir um deploy, medir novamente Worker, D1, R2 e estado dos workflows; não tomar IDs ou números deste checkpoint como estado vivo.
+
+, extraído da política já existente em `washingtonmsdj/acheguese/.github/workflows/certify-heavy.yml`. Os previews usam o mesmo caminho first-party `/catalogo-api`. Hosts estranhos, outros times e nomes com sufixo malicioso não recebem essa exceção. Testes positivos/negativos incluídos em `tools/test_catalog_runtime_contract.mjs`. Último commit de teste: `f48ee743ca6781bda4810cc339f2605db6482c2d`.
+
+**Verificação por leitura da main:** resolvedor atualizado e serviço compartilhado sem `VITE_API_BASE_URL` próprio; não restou o identificador local `apiBase` independente em `sharedCollections.ts`. A busca indexada do GitHub pode exibir conteúdo anterior; a leitura `fetch_file` da main é o critério de fonte atual. **CI e deployment:** verificações de status via conector não retornaram checks acionáveis para o commit consultado; isso não significa CI aprovado, e a ferramenta de runs disponível limita-se a PRs. O workflow Pages `concurrency.cancel-in-progress=true` pode cancelar pushes anteriores, portanto conferir a execução da última main antes de qualquer reexecução. HTTP externo direto continuou inacessível nesta sessão; não declarar E2E remoto concluído.
+
 ## Correção CSP no frontend Vercel — 01/11/2026
 
 **Erro de produção fornecido pelo navegador:** o bundle carregado pela Vercel tentava `fetch` direto de `https://tonecos-catalogo-api.tonecosstudio.workers.dev/api/categories`, `/api/franchises` e `/api/catalog`, bloqueado pela CSP `connect-src 'self' ...`. A origem do erro foi identificada no contrato `src/config/catalogRuntimeContract.ts`: apenas o domínio próprio do Achegue-se era reconhecido para proxy first-party; `acheguese.vercel.app` caía na URL externa de `VITE_API_BASE_URL`.
