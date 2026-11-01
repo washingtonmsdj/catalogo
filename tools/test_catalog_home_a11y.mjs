@@ -125,3 +125,14 @@ test('advertised search shortcut focuses the canonical input instead of opening 
   assert.match(css, /\.storefront-search-suggestions \{\s*position: absolute;\s*top: calc\(100% \+ 8px\);/)
   assert.match(css, /\.storefront-search__clear \{ width: 44px; height: 44px; flex-basis: 44px; \}/)
 })
+
+
+test('active and saved filters inherit theme tokens and mobile touch dimensions', () => {
+  assert.match(css, /\.storefront-active-filters \{[^}]*flex-wrap: wrap;[^}]*background: var\(--store-panel\);/)
+  assert.match(css, /\.storefront-active-filters button \{[^}]*min-height: 36px;[^}]*font: 650 var\(--store-type-caption\)/)
+  assert.match(css, /\.storefront-active-filters button:focus-visible \{ outline: 2px solid var\(--store-accent\);/)
+  assert.match(css, /\.storefront-saved-filter button:focus-visible \{ outline: 2px solid var\(--store-accent\);/)
+  assert.match(css, /\.storefront-active-filters button \{ min-height: 44px; font-size: var\(--store-type-label\); \}/)
+  assert.match(css, /\.storefront-saved-filter button \{ min-height: 44px; font-size: var\(--store-type-label\); \}/)
+  assert.doesNotMatch(css, /\.storefront-active-filters button \{ background: #302820 !important; \}/)
+})

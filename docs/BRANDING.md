@@ -43,6 +43,13 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 - Em telas até 760 px, a lista de sugestões se ancora à posição real do campo por CSS relativo. Não usar coordenadas fixas de viewport; respeitar altura disponível, rolagem interna, visibilidade do resultado completo fixado no rodapé do painel e tipografia --store-type-*.
 - Os testes verificam atalhos, foco, limites geométricos e interação em Chromium isolado, sem consultas ao D1 de produção.
 
+## Filtros ativos e filtros salvos (2026-11-01)
+
+- Chips de filtro ativo compartilham `--store-panel`, `--store-border`, `--store-type-caption` e a ação de destaque, sem regras residuais verdes nem !important concorrente.
+- Em celulares, remover categoria/franquia/atributo, copiar link, salvar filtro e limpar tudo usam áreas de toque com pelo menos 44 px e texto de 12 px. Os controles quebram linha, sem criar rolagem horizontal da página.
+- Filtros salvos mantêm a navegação horizontal local quando necessário, textos longos truncados e remoção com 44 px. Os estados de foco usam o acento da marca.
+- O browser CI exercita aplicação, salvamento, remoção e limpeza nos 320 e 390 px, sem consultar API ou D1 de produção.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.
