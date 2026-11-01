@@ -7,6 +7,10 @@ const browser = readFileSync(new URL('./test_catalog_visual.mjs', import.meta.ur
 const liveBrowser = readFileSync(new URL('./test_catalog_live_navigation.mjs', import.meta.url), 'utf8')
 const pages = readFileSync(new URL('../.github/workflows/pages.yml', import.meta.url), 'utf8')
 const vite = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8')
+const storefrontCss = readFileSync(new URL('../src/catalog-home.css', import.meta.url), 'utf8')
+const shellCss = readFileSync(new URL('../src/catalog-shell.css', import.meta.url), 'utf8')
+const baseCss = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf8')
+const premiumCss = readFileSync(new URL('../src/premium.css', import.meta.url), 'utf8')
 
 test('visual job isolates the demo and stores failure evidence', () => {
   assert.match(ci, /\n  visual-audit:\n/)
@@ -125,4 +129,37 @@ test('R29 live-contract browser gate runs independently of production D1 and wit
   assert.match(liveBrowser, /const largeCatalogTotal = 20320/)
   assert.match(liveBrowser, /complete page from an acervo larger than 20k models/)
   assert.match(liveBrowser, /Adjacent live cursor pages must not duplicate models/)
+})
+
+test('storefront tokens have one authoritative value and legacy shell only aliases it', () => {
+  assert.equal((storefrontCss.match(/^:root\s*\{/gm) ?? []).length, 1,
+    'The storefront must have exactly one authoritative root token block')
+  for (const declaration of [
+    '--store-accent: #f06b24',
+    '--store-bg: #111110',
+    '--store-text: #f3eee8',
+    '--store-font-body:',
+    '--store-panel:',
+    '--store-border:',
+  ]) assert.ok(storefrontCss.includes(declaration), 'Missing canonical token ' + declaration)
+  assert.match(shellCss, /--accent: var\(--store-accent\)/)
+  assert.match(shellCss, /--bg: var\(--store-bg\)/)
+  assert.match(shellCss, /--text: var\(--store-text\)/)
+  assert.doesNotMatch(storefrontCss, /--concept-green(?:-2|-soft)?\s*:/)
+  // A model illustration may use a local --accent for its artwork; only global
+  // root palette declarations are forbidden outside the canonical storefront.
+  const baseRoot = baseCss.match(/^:root\s*\{[^}]*\}/m)?.[0] ?? ''
+  const premiumRoot = premiumCss.match(/^:root\s*\{[^}]*\}/m)?.[0] ?? ''
+  assert.doesNotMatch(baseRoot, /--accent:\s*#[a-f\d]+/i)
+  assert.doesNotMatch(premiumRoot, /--accent:\s*#[a-f\d]+/i)
+  assert.doesNotMatch(premiumRoot, /--bg:\s*#[a-f\d]+/i)
+  assert.match(shellCss, /--danger: var\(--store-danger\)/)
+})
+
+test('responsive browser checks the effective palette, shared font and mobile wayfinding', () => {
+  assert.match(browser, /one computed font\/palette source and readable mobile navigation with 44px targets/)
+  assert.match(browser, /Every mobile destination must remain inside the viewport/)
+  assert.match(browser, /The active mobile destination must be visibly distinct/)
+  assert.match(browser, /The global navigation must share the storefront body font/)
+  assert.match(storefrontCss, /\.storefront-topbar nav \.is-active::after \{ display: none; \}/)
 })
