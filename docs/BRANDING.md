@@ -29,6 +29,13 @@ A navegação mobile usa **a mesma barra de cinco destinos**, sem menu duplicado
 - Superfícies, hover, monograma e indicadores neutros herdam `--store-*`. Verde continua possível somente para status de saúde (não como cor de marca).
 - `tools/test_catalog_home_a11y.mjs` e `tools/test_catalog_visual.mjs` guardam a navegação e a geometria nas seis resoluções de teste. O teste visual usa o build demo isolado, não consulta produção/D1.
 
+## Vitrine responsiva e leitura de resultados
+
+- A seleção editorial contém até seis modelos por `modelsForCatalogHome`. Nenhuma media query pode ocultar a quinta ou a sexta ficha com `nth-child`; a grade se reorganiza conforme a largura, mantendo todos os modelos selecionados acessíveis.
+- O resumo de resultados de `#destaques`, inclusive quantidade, escopo e página, continua visível em telas pequenas. Ocultar a descrição editorial secundária não deve esconder informações de resultados nem a atualização anunciada por `aria-live`.
+- Ações rápidas dos cards, controles de grade/lista e categorias no celular utilizam alvos de 44 px, sem sobreposição das legendas. O teste real em Chromium verifica a vitrine e os resultados em seis larguras.
+- As alterações são exclusivamente de frontend; o teste visual usa build de demonstração isolado, sem consultar D1 de produção.
+
 ## Troca futura de marca
 
 Uma futura mudança comercial deve começar por `config/brand.json`. Não faça substituição global no repositório.

@@ -104,3 +104,11 @@ test('front-end palette and readable type stay on storefront SSOT', () => {
   assert.match(css, /\.storefront-model-card__copy small \{ font-size: var\(--store-type-caption\); \}/)
   assert.doesNotMatch(css, /\.storefront-sidebar__nav a\[href="#colecoes"\] \.storefront-icon \{ color: #8bd8c1;/)
 })
+
+
+test('responsive editorial display never silently hides a model', () => {
+  assert.doesNotMatch(css, /\.storefront-model-card:nth-child\(n\+\d+\)\s*\{\s*display:\s*none;/)
+  assert.match(css, /\.storefront-section:not\(\.storefront-section--results\) \.storefront-section__head p \{ display: none; \}/)
+  assert.match(css, /\.storefront-section--results \.storefront-section__head p \{ display: block; line-height: 1\.45;/)
+  assert.match(css, /\.storefront-results-view-toggle button \{ width: 44px; height: 44px; \}/)
+})
