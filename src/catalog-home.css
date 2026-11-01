@@ -2001,6 +2001,7 @@ body { background: #111110; color: #f3eee8; }
 }
 .storefront-attribute-filters input::placeholder { color: #8f877f; }
 .storefront-attribute-filters input:focus-visible { outline: 2px solid #f06b24; outline-offset: 1px; }
+.storefront-attribute-filters input[aria-invalid="true"] { border-color: #f06b24; box-shadow: 0 0 0 1px rgba(240,107,36,.25); }
 .storefront-attribute-filters fieldset {
   min-width: 0;
   display: grid;
@@ -2015,7 +2016,7 @@ body { background: #111110; color: #f3eee8; }
   color: #c5bcb2;
   font: 700 9px/1.2 ui-sans-serif,system-ui;
 }
-.storefront-attribute-filters__actions { display: flex; gap: 6px; }
+.storefront-attribute-filters__actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .storefront-attribute-filters__actions button {
   min-height: 36px;
   padding: 0 11px;

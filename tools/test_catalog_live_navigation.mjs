@@ -475,13 +475,21 @@ async function exercise(browser, spec) {
       ], 'Applying the active saved filter from page 2 must restart from a cursorless first page')
       entry.checks.push('saved filters retain folder identity, persist through reload and restart the same live scope at page 1')
       await filterToggle.click()
-      await facetForm.getByRole('button', { name: 'Limpar' }).click()
+      const appliedFacetUrl = page.url()
+      const callsBeforeClear = state.catalogCalls.length
+      await facetForm.getByRole('button', { name: 'Limpar campos' }).click()
+      assert.equal(page.url(), appliedFacetUrl, 'Draft clear must not change the live URL before apply')
+      assert.equal(state.catalogCalls.length, callsBeforeClear,
+        'Draft clear must not issue a Worker catalog request')
+      await facetForm.getByRole('button', { name: 'Aplicar filtros' }).click()
       await page.waitForFunction(() => !location.search.includes('material=') && !location.search.includes('colecao-modelo=')
         && !location.search.includes('altura-min=') && !location.search.includes('altura-max='), null, { timeout: 7000 })
       await page.waitForFunction(() => document.querySelector('.storefront-model-grid.is-results .storefront-model-card__meta b')?.textContent === 'R29-BULK-00001',
         null, { timeout: 10000 })
-      await filterToggle.click()
-      entry.checks.push('live material, collection and height facets restart from page 1 and preserve filtered cursors')
+      await facetForm.waitFor({ state: 'hidden' })
+      assert.ok(await filterToggle.evaluate((node) => node === document.activeElement),
+        'Applying cleared facets must restore focus to their disclosure button')
+      entry.checks.push('live facets clear draft without Worker reads, then apply to reset the cursor scope')
       entry.checks.push('live 20k+ total, complete 48-model cursor pages, no duplicates and back navigation')
     }
     if (spec.width >= 1200) {

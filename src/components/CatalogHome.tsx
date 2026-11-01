@@ -630,13 +630,16 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
     window.requestAnimationFrame(() => filterToggleRef.current?.focus({ preventScroll: true }))
   }
 
-  function clearAttributeFilters() {
+  function clearAttributeFilterDraft() {
+    // Clearing the draft must not mutate the live query or trigger a catalog request.
     setFilterDraft({ material: '', collection: '', minHeight: '', maxHeight: '' })
-    catalog.setMaterial('')
-    catalog.setCollection('')
-    catalog.setMinHeight('')
-    catalog.setMaxHeight('')
     setFilterError('')
+  }
+
+  function cancelAttributeFilterDraft() {
+    setFilterPanelOpen(false)
+    setFilterError('')
+    window.requestAnimationFrame(() => filterToggleRef.current?.focus({ preventScroll: true }))
   }
 
   function removeAttributeFilter(key: keyof typeof filterDraft) {
@@ -909,12 +912,12 @@ export function CatalogHome({ catalog, searchInputRef, favorites, quoteList, kno
             <button ref={filterToggleRef} type="button" className="storefront-filterbar__filters" aria-expanded={filterPanelOpen} aria-controls="storefront-attribute-filters" onClick={toggleFilterPanel}><Icon name="sliders" /> Filtros{hasAttributeFilters ? ' · ativos' : ''} <Icon name="chevron" /></button>
           </div>
 
-          <form id="storefront-attribute-filters" className="storefront-attribute-filters" aria-label="Filtros de atributos" hidden={!filterPanelOpen} onSubmit={applyAttributeFilters}>
+          <form id="storefront-attribute-filters" className="storefront-attribute-filters" aria-label="Filtros de atributos" hidden={!filterPanelOpen} onSubmit={applyAttributeFilters} onKeyDown={(event) => { if (event.key === 'Escape') { event.preventDefault(); cancelAttributeFilterDraft() } }}>
             <label>Material<input type="search" maxLength={120} value={filterDraft.material} onChange={(event) => setFilterDraft((current) => ({ ...current, material: event.target.value }))} placeholder="Ex.: resina" /></label>
             <label>Coleção<input type="search" maxLength={120} value={filterDraft.collection} onChange={(event) => setFilterDraft((current) => ({ ...current, collection: event.target.value }))} placeholder="Ex.: edição especial" /></label>
-            <fieldset><legend>Altura (cm)</legend><label>Mínima<input type="number" min="1" max="300" inputMode="numeric" value={filterDraft.minHeight} onChange={(event) => setFilterDraft((current) => ({ ...current, minHeight: event.target.value }))} /></label><label>Máxima<input type="number" min="1" max="300" inputMode="numeric" value={filterDraft.maxHeight} onChange={(event) => setFilterDraft((current) => ({ ...current, maxHeight: event.target.value }))} /></label></fieldset>
-            {filterError && <span className="storefront-attribute-filters__error" role="alert">{filterError}</span>}
-            <div className="storefront-attribute-filters__actions"><button type="button" onClick={clearAttributeFilters}>Limpar</button><button type="submit">Aplicar filtros</button></div>
+            <fieldset><legend>Altura (cm)</legend><label>Mínima<input type="number" min="1" max="300" inputMode="numeric" value={filterDraft.minHeight} aria-invalid={Boolean(filterError)} aria-describedby={filterError ? 'storefront-attribute-filters-error' : undefined} onChange={(event) => setFilterDraft((current) => ({ ...current, minHeight: event.target.value }))} /></label><label>Máxima<input type="number" min="1" max="300" inputMode="numeric" value={filterDraft.maxHeight} aria-invalid={Boolean(filterError)} aria-describedby={filterError ? 'storefront-attribute-filters-error' : undefined} onChange={(event) => setFilterDraft((current) => ({ ...current, maxHeight: event.target.value }))} /></label></fieldset>
+            {filterError && <span id="storefront-attribute-filters-error" className="storefront-attribute-filters__error" role="alert">{filterError}</span>}
+            <div className="storefront-attribute-filters__actions"><button type="button" onClick={clearAttributeFilterDraft}>Limpar campos</button><button type="button" onClick={cancelAttributeFilterDraft}>Cancelar</button><button type="submit">Aplicar filtros</button></div>
           </form>
 
           {catalog.searchPending && (
