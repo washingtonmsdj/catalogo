@@ -102,6 +102,22 @@ class PagesWorkflowConfigTests(unittest.TestCase):
         self.assertNotIn("VITE_MEDIA_BASE_URL", env_types)
         self.assertNotIn("loadEnv", vite)
 
+    def test_public_proxy_smoke_runs_after_mirror_without_exhaustive_reads(self):
+        mirror = "Verify published Vercel catalog mirrors Pages asset"
+        proxy = "Verify first-party Vercel API and one public cover"
+        self.assertIn(mirror, self.workflow)
+        self.assertIn(proxy, self.workflow)
+        self.assertLess(self.workflow.index(mirror), self.workflow.index(proxy))
+        self.assertIn(
+            "python tools/verify_public_catalog.py --api-base https://acheguese.vercel.app/catalogo-api",
+            self.workflow,
+        )
+        self.assertNotIn("--exhaustive", self.workflow)
+        smoke = (self.root / "tools" / "verify_public_catalog.py").read_text(encoding="utf-8")
+        self.assertIn("/api/health", smoke)
+        self.assertIn("/api/catalog?limit=1", smoke)
+        self.assertIn('"Range": "bytes=0-0"', smoke)
+
     def test_published_brand_assets_are_validated_from_ssot(self):
         required = [
             "config/brand.json",
