@@ -63,7 +63,7 @@ export async function servePublicMedia(request: Request, bucket: PublicMediaBuck
   }
 
   let status = 200
-  if (object.range) {
+  if (request.headers.has('range') && object.range) {
     status = 206
     const end = object.range.offset + object.range.length - 1
     headers.set('content-range', `bytes ${object.range.offset}-${end}/${object.size}`)
