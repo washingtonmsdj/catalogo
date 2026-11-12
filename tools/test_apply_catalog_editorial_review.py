@@ -93,6 +93,16 @@ class EditorialReviewTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not_in_published_contract"):
             apply_review(self.review, self.contract, apply=True)
 
+    def test_untouched_newer_or_stale_rows_do_not_block_an_exact_edit(self):
+        newer = self.row(self.models[0])
+        newer["ID canônico"] = "mdl_33333333333333333333"
+        newer["Modelo"] = "Nome novo que não está no contrato"
+        second = self.row(self.models[1], new_name="Vilao Atualizado")
+        self.write_review([newer, second])
+        result = apply_review(self.review, self.contract, apply=True)
+        self.assertEqual(result["changed"], 1)
+        self.assertEqual(json.loads(self.contract.read_text(encoding="utf-8"))["models"][1]["displayName"], "Vilao Atualizado")
+
     def test_rejects_duplicate_rows(self):
         row = self.row(self.models[0], new_name="Novo")
         self.write_review([row, row])
