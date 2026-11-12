@@ -13,11 +13,18 @@ export function validateCatalogProbe(payload) {
   if (typeof row.slug !== 'string' || !row.slug) throw new Error('catalog probe model has no slug')
   if (!positiveInteger(row.image_count)) throw new Error('catalog probe model has invalid image_count')
   if (!positiveInteger(row.gallery_version)) throw new Error('catalog probe model has invalid gallery_version')
+  const key = row.cover_storage_key
+  if (typeof key !== 'string' || !key.startsWith('media/') || key.length > 1024 ||
+    key.includes('\\') || key.includes('?') || key.includes('#') ||
+    key.split('/').some(part => !part || part === '.' || part === '..')) {
+    throw new Error('catalog probe model has invalid cover_storage_key')
+  }
   return {
     id: String(row.id ?? ''),
     slug: row.slug,
     imageCount: row.image_count,
     galleryVersion: row.gallery_version,
+    coverStorageKey: key,
   }
 }
 
@@ -78,6 +85,7 @@ export async function verifyWorkerGalleryContract(apiBase, fetchImpl = fetch) {
     galleryVersion: model.galleryVersion,
     galleryTotal: gallery.total,
     firstImageId: gallery.firstImageId,
+    coverStorageKey: model.coverStorageKey,
   }
 }
 
