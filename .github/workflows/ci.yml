@@ -149,7 +149,8 @@ jobs:
 
   visual-audit:
     name: Browser visual audit (demo)
-    runs-on: ubuntu-latest
+    # Pinned Playwright 1.56.1 does not support ubuntu26.04 from ubuntu-latest.
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       contents: read
