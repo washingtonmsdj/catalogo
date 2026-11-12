@@ -22,7 +22,7 @@
     "test:worker-release-smoke": "node --test tools/test_worker_release_smoke.mjs tools/test_public_catalog_hierarchy.mjs",
     "test:promoted-worker": "node --test tools/test_promoted_worker_version.mjs",
     "test:remote-worker-config": "node --test tools/test_remote_worker_config.mjs",
-    "test:worker-media-contract": "node --experimental-strip-types --test tools/test_worker_media_contract.mjs",
+    "test:worker-media-contract": "node --experimental-strip-types --test tools/test_worker_media_contract.mjs tools/test_worker_public_query_budget.mjs",
     "test:worker-turnstile": "node --experimental-strip-types --test tools/test_worker_turnstile.mjs",
     "test:gallery-runtime": "node --experimental-strip-types --test tools/test_gallery_validation.mjs tools/test_gallery_aggregation.mjs",
     "test:worker-gallery-contract": "node --test tools/test_worker_gallery_contract.mjs",
