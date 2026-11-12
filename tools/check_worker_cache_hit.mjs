@@ -40,7 +40,6 @@ const sleep = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs)
 
 export async function verifyWorkerCacheHit(apiBase, {
   fetchImpl = fetch,
-  probeId = `${Date.now()}-${Math.random().toString(16).slice(2)}`,
   attempts = DEFAULT_CACHE_HIT_ATTEMPTS,
   delayMs = DEFAULT_CACHE_HIT_DELAY_MS,
   sleepImpl = sleep,
@@ -54,7 +53,8 @@ export async function verifyWorkerCacheHit(apiBase, {
 
   const url = new URL(`${base}/api/recent`)
   url.searchParams.set('limit', '1')
-  url.searchParams.set('__cache_probe', String(probeId))
+  // Use one stable, canonical public cache key. Query-busting probes would
+  // bypass the Worker budget guard and waste D1 rows on every release.
 
   const statuses = []
   for (let attempt = 1; attempt <= attempts; attempt += 1) {

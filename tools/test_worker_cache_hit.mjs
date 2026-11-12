@@ -21,7 +21,7 @@ test('accepts a cold MISS followed by HIT for the same cache key', async () => {
   const calls = []
   const statuses = ['MISS', 'HIT']
   const result = await verifyWorkerCacheHit('https://api.example.com', {
-    probeId: 'fixed-probe',
+
     attempts: 4,
     delayMs: 0,
     sleepImpl: noSleep,
@@ -38,14 +38,14 @@ test('accepts a cold MISS followed by HIT for the same cache key', async () => {
   })
   assert.equal(calls.length, 2)
   assert.equal(calls[0], calls[1])
-  assert.match(calls[0], /__cache_probe=fixed-probe/)
+  assert.equal(calls[0], 'https://api.example.com/api/recent?limit=1')
 })
 
 test('accepts bounded cache convergence after repeated MISS responses', async () => {
   const calls = []
   const statuses = ['MISS', 'MISS', 'MISS', 'HIT']
   const result = await verifyWorkerCacheHit('https://api.example.com', {
-    probeId: 'convergence-probe',
+
     attempts: 6,
     delayMs: 0,
     sleepImpl: noSleep,
@@ -63,7 +63,7 @@ test('accepts bounded cache convergence after repeated MISS responses', async ()
 test('accepts an already warm cache immediately', async () => {
   let calls = 0
   const result = await verifyWorkerCacheHit('https://api.example.com/', {
-    probeId: 'warm-probe',
+
     async fetchImpl() {
       calls += 1
       return response(200, 'HIT')
@@ -78,7 +78,7 @@ test('accepts an already warm cache immediately', async () => {
 test('fails closed after the bounded convergence window without HIT', async () => {
   await assert.rejects(
     () => verifyWorkerCacheHit('https://api.example.com', {
-      probeId: 'miss-only-probe',
+
       attempts: 3,
       delayMs: 0,
       sleepImpl: noSleep,
@@ -94,7 +94,7 @@ test('fails immediately on terminal uncacheable status', async () => {
   let calls = 0
   await assert.rejects(
     () => verifyWorkerCacheHit('https://api.example.com', {
-      probeId: 'bypass-probe',
+
       attempts: 6,
       delayMs: 0,
       sleepImpl: noSleep,
@@ -111,7 +111,7 @@ test('fails immediately on terminal uncacheable status', async () => {
 test('fails when Cloudflare cache status is absent', async () => {
   await assert.rejects(
     () => verifyWorkerCacheHit('https://api.example.com', {
-      probeId: 'missing-header',
+
       async fetchImpl() {
         return response(200)
       },
@@ -123,7 +123,7 @@ test('fails when Cloudflare cache status is absent', async () => {
 test('fails on non-success HTTP response', async () => {
   await assert.rejects(
     () => verifyWorkerCacheHit('https://api.example.com', {
-      probeId: 'http-failure',
+
       async fetchImpl() {
         return response(503, 'BYPASS')
       },
