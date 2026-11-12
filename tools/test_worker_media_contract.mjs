@@ -124,3 +124,44 @@ test('entrypoint routes media before delegating to the D1-backed API handler', (
   assert.ok(apiReturn > mediaReturn)
   assert.ok(!entry.slice(mediaBranch, apiReturn).includes('env.DB'))
 })
+
+test('R2 full-range metadata without a client Range header returns HTTP 200 for GET', async () => {
+  const response = await servePublicMedia(new Request('https://catalog.example/media/mdl_1/image/card.webp'), {
+    async get() {
+      return object({ body: 'abc', size: 3, range: { offset: 0, length: 3 } })
+    },
+  })
+
+  assert.equal(response.status, 200)
+  assert.equal(await response.text(), 'abc')
+  assert.equal(response.headers.get('content-length'), '3')
+  assert.equal(response.headers.has('content-range'), false)
+})
+
+test('R2 full-range metadata without a client Range header returns HTTP 200 for HEAD', async () => {
+  const response = await servePublicMedia(new Request('https://catalog.example/media/mdl_1/image/card.webp', { method: 'HEAD' }), {
+    async get() {
+      return object({ body: 'abc', size: 3, range: { offset: 0, length: 3 } })
+    },
+  })
+
+  assert.equal(response.status, 200)
+  assert.equal(await response.text(), '')
+  assert.equal(response.headers.get('content-length'), '3')
+  assert.equal(response.headers.has('content-range'), false)
+})
+
+test('R2 range metadata with explicit client Range remains HTTP 206', async () => {
+  const request = new Request('https://catalog.example/media/mdl_1/image/card.webp', {
+    headers: { range: 'bytes=0-2' },
+  })
+  const response = await servePublicMedia(request, {
+    async get() {
+      return object({ body: 'abc', size: 3, range: { offset: 0, length: 3 } })
+    },
+  })
+
+  assert.equal(response.status, 206)
+  assert.equal(response.headers.get('content-range'), 'bytes 0-2/3')
+  assert.equal(response.headers.get('content-length'), '3')
+})

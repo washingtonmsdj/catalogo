@@ -13,7 +13,7 @@ const baseCss = readFileSync(new URL('../src/styles.css', import.meta.url), 'utf
 const premiumCss = readFileSync(new URL('../src/premium.css', import.meta.url), 'utf8')
 
 test('visual job isolates the demo and stores failure evidence', () => {
-  assert.match(ci, /\n  visual-audit:\n/)
+  assert.match(ci, /\n  visual-audit:\n    name: Browser visual audit \(demo\)\n(?:    #[^\n]*\n)?    runs-on: ubuntu-24\.04\n/)
   assert.match(ci, /VITE_CATALOG_MODE: demo/)
   assert.match(ci, /playwright@1\.56\.1/)
   assert.match(ci, /node tools\/test_catalog_visual\.mjs/)

@@ -28,6 +28,7 @@ test('validates catalog and gallery contract end to end', async () => {
           slug: 'modelo-um',
           image_count: 3,
           gallery_version: 77,
+          cover_storage_key: 'media/modelo-um/image/card.webp',
         }],
       })
     }
@@ -54,6 +55,20 @@ test('catalog probe requires gallery_version', () => {
     () => validateCatalogProbe({ items: [{ id: 'mdl-1', slug: 'modelo', image_count: 1 }] }),
     /invalid gallery_version/,
   )
+})
+
+test('catalog probe requires a safe published cover key for bounded media smoke', () => {
+  const valid = {
+    id: 'mdl-1', slug: 'modelo', image_count: 1, gallery_version: 2,
+    cover_storage_key: 'media/modelo/card.webp',
+  }
+  assert.equal(validateCatalogProbe({ items: [valid] }).coverStorageKey, valid.cover_storage_key)
+  for (const key of [null, 'media/../secret.webp', 'https://evil.example/media/img.webp', 'media/model\\bad.webp']) {
+    assert.throws(
+      () => validateCatalogProbe({ items: [{ ...valid, cover_storage_key: key }] }),
+      /invalid cover_storage_key/,
+    )
+  }
 })
 
 test('gallery probe rejects total mismatch', () => {
