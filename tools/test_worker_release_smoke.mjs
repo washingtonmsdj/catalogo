@@ -4,7 +4,7 @@ import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 
-import { verifyWorkerReleaseContract, verifyPublicQuoteIngress } from './worker_release_smoke.mjs'
+import { verifyWorkerReleaseContract, verifyWorkerCoverHttpContract, verifyPublicQuoteIngress } from './worker_release_smoke.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const schema = JSON.parse(fs.readFileSync(path.join(root, 'config/catalog-schema-contract.json'), 'utf8'))
@@ -48,9 +48,9 @@ function healthyHealth() {
   }
 }
 
-function createReleaseFetch({ staleGallery = false } = {}) {
+function createReleaseFetch({ staleGallery = false, brokenHead = false, brokenRange = false } = {}) {
   const calls = []
-  const fetchImpl = async (input) => {
+  const fetchImpl = async (input, init = {}) => {
     const url = new URL(String(input))
     calls.push(`${url.pathname}${url.search}`)
 
@@ -65,6 +65,7 @@ function createReleaseFetch({ staleGallery = false } = {}) {
           id: 'mdl_test',
           slug: 'test-model',
           image_count: 1,
+          cover_storage_key: 'media/mdl_test/image/card.webp',
           ...(staleGallery ? {} : { gallery_version: 1 }),
         }],
       })
@@ -75,6 +76,20 @@ function createReleaseFetch({ staleGallery = false } = {}) {
         version: 1,
         items: [{ id: 'img_test', role: 'cover' }],
       })
+    }
+    if (url.pathname === '/media/mdl_test/image/card.webp') {
+      if (init.method === 'HEAD') return new Response(null, {
+        status: brokenHead ? 206 : 200,
+        headers: { 'content-type': 'image/webp', 'content-length': '20' },
+      })
+      if (init.method === 'GET' && init.headers?.range === 'bytes=0-0') {
+        return new Response(new Uint8Array([0x52]), {
+          status: brokenRange ? 200 : 206,
+          headers: { 'content-type': 'image/webp', 'content-length': '1',
+            ...(brokenRange ? {} : { 'content-range': 'bytes 0-0/20' }) },
+        })
+      }
+      throw new Error('unexpected media request method or range')
     }
     if (url.pathname === '/api/shared-collections/TCL-AAAAAAAAAAAAAAAA') {
       return jsonResponse({ error: 'shared_collection_not_found' }, { status: 404 })
@@ -94,14 +109,46 @@ test('canonical release smoke validates every public contract as one unit', asyn
   assert.equal(result.recent, 1)
   assert.equal(result.gallery.galleryVersion, 1)
   assert.equal(result.sharedCollections, true)
+  assert.deepEqual(result.media, { ok: true, headStatus: 200, rangeStatus: 206 })
   assert.deepEqual(calls, [
     '/api/health',
     '/api/categories',
     '/api/recent?limit=1',
     '/api/catalog?limit=1',
     '/api/models/test-model/images?limit=1&v=1',
+    '/media/mdl_test/image/card.webp',
+    '/media/mdl_test/image/card.webp',
     '/api/shared-collections/TCL-AAAAAAAAAAAAAAAA',
   ])
+})
+
+test('release smoke rejects a staged Worker that still returns 206 without Range', async () => {
+  const { fetchImpl, calls } = createReleaseFetch({ brokenHead: true })
+  await assert.rejects(
+    verifyWorkerReleaseContract('https://api.example.test', fetchImpl),
+    /published cover HEAD without Range expected HTTP 200/,
+  )
+  assert.equal(calls.filter(path => path === '/media/mdl_test/image/card.webp').length, 1)
+})
+
+test('release smoke rejects a Worker that does not honor an explicit one-byte Range', async () => {
+  const { fetchImpl, calls } = createReleaseFetch({ brokenRange: true })
+  await assert.rejects(
+    verifyWorkerReleaseContract('https://api.example.test', fetchImpl),
+    /one-byte Range expected HTTP 206/,
+  )
+  assert.equal(calls.filter(path => path === '/media/mdl_test/image/card.webp').length, 2)
+})
+
+test('cover release check rejects external, malformed or missing media keys without networking', async () => {
+  let calls = 0
+  for (const key of ['https://evil.example/media/a.webp', 'media/../secret.webp', 'api/catalog', null]) {
+    await assert.rejects(
+      verifyWorkerCoverHttpContract('https://api.example.test', key, async () => { calls += 1 }),
+      /canonical media key/,
+    )
+  }
+  assert.equal(calls, 0)
 })
 
 test('release smoke fails if one route still exposes the previous gallery contract', async () => {
