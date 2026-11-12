@@ -106,7 +106,7 @@ class EditorialReviewTests(unittest.TestCase):
                 apply_review(self.review, self.contract, apply=True)
 
     def test_refuses_unknown_or_missing_columns(self):
-        self.write_review([self.row(self.models[0])], headers=HEADERS[:-1])
+        self.write_review([{key: value for key, value in self.row(self.models[0]).items() if key in HEADERS[:-1]}], headers=HEADERS[:-1])
         with self.assertRaises(ValueError):
             apply_review(self.review, self.contract)
 
