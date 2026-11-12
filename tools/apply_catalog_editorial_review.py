@@ -63,6 +63,10 @@ def load_review_csv(path: Path) -> list[dict[str, str]]:
 def changes_from_review(rows: list[dict[str, str]], contract_by_id: dict[str, dict]) -> dict[str, dict[str, str]]:
     edits: dict[str, dict[str, str]] = {}
     for row in rows:
+        # Other models on the exported page may have been published since the
+        # historical contract snapshot. They are only context, not targets.
+        if not row["Novo nome"].strip() and not row["Nova variante"].strip():
+            continue
         model_id = row["ID canônico"].strip()
         current = contract_by_id.get(model_id)
         if current is None or not current["published"]:
