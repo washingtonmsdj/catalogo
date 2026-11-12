@@ -14,7 +14,13 @@ const MODEL_GALLERY = new RegExp("^/api/models/" + MODEL_SLUG + "/images$")
  * Returns null when outside the public read budget, true for an accepted
  * canonical query and false for a query that must fail before storage access.
  */
-export function validatePublicCatalogQuery(url: URL): boolean | null {
+export type CatalogQueryBudgetResult = boolean | null | {
+  error: 'invalid_height_range' | 'search_too_short' | 'search_too_long'
+  minLength?: number
+  maxLength?: number
+}
+
+export function validatePublicCatalogQuery(url: URL): CatalogQueryBudgetResult {
   const path = url.pathname
   const media = path.startsWith("/media/")
   if (media) return !url.search
@@ -49,6 +55,8 @@ export function validatePublicCatalogQuery(url: URL): boolean | null {
 
   const names = new Set(allowed)
   const seen = new Set<string>()
+  let minHeight: number | null = null
+  let maxHeight: number | null = null
   for (const [key, value] of url.searchParams) {
     if (!names.has(key) || seen.has(key) || value.length < 1 ||
         value.length > 2048 || /[\x00-\x1f\x7f]/.test(value)) return false
@@ -57,7 +65,11 @@ export function validatePublicCatalogQuery(url: URL): boolean | null {
       const max = path === "/api/recent" ? 24 : path === "/api/franchises" ? 48 : 60
       if (!/^[1-9][0-9]?$/.test(value) || Number(value) > max) return false
     } else if (key === "minHeight" || key === "maxHeight") {
-      if (!/^[1-9][0-9]{0,2}$/.test(value) || Number(value) > 300) return false
+      if (!/^[1-9][0-9]{0,2}$/.test(value) || Number(value) > 300) {
+        return { error: 'invalid_height_range' }
+      }
+      if (key === 'minHeight') minHeight = Number(value)
+      if (key === 'maxHeight') maxHeight = Number(value)
     } else if (key === "v") {
       if (!/^[1-9][0-9]{0,14}$/.test(value) ||
           !Number.isSafeInteger(Number(value))) return false
@@ -71,10 +83,14 @@ export function validatePublicCatalogQuery(url: URL): boolean | null {
           value.split("/").some(part => !part || part === "." || part === "..")) return false
     } else if (key === "q") {
       const length = Array.from(value.trim()).length
-      if (length < 3 || length > 120) return false
+      if (length < 3) return { error: 'search_too_short', minLength: 3 }
+      if (length > 120) return { error: 'search_too_long', maxLength: 120 }
     } else if (key === "material" || key === "collection") {
       if (Array.from(value).length > 120) return false
     }
+  }
+  if (minHeight !== null && maxHeight !== null && minHeight > maxHeight) {
+    return { error: 'invalid_height_range' }
   }
   return true
 }
