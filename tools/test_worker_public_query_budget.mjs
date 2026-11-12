@@ -16,6 +16,7 @@ test('catalog Worker rejects cache-key flooding before D1 schema checks', () => 
     '/api/catalog?material=' + 'x'.repeat(121),
     '/api/catalog?category=with%2Fslash',
     '/api/recent?cursor=Ng%3D%3D',
+    '/api/recent?limit=1&__cache_probe=unbounded',
     '/api/recent?limit=25',
     '/api/categories?offset=0',
     '/api/health?nonce=123',
