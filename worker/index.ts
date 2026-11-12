@@ -4,6 +4,7 @@ import { validGalleryManifest, type GalleryModelState } from './galleryValidatio
 import { catalogSchemaStatus } from './schemaContract'
 import { configuredPublicOrigins, validateTurnstile } from './turnstile'
 import { RESOLVED_MODEL_BY_SLUG_CTE, resolvePublicModelIds } from './modelAliases'
+import { validatePublicCatalogQuery } from './publicQueryBudget'
 
 type D1Statement = {
   bind(...values: unknown[]): D1Statement
@@ -587,6 +588,16 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') return options(request, env)
     const url = new URL(request.url)
+    // Reject cache-busting arguments BEFORE even the D1 schema-readiness check.
+    // Quote and shared-collection contracts are intentionally untouched.
+    if (request.method === 'GET') {
+      const budget = validatePublicCatalogQuery(url)
+      if (budget !== null && budget !== true) {
+        // Preserve published error contracts for height/search validation.
+        const detail = budget === false ? { error: 'invalid_catalog_query' } : budget
+        return json(request, env, detail, { status: 400 })
+      }
+    }
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
       const schema = await catalogSchemaStatus(env.DB)
