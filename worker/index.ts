@@ -590,8 +590,13 @@ export default {
     const url = new URL(request.url)
     // Reject cache-busting arguments BEFORE even the D1 schema-readiness check.
     // Quote and shared-collection contracts are intentionally untouched.
-    if (request.method === 'GET' && validatePublicCatalogQuery(url) === false) {
-      return json(request, env, { error: 'invalid_catalog_query' }, { status: 400 })
+    if (request.method === 'GET') {
+      const budget = validatePublicCatalogQuery(url)
+      if (budget !== null && budget !== true) {
+        // Preserve published error contracts for height/search validation.
+        const detail = budget === false ? { error: 'invalid_catalog_query' } : budget
+        return json(request, env, detail, { status: 400 })
+      }
     }
 
     if (request.method === 'GET' && url.pathname === '/api/health') {
