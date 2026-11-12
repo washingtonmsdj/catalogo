@@ -12,6 +12,62 @@ async function fetchJson(fetchImpl, url, label) {
   return response.json()
 }
 
+/**
+ * Verify the real published cover with HEAD (no Range) and a one-byte Range.
+ * Reuses the exact cover key already fetched by the gallery smoke. No new D1
+ * query, full media download or mutation. Applies to both 0% and live smoke.
+ */
+export async function verifyWorkerCoverHttpContract(apiBase, coverStorageKey, fetchImpl = fetch) {
+  const base = String(apiBase ?? '').trim().replace(/\/$/, '')
+  if (!/^https:\/\/[^\s]+$/.test(base) ||
+    typeof coverStorageKey !== 'string' ||
+    !coverStorageKey.startsWith('media/') ||
+    coverStorageKey.length > 1024 ||
+    coverStorageKey.includes('\\') ||
+    coverStorageKey.includes('?') || coverStorageKey.includes('#') ||
+    coverStorageKey.split('/').some(segment => !segment || segment === '.' || segment === '..')) {
+    throw new Error('published cover smoke requires canonical media key and HTTPS API base')
+  }
+  const url = base + '/' + coverStorageKey.split('/').map(encodeURIComponent).join('/')
+  const head = await fetchImpl(url, {
+    method: 'HEAD',
+    redirect: 'error',
+    headers: { accept: 'image/*', 'user-agent': 'tonecos-cover-release-smoke/1' },
+    signal: AbortSignal.timeout(12000),
+  })
+  if (head?.status !== 200 || head.headers?.has('content-range') ||
+    !/^image\/(?:webp|png|jpeg|avif)(?:;|$)/i.test(head.headers?.get('content-type') ?? '')) {
+    throw new Error(`published cover HEAD without Range expected HTTP 200 and image content, got HTTP ${head?.status ?? 'unknown'}`)
+  }
+  const totalSize = Number(head.headers.get('content-length'))
+  if (!Number.isSafeInteger(totalSize) || totalSize < 1) {
+    throw new Error('published cover HEAD returned invalid content length')
+  }
+
+  const range = await fetchImpl(url, {
+    method: 'GET',
+    redirect: 'error',
+    headers: {
+      range: 'bytes=0-0',
+      accept: 'image/*',
+      'user-agent': 'tonecos-cover-release-smoke/1',
+    },
+    signal: AbortSignal.timeout(12000),
+  })
+  try {
+    if (range?.status !== 206 ||
+      range.headers?.get('content-range') !== `bytes 0-0/${totalSize}` ||
+      range.headers?.get('content-length') !== '1') {
+      throw new Error(`published cover one-byte Range expected HTTP 206, got HTTP ${range?.status ?? 'unknown'}`)
+    }
+    return { ok: true, headStatus: 200, rangeStatus: 206 }
+  } finally {
+    // Headers establish the contract; cancel the streamed body immediately.
+    // Never consume a full R2 object during deployment checks.
+    await range?.body?.cancel().catch(() => undefined)
+  }
+}
+
 export async function verifyWorkerReleaseContract(apiBase, fetchImpl = fetch) {
   const base = String(apiBase ?? '').trim().replace(/\/$/, '')
   if (!/^https?:\/\//.test(base)) throw new Error('API base must be http(s)')
@@ -27,6 +83,7 @@ export async function verifyWorkerReleaseContract(apiBase, fetchImpl = fetch) {
   }
 
   const gallery = await verifyWorkerGalleryContract(base, fetchImpl)
+  const media = await verifyWorkerCoverHttpContract(base, gallery.coverStorageKey, fetchImpl)
 
   const shared = await fetchImpl(`${base}/api/shared-collections/TCL-AAAAAAAAAAAAAAAA`, {
     headers: {
@@ -48,6 +105,7 @@ export async function verifyWorkerReleaseContract(apiBase, fetchImpl = fetch) {
     categories: categories.items.length,
     recent: recent.items.length,
     gallery,
+    media,
     sharedCollections: true,
   }
 }
