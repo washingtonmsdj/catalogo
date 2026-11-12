@@ -35,7 +35,7 @@ FORMULA = re.compile(r"^[=+@-]")
 def valid_label(value: str, *, variant: bool = False) -> str:
     label = value.strip()
     limit = 160 if variant else 120
-    if (not label or len(label) > limit or BAD_TEXT.search(label)
+    if (not label or len(label) > limit or BAD_TEXT.search(value)
             or FORMULA.match(label) or "<" in label or ">" in label):
         raise ValueError("invalid_editorial_label")
     return label
