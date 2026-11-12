@@ -13,10 +13,7 @@ test('catalog Worker rejects cache-key flooding before D1 schema checks', () => 
     '/api/catalog?limit=000012',
     '/api/catalog?limit=61',
     '/api/catalog?cursor=invalid%25cursor',
-    '/api/catalog?q=ab',
-    '/api/catalog?q=' + 'x'.repeat(121),
     '/api/catalog?material=' + 'x'.repeat(121),
-    '/api/catalog?minHeight=0',
     '/api/catalog?category=with%2Fslash',
     '/api/recent?cursor=Ng%3D%3D',
     '/api/recent?limit=25',
@@ -32,6 +29,17 @@ test('catalog Worker rejects cache-key flooding before D1 schema checks', () => 
     '/media/mdl-ordinary/image/card.webp?x=1&x=2',
   ]
   for (const path of invalid) assert.equal(query(path), false, path)
+})
+
+test('legacy public error contracts survive before any D1 schema lookup', () => {
+  assert.deepEqual(query('/api/catalog?minHeight=0'), { error: 'invalid_height_range' })
+  assert.deepEqual(query('/api/catalog?minHeight=301'), { error: 'invalid_height_range' })
+  assert.deepEqual(query('/api/catalog?minHeight=61&maxHeight=60'), { error: 'invalid_height_range' })
+  assert.deepEqual(query('/api/catalog?q=ab'), { error: 'search_too_short', minLength: 3 })
+  assert.deepEqual(query('/api/catalog?q=' + 'x'.repeat(121)), {
+    error: 'search_too_long', maxLength: 120,
+  })
+  assert.deepEqual(query('/api/franchises?q=ab'), { error: 'search_too_short', minLength: 3 })
 })
 
 test('all canonical public catalog request variants remain accepted', () => {
@@ -67,7 +75,7 @@ test('non-catalog routes remain under the existing quote and shared-collection a
 test('D1 and R2 handlers reject cache-busting requests before storage access', () => {
   const index = fs.readFileSync(new URL('../worker/index.ts', import.meta.url), 'utf8')
   const entry = fs.readFileSync(new URL('../worker/entry.ts', import.meta.url), 'utf8')
-  const d1Guard = index.indexOf('validatePublicCatalogQuery(url) === false')
+  const d1Guard = index.indexOf('const budget = validatePublicCatalogQuery(url)')
   const schemaCheck = index.indexOf('const schema = await catalogSchemaStatus(env.DB)')
   assert.ok(d1Guard >= 0 && schemaCheck > d1Guard)
   assert.ok(index.includes("error: 'invalid_catalog_query'"))
