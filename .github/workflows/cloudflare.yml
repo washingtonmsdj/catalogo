@@ -36,6 +36,7 @@ concurrency:
 
 jobs:
   preflight:
+    if: ${{ false }} # Source publisher suspended: tonecosstudio/tonecosstudio is SSOT
     runs-on: ubuntu-latest
     outputs:
       ready: ${{ steps.readiness.outputs.ready }}
@@ -92,6 +93,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
+    if: ${{ false }} # Source publisher suspended at cutover
     needs: preflight
     if: ${{ needs.preflight.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
