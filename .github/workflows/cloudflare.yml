@@ -93,9 +93,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
-    if: ${{ false }} # Source publisher suspended at cutover
+    if: ${{ false }} # Source publisher suspended at cutover; M5 is not authorized
     needs: preflight
-    if: ${{ needs.preflight.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     environment: production
     env:
