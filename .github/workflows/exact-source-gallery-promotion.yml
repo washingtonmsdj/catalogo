@@ -37,6 +37,7 @@ env:
 jobs:
   promote:
     name: Exact-source gallery promotion gate
+    if: ${{ false }} # Retired source: D1/R2 promotion disabled pending TONART M5
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
