@@ -148,7 +148,7 @@ jobs:
   apply:
     name: Publish reviewed delta
     needs: preflight
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.apply == true }}
+    if: ${{ false }} # Retired source: production D1/R2 writes disabled pending TONART M5
     runs-on: ubuntu-latest
     environment: production
     steps:
