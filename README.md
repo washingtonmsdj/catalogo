@@ -1,5 +1,8 @@
 # Catálogo
 
+> **INCIDENTE ATIVO — 21/11/2026, NÃO PUBLICAR WORKER MANUALMENTE.** O backend público `tonecos-catalogo-api` está em D1 migration `0024`, sem `telegram_showcase_visible` da `0025`. Várias chamadas `wrangler deploy` executadas pela conta Tonecos (eventos auditados 10:35:56Z e 10:37:36Z) ativaram Worker v9 incompatível, causando HTTP 503. **PARE `wrangler deploy` nesta origem e não tente reimplantar após rollback.** Consulte `tonecosstudio/tonecosstudio/main`, `AGENTS.md` e `docs/CATALOGO-PUBLICO-TELEGRAM-SSOT.md` (seção 13). Migrar o D1 e promover Worker só depois da verificação M5, desativação administrativa de todos os writers históricos e GO específico. Não copiar D1/R2 nem divulgar rascunhos; o estado da Curadoria permanece salvo na origem existente.
+
+
 Catálogo web escalável para 100 mil+ modelos/personagens, com navegação inspirada em seletores de personagens de fliperama e interface limpa/industrial.
 
 **URL pública canônica:** https://acheguese.com.br/tonecosstudios/
