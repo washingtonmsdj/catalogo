@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "authorization": "GO-M5-0028-0033-20261125",
+  "intent": "retire-five-source-writers",
+  "target": "tonecosstudio/tonecosstudio",
+  "approvedTargetMergeCommit": "22a03ad4ba553d7e2a7c4640bff00e78ae4e13a6",
+  "singleUse": true,
+  "approvedOn": "2026-11-25",
+  "scope": "Disable the five retired GitHub Actions publishers in washingtonmsdj/catalogo; no D1, R2, Worker or Vercel changes."
+}
