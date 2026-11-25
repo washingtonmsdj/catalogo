@@ -18,7 +18,6 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/cloudflare.yml'
       - 'worker/**'
       - 'migrations/**'
       - 'wrangler.jsonc'
@@ -260,9 +259,7 @@ jobs:
   # One-time administrative retirement; not a deploy or another D1/R2 writer.
   m5-retire-source-writers:
     name: M5 retire five legacy production writers
-    if: >-
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'ops(m5): retire source catalog publishers'))
-      || (github.event_name == 'workflow_dispatch' && inputs.operation == 'm5-retire' && inputs.m5_ack == 'GO-M5-0028-0033-20261125')
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.operation == 'm5-retire' && inputs.m5_ack == 'GO-M5-0028-0033-20261125'
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
