@@ -18,6 +18,7 @@ on:
   push:
     branches: [main]
     paths:
+      - 'docs/evidence/m5-source-retirement-go-20261125.json'
       - 'worker/**'
       - 'migrations/**'
       - 'wrangler.jsonc'
@@ -259,7 +260,9 @@ jobs:
   # One-time administrative retirement; not a deploy or another D1/R2 writer.
   m5-retire-source-writers:
     name: M5 retire five legacy production writers
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.operation == 'm5-retire' && inputs.m5_ack == 'GO-M5-0028-0033-20261125'
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.operation == 'm5-retire' && inputs.m5_ack == 'GO-M5-0028-0033-20261125')
+      || (github.event_name == 'push' && github.ref == 'refs/heads/main' && github.event.head_commit.message == 'ops(m5): execute authorized source retirement')
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
@@ -268,6 +271,24 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
+      - name: Verify one-time audited owner GO commit
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          receipt="docs/evidence/m5-source-retirement-go-20261125.json"
+          commit="$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA")"
+          jq -e --arg receipt "$receipt" \
+            '(.files | length) == 1 and .files[0].filename == $receipt and .files[0].status == "added" and .commit.message == "ops(m5): execute authorized source retirement"' <<<"$commit" >/dev/null
+          payload="$(gh api "repos/$GITHUB_REPOSITORY/contents/$receipt?ref=$GITHUB_SHA" --jq '.content' | base64 -d)"
+          jq -e \
+            '.authorization == "GO-M5-0028-0033-20261125"
+              and .intent == "retire-five-source-writers"
+              and .target == "tonecosstudio/tonecosstudio"
+              and .approvedTargetMergeCommit == "22a03ad4ba553d7e2a7c4640bff00e78ae4e13a6"
+              and .singleUse == true' <<<"$payload" >/dev/null
+          gh api "repos/tonecosstudio/tonecosstudio/commits/22a03ad4ba553d7e2a7c4640bff00e78ae4e13a6" --jq .sha >/dev/null
+          echo "M5_RELEASE_RECEIPT_VERIFIED"
       - name: Verify target publisher exists and source is quiescent
         shell: bash
         run: |
