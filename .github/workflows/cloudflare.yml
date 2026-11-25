@@ -2,9 +2,23 @@ name: Deploy Cloudflare API
 
 on:
   workflow_dispatch:
+    inputs:
+      operation:
+        description: Retire the legacy source writers after the approved M5 GO
+        required: false
+        type: choice
+        options:
+          - none
+          - m5-retire
+        default: none
+      m5_ack:
+        description: Exact owner-approved M5 release scope
+        required: false
+        type: string
   push:
     branches: [main]
     paths:
+      - '.github/workflows/cloudflare.yml'
       - 'worker/**'
       - 'migrations/**'
       - 'wrangler.jsonc'
@@ -242,3 +256,61 @@ jobs:
           npx wrangler rollback "$PREVIOUS_WORKER_VERSION_ID"
           --message "automatic restore after failed deploy validation ${GITHUB_SHA}"
           --config .wrangler.deploy.jsonc
+
+  # One-time administrative retirement; not a deploy or another D1/R2 writer.
+  m5-retire-source-writers:
+    name: M5 retire five legacy production writers
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && startsWith(github.event.head_commit.message, 'ops(m5): retire source catalog publishers'))
+      || (github.event_name == 'workflow_dispatch' && inputs.operation == 'm5-retire' && inputs.m5_ack == 'GO-M5-0028-0033-20261125')
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Verify target publisher exists and source is quiescent
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = "washingtonmsdj/catalogo"
+          test "$GITHUB_REF" = "refs/heads/main"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq .workflow_id)" = 371358484
+          gh api repos/tonecosstudio/tonecosstudio/contents/scripts/catalog/m5-d1-bounded-release.mjs --jq .sha >/dev/null
+          target="$(gh api repos/tonecosstudio/tonecosstudio/contents/.github/workflows/quality.yml --jq .content | base64 -d)"
+          grep -Fq 'catalog-m5-d1-schema:' <<<"$target"
+          grep -Fq 'catalog-controlled-worker-release:' <<<"$target"
+          for id in 371358484 384544141 385740730 385342502 385318875; do
+            state="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$id" --jq .state)"
+            [[ "$state" == active || "$state" == disabled_manually ]] || exit 2
+          done
+          for status in running queued requested waiting pending; do
+            runs="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?status=$status&per_page=100")"
+            jq -e '.workflow_runs | length < 100' <<<"$runs" >/dev/null
+            jq -e --argjson self "$GITHUB_RUN_ID" \
+              '[.workflow_runs[] | select((.workflow_id == 371358484 or .workflow_id == 384544141 or .workflow_id == 385740730 or .workflow_id == 385342502 or .workflow_id == 385318875) and .id != $self)] | length == 0' \
+              <<<"$runs" >/dev/null
+          done
+      - name: Disable four dependent D1 and R2 writers first
+        shell: bash
+        run: |
+          set -euo pipefail
+          for id in 384544141 385740730 385342502 385318875; do
+            state="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$id" --jq .state)"
+            if [[ "$state" == active ]]; then
+              gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/$id/disable"
+            fi
+            test "$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/$id" --jq .state)" = disabled_manually
+          done
+      - name: Disable the original Worker workflow last
+        shell: bash
+        run: |
+          set -euo pipefail
+          state="$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/371358484" --jq .state)"
+          if [[ "$state" == active ]]; then
+            gh api -X PUT "repos/$GITHUB_REPOSITORY/actions/workflows/371358484/disable"
+          fi
+          test "$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/371358484" --jq .state)" = disabled_manually
+          echo 'M5_SOURCE_FIVE_WRITERS_DISABLED'
